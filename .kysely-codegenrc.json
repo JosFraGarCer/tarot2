@@ -1,0 +1,9 @@
+{
+  "dialect": "postgres",
+  "envFile": ".env",
+  "url": "env(DATABASE_URL)",
+  "outFile": "server/database/types.ts",
+  "defaultSchemas": ["public"],
+  "camelCase": false,
+  "logLevel": "info"
+}
