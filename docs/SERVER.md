@@ -1,8 +1,170 @@
+# Backend Server (Nuxt 4 + H3 + PostgreSQL + Kysely)
 
+This top section documents the server architecture, endpoints, utilities, middleware flow, and logging at a glance. A longer reference remains below.
 
-# Tarot Backend (/server) Technical Documentation
+## Overview
 
-This document describes the backend code under `/server`. It covers folder structure, dependencies, API endpoints, utilities, schemas, plugins, database typing, logging, and error handling. It is a developer reference for understanding how to extend and maintain the backend.
+- **Stack**
+  - Nuxt 4 server on H3 (Nitro-style handlers)
+  - PostgreSQL via Kysely (typed queries)
+  - Auth state on the client via Pinia store (`app/stores/user.ts`) and `useAuth` composable
+- **Plugins**
+  - `server/plugins/db.ts` → `globalThis.db` (Kysely + PostgresDialect)
+  - `server/plugins/logger.ts` → `globalThis.logger` (Pino)
+  - `server/plugins/auth.ts` → JWT helpers (`createToken`, `verifyToken`, `getUserFromEvent`)
+- **Env**
+  - `DATABASE_URL` (required)
+  - `JWT_SECRET` (required)
+  - `JWT_EXPIRES_IN` (default `1d`)
+
+## Directory Structure
+
+```
+server/
+  api/
+    auth/        # login, logout
+    user/        # users CRUD + me
+    role/        # roles CRUD
+    tag/         # translations + export/import/batch
+    world/       # export/import/batch
+    world_card/  # export/import/batch
+    arcana/      # export/import/batch
+    base_card/   # export/import/batch
+    card_type/   # export/import/batch
+    skill/       # export/import/batch
+    facet/       # export/import/batch
+    uploads/     # image uploads + sharp → avif
+    database/    # full DB export/import (JSON + SQL)
+  middleware/
+    00.auth.hydrate.ts
+    01.auth.guard.ts
+  plugins/
+    db.ts, logger.ts, auth.ts
+  utils/
+    response.ts, filters.ts, validate.ts, i18n.ts, users.ts, entityCrudHelpers.ts
+  database/
+    types.ts     # Kysely DB interface
+```
+
+## API Modules
+
+- **/api/auth/**
+  - `POST /api/auth/login` → sets HttpOnly `auth_token` cookie; returns `{ success, data: { token, user }, meta }`.
+  - `POST /api/auth/logout` → intended to clear cookie (see SECURITY.md note for current implementation status).
+- **/api/user/**
+  - `GET /api/user` (index), `POST /api/user` (create)
+  - `GET /api/user/:id`, `PATCH /api/user/:id`, `DELETE /api/user/:id`
+  - `GET /api/user/me` → current user with roles and merged permissions
+- **Entity modules ( world | world_card | arcana | base_card | card_type | skill | facet | tag )**
+  - CRUD: `index.get.ts`, `index.post.ts`, `[id].get.ts`, `[id].patch.ts`, `[id].delete.ts`
+  - Helpers: `export.get.ts`, `import.post.ts`, `batch.patch.ts`
+  - Backed by `utils/entityCrudHelpers.ts` (`exportEntities`, `importEntities`, `batchUpdateEntities`)
+- **/api/database/**
+  - `GET /api/database/export.json` → JSON dump by entity
+  - `POST /api/database/import.json` → best-effort import by entity
+  - `GET /api/database/export.sql` → SQL dump (DELETE + INSERT)
+  - `POST /api/database/import.sql` → best-effort restore (transaction, continues on statement errors)
+- **/api/uploads/**
+  - `POST /api/uploads?type=<bucket>` → validates image, strips EXIF, resizes (≤1600px), converts jpeg/png/webp to avif, stores under `public/img/<type>/`
+
+## Auth
+
+- **POST `/api/auth/login`** (`server/api/auth/login.post.ts`)
+  - Body: `{ identifier, password }`
+  - Sets HttpOnly `auth_token` cookie and returns `{ token, user }` envelope.
+- **POST `/api/auth/logout`** (`server/api/auth/logout.post.ts`)
+  - Note: present but currently returns a user profile payload; does not clear cookies. See SECURITY.md for the recommended behavior.
+
+## Users
+
+- Routes under singular path `/api/user/*`:
+  - `GET /api/user` (list), `POST /api/user` (create)
+  - `GET /api/user/:id`, `PATCH /api/user/:id`, `DELETE /api/user/:id`
+  - `GET /api/user/me` → current user with roles and merged permissions
+
+## Entities
+
+- Entity modules: `world`, `world_card`, `arcana`, `base_card`, `card_type`, `skill`, `facet`, `tag`.
+- Each exposes CRUD plus helpers:
+  - `export.get.ts` → `exportEntities`
+  - `import.post.ts` → `importEntities`
+  - `batch.patch.ts` → `batchUpdateEntities`
+- See `server/utils/entityCrudHelpers.ts` for helper behaviors and parameters.
+
+## Database
+
+- `GET /api/database/export.json` → JSON dump grouped by entity
+- `POST /api/database/import.json` → JSON import with per-entity counts and errors
+- `GET /api/database/export.sql` → SQL dump (DELETE + INSERT)
+- `POST /api/database/import.sql` → Best-effort SQL restore; continues on statement errors within a transaction
+
+## Uploads
+
+- `POST /api/uploads?type=<bucket>`
+  - Validates type/name and MIME, enforces 15MB max.
+  - Sharp optimization: resize to ≤1600px, rotate/strip EXIF, convert JPEG/PNG/WEBP → AVIF.
+  - Stores under `public/img/<type>/` and returns `{ success, type, filename, path, url }`.
+
+## Utilities
+
+- `utils/response.ts` → `createResponse(data, meta?)`, `withMeta(items, total, page, pageSize, search?)`
+- `utils/filters.ts` → `buildFilters(qb, { search, page, pageSize, sort, ... })` with whitelist sort validation
+- `utils/validate.ts` → `safeParseOrThrow(schema, input)` (Zod)
+- `utils/users.ts` → `mergePermissions(roles)`
+- `utils/entityCrudHelpers.ts` → `exportEntities`, `importEntities`, `batchUpdateEntities`
+- `utils/i18n.ts` → language helpers for translation fallbacks
+
+## Middleware Flow
+
+1) `00.auth.hydrate.ts`
+   - Reads `auth_token` cookie, verifies JWT, loads user + roles, merges permissions, sets `event.context.user`.
+2) `01.auth.guard.ts`
+   - Applies to `/api/*` except `POST /api/auth/login` and `POST /api/auth/logout`.
+   - 401 if unauthenticated; 403 when suspended; admins or `canManageUsers` bypass.
+
+## Logging
+
+- Global Pino logger exposed as `globalThis.logger`.
+- Typical fields: `{ page, pageSize, count, search, sort, direction, lang, timeMs, ... }` for lists; `{ id, timeMs }` for details; imports/exports include counts.
+
+## Example Requests
+
+- Login
+  ```bash
+  curl -sS -X POST http://localhost:3000/api/auth/login \
+    -H 'Content-Type: application/json' \
+    -d '{"identifier":"user@example.com","password":"secret"}'
+  ```
+  Response (shape):
+  ```json
+  {
+    "success": true,
+    "data": {
+      "token": "<jwt>",
+      "user": { "id": 1, "username": "user", "roles": [], "permissions": {} }
+    },
+    "meta": null
+  }
+  ```
+
+- Upload image
+  ```bash
+  curl -sS -X POST 'http://localhost:3000/api/uploads?type=cards' \
+    -F 'file=@/path/to/image.jpg'
+  ```
+  Response (shape):
+  ```json
+  { "success": true, "type": "cards", "filename": "...avif", "path": "cards/...avif", "url": "/img/cards/...avif" }
+  ```
+
+- Export entity
+  ```bash
+  curl -sS -X GET 'http://localhost:3000/api/tag/export' --cookie 'auth_token=<jwt>'
+  ```
+  Response (shape):
+  ```json
+  { "success": true, "data": { "tags": [ /* ... */ ] }, "meta": null }
+  ```
 
 ## Structure Overview
 
@@ -12,15 +174,15 @@ This document describes the backend code under `/server`. It covers folder struc
     - [index.get.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/tag/index.get.ts:0:0-0:0) (list)
     - [index.post.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/tag/index.post.ts:0:0-0:0) (create)
     - `[id].get.ts` (detail)
-    - `[id].put.ts` (update)
+    - `[id].patch.ts` (update)
     - `[id].delete.ts` (delete)
-  - Authentication: [auth/login.post.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/auth/login.post.ts:0:0-0:0), [auth/logout.post.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/auth/logout.post.ts:0:0-0:0), [users/me.get.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/users/me.get.ts:0:0-0:0)
+  - Authentication: [auth/login.post.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/auth/login.post.ts:0:0-0:0), [auth/logout.post.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/auth/logout.post.ts:0:0-0:0), [user/me.get.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/user/me.get.ts:0:0-0:0)
 - `server/plugins/`
   - Cross-cutting plugins (logger, db, auth helpers)
 - `server/utils/`
   - Cross-entity helpers: responses, filters, validation, i18n, error, user permission merging
 - `server/schemas/`
-  - Zod schemas by domain: users, roles, tags, etc.
+  - Zod schemas by domain: user, roles, tags, etc.
 - `server/database/`
   - Kysely DB types (DB interface for type-safe queries)
 
@@ -103,19 +265,19 @@ This is the developer reference for the backend code under `/server`. It documen
   - Pagination + sorting + search via `buildFilters`.
   - Global logger via `globalThis.logger`.
   - Global DB via `globalThis.db`.
-  - Authentication helpers (JWT) via [server/utils/auth.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/utils/auth.ts:0:0-0:0).
+  - Authentication helpers (JWT) via [server/plugins/auth.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/plugins/auth.ts:0:0-0:0).
 
 ---
 
 ## Project Structure
 
 - **server/api/**
-  - Route handlers grouped by resource, e.g. `world`, `world_card`, `arcana`, `base_card`, `skill`, `facet`, `users`, `roles`, `tag`, `auth`.
+  - Route handlers grouped by resource, e.g. `world`, `world_card`, `arcana`, `base_card`, `skill`, `facet`, `user`, `role`, `tag`, `auth`.
   - Each resource typically exposes:
     - [index.get.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/tag/index.get.ts:0:0-0:0): list with pagination/search/sorting/filters.
     - [index.post.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/api/tag/index.post.ts:0:0-0:0): create.
     - `[id].get.ts`: detail.
-    - `[id].put.ts`: update.
+    - `[id].patch.ts`: update.
     - `[id].delete.ts`: delete/soft delete (varies by entity).
 - **server/utils/**
   - `filters.ts`: pagination, sorting, search assembly.
@@ -123,7 +285,7 @@ This is the developer reference for the backend code under `/server`. It documen
   - `validate.ts`: `safeParseOrThrow` wrapper for Zod.
   - [i18n.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/utils/i18n.ts:0:0-0:0): language resolution (`lang|language|locale`).
   - `users.ts`: `mergePermissions`.
-  - [auth.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/utils/auth.ts:0:0-0:0): JWT helpers (`sign`, `verify`, [getTokenFromEvent](cci:1://file:///home/bulu/work/devel/tarot2/server/utils/auth.ts:18:0-24:1)).
+  - See [server/plugins/auth.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/plugins/auth.ts:0:0-0:0): JWT helpers (`createToken`, `verifyToken`, `getUserFromEvent`).
 - **server/schemas/**
   - Zod schemas used in API routes (`user.ts`, [role.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/schemas/role.ts:0:0-0:0), [tag.ts](cci:7://file:///home/bulu/work/devel/tarot2/server/schemas/tag.ts:0:0-0:0), ...).
 - **server/database/**
@@ -178,15 +340,14 @@ For brevity, only highlights differ per entity are listed.
   - Errors: 400 (validation), 401 (invalid credentials).
 
 - **POST /api/auth/logout**
-  - Clears `auth_token` cookie.
-  - Response: `{ success: true }`.
+  - Present but currently returns a user profile payload and does not clear cookies. See SECURITY.md for the recommended behavior.
 
-- **GET /api/users/me**
+- **GET /api/user/me**
   - Extracts/validates JWT.
   - Loads current user with roles and merged permissions.
   - Errors: 401 (missing/invalid token).
 
-### /api/users
+### /api/user
 
 - Purpose: CRUD for users; password hashing on create/update; role assignments; soft delete for `[id].delete.ts` (inactive).
 - List GET
@@ -197,19 +358,19 @@ For brevity, only highlights differ per entity are listed.
   - Enriched same as list item.
 - POST
   - Hashes password (bcrypt), inserts user and `user_roles`.
-- PUT
+- PATCH
   - Partial updates; optional password re-hash; transactional update + role reassignment.
 - DELETE
   - Soft delete: set inactive, remove roles.
 
-### /api/roles
+### /api/role
 
 - Purpose: CRUD over existing schema (Option A: only columns present).
 - Permissions: JSONB stored; parsed to object if string in DB.
 - List GET
   - Filters: `name`, `created_at` ranges (if applicable), `status` limited to existing fields.
   - Sorting: existing columns only (`created_at`, `modified_at`, `name`).
-- Detail/POST/PUT/DELETE
+- Detail/POST/PATCH/DELETE
   - Standard CRUD; DELETE is hard delete.
 
 ### /api/tag
@@ -225,7 +386,7 @@ For brevity, only highlights differ per entity are listed.
   - Same fields; includes `parent_name`.
 - POST
   - Transactionally create base tag and initial EN translation; `name` required.
-- PUT
+- PATCH
   - Transactionally update base fields and upsert translation in requested language; `name` required when inserting new translation.
 - DELETE
   - If `lang=en`: delete tag and all translations; otherwise delete only that translation.
@@ -385,15 +546,15 @@ Example (GET /api/world?tag_ids=1,5&lang=es)
 
 - **mergePermissions(roles[])**
   - Iterates role permissions, merges boolean flags with OR semantics into a single `permissions` object.
-  - Used by `/api/users` list/detail and auth login/me responses.
+  - Used by `/api/user` list/detail and auth login/me responses.
 
-### server/utils/auth.ts
+### server/plugins/auth.ts
 
-- **signJwt(payload, options?)**
-- **verifyJwt(token)**
-- **getTokenFromEvent(event)**
-  - Extracts from cookie `auth_token` or `Authorization: Bearer ...`.
-  - Throws controlled errors for invalid/missing tokens.
+- **createToken(payload)**
+- **verifyToken(token)**
+- **getUserFromEvent(event)**
+  - Extracts token from cookie `auth_token` or header `Authorization: Bearer ...`.
+  - Verifies token, loads user, enforces `status === 'active'`.
   - JWT secret from `process.env.JWT_SECRET`.
 
 ---
@@ -543,7 +704,7 @@ List tags with translations and parent name.
 - Notes
   - No tag aggregation here (this is the tag entity).
   - Create (`index.post`) inserts base + EN translation (transactional).
-  - Update (`[id].put`) upserts translation for requested language (transactional).
+  - Update (`[id].patch`) upserts translation for requested language (transactional).
   - Delete (`[id].delete`): if `lang=en`, deletes tag + translations; else deletes only translation.
 
 ---

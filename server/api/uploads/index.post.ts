@@ -121,21 +121,21 @@ export default defineEventHandler(async (event) => {
 
   if (shouldOptimize) {
     try {
-      optimizedBuffer = await sharp(file.data, { failOn: 'warning' })
-        .resize({
-          width: MAX_DIMENSION,
-          height: MAX_DIMENSION,
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .withMetadata({ orientation: undefined })
-        .avif({
-          lossless: false,
-          quality: 72, // 🔧 mejor balance visual/peso
-          effort: 4,
-          chromaSubsampling: '4:4:4',
-        })
-        .toBuffer()
+        optimizedBuffer = await sharp(file.data, { failOn: 'warning' })
+          .resize({
+            width: MAX_DIMENSION,
+            height: MAX_DIMENSION,
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+          .rotate() // corrige orientación y elimina metadatos EXIF
+          .avif({
+            lossless: false,
+            quality: 72,
+            effort: 4,
+            chromaSubsampling: '4:4:4',
+          })
+          .toBuffer()
 
       finalExtension = '.avif'
       finalFilename = `${base}-${timestamp}-${hash}${finalExtension}`

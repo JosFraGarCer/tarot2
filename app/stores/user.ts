@@ -1,17 +1,9 @@
 // /app/stores/user.ts
 import { defineStore, acceptHMRUpdate } from 'pinia'
-
-interface User {
-  id: number
-  username: string
-  email: string
-  image?: string | null
-  roles?: Array<{ id: number; name: string }>
-  permissions?: Record<string, boolean>
-}
+import type { UserDTO } from '@/types/api'
 
 interface UserState {
-  user: User | null
+  user: UserDTO | null
   token: string | null
   loading: boolean
   loggingOut: boolean
@@ -30,34 +22,28 @@ export const useUserStore = defineStore('user', {
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.user,
+    isAuthenticated: (state): boolean => !!state.user,
     permissions: (state) => state.user?.permissions ?? {},
   },
 
   actions: {
-    /** ✅ Set user object */
-    setUser(user: User | null) {
+    setUser(user: UserDTO | null) {
       this.user = user
       this.initialized = true
       this.error = null
     },
-
-    /** ✅ Set token value */
     setToken(token: string | null) {
       this.token = token
     },
-
-    /** ⚡ Mark loading/pending state */
     setLoading(value: boolean) {
       this.loading = value
     },
-
-    /** ⚡ Mark logout in progress */
     setLoggingOut(value: boolean) {
       this.loggingOut = value
     },
-
-    /** 🧹 Reset everything (on logout or error) */
+    setError(message: string | null) {
+      this.error = message
+    },
     logout() {
       this.user = null
       this.token = null
@@ -66,14 +52,7 @@ export const useUserStore = defineStore('user', {
       this.initialized = true
       this.error = null
     },
-
-    /** ❌ Handle errors */
-    setError(message: string | null) {
-      this.error = message
-    },
-
-    /** 🔐 Permission helper */
-    hasPermission(key: string) {
+    hasPermission(key: string): boolean {
       return !!this.permissions[key]
     },
   },

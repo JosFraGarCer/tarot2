@@ -1,32 +1,30 @@
 // /app/composables/auth/useAuth.ts
 import { computed } from 'vue'
 import { useUserStore } from '~/stores/user'
+import type { LoginResponse, MeResponse, UserDTO } from '@/types/api'
 
 export function useAuth() {
   const store = useUserStore()
 
   /** 🔐 Login user (by email or username) */
-  async function login(identifier: string, password: string) {
+  async function login(identifier: string, password: string): Promise<UserDTO> {
     store.setLoading(true)
     store.setError(null)
 
     try {
-      const { data, error } = await useFetch('/api/auth/login', {
+      const res = await $fetch<LoginResponse>('/api/auth/login', {
         method: 'POST',
         body: { identifier, password },
         credentials: 'include',
       })
 
-      if (error.value) throw error.value
-      if (!data.value) throw new Error('No data returned from login')
+      const { token, user } = res.data
+      if (!user) throw new Error('Invalid login response')
 
-      // Standard API envelope { success, data, meta }
-      const payload: any = (data.value as any).data ?? data.value
-      if (!payload?.user) throw new Error('Invalid login response shape')
+      store.setUser(user)
+      store.setToken(token)
 
-      store.setUser(payload.user)
-      store.setToken(payload.token ?? null)
-      return payload.user
+      return user
     } catch (err: any) {
       const msg =
         err?.data?.message ||
@@ -45,6 +43,7 @@ export function useAuth() {
     store.setError(null)
     try {
       await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+      // ⚠️ el backend aún no limpia cookie (ver SECURITY.md)
       store.logout()
     } catch (err: any) {
       const msg = err?.data?.message || err?.message || 'Logout failed'
@@ -55,14 +54,18 @@ export function useAuth() {
     }
   }
 
-  /** 👤 Fetch current user (hydrate from session cookie) */
-  async function fetchCurrentUser() {
+  /** 👤 Fetch current user (hydrate from cookie/JWT) */
+  async function fetchCurrentUser(): Promise<void> {
     store.setLoading(true)
     store.setError(null)
     try {
-      const data = await $fetch('/api/users/me', { credentials: 'include' })
-      const payload: any = (data as any).data ?? data
-      if (payload) store.setUser(payload)
+      const res = await $fetch<MeResponse>('/api/user/me', { credentials: 'include' })
+
+      if (res?.data) {
+        store.setUser(res.data)
+      } else {
+        store.logout()
+      }
     } catch (err: any) {
       store.logout()
       store.setError(err?.data?.message || err?.message || 'Session expired')
@@ -71,17 +74,13 @@ export function useAuth() {
     }
   }
 
-  const user = computed(() => store.user)
-  const isAuthenticated = computed(() => store.isAuthenticated)
-  const error = computed(() => store.error)
-
   return {
     login,
     logout,
     fetchCurrentUser,
-    user,
-    isAuthenticated,
-    error,
+    user: computed(() => store.user),
+    isAuthenticated: computed(() => store.isAuthenticated),
+    error: computed(() => store.error),
     loading: computed(() => store.loading),
     loggingOut: computed(() => store.loggingOut),
     hasPermission: store.hasPermission,

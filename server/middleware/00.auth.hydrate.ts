@@ -1,5 +1,6 @@
 // /server/middleware/00.auth.hydrate.ts
 import { defineEventHandler } from 'h3'
+import { sql } from 'kysely'
 import { verifyToken } from '../plugins/auth'
 import { mergePermissions } from '../utils/users'
 

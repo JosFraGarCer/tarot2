@@ -1,10 +1,10 @@
 // /app/composables/useUser.ts
 import { ref, computed } from 'vue'
 import { useUserStore } from '~/stores/user'
+import type { MeResponse } from '@/types/api'
 
 export function useUser() {
   const store = useUserStore()
-
   const loading = ref(false)
   const error = ref<Error | null>(null)
 
@@ -16,12 +16,11 @@ export function useUser() {
     loading.value = true
     error.value = null
     try {
-      const { data, error: fetchError } = await useFetch('/api/users/me', {
+      const res = await $fetch<MeResponse>('/api/user/me', {
         credentials: 'include',
       })
-      if (fetchError.value) throw fetchError.value
-      const payload: any = (data.value as any)?.data ?? data.value
-      if (payload) store.setUser(payload)
+      if (res?.data) store.setUser(res.data)
+      else store.logout()
     } catch (err: any) {
       error.value = err
       store.logout()
@@ -38,11 +37,10 @@ export function useUser() {
 
     try {
       const res = await $fetch(`/api/user/${store.user.id}`, {
-        method: 'PATCH', // ← cambiado de PUT a PATCH
+        method: 'PATCH',
         body: updates,
         credentials: 'include',
       })
-
       const payload: any = (res as any).data ?? res
       store.setUser(payload)
       return payload
@@ -53,7 +51,6 @@ export function useUser() {
       loading.value = false
     }
   }
-
 
   return {
     user,

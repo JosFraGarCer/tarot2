@@ -76,6 +76,7 @@ export default defineEventHandler(async (event) => {
       httpOnly: true,
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60, // 7 días
       path: '/',
     })
 

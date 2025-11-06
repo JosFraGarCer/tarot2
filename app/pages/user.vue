@@ -311,13 +311,16 @@ const errorMessage = computed(() => (error.value as any)?.data?.message || (erro
 
 const avatarSrc = computed(() => {
   const image = user.value?.image
-
-  if (!image) {
-    return undefined
-  }
-
-  return image.startsWith('img/') ? image : `img/${image}`
+  if (!image) return undefined
+  // Si empieza por "img/" o "/img/", lo usamos directo
+  if (image.startsWith('/img/')) return image
+  if (image.startsWith('img/')) return `/${image}`
+  // Si empieza por "avatars/", lo anteponemos correctamente
+  if (image.startsWith('avatars/')) return `/img/${image}`
+  // Fallback
+  return `/img/${image}`
 })
+
 
 const statusLabel = (status: string) => {
   switch (status) {
