@@ -171,9 +171,9 @@
             <div class="flex flex-wrap gap-2 pt-2">
               <template v-for="(v, key) in user.permissions" :key="key">
               <UBadge
+                v-if="v"
                 size="sm"
                 color="primary"
-                v-if="v"
               >
                 {{ key }}
               </UBadge>

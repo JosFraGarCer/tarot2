@@ -1,0 +1,68 @@
+<!-- app/components/manage/Modal/ConfirmDialog.vue -->
+<template>
+  <UModal v-model:open="internalOpen" :title="title" :ui="ui">
+    <template #body>
+      <p v-if="description" class="text-sm text-neutral-600 dark:text-neutral-300">
+        {{ description }}
+      </p>
+    </template>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UButton
+          color="neutral"
+          variant="soft"
+          :label="cancelLabel"
+          @click="handleCancel"
+        />
+        <UButton
+          :color="confirmColor"
+          :label="confirmLabel"
+          :loading="loading"
+          @click="handleConfirm"
+        />
+      </div>
+    </template>
+  </UModal>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import type { ButtonColor } from '@/types/ui'
+
+const props = withDefaults(defineProps<{
+  open: boolean
+  title: string
+  description?: string
+  confirmLabel: string
+  cancelLabel: string
+  loading?: boolean
+  confirmColor?: ButtonColor
+  ui?: Record<string, any>
+}>(), {
+  description: undefined,
+  loading: false,
+  confirmColor: 'error',
+  ui: undefined
+})
+
+const emit = defineEmits<{
+  (e: 'update:open', value: boolean): void
+  (e: 'confirm'): void
+  (e: 'cancel'): void
+}>()
+
+const internalOpen = computed({
+  get: () => props.open,
+  set: (value: boolean) => emit('update:open', value)
+})
+
+const handleCancel = () => {
+  emit('cancel')
+  emit('update:open', false)
+}
+
+const handleConfirm = () => {
+  emit('confirm')
+}
+</script>

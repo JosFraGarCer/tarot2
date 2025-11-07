@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
     if (body.arcana_id !== undefined) baseUpdate.arcana_id = body.arcana_id
     if (body.image !== undefined) baseUpdate.image = body.image ?? null
     if (body.status !== undefined) baseUpdate.status = body.status as CardStatus
+    if (body.is_active !== undefined) baseUpdate.is_active = body.is_active
 
     if (Object.keys(baseUpdate).length) {
       const res = await globalThis.db

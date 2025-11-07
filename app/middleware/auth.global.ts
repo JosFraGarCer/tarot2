@@ -13,7 +13,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const store = useUserStore()
 
   // 🧩 Hidratar usuario si no está cargado
-  if (!store.user && process.client) {
+  if (!store.user && import.meta.client) {
     try {
       await store.fetchCurrentUser?.()
     } catch (err) {

@@ -1,11 +1,15 @@
 <!-- app/components/manage/common/EntityActionsNew.vue -->
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from '#imports'
+import { useCardStatus } from '~/utils/status'
+
 const props = defineProps<{
   entity: { id: number; name?: string; code?: string; language_code?: string | null }
   entityLabel: string
   entityType: string
   onEdit?: (entity: any) => void
-  vertical?: boolean   // <-- nuevo prop
+  vertical?: boolean
   noTags?: boolean
 }>()
 
@@ -18,11 +22,16 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const localeCode = computed(() => (typeof locale === 'string' ? locale : locale.value))
+const statusUtil = useCardStatus()
+
+const statusMenu = computed(() => [
+  statusUtil.options().map(o => ({ label: t(o.labelKey), value: o.value }))
+])
 
 const containerClass = computed(() =>
   props.vertical
-    ? 'flex flex-col gap-1'                   // vertical: uno debajo del otro
-    : 'flex flex-row gap-1 justify-end flex-wrap items-center' // horizontal: gap-4
+    ? 'flex flex-col gap-1'
+    : 'flex flex-row gap-1 justify-end flex-wrap items-center'
 )
 </script>
 

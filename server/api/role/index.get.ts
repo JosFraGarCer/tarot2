@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     const q = getQuery(event)
     const { page, pageSize, q: search, search: search2 } = safeParseOrThrow(roleQuerySchema, q)
 
-    let base = globalThis.db
+    const base = globalThis.db
       .selectFrom('roles as r')
       .select([
         'r.id',

@@ -75,49 +75,85 @@ const entityConfigs = {
   cardType: {
     label: t('nav.cardTypes'),
     useCrud: useCardTypeCrud,
-    filters: { search: '', isActive: true },
+    filters: {
+      search: 'search',
+      status: 'status',
+      is_active: 'is_active'
+    },
     cardType: false,
     noTags: true
   },
   baseCard: {
     label: t('nav.baseCards'),
     useCrud: useBaseCardCrud,
-    filters: { search: '', isActive: true, cardTypeId: true, tagIds: true },
+    filters: {
+      search: 'search',
+      status: 'status',
+      is_active: 'is_active',
+      type: 'card_type_id',
+      tags: 'tag_ids'
+    },
     cardType: true,
     noTags: false
   },
   world: {
     label: t('nav.worlds'),
     useCrud: useWorldCrud,
-    filters: { search: '', isActive: true, tagIds: true },
+    filters: {
+      search: 'search',
+      status: 'status',
+      is_active: 'is_active',
+      tags: 'tag_ids'
+    },
     cardType: false,
     noTags: false
   },
   arcana: {
     label: t('nav.arcana'),
     useCrud: useArcanaCrud,
-    filters: { search: '', isActive: true, tagIds: true },
+    filters: {
+      search: 'search',
+      status: 'status',
+      is_active: 'is_active',
+      tags: 'tag_ids'
+    },
     cardType: false,
     noTags: false
   },
   facet: {
     label: t('nav.facets'),
     useCrud: useFacetCrud,
-    filters: { search: '', isActive: true, arcanaId: true, tagIds: true },
+    filters: {
+      search: 'search',
+      status: 'status',
+      is_active: 'is_active',
+      facet: 'arcana_id',
+      tags: 'tag_ids'
+    },
     cardType: false,
     noTags: false
   },
   skill: {
     label: t('nav.skills'),
     useCrud: useSkillCrud,
-    filters: { search: '', isActive: true, facetId: true, tagIds: true },
+    filters: {
+      search: 'search',
+      status: 'status',
+      is_active: 'is_active',
+      facet: 'facet_id',
+      tags: 'tag_ids'
+    },
     cardType: false,
     noTags: false
   },
   tag: {
     label: t('nav.tags'),
     useCrud: useTagCrud,
-    filters: { search: '', isActive: true, category: true, parentId: true },
+    filters: {
+      search: 'search',
+      is_active: 'is_active',
+      parent: 'parent_id'
+    },
     cardType: false,
     noTags: true
   }

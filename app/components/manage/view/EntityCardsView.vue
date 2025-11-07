@@ -29,7 +29,7 @@
             :entity="item"
             :entity-label="label"
             :entity-type="label"
-            :noTags="noTags"
+            :no-tags="noTags"
             @editform="() => emit('edit', item)"
             @feedback="() => emit('feedback', item)"
             @tags="() => emit('tags', item)"
@@ -40,15 +40,19 @@
 
       <template #default>
         <img
-          v-if="resolveImage(item.image || item.thumbnail_url)"
+          v-if="item.image"
           :src="resolveImage(item.image || item.thumbnail_url)"
           alt=""
           class="w-full h-36 object-cover rounded-md mb-3"
-        />
+        >
         <div class="flex items-center gap-2 mb-2">
-          <!-- <UBadge v-if="statusLabel(item)" :color="statusColor(item)" size="xs" variant="soft">
-            {{ statusLabel(item) }}
-          </UBadge> -->
+           <UBadge
+                  size="sm"
+                  :color="statusColor(item.status)"
+                  :variant="statusVariant(item.status)"
+                >
+                  {{ $t(statusLabelKey(item.status)) }}
+                </UBadge>
           <UBadge
             :color="isActive(item) ? 'primary' : 'neutral'"
             size="sm"
@@ -82,7 +86,7 @@
 <script setup lang="ts">
 import { useI18n } from '#imports'
 import EntityActions from '~/components/manage/EntityActions.vue'
-// import { useCardStatus } from '~/utils/publish'
+import { useCardStatus } from '~/utils/status'
 
 const props = defineProps<{
   crud: any
@@ -123,27 +127,24 @@ function langBadge(item: any): string | null {
   return lc !== String(locale.value) ? lc : null
 }
 
-// Use a flexible API from useCardStatus without relying on a specific signature.
-// const statusApi: any = (useCardStatus && typeof useCardStatus === 'function') ? useCardStatus() : null
+const statusUtil = useCardStatus()
+const statusOptions = statusUtil.options()
 
-// function statusLabel(item: any): string | null {
-//   try {
-//     return statusApi?.getStatusLabel?.(item)
-//       ?? statusApi?.label?.(item)
-//       ?? statusApi?.getLabel?.(item)
-//       ?? null
-//   } catch {
-//     return null
-//   }
-// }
-// function statusColor(item: any): string {
-//   try {
-//     return statusApi?.getStatusColor?.(item)
-//       ?? statusApi?.color?.(item)
-//       ?? statusApi?.getColor?.(item)
-//       ?? 'neutral'
-//   } catch {
-//     return 'neutral'
-//   }
-// }
+function getStatusMeta(value: string | null | undefined) {
+  if (!value) return null
+  return statusOptions.find(option => option.value === value) ?? null
+}
+
+function statusColor(value: string | null | undefined) {
+  return getStatusMeta(value)?.color ?? 'neutral'
+}
+
+function statusVariant(value: string | null | undefined) {
+  return getStatusMeta(value)?.variant ?? 'subtle'
+}
+
+function statusLabelKey(value: string | null | undefined) {
+  return getStatusMeta(value)?.labelKey ?? 'status.draft'
+}
+
 </script>

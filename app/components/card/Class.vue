@@ -42,7 +42,7 @@ const onImgError = (e: Event) => {
           loading="lazy"
           decoding="async"
           @error="onImgError"
-        />
+        >
       </div>
 
       <!-- Capa 4: Divider inferior -->
@@ -51,7 +51,7 @@ const onImgError = (e: Event) => {
         src="/img/divider/new_class_divider.png"
         alt=""
         aria-hidden="true"
-      />
+      >
 
       <!-- Capa 5: Cinta con gradiente y título (tipo de carta) -->
       <div

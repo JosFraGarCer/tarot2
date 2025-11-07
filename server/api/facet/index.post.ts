@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
         code: body.code,
         arcana_id: body.arcana_id,
         image: body.image ?? null,
+        ...(body.is_active !== undefined ? { is_active: body.is_active } : {}),
         ...(body.status !== undefined ? { status: body.status as CardStatus } : {}),
       })
       .returningAll()

@@ -10,7 +10,7 @@ export function useCardTypeCrud() {
       create: cardTypeCreateSchema,
       update: cardTypeUpdateSchema,
     },
-    filters: { search: '', isActive: true },
+    filters: { search: '', is_active: true },
     pagination: true,
   })
 }

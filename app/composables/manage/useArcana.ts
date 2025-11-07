@@ -10,7 +10,7 @@ export function useArcanaCrud() {
       create: arcanaCreateSchema,
       update: arcanaUpdateSchema,
     },
-    filters: { search: '', isActive: true, tagIds: true },
+    filters: { search: '', is_active: true, tag_ids: true },
     pagination: true,
   })
 }

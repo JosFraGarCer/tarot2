@@ -43,7 +43,7 @@ const onImgError = (e: Event) => {
             loading="lazy"
             decoding="async"
             @error="onImgError"
-          />
+          >
         </div>
         <img
           class="absolute -bottom-[23px] z-40 h-auto min-h-[79px] object-contain w-full"

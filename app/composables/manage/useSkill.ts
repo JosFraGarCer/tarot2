@@ -10,7 +10,7 @@ export function useSkillCrud() {
       create: skillCreateSchema,
       update: skillUpdateSchema,
     },
-    filters: { search: '', isActive: true, facetId: true, tagIds: true },
+    filters: { search: '', is_active: true, facet_id: true, tag_ids: true },
     pagination: true,
   })
 }

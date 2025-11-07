@@ -10,7 +10,7 @@ export function useFacetCrud() {
       create: facetCreateSchema,
       update: facetUpdateSchema,
     },
-    filters: { search: '', isActive: true, arcanaId: true, tagIds: true },
+    filters: { search: '', is_active: true, arcana_id: true, tag_ids: true },
     pagination: true,
   })
 }

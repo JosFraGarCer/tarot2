@@ -10,7 +10,7 @@ export function useWorldCrud() {
       create: worldCreateSchema,
       update: worldUpdateSchema,
     },
-    filters: { search: '', isActive: true, tagIds: true },
+    filters: { search: '', is_active: true, tag_ids: true },
     pagination: true,
   })
 }

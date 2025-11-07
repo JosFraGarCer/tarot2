@@ -110,7 +110,7 @@ export interface BaseCardList extends BaseCard {
 
 // Skill
 export interface Skill extends CoreCard, WithEffects {
-  card_type_id: number
+  facet_id: number
 }
 export type SkillCreate = Omit<Skill, 'id' | 'created_at' | 'modified_at'>
 export type SkillUpdate = Partial<SkillCreate>

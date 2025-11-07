@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
     if (body.code !== undefined) baseUpdate.code = body.code
     if (body.image !== undefined) baseUpdate.image = body.image ?? null
     if (body.status !== undefined) baseUpdate.status = body.status as CardStatus
+    if (body.is_active !== undefined) baseUpdate.is_active = body.is_active
 
     if (Object.keys(baseUpdate).length) {
       const res = await globalThis.db

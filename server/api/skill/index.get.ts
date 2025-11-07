@@ -6,12 +6,13 @@ import { safeParseOrThrow } from '../../utils/validate'
 import { buildFilters } from '../../utils/filters'
 import { getRequestedLanguage } from '../../utils/i18n'
 import { sql } from 'kysely'
+import { queryBoolean } from '../../utils/zod'
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   q: z.string().min(1).max(100).optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_active: queryBoolean.optional(),
   created_by: z.coerce.number().int().optional(),
   facet_id: z.coerce.number().int().optional(),
   status: z.string().optional(),
@@ -128,27 +129,26 @@ export default defineEventHandler(async (event) => {
     if (created_by !== undefined) base = base.where('s.created_by', '=', created_by)
     if (facet_id) base = base.where('s.facet_id', '=', facet_id)
 
-    // Tag filters (AND semantics)
+    // Tag filters (OR semantics)
     if (tagIdsArray && tagIdsArray.length > 0) {
-      base = base.where(sql`s.id in (
-        select tl.entity_id
+      base = base.where(sql`exists (
+        select 1
         from tag_links tl
-        where tl.entity_type = ${'skills'} and tl.tag_id = any(${tagIdsArray})
-        group by tl.entity_id
-        having count(distinct tl.tag_id) = ${tagIdsArray.length}
+        where tl.entity_type = ${'skills'}
+          and tl.entity_id = s.id
+          and tl.tag_id = any(${tagIdsArray})
       )`)
     }
     if (tagsLower && tagsLower.length > 0) {
-      base = base.where(sql`s.id in (
-        select tl.entity_id
+      base = base.where(sql`exists (
+        select 1
         from tag_links tl
         join tags t on t.id = tl.tag_id
         left join tags_translations tt_req on tt_req.tag_id = t.id and tt_req.language_code = ${lang}
         left join tags_translations tt_en on tt_en.tag_id = t.id and tt_en.language_code = 'en'
         where tl.entity_type = ${'skills'}
+          and tl.entity_id = s.id
           and lower(coalesce(tt_req.name, tt_en.name)) = any(${tagsLower})
-        group by tl.entity_id
-        having count(distinct tl.tag_id) = ${tagsLower.length}
       )`)
     }
 

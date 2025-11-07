@@ -10,7 +10,7 @@ export function useTagCrud() {
       create: tagCreateSchema,
       update: tagUpdateSchema,
     },
-    filters: { search: '', isActive: true, category: true, parentId: true },
+    filters: { search: '', is_active: true, parent_id: true },
     pagination: true,
   })
 }

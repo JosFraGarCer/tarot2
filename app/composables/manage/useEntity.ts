@@ -7,11 +7,11 @@ Generic SSR-safe CRUD composable for any entity.
   - Optional Zod validation for create/update
 */
 
-import { ref, computed, watch, watchEffect  } from 'vue'
+import { ref, computed, watch, watchEffect, reactive } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
 import type { z } from 'zod'
 import { useAsyncData, useI18n } from '#imports'
-import { useApiFetch } from '~/utils/fetcher'
+import { useApiFetch } from '@/utils/fetcher'
 const $fetch = useApiFetch
 
 // API response contract
@@ -51,6 +51,9 @@ interface PaginationState {
 function toErrorMessage(err: any): string {
   if (!err) return 'Unknown error'
   const anyErr = err as any
+  const status = anyErr?.status || anyErr?.response?.status
+  if (status === 401 || status === 403) return 'Not allowed to perform this action.'
+  if (status === 422) return anyErr?.data?.message || 'Validation error'
   return (
     anyErr?.data?.message ||
     anyErr?.message ||
@@ -63,7 +66,7 @@ function normalizeFilters(obj: Record<string, any>) {
   for (const [key, value] of Object.entries(obj)) {
     if (key === 'search' && typeof value !== 'string') continue
     if (value === '' || value === null || value === undefined || value === 'all') continue
-    if (value === true) continue // ⚠️ ignora flags true por defecto
+    if (Array.isArray(value) && value.length === 0) continue
     out[key] = value
   }
   return out
@@ -78,6 +81,19 @@ function pruneUndefined<T extends Record<string, any>>(obj: T): T {
   return out as T
 }
 
+function sanitizeInitialFilters(raw: Record<string, any>): Record<string, any> {
+  const sanitized: Record<string, any> = {}
+  for (const [key, value] of Object.entries(raw)) {
+    if (value === true) {
+      if (key.endsWith('_ids')) sanitized[key] = []
+      else sanitized[key] = undefined
+      continue
+    }
+    sanitized[key] = value
+  }
+  return sanitized
+}
+
 // Main composable
 export function useEntity<TList, TCreate, TUpdate>(
   options: EntityOptions<TList, TCreate, TUpdate>
@@ -87,7 +103,7 @@ export function useEntity<TList, TCreate, TUpdate>(
   const lang = locale as Ref<string>
 
   // Reactive filters & pagination setup
-  const filters = reactive<Record<string, any>>({ ...(options.filters || {}) })
+  const filters = reactive<Record<string, any>>(sanitizeInitialFilters(options.filters || {}))
   const defaultPage = 1
   const defaultPageSize = 20
   const initial = options.pagination && typeof options.pagination === 'object'
@@ -219,7 +235,9 @@ watchEffect(() => {
     error.value = null
     actionPending.value = true
     try {
-      const parsed = options.schema?.update ? options.schema.update.parse(payload) : payload
+      const parsed = options.schema?.update
+        ? (options.schema.update as any).partial().parse(payload)
+        : payload
       const res = await $fetch<ApiResponse<TList>>(`${options.resourcePath}/${id}`, {
         method: 'PATCH',
         params: { lang: lang.value },
@@ -255,6 +273,32 @@ watchEffect(() => {
     }
   }
 
+  // Update only the status field using PATCH
+  async function updateStatus(id: string | number, nextStatus: any) {
+    return update(id, { status: nextStatus } as unknown as TUpdate)
+  }
+
+  // Replace tag associations via tag_ids
+  async function updateTags(id: string | number, tagIds: number[]) {
+    error.value = null
+    actionPending.value = true
+    try {
+      const res = await $fetch<ApiResponse<TList>>(`${options.resourcePath}/${id}`, {
+        method: 'PATCH',
+        params: { lang: lang.value },
+        body: { tag_ids: tagIds } as any,
+      })
+      if (res?.success === false) throw new Error('Request failed')
+      await refresh()
+      return res.data
+    } catch (e) {
+      error.value = toErrorMessage(e)
+      throw e
+    } finally {
+      actionPending.value = false
+    }
+  }
+
   // Pagination helpers
   function nextPage() {
     pagination.value.page += 1
@@ -280,6 +324,8 @@ watchEffect(() => {
     loading,
     error,
     lang,
+    resourcePath: options.resourcePath,
+    schema: options.schema,
 
     // actions
     fetchList,
@@ -287,6 +333,8 @@ watchEffect(() => {
     create,
     update,
     remove,
+    updateStatus,
+    updateTags,
 
     // helpers
     nextPage,

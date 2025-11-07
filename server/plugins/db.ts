@@ -4,7 +4,7 @@ import { Pool } from 'pg'
 import type { DB } from '../database/types'
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var db: Kysely<DB>
 }
 

@@ -10,7 +10,7 @@ export function useBaseCardCrud() {
       create: baseCardCreateSchema,
       update: baseCardUpdateSchema,
     },
-    filters: { search: '', isActive: true, cardTypeId: true, tagIds: true },
+    filters: { search: '', is_active: true, card_type_id: true, tag_ids: true },
     pagination: true,
   })
 }

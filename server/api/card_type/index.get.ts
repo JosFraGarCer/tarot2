@@ -6,12 +6,13 @@ import { safeParseOrThrow } from '../../utils/validate'
 import { buildFilters } from '../../utils/filters'
 import { getRequestedLanguage } from '../../utils/i18n'
 import { sql } from 'kysely'
+import { queryBoolean } from '../../utils/zod'
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   q: z.string().min(1).max(100).optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_active: queryBoolean.optional(),
   created_by: z.coerce.number().int().optional(),
   status: z.string().optional(),
   lang: z.string().optional(),

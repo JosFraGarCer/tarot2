@@ -112,7 +112,7 @@ export async function exportEntities(opts: CrudHelperOptions) {
 
     const baseRows = await baseQ.execute()
 
-    let translationsByEntity: Record<string | number, Record<string, any>> = {}
+    const translationsByEntity: Record<string | number, Record<string, any>> = {}
     if (tr.hasTranslations) {
       const entityIds = baseRows.map((r: any) => r[idField]).filter((v) => v != null)
       if (entityIds.length) {
