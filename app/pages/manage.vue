@@ -1,11 +1,11 @@
-<!-- app/pages/manage.vue -->
+<!-- /app/pages/manage.vue -->
 <template>
   <div class="px-4">
     <UCard>
       <template #header>
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-            {{ $t('nav.manage') }} 
+            {{ t('nav.manage') }}
           </h1>
           <ViewControls
             v-model="viewMode"
@@ -18,16 +18,18 @@
 
       <UTabs v-model="selectedTab" :items="tabs" :unmount-on-hide="false">
         <template #content="{ item }">
-          {{ item }}
-          <!-- <ManageCardTypes v-if="item.value === 'cardTypes'" />
-          <ManageBaseCards v-else-if="item.value === 'baseCards'" />
-          <ManageWorlds v-else-if="item.value === 'worlds'" />
-          <ManageArcana v-else-if="item.value === 'arcana'" />
-          <ManageFacets v-else-if="item.value === 'facets'" />
-          <ManageSkills v-else-if="item.value === 'skills'" />
-          <div v-else-if="item.value === 'tags'" v-can="['canAssignTags']">
-            <ManageTags  />
-          </div> -->
+          <ManageEntity
+            v-if="currentConfig"
+            :key="selectedTab" 
+            :label="currentConfig.label"
+            :use-crud="currentConfig.useCrud"
+            :view-mode="viewMode"
+            :entity="item.value"
+            :filters-config="currentConfig.filters"
+            :card-type="currentConfig.cardType"
+            :no-tags="currentConfig.noTags"
+            @create="() => onCreateEntity(item.value)"
+          />
         </template>
       </UTabs>
     </UCard>
@@ -35,53 +37,97 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useI18n } from '#imports'
 import ViewControls from '~/components/manage/ViewControls.vue'
+import ManageEntity from '~/components/manage/EntityBase.vue'
 import { useManageView } from '~/composables/manage/useManageView'
-definePageMeta({
-  layout: 'default',
-})
 
+// Composables CRUD
+import { useWorldCrud } from '~/composables/manage/useWorld'
+import { useArcanaCrud } from '~/composables/manage/useArcana'
+import { useFacetCrud } from '~/composables/manage/useFacet'
+import { useSkillCrud } from '~/composables/manage/useSkill'
+import { useCardTypeCrud } from '~/composables/manage/useCardType'
+import { useBaseCardCrud } from '~/composables/manage/useBaseCard'
+import { useTagCrud } from '~/composables/manage/useTag'
+
+definePageMeta({ layout: 'default' })
 const { t } = useI18n()
+const { viewMode, templateKey, templateOptions } = useManageView()
 
-const { viewMode, templateKey } = useManageView()
+// Selected tab
+const selectedTab = ref<'cardType' | 'baseCard' | 'world' | 'arcana' | 'facet' | 'skill' | 'tag'>('cardType')
 
-const selectedTab = ref<'cardTypes' | 'baseCards' | 'worlds' | 'arcana' | 'facets' | 'skills' | 'tags'>('cardTypes')
-
+// Tab items
 const tabs = computed(() => [
-  {
-    label: t('nav.cardTypes'),
-    value: 'cardTypes',
-    icon: 'i-heroicons-squares-2x2'
-  },
-  {
-    label: t('nav.baseCards'),
-    value: 'baseCards',
-    icon: 'i-heroicons-rectangle-stack'
-  },
-  {
-    label: t('nav.worlds'),
-    value: 'worlds',
-    icon: 'i-heroicons-map'
-  },
-  {
-    label: t('nav.arcana'),
-    value: 'arcana',
-    icon: 'i-heroicons-sparkles'
-  },
-  {
-    label: t('nav.facets'),
-    value: 'facets',
-    icon: 'i-heroicons-beaker'
-  },
-  {
-    label: t('nav.skills'),
-    value: 'skills',
-    icon: 'i-heroicons-academic-cap'
-  },
-  {
-    label: t('nav.tags'),
-    value: 'tags',
-    icon: 'i-heroicons-tag'
-  }
+  { label: t('nav.cardTypes'), value: 'cardType', icon: 'i-heroicons-squares-2x2' },
+  { label: t('nav.baseCards'), value: 'baseCard', icon: 'i-heroicons-rectangle-stack' },
+  { label: t('nav.worlds'), value: 'world', icon: 'i-heroicons-map' },
+  { label: t('nav.arcana'), value: 'arcana', icon: 'i-heroicons-sparkles' },
+  { label: t('nav.facets'), value: 'facet', icon: 'i-heroicons-beaker' },
+  { label: t('nav.skills'), value: 'skill', icon: 'i-heroicons-academic-cap' },
+  { label: t('nav.tags'), value: 'tag', icon: 'i-heroicons-tag' }
 ])
+
+// Configuración por entidad
+const entityConfigs = {
+  cardType: {
+    label: t('nav.cardTypes'),
+    useCrud: useCardTypeCrud,
+    filters: { search: '', isActive: true },
+    cardType: false,
+    noTags: true
+  },
+  baseCard: {
+    label: t('nav.baseCards'),
+    useCrud: useBaseCardCrud,
+    filters: { search: '', isActive: true, cardTypeId: true, tagIds: true },
+    cardType: true,
+    noTags: false
+  },
+  world: {
+    label: t('nav.worlds'),
+    useCrud: useWorldCrud,
+    filters: { search: '', isActive: true, tagIds: true },
+    cardType: false,
+    noTags: false
+  },
+  arcana: {
+    label: t('nav.arcana'),
+    useCrud: useArcanaCrud,
+    filters: { search: '', isActive: true, tagIds: true },
+    cardType: false,
+    noTags: false
+  },
+  facet: {
+    label: t('nav.facets'),
+    useCrud: useFacetCrud,
+    filters: { search: '', isActive: true, arcanaId: true, tagIds: true },
+    cardType: false,
+    noTags: false
+  },
+  skill: {
+    label: t('nav.skills'),
+    useCrud: useSkillCrud,
+    filters: { search: '', isActive: true, facetId: true, tagIds: true },
+    cardType: false,
+    noTags: false
+  },
+  tag: {
+    label: t('nav.tags'),
+    useCrud: useTagCrud,
+    filters: { search: '', isActive: true, category: true, parentId: true },
+    cardType: false,
+    noTags: true
+  }
+} as const
+
+// Config actual según pestaña
+const currentConfig = computed(() => entityConfigs[selectedTab.value])
+
+// Acción crear
+function onCreateEntity(type: string) {
+  console.log('Create new entity:', type)
+}
 </script>

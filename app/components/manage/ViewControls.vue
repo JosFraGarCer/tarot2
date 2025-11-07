@@ -19,6 +19,15 @@
         @click="setMode('tarjeta')"
       />
     </UTooltip>
+    <UTooltip :text="$t('view.card')">
+      <UButton
+        icon="i-heroicons-view-columns"
+        size="md"
+        :variant="modelValue === 'tarjeta2' ? 'solid' : 'soft'"
+        color="neutral"
+        @click="setMode('tarjeta2')"
+      />
+    </UTooltip>
     <UTooltip :text="$t('view.carta')">
       <UButton
         icon="i-heroicons-rectangle-stack"
@@ -45,7 +54,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
-export type ViewMode = 'tarjeta' | 'carta' | 'tabla'
+export type ViewMode = 'tarjeta' | 'tarjeta2' | 'carta' | 'tabla'
 
 const props = defineProps<{
   modelValue: ViewMode
