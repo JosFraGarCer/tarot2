@@ -1,8 +1,18 @@
 // /app/composables/manage/useCardType.ts
-import { useEntity } from '~/composables/manage/useEntity'
+import { useEntity, type EntityFilterConfig } from '~/composables/manage/useEntity'
 import type { ManageCrud } from '@/types/manage'
 import { cardTypeCreateSchema, cardTypeUpdateSchema } from '~/schemas/entities/cardtype'
 import type { CardTypeList, CardTypeCreate, CardTypeUpdate } from '@/types/entities'
+
+export const cardTypeFilterConfig: EntityFilterConfig = {
+  search: 'search',
+  is_active: 'is_active',
+}
+
+export const cardTypeFilters = {
+  search: '',
+  is_active: true,
+}
 
 export function useCardTypeCrud(): ManageCrud<CardTypeList, CardTypeCreate, CardTypeUpdate> {
   return useEntity<CardTypeList, CardTypeCreate, CardTypeUpdate>({
@@ -11,7 +21,8 @@ export function useCardTypeCrud(): ManageCrud<CardTypeList, CardTypeCreate, Card
       create: cardTypeCreateSchema,
       update: cardTypeUpdateSchema,
     },
-    filters: { search: '', is_active: true },
+    filters: cardTypeFilters,
+    filterConfig: cardTypeFilterConfig,
     pagination: true,
   })
 }

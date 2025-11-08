@@ -51,12 +51,12 @@ export type CoreCardList = BaseEntity & Partial<WithTranslation>
 //
 // 🏗️ Utilitarios CRUD
 //
-export type CoreCardCreate = Omit<BaseEntity, 'id' | 'created_at' | 'modified_at'> &
+export type CoreCardCreate =
+  Omit<BaseEntity, 'id' | 'created_at' | 'modified_at' | 'is_active' | 'status'> &
+  { is_active?: boolean; status?: CoreCardStatus } &
   Required<Pick<WithTranslation, 'name'>> &
   Partial<WithTranslation> &
-  Partial<WithEffects> & {
-    status?: CoreCardStatus
-  }
+  Partial<WithEffects>
 
 export type CoreCardUpdate = Partial<Omit<CoreCardCreate, 'name'>> &
   Pick<CoreCardCreate, 'name'>
@@ -88,7 +88,10 @@ export interface Facet extends CoreCard, WithEffects {
   arcana_id: number
   arcana_is_active?: boolean | null
 }
-export type FacetCreate = Omit<Facet, 'id' | 'created_at' | 'modified_at'>
+export type FacetCreate = CoreCardCreate & {
+  arcana_id: number
+  arcana_is_active?: boolean | null
+}
 export type FacetUpdate = Partial<FacetCreate>
 export interface FacetList extends Facet {
   arcana_code?: string | null
@@ -100,7 +103,9 @@ export interface FacetList extends Facet {
 export interface BaseCard extends CoreCard, WithEffects {
   card_type_id: number
 }
-export type BaseCardCreate = Omit<BaseCard, 'id' | 'created_at' | 'modified_at'>
+export type BaseCardCreate = CoreCardCreate & {
+  card_type_id: number
+}
 export type BaseCardUpdate = Partial<BaseCardCreate>
 export interface BaseCardList extends BaseCard {
   card_type_code?: string | null
@@ -112,7 +117,9 @@ export interface BaseCardList extends BaseCard {
 export interface Skill extends CoreCard, WithEffects {
   facet_id: number
 }
-export type SkillCreate = Omit<Skill, 'id' | 'created_at' | 'modified_at'>
+export type SkillCreate = CoreCardCreate & {
+  facet_id: number
+}
 export type SkillUpdate = Partial<SkillCreate>
 export interface SkillList extends Skill {
   facet_code?: string | null

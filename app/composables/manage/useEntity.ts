@@ -11,7 +11,7 @@ import { ref, computed, watch, watchEffect, reactive, onMounted, onUnmounted, sh
 import type { Ref, ComputedRef } from 'vue'
 import type { z } from 'zod'
 import { useAsyncData, useI18n } from '#imports'
-import { useApiFetch } from '@/utils/fetcher'
+import { useApiFetch, clearApiFetchCache } from '@/utils/fetcher'
 import { usePaginatedList } from '~/composables/manage/usePaginatedList'
 const $fetch = useApiFetch
 
@@ -31,6 +31,8 @@ interface ApiResponse<T> {
 }
 
 // Options accepted by the generic entity composable
+export type EntityFilterConfig = Record<string, string | true>
+
 export interface EntityOptions<TList, TCreate, TUpdate> {
   resourcePath: string
   schema?: {
@@ -38,6 +40,7 @@ export interface EntityOptions<TList, TCreate, TUpdate> {
     update?: z.ZodType<TUpdate>
   }
   filters?: Record<string, any>
+  filterConfig?: EntityFilterConfig
   pagination?: boolean | { page: number; pageSize: number }
   pageSizeOptions?: number[]
 }
@@ -53,6 +56,7 @@ export interface EntityCrud<TList, TCreate, TUpdate> {
   items: Ref<TList[]>
   current: Ref<TList | null>
   filters: Record<string, any>
+  filterConfig: EntityFilterConfig
   pagination: Ref<PaginationState>
   pageSizeOptions: ComputedRef<number[]>
   loading: ComputedRef<boolean>
@@ -119,6 +123,23 @@ function sanitizeInitialFilters(raw: Record<string, any>): Record<string, any> {
     sanitized[key] = value
   }
   return sanitized
+}
+
+function normalizeFilterConfig(raw?: EntityFilterConfig | Record<string, any>): EntityFilterConfig {
+  if (!raw) return {}
+  const normalized: EntityFilterConfig = {}
+  for (const [alias, target] of Object.entries(raw)) {
+    if (typeof target === 'string' && target.length) {
+      normalized[alias] = target
+    } else if (target === true) {
+      normalized[alias] = true
+    }
+  }
+  return normalized
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 type GenericMeta = Partial<ApiMeta> & Record<string, any>
@@ -272,6 +293,7 @@ export function useEntity<TList, TCreate, TUpdate>(
 
   // Reactive filters & pagination setup
   const filters = reactive<Record<string, any>>(sanitizeInitialFilters(options.filters || {}))
+  const filterConfig = normalizeFilterConfig(options.filterConfig)
   const defaultPage = 1
   const defaultPageSize = 20
   const initial = options.pagination && typeof options.pagination === 'object'
@@ -359,6 +381,14 @@ export function useEntity<TList, TCreate, TUpdate>(
 
   // In-memory SWR cache
   const listCache: Map<string, any> = new Map()
+
+  function invalidateDeckCaches() {
+    if (!process.client) return
+    if (!options.resourcePath) return
+    const escaped = escapeRegExp(options.resourcePath.replace(/^\/api/, ''))
+    const pattern = new RegExp(`^GET:${escaped}`)
+    clearApiFetchCache({ pattern })
+  }
 
   const { data: listData, pending: listPending, error: listErr, refresh } =
     useAsyncData<NormalizedListResponse<TList>>(listKey, async () => {
@@ -470,6 +500,7 @@ export function useEntity<TList, TCreate, TUpdate>(
         body: { lang: 'en', ...(parsed as any) },
       })
       if (res?.success === false) throw new Error('Request failed')
+      invalidateDeckCaches()
       return res.data
     } catch (e) {
       actionError.value = toErrorMessage(e)
@@ -493,6 +524,7 @@ export function useEntity<TList, TCreate, TUpdate>(
         body: parsed as any,
       })
       if (res?.success === false) throw new Error('Request failed')
+      invalidateDeckCaches()
       return res.data
     } catch (e) {
       actionError.value = toErrorMessage(e)
@@ -512,6 +544,7 @@ export function useEntity<TList, TCreate, TUpdate>(
         params: { lang: lang.value },
       })
       if (res?.success === false) throw new Error('Request failed')
+      invalidateDeckCaches()
       await refresh()
       return true
     } catch (e) {
@@ -538,6 +571,7 @@ export function useEntity<TList, TCreate, TUpdate>(
         body: { tag_ids: tagIds } as any,
       })
       if (res?.success === false) throw new Error('Request failed')
+      invalidateDeckCaches()
       await refresh()
       return res.data
     } catch (e) {
@@ -576,6 +610,7 @@ export function useEntity<TList, TCreate, TUpdate>(
     items,
     current,
     filters,
+    filterConfig,
     pagination,
     pageSizeOptions: paginated.options,
     loading,

@@ -21,7 +21,7 @@
 
     <ManageEntityFilters
       :crud="crud"
-      :config="filtersConfig"
+      :config="filtersConfig ?? crud.filterConfig"
       :label="label"
       :no-tags="noTags"
       :card-type="cardType"
@@ -187,6 +187,7 @@ import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 import { useManageFilters } from '~/composables/manage/useManageFilters'
 import { useManageColumns } from '~/composables/manage/useManageColumns'
 import { useManageActions } from '~/composables/manage/useManageActions'
+import type { EntityFilterConfig } from '~/composables/manage/useEntity'
 
 type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
@@ -196,14 +197,13 @@ const props = withDefaults(defineProps<{
   viewMode: ManageViewMode
   entity: string
   templateKey?: string
-  filtersConfig?: Record<string, boolean>
+  filtersConfig?: EntityFilterConfig
   columns?: any[]
   cardType?: boolean
   noTags?: boolean
   pageSizeItems?: Array<{ label: string; value: number }>
   onCreate?: () => void
 }>(), {
-  filtersConfig: () => ({}),
   columns: () => [],
   cardType: false,
   noTags: false,
@@ -218,8 +218,10 @@ const toast = useToast?.() as any
 
 const crud = props.useCrud()
 
+const resolvedFilterConfig = computed(() => props.filtersConfig ?? (crud?.filterConfig ?? {}))
+
 const { initializeDefaults, resetFilters } = useManageFilters(crud as any, {
-  config: props.filtersConfig,
+  config: resolvedFilterConfig.value,
   fetchOnReset: true,
 })
 

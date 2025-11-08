@@ -89,18 +89,18 @@ import { useI18n, useLazyAsyncData } from '#imports'
 import { useApiFetch } from '~/utils/fetcher'
 import { useCardStatus } from '~/utils/status'
 import type { ManageCrud } from '@/types/manage'
+import type { EntityFilterConfig } from '~/composables/manage/useEntity'
 
 type FilterKey = 'search' | 'tags' | 'facet' | 'type' | 'status' | 'is_active' | 'parent'
 
 const props = withDefaults(defineProps<{
   crud: ManageCrud
-  config?: Record<string, any>
+  config?: EntityFilterConfig
   label: string
   noTags?: boolean
   cardType?: boolean
   onCreate?: () => void
 }>(), {
-  config: () => ({}),
   noTags: false,
   cardType: false,
   onCreate: undefined
@@ -109,22 +109,24 @@ const props = withDefaults(defineProps<{
 const { t, locale } = useI18n()
 const statusUtil = useCardStatus()
 
+const activeConfig = computed<EntityFilterConfig>(() => props.config ?? props.crud.filterConfig)
+
 const show = computed(() => ({
-  search: Boolean(props.config?.search),
-  tags: Boolean(props.config?.tags),
-  facet: Boolean(props.config?.facet),
-  type: Boolean(props.config?.type),
-  status: Boolean(props.config?.status),
-  is_active: Boolean(props.config?.is_active ?? (props.config as any)?.isActive),
-  parent: Boolean(props.config?.parent ?? props.config?.parent_id)
+  search: Boolean(activeConfig.value?.search),
+  tags: Boolean(activeConfig.value?.tags),
+  facet: Boolean(activeConfig.value?.facet),
+  type: Boolean(activeConfig.value?.type),
+  status: Boolean(activeConfig.value?.status),
+  is_active: Boolean(activeConfig.value?.is_active ?? (activeConfig.value as any)?.isActive),
+  parent: Boolean(activeConfig.value?.parent ?? activeConfig.value?.parent_id)
 }))
 
 function resolveKey(name: FilterKey): string {
-  const raw = (props.config ?? {})[name]
+  const raw = activeConfig.value?.[name]
   if (typeof raw === 'string' && raw.length) return raw
   if (raw === true) return name
   if (name === 'is_active') {
-    const legacy = (props.config as any)?.isActive
+    const legacy = (activeConfig.value as any)?.isActive
     if (legacy) return 'is_active'
   }
   return name
@@ -186,6 +188,9 @@ function useFilterBinding(keyRef: { value: string }, options: FilterBindingOptio
       const key = keyRef.value
       if (!key) return multi ? [] : null
       const raw = props.crud.filters?.[key]
+      
+      
+      
       if (multi) {
         const arr = normalizeArrayValue(raw)
         return normalize ? normalize(arr) : arr

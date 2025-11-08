@@ -30,13 +30,13 @@ const commonOptional = {
 export const skillCreateSchema = z.object({
   code: z.string().min(1),
   name: z.string().min(1),
-  card_type_id: z.number().int(),
+  facet_id: z.number().int(),
   ...commonOptional,
 })
 
 export const skillUpdateSchema = z.object({
   name: z.string().min(1),
   code: z.string().min(1).optional(),
-  card_type_id: z.number().int().optional(),
+  facet_id: z.number().int().optional(),
   ...commonOptional,
 })

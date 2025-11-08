@@ -1,8 +1,8 @@
-import { unref } from 'vue'
 import type { AnyManageCrud } from '@/types/manage'
+import type { EntityFilterConfig } from './useEntity'
 
 export interface ManageFiltersOptions {
-  config?: Record<string, any>
+  config?: EntityFilterConfig
   multiFilterAliases?: string[]
   fetchOnReset?: boolean
 }
@@ -12,7 +12,7 @@ export interface ManageFiltersApi {
   resetFilters: () => void
 }
 
-function buildAliasMap(config: Record<string, any> | undefined) {
+function buildAliasMap(config: EntityFilterConfig | undefined) {
   const aliasByApiKey = new Map<string, string>()
   if (!config) return aliasByApiKey
   for (const [alias, target] of Object.entries(config)) {
@@ -26,7 +26,7 @@ function buildAliasMap(config: Record<string, any> | undefined) {
 }
 
 export function useManageFilters(crud: AnyManageCrud, options: ManageFiltersOptions = {}): ManageFiltersApi {
-  const config = options.config ?? {}
+  const config = options.config ?? crud?.filterConfig ?? {}
   const aliasByApiKey = buildAliasMap(config)
   const multiAliases = new Set(options.multiFilterAliases ?? ['tags'])
   const fetchOnReset = options.fetchOnReset ?? true
