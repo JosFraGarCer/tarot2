@@ -1,4 +1,6 @@
 # Informe de Auditoría: /manage y /deck/*
+
+> ### Prompt del informe
 > Debes hacer informes exhaustivo en formato MarkDown que guardaras en /docs
 > Se trata de buscar errores, posibles optimizaciones, analisis minicioso de las paginas solicitadas yTODAS sus dependencias. Tanto frontend como backend
 >
@@ -49,6 +51,11 @@
   2. Implementar `fetchOnce`/`useAsyncData` en `DeckSection` para SSR y caching predictivo.
   3. Evitar side-effects en composables al instanciar (e.g., mover reset de paginación a momento explícito).
 
+> ### Resumen 
+> useDeckCrud  ahora reutiliza instancias por entidad mediante un Map compartido, evita reinicios de paginación al montar el composable y expone un helper explícito resetPagination() para quienes lo necesiten app/composables/deck/useDeckCrud.ts.
+DeckSection ejecuta useAsyncData con clave dependiente de entidad/idioma para precargar datos en SSR, respeta la caché devuelta por 
+useDeckCrud y combina el estado pending inicial con el loading del CRUD antes de renderizar app/components/deck/DeckSection.vue.
+
 ### 4. Manejo inconsistente de filtros de tags entre entidades
 
 - Backends de `world`, `arcana`, `facet`, `skill`, `base_card` aplican OR contra tags, mientras `base_card` permite AND via `ANY` (tag_ids) pero sin garantías. @server/api/base_card/index.get.ts#132-153 vs @server/api/arcana/index.get.ts#120-141
@@ -60,7 +67,7 @@
 - Tabs utilizan `labelKey` y `descriptionKey`, pero `DeckEntityPage` no pasa `description-key` al componente `DeckSection`, lo que impide mostrar descripciones localizadas dentro de la sección. @app/components/deck/DeckEntityPage.vue#12-19
 - Claves `card-types.title`, `base_card.title` deben validarse en `i18n/locales`. Se detecta posible inconsistencia `nav.cardTypes` vs `card-types.title` (ingles/español). Requiere QA manual.
 
-### 6. Gestión de estado de modales
+### [x] 6. Gestión de estado de modales
 
 - `useEntityModals` manipula `modalFormState` mutando referencias directamente, con resets manuales. No existe validación antes de envío en front (dependen sólo de Zod en backend). @app/composables/manage/useEntityModals.ts#20-121
 - Recomendación: extraer `useFormState(initialSchema)` que produzca estado controlado y ofrezca helpers (`reset`, `patch`, `setDirty`). Podría alinear con libs externas (vee-validate).
