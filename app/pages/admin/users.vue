@@ -7,13 +7,21 @@
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">
             {{ t('nav.manageUsers') }}
           </h1>
+          <ViewControls
+            v-model="viewMode"
+            v-model:template-key="templateKey"
+            class="shrink-0"
+            :template-options="templateOptions as any"
+            storage-key="admin-users"
+          />
         </div>
       </template>
 
       <EntityBase
         :label="t('nav.manageUsers')"
         :use-crud="useAdminUsersCrud"
-        view-mode="tabla"
+        :view-mode="viewMode"
+        :template-key="templateKey"
         entity="user"
         :filters-config="filtersConfig"
         :columns="columns"
@@ -31,10 +39,17 @@ import EntityBase from '~/components/manage/EntityBase.vue'
 import { useAdminUsersCrud } from '~/composables/admin/useUsers'
 import type { TableColumn } from '@nuxt/ui'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
+import ViewControls from '~/components/manage/ViewControls.vue'
+import { useManageView } from '~/composables/manage/useManageView'
 
 definePageMeta({ layout: 'default' })
 
 const { t } = useI18n()
+const { viewMode, templateKey, templateOptions } = useManageView({ storageKey: 'admin-users' })
+
+if (viewMode.value !== 'classic') {
+  viewMode.value = 'classic'
+}
 
 const filtersConfig = {
   search: 'search',

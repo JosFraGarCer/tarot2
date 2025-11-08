@@ -1,9 +1,15 @@
 <!-- app/pages/deck/index.vue -->
 <template>
-    <div class="max-w-4xl mx-auto">
-      <UCard>
-        <h1>Base Card</h1>
-      </UCard>
-    </div>
+  <DeckEntityPage
+    entity="baseCard"
+    title-key="nav.baseCards"
+    label-key="base_card.title"
+    description-key="deck.baseCardsDescription"
+  />
 </template>
 
+<script setup lang="ts">
+import DeckEntityPage from '@/components/deck/DeckEntityPage.vue'
+
+definePageMeta({ layout: 'default' })
+</script>

@@ -1,9 +1,15 @@
-<!-- app/pages/deck/index.vue -->
+<!-- app/pages/deck/skills.vue -->
 <template>
-    <div class="max-w-4xl mx-auto">
-      <UCard>
-        <h1>Skills</h1>
-      </UCard>
-    </div>
+  <DeckEntityPage
+    entity="skill"
+    title-key="nav.skills"
+    label-key="skills.title"
+    description-key="deck.skillsDescription"
+  />
 </template>
 
+<script setup lang="ts">
+import DeckEntityPage from '@/components/deck/DeckEntityPage.vue'
+
+definePageMeta({ layout: 'default' })
+</script>

@@ -1,6 +1,6 @@
 // /app/stores/user.ts
 import { defineStore, acceptHMRUpdate } from 'pinia'
-import type { UserDTO } from '@/types/api'
+import type { MeResponse, UserDTO } from '@/types/api'
 
 interface UserState {
   user: UserDTO | null
@@ -43,6 +43,42 @@ export const useUserStore = defineStore('user', {
     },
     setError(message: string | null) {
       this.error = message
+    },
+    async fetchCurrentUser() {
+      if (this.loading) return null
+
+      this.loading = true
+      this.error = null
+
+      try {
+        const res = await $fetch<MeResponse>('/api/user/me', {
+          credentials: 'include',
+        })
+
+        const payload = (res as any)?.data ?? (res as any)
+
+        if (payload) {
+          this.setUser(payload as UserDTO)
+          return payload as UserDTO
+        }
+
+        this.logout()
+        return null
+      } catch (err: any) {
+        this.logout()
+
+        // 401 sin cookie es esperado en invitados → no lo tratamos como error fatal
+        if (err?.status === 401 || err?.data?.statusCode === 401) {
+          this.error = null
+          return null
+        }
+
+        const message = err?.data?.message || err?.message || 'Session expired'
+        this.error = message
+        return null
+      } finally {
+        this.loading = false
+      }
     },
     logout() {
       this.user = null

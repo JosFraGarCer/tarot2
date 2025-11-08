@@ -12,10 +12,10 @@ const PUBLIC_ROUTES = ['/', '/login']
 export default defineNuxtRouteMiddleware(async (to) => {
   const store = useUserStore()
 
-  // 🧩 Hidratar usuario si no está cargado
-  if (!store.user && import.meta.client) {
+  // 🧩 Hidratar usuario si no está inicializado
+  if (!store.initialized) {
     try {
-      await store.fetchCurrentUser?.()
+      await store.fetchCurrentUser()
     } catch (err) {
       console.warn('[auth.global] fetchCurrentUser failed:', err)
     }

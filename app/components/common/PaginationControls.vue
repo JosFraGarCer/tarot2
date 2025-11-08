@@ -62,6 +62,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update:page', value: number): void
   (e: 'update:pageSize', value: number): void
+  (e: 'update:page-size', value: number): void
 }>()
 
 const { t } = useI18n()
@@ -92,5 +93,6 @@ const onPageSizeChange = (value: number | string | null) => {
   const next = Number(value)
   if (!Number.isFinite(next) || next <= 0) return
   emit('update:pageSize', next)
+  emit('update:page-size', next)
 }
 </script>

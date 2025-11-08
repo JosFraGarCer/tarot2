@@ -1,5 +1,6 @@
 import { useEntity } from '~/composables/manage/useEntity'
 import type { AdminUserCrud, AdminUserEntity } from '@/types/admin'
+import { adminUserCreateSchema, adminUserUpdateSchema } from '@/schemas/admin/user'
 
 export interface CreateUserPayload {
   username: string
@@ -20,6 +21,10 @@ export interface UpdateUserPayload {
 export function useAdminUsersCrud(): AdminUserCrud {
   return useEntity<AdminUserEntity, CreateUserPayload, UpdateUserPayload>({
     resourcePath: '/api/user',
+    schema: {
+      create: adminUserCreateSchema,
+      update: adminUserUpdateSchema,
+    },
     filters: {
       search: '',
       status: true,

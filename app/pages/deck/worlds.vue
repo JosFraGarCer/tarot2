@@ -1,9 +1,15 @@
-<!-- app/pages/deck/index.vue -->
+<!-- app/pages/deck/worlds.vue -->
 <template>
-    <div class="max-w-4xl mx-auto">
-      <UCard>
-        <h1>Worlds</h1>
-      </UCard>
-    </div>
+  <DeckEntityPage
+    entity="world"
+    title-key="nav.worlds"
+    label-key="world.title"
+    description-key="deck.worldsDescription"
+  />
 </template>
 
+<script setup lang="ts">
+import DeckEntityPage from '@/components/deck/DeckEntityPage.vue'
+
+definePageMeta({ layout: 'default' })
+</script>

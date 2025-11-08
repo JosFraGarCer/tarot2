@@ -1,9 +1,10 @@
-<!-- app/pages/deck/index.vue -->
+<!-- app/pages/deck/arcana.vue -->
 <template>
-    <div class="max-w-4xl mx-auto">
-      <UCard>
-        <h1>Arcana</h1>
-      </UCard>
-    </div>
+  <DeckEntityPage entity="arcana" title-key="nav.arcana" label-key="arcana.title" />
 </template>
 
+<script setup lang="ts">
+import DeckEntityPage from '@/components/deck/DeckEntityPage.vue'
+
+definePageMeta({ layout: 'default' })
+</script>

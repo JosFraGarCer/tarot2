@@ -82,6 +82,23 @@
     <template #updated_at-cell="{ getValue }">
       <span class="text-xs text-neutral-500">{{ formatDate(getValue()) }}</span>
     </template>
+    <template #created_at-cell="{ getValue }">
+      <span class="text-xs text-neutral-500">{{ formatDate(getValue()) }}</span>
+    </template>
+    <template #roles-cell="{ row }">
+      <div class="flex flex-wrap gap-1">
+        <UBadge
+          v-for="role in row.original.roles || []"
+          :key="role"
+          size="xs"
+          color="primary"
+          variant="soft"
+        >
+          {{ role }}
+        </UBadge>
+        <span v-if="!row.original.roles?.length" class="text-xs text-neutral-400">{{ $t('users.noRoles') }}</span>
+      </div>
+    </template>
     <template #parent-cell="{ getValue }">
       <span class="truncate block max-w-[24ch]" :title="String(getValue() ?? '')">{{ getValue() }}</span>
     </template>
@@ -98,6 +115,7 @@
 import { computed } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import { useCardStatus } from '~/utils/status'
+import { getUserStatusMeta } from '~/utils/userStatus'
 import { useI18n } from '#imports'
 defineOptions({ inheritAttrs: false })
 
@@ -118,6 +136,11 @@ export type EntityRow = {
   category?: string | null
   tags?: string | null
   updated_at?: string | Date | null
+  created_at?: string | Date | null
+  email?: string | null
+  username?: string | null
+  roles?: string[]
+  permissions?: Record<string, boolean>
   raw?: any
 }
 
@@ -193,6 +216,8 @@ function onUpdateSelected() {
 
 function getStatusMeta(value: string | null | undefined) {
   if (!value) return null
+  const userMeta = getUserStatusMeta(value)
+  if (userMeta) return userMeta
   return statusOptions.find(option => option.value === value) ?? null
 }
 

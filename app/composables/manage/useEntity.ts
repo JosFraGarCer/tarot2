@@ -319,15 +319,16 @@ export function useEntity<TList, TCreate, TUpdate>(
         try { listAbort.abort() } catch {}
       }
       listAbort = new AbortController()
+      const params = pruneUndefined({
+        ...normalizeFilters(filters),
+        page: pagination.value.page,
+        pageSize: pagination.value.pageSize,
+        lang: lang.value,
+      })
       const raw = await $fetch<any>(options.resourcePath, {
         method: 'GET',
         signal: listAbort.signal,
-        params: pruneUndefined({
-          ...normalizeFilters(filters),
-          page: pagination.value.page,
-          pageSize: pagination.value.pageSize,
-          lang: lang.value,
-        }),
+        params,
       })
       const normalized = normalizeListResponse<TList>(raw)
       return normalized
@@ -348,11 +349,21 @@ export function useEntity<TList, TCreate, TUpdate>(
 
     items.value = Array.isArray(val.items) ? val.items : []
     const meta = val.meta
+    const pending = !!listPending.value
     pagination.value.totalItems =
       meta?.totalItems ?? meta?.count ?? val.totalItems ?? items.value.length
 
-    if (meta?.page !== undefined) pagination.value.page = meta.page
-    if (meta?.pageSize !== undefined) pagination.value.pageSize = meta.pageSize
+    if (meta?.page !== undefined) {
+      if (!pending || meta.page === pagination.value.page) {
+        pagination.value.page = meta.page
+      }
+    }
+
+    if (meta?.pageSize !== undefined) {
+      if (!pending || meta.pageSize === pagination.value.pageSize) {
+        pagination.value.pageSize = meta.pageSize
+      }
+    }
 
     try { listCache.set(listKey.value, val) } catch {}
   })

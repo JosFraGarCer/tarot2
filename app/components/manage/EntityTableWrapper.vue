@@ -95,6 +95,39 @@ const tableLoading = computed<boolean>(() => {
 })
 
 function normalizeEntity(entity: any): EntityRow {
+  const resourcePath = props.crud.resourcePath || ''
+  const isUserEntity = resourcePath.includes('/user')
+  if (isUserEntity) {
+    const rolesArray = Array.isArray(entity?.roles) ? entity.roles : []
+    const roleNames = rolesArray
+      .map((role: any) => role?.name)
+      .filter((val: any): val is string => typeof val === 'string' && val.length > 0)
+
+    const id = Number(entity?.id ?? 0) || 0
+    const name = entity?.username ?? entity?.email ?? `#${id || '—'}`
+    const image = resolveImage(entity)
+    const permissions = typeof entity?.permissions === 'object' && entity?.permissions !== null
+      ? entity.permissions as Record<string, boolean>
+      : {}
+
+    return {
+      id,
+      name,
+      short_text: entity?.email ?? '',
+      description: null,
+      status: typeof entity?.status === 'string' ? entity.status : null,
+      is_active: typeof entity?.status === 'string' ? entity.status === 'active' : null,
+      img: image,
+      email: entity?.email ?? null,
+      username: entity?.username ?? null,
+      roles: roleNames,
+      permissions,
+      created_at: entity?.created_at ?? null,
+      updated_at: entity?.modified_at ?? null,
+      raw: entity,
+    }
+  }
+
   const id = Number(entity?.id ?? entity?.uuid ?? entity?.code ?? 0)
   const name = entity?.name
     ?? entity?.title
@@ -134,9 +167,25 @@ function normalizeEntity(entity: any): EntityRow {
 function resolveImage(entity: any): string | null {
   const src = entity?.image || entity?.thumbnail_url || entity?.img || null
   if (!src || typeof src !== 'string') return null
-  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/')) return src
+  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/') || src.startsWith('data:') || src.startsWith('blob:'))
+    return src
+
+  const resourcePath = props.crud.resourcePath || ''
+  if (resourcePath.includes('/user')) {
+    return src.startsWith('img/') ? `/${src}` : `/img/${src}`
+  }
+
   if (entity?.entity_type) return `/img/${entity.entity_type}/${src}`
-  return src
+
+  const entityKey = props.label?.toLowerCase?.() ?? ''
+
+  if (entityKey.includes('card type')) return `/img/cardType/${src}`
+  if (entityKey.includes('world')) return `/img/world/${src}`
+  if (entityKey.includes('facet')) return `/img/facet/${src}`
+  if (entityKey.includes('skill')) return `/img/skill/${src}`
+  if (entityKey.includes('arcana')) return `/img/arcana/${src}`
+
+  return `/img/${src}`
 }
 
 function onUpdateSelected(ids: number[]) {

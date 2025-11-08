@@ -1,14 +1,15 @@
-<!-- app/pages/deck/index.vue -->
+<!-- app/pages/deck/facets.vue -->
 <template>
-    <div class="max-w-4xl mx-auto">
-      <UCard>
-        <h1><v-text-field
-          v-model="value"
-          name="name"
-          :rules="[(v) => v.length <= 25 || 'Max 25 characters']"
-          :counter="25"
-        /></h1>
-      </UCard>
-    </div>
+  <DeckEntityPage
+    entity="facet"
+    title-key="nav.facets"
+    label-key="facets.title"
+    description-key="deck.facetsDescription"
+  />
 </template>
 
+<script setup lang="ts">
+import DeckEntityPage from '@/components/deck/DeckEntityPage.vue'
+
+definePageMeta({ layout: 'default' })
+</script>

@@ -38,7 +38,7 @@
     <UCard v-else v-for="item in crud.items?.value ?? crud.items" :key="item.id">
       <template #header>
         <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
+          <div class="min-w-0 space-y-1">
             <div class="flex items-center gap-2">
               <p class="font-medium truncate" :title="titleOf(item)">{{ titleOf(item) }}</p>
               <UButton
@@ -53,11 +53,27 @@
                 {{ langBadge(item) }}
               </UBadge>
             </div>
-            <p v-if="item.code" class="text-xs text-neutral-500 truncate">#{{ item.code }}</p>
-            <p v-if="cardType && (item.card_type_name || item.card_type_code)" class="text-xs text-neutral-600 truncate">
-              {{ item.card_type_name || item.card_type_code }}
-              <UBadge v-if="item.card_type_lang" color="neutral" variant="soft" size="sm" class="ml-1">{{ item.card_type_lang }}</UBadge>
-            </p>
+            <template v-if="isUserEntity">
+              <p v-if="item.email" class="text-xs text-neutral-500 truncate">{{ item.email }}</p>
+              <div v-if="userRoles(item).length" class="flex flex-wrap gap-1">
+                <UBadge
+                  v-for="role in userRoles(item)"
+                  :key="role"
+                  size="xs"
+                  color="primary"
+                  variant="soft"
+                >
+                  {{ role }}
+                </UBadge>
+              </div>
+            </template>
+            <template v-else>
+              <p v-if="item.code" class="text-xs text-neutral-500 truncate">#{{ item.code }}</p>
+              <p v-if="cardType && (item.card_type_name || item.card_type_code)" class="text-xs text-neutral-600 truncate">
+                {{ item.card_type_name || item.card_type_code }}
+                <UBadge v-if="item.card_type_lang" color="neutral" variant="soft" size="sm" class="ml-1">{{ item.card_type_lang }}</UBadge>
+              </p>
+            </template>
           </div>
           <EntityActions
             :entity="item"
@@ -82,13 +98,13 @@
           @error="imageFallback"
         >
         <div class="flex items-center gap-2 mb-2">
-           <UBadge
-                  size="sm"
-                  :color="statusColor(item.status)"
-                  :variant="statusVariant(item.status)"
-                >
-                  {{ $t(statusLabelKey(item.status)) }}
-                </UBadge>
+          <UBadge
+            size="sm"
+            :color="statusColorFor(item.status)"
+            :variant="statusVariantFor(item.status)"
+          >
+            {{ $t(statusLabelKeyFor(item.status)) }}
+          </UBadge>
           <UBadge
             :color="isActive(item) ? 'primary' : 'neutral'"
             size="sm"
@@ -97,11 +113,14 @@
             {{ isActive(item) ? t('common.active') : t('common.inactive') }}
           </UBadge>
         </div>
-        <p v-if="item.short_text" class="text-sm text-neutral-700 dark:text-neutral-300">
+        <p v-if="!isUserEntity && item.short_text" class="text-sm text-neutral-700 dark:text-neutral-300">
           {{ item.short_text }}
         </p>
-        <p v-if="item.description" class="text-xs text-neutral-500 dark:text-neutral-400 mt-1 line-clamp-3">
+        <p v-if="!isUserEntity && item.description" class="text-xs text-neutral-500 dark:text-neutral-400 mt-1 line-clamp-3">
           {{ item.description }}
+        </p>
+        <p v-if="isUserEntity && item.created_at" class="text-xs text-neutral-500 dark:text-neutral-400">
+          {{ t('common.createdAt') }}: {{ formatDate(item.created_at) }}
         </p>
         <div v-if="!noTags && Array.isArray(item.tags) && item.tags.length" class="mt-3 flex flex-wrap gap-1.5">
           <UBadge
@@ -124,6 +143,7 @@ import { computed } from 'vue'
 import { useI18n } from '#imports'
 import EntityActions from '~/components/manage/EntityActions.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
+import { userStatusColor, userStatusVariant, userStatusLabelKey } from '~/utils/userStatus'
 import type { ManageCrud } from '@/types/manage'
 
 const props = defineProps<{
@@ -159,6 +179,39 @@ const {
   entity: computed(() => props.entity),
   locale
 })
+
+const isUserEntity = computed(() => props.entity === 'user')
+
+function userRoles(item: any): string[] {
+  const roles = Array.isArray(item?.roles) ? item.roles : []
+  return roles
+    .map((role: any) => role?.name)
+    .filter((val: any): val is string => typeof val === 'string' && val.length > 0)
+}
+
+function statusColorFor(value: string | null | undefined) {
+  return isUserEntity.value ? userStatusColor(value) : statusColor(value)
+}
+
+function statusVariantFor(value: string | null | undefined) {
+  return isUserEntity.value ? userStatusVariant(value) : statusVariant(value)
+}
+
+function statusLabelKeyFor(value: string | null | undefined) {
+  return isUserEntity.value ? userStatusLabelKey(value) : statusLabelKey(value)
+}
+
+function formatDate(value: unknown) {
+  if (!value) return ''
+  const date = value instanceof Date ? value : new Date(value as any)
+  if (Number.isNaN(date.getTime())) return ''
+  const localeCode = typeof locale === 'string' ? locale : locale.value
+  try {
+    return new Intl.DateTimeFormat(localeCode || 'en', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+  } catch {
+    return date.toISOString()
+  }
+}
 
 function onPreviewClick(item: any) { emit('preview', item) }
 function onEditClick(item: any) { emit('edit', item) }

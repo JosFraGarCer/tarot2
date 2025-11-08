@@ -45,5 +45,6 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
     '@pinia/nuxt',
     '@pinia/colada-nuxt',
-   ]
+   ],
+
 })

@@ -19,6 +19,7 @@ export interface AdminUserEntity {
   roles: AdminUserRole[]
   permissions: Record<string, boolean>
   is_active?: boolean | null
+  role_ids?: number[]
   [key: string]: unknown
 }
 
