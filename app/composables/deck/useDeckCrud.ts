@@ -93,6 +93,7 @@ export function useDeckCrud(entity: MaybeRef<string>) {
 
     if (crud.pagination?.value) {
       if (options?.pageSize) {
+        crud.registerPageSizeOptions?.(options.pageSize)
         crud.pagination.value.pageSize = options.pageSize
       }
 

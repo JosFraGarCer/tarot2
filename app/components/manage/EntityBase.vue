@@ -27,6 +27,22 @@
       :card-type="cardType"
       :on-create="onCreateClickWrapper"
     />
+    <div v-can.disable="['canEditContent','canPublish']" class="flex gap-2">
+          <UButton
+            size="xs"
+            icon="i-heroicons-arrow-up-tray"
+            color="neutral"
+            variant="soft"
+            :label="$t('common.export') || 'Export'"
+          />
+          <UButton
+            size="xs"
+            icon="i-heroicons-arrow-down-tray"
+            color="neutral"
+            variant="soft"
+            :label="$t('import.button') || 'Import'"
+          />
+        </div>
 
     <div v-if="viewMode === 'tabla'">
       <EntityTableWrapper

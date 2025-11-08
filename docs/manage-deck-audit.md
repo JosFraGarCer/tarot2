@@ -8,7 +8,7 @@
 > - /manage
 > - /deck/*
 > 
-> Entre las optimizaciones posibles hay que buscar como eliminar codigo duplicado yu separar la logica de los *.vue para pasarla a composables.
+> Entre las optimizaciones posibles hay que buscar como eliminar codigo duplicado y separar la logica de los *.vue para pasarla a composables.
 
 ## Resumen Ejecutivo
 
@@ -36,11 +36,20 @@
      - `useManageActions(crud)` → centralizar `onExport`, `onBatchUpdate`, `onFeedback`, `onTags` (actualmente placeholders).
   2. Reducir dependencia directa de `console.log` reemplazándolo por servicios de logging o eventos.
 
-### 2. Duplicidad en filtros y paginación
+### [x] 2. Duplicidad en filtros y paginación
 
 - Lógica de filtros replicada entre `EntityBase`, `EntityFilters`, `useEntity`, `useDeckCrud` (e.g., normalización de arrays, alias, resets). @app/components/manage/EntityBase.vue#193-372, @app/components/manage/EntityFilters.vue#94-258, @app/composables/manage/useEntity.ts#268-374
 - `useEntityPagination` y `DeckSection` establecen tamaños de página de manera divergente (10/20/50 vs 6/12/24/48), generando confusión entre vistas. @app/composables/manage/useEntityPagination.ts#4-41, @app/components/deck/DeckSection.vue#70-128
 - Recomendación: crear composable compartido `usePaginatedList({ defaultSizes, initialSize })` consumido por `useEntity` y `DeckSection`, permitiendo personalización por entidad.
+
+> ### Respuesta
+> Añadí usePaginatedList, composable compartido que centraliza página actual, tamaño, total, opciones y helpers (setPage, setPageSize, 
+reset, syncMeta, registerPageSizeOptions) evitando duplicidad en filtros/paginación. app/composables/manage/usePaginatedList.ts
+Refactoricé useEntity para usar usePaginatedList, exponer pageSizeOptions/registerPageSizeOptions, y sincronizar el estado de paginación con las respuestas del backend y filtros debounced sin lógica duplicada. app/composables/manage/useEntity.ts
+Actualicé useEntityPagination para consumir las opciones dinámicas registradas y normalizar cambios de página/tamaño con la nueva API. 
+app/composables/manage/useEntityPagination.ts 
+Ajusté useDeckCrud para registrar tamaños de página personalizados cuando se pasa pageSize, manteniendo coherencia con el nuevo sistema. app/composables/deck/useDeckCrud.ts
+
 
 ### [x] 3. Fetch redundante en `/deck`
 
@@ -55,12 +64,20 @@
 > useDeckCrud  ahora reutiliza instancias por entidad mediante un Map compartido, evita reinicios de paginación al montar el composable y expone un helper explícito resetPagination() para quienes lo necesiten app/composables/deck/useDeckCrud.ts.
 DeckSection ejecuta useAsyncData con clave dependiente de entidad/idioma para precargar datos en SSR, respeta la caché devuelta por 
 useDeckCrud y combina el estado pending inicial con el loading del CRUD antes de renderizar app/components/deck/DeckSection.vue.
+>
+> #### Actualizacion DeckSection y controles asociados
+> - Eliminé basePageSizeOptions de DeckSection y ahora registro el límite de vista previa en el CRUD para incluirlo en las opciones globales. app/components/deck/DeckSection.vue
+> - Las opciones mostradas en PaginationControls provienen de pagination.defaultPageSizes, garantizando coherencia con el nuevo sistema centralizado de paginación. app/components/deck/DeckSection.vue
 
-### 4. Manejo inconsistente de filtros de tags entre entidades
+### [ ] 4. Manejo inconsistente de filtros de tags entre entidades
 
 - Backends de `world`, `arcana`, `facet`, `skill`, `base_card` aplican OR contra tags, mientras `base_card` permite AND via `ANY` (tag_ids) pero sin garantías. @server/api/base_card/index.get.ts#132-153 vs @server/api/arcana/index.get.ts#120-141
 - Frontend `EntityFilters` asume listas múltiples pero no sincroniza `crud.filters` con respuesta normalizada (IDs vs objetos). @app/components/manage/EntityFilters.vue#168-208
 - Recomendaciones: documentar contrato `tag_ids` (AND/OR) y unificar backend. Ajustar `useFilterBinding` para asegurar sincronía (convertir arrays a números/strings según backend).
+
+> a
+
+
 
 ### 5. Internacionalización y claves en `/deck`
 
@@ -72,7 +89,10 @@ useDeckCrud y combina el estado pending inicial con el loading del CRUD antes de
 - `useEntityModals` manipula `modalFormState` mutando referencias directamente, con resets manuales. No existe validación antes de envío en front (dependen sólo de Zod en backend). @app/composables/manage/useEntityModals.ts#20-121
 - Recomendación: extraer `useFormState(initialSchema)` que produzca estado controlado y ofrezca helpers (`reset`, `patch`, `setDirty`). Podría alinear con libs externas (vee-validate).
 
-> a
+> ### Respuesta
+>
+> Creé useFormState para gestionar formularios con estado controlado, clonando valores iniciales, seguimiento de dirty y helpers (replace
+, reset, patch, markClean, etc.) app/composables/manage/useFormState.ts. useEntityModals ahora usa useFormState, elimina mutaciones anuales de modalFormState, reutiliza helpers para resetear/establecer datos y marca el formulario como limpio tras guardar app/composables/manage/useEntityModals.ts.
 
 
 ### 7. Falta de pruebas y typings explícitos

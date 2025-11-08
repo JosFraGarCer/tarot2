@@ -1,12 +1,23 @@
 import { computed } from 'vue'
 import type { AnyManageCrud } from '@/types/manage'
 
+function toOptions(values: number[]) {
+  return values
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b)
+    .map((value) => ({ label: String(value), value }))
+}
+
 export function useEntityPagination(crud: AnyManageCrud) {
-  const defaultPageSizes = computed(() => ([
-    { label: '10', value: 10 },
-    { label: '20', value: 20 },
-    { label: '50', value: 50 }
-  ]))
+  const pageSizeSource = (crud as any).pageSizeOptions
+  const registerOptions = (crud as any).registerPageSizeOptions as ((...values: number[]) => void) | undefined
+
+  const defaultPageSizes = computed(() => {
+    const base = Array.isArray(pageSizeSource?.value) && pageSizeSource.value.length
+      ? pageSizeSource!.value
+      : [10, 20, 50]
+    return toOptions(base)
+  })
 
   const page = computed(() => crud.pagination.value.page ?? 1)
   const pageSize = computed(() => crud.pagination.value.pageSize ?? 20)
@@ -18,13 +29,16 @@ export function useEntityPagination(crud: AnyManageCrud) {
 
   function onPageChange(value: number) {
     if (!Number.isFinite(value) || value <= 0) return
-    crud.pagination.value.page = value
+    const next = Math.floor(value)
+    crud.pagination.value.page = next <= 0 ? 1 : next
   }
 
   function onPageSizeChange(value: number) {
     if (!Number.isFinite(value) || value <= 0) return
+    const next = Math.floor(value)
+    registerOptions?.(next)
     const pagination = crud.pagination.value
-    pagination.pageSize = value
+    pagination.pageSize = next
     pagination.page = 1
   }
 
@@ -35,6 +49,6 @@ export function useEntityPagination(crud: AnyManageCrud) {
     totalPages,
     defaultPageSizes,
     onPageChange,
-    onPageSizeChange
+    onPageSizeChange,
   }
 }

@@ -12,6 +12,7 @@ import type { Ref, ComputedRef } from 'vue'
 import type { z } from 'zod'
 import { useAsyncData, useI18n } from '#imports'
 import { useApiFetch } from '@/utils/fetcher'
+import { usePaginatedList } from '~/composables/manage/usePaginatedList'
 const $fetch = useApiFetch
 
 // API response contract
@@ -38,6 +39,7 @@ export interface EntityOptions<TList, TCreate, TUpdate> {
   }
   filters?: Record<string, any>
   pagination?: boolean | { page: number; pageSize: number }
+  pageSizeOptions?: number[]
 }
 
 // Pagination state exposed to consumers
@@ -52,6 +54,7 @@ export interface EntityCrud<TList, TCreate, TUpdate> {
   current: Ref<TList | null>
   filters: Record<string, any>
   pagination: Ref<PaginationState>
+  pageSizeOptions: ComputedRef<number[]>
   loading: ComputedRef<boolean>
   error: ComputedRef<string | null>
   listError: Ref<string | null>
@@ -68,6 +71,7 @@ export interface EntityCrud<TList, TCreate, TUpdate> {
   updateTags: (id: string | number, tagIds: number[]) => Promise<TList>
   nextPage: () => void
   prevPage: () => void
+  registerPageSizeOptions: (...values: number[]) => void
 }
 
 // Utilities
@@ -274,10 +278,16 @@ export function useEntity<TList, TCreate, TUpdate>(
     ? options.pagination
     : { page: defaultPage, pageSize: defaultPageSize }
 
+  const paginated = usePaginatedList(filters, {
+    initialPage: initial.page ?? defaultPage,
+    initialPageSize: initial.pageSize ?? defaultPageSize,
+    pageSizeOptions: Array.isArray(options.pageSizeOptions) ? options.pageSizeOptions : undefined,
+  })
+
   const pagination = ref<PaginationState>({
-    page: initial.page ?? defaultPage,
-    pageSize: initial.pageSize ?? defaultPageSize,
-    totalItems: 0,
+    page: paginated.page.value,
+    pageSize: paginated.pageSize.value,
+    totalItems: paginated.totalItems.value,
   })
 
   // Core state
@@ -300,15 +310,48 @@ export function useEntity<TList, TCreate, TUpdate>(
       debounceTimer = setTimeout(() => {
         debouncedFiltersStr.value = JSON.stringify(filters)
       }, 300)
+      paginated.resetPage()
     },
     { deep: true }
+  )
+
+  watch(
+    [paginated.page, paginated.pageSize, paginated.totalItems],
+    ([pageValue, pageSizeValue, totalItemsValue]) => {
+      const current = pagination.value
+      if (current.page !== pageValue) current.page = pageValue
+      if (current.pageSize !== pageSizeValue) current.pageSize = pageSizeValue
+      if (current.totalItems !== totalItemsValue) current.totalItems = totalItemsValue
+    },
+    { immediate: true }
+  )
+
+  watch(
+    () => pagination.value.page,
+    (value) => {
+      if (value !== paginated.page.value) paginated.setPage(value)
+    }
+  )
+
+  watch(
+    () => pagination.value.pageSize,
+    (value) => {
+      if (value !== paginated.pageSize.value) paginated.setPageSize(value)
+    }
+  )
+
+  watch(
+    () => pagination.value.totalItems,
+    (value) => {
+      if (value !== paginated.totalItems.value) paginated.syncMeta({ totalItems: value })
+    }
   )
 
   // Build a stable cache key for useAsyncData based on resource + debounced filters + pagination + lang
   const listKey = computed(() => {
     const f = debouncedFiltersStr.value
     const uid = options.resourcePath.replace(/[^\w]/g, '_') // ejemplo: _api_card_type
-    return `entity:${uid}::${lang.value}::${pagination.value.page}::${pagination.value.pageSize}::${f}`
+    return `entity:${uid}::${lang.value}::${paginated.page.value}::${paginated.pageSize.value}::${f}`
   })
 
   // Abortable fetch controller to cancel in-flight list requests
@@ -325,8 +368,8 @@ export function useEntity<TList, TCreate, TUpdate>(
       listAbort = new AbortController()
       const params = pruneUndefined({
         ...normalizeFilters(filters),
-        page: pagination.value.page,
-        pageSize: pagination.value.pageSize,
+        page: paginated.page.value,
+        pageSize: paginated.pageSize.value,
         lang: lang.value,
       })
       const raw = await $fetch<any>(options.resourcePath, {
@@ -347,27 +390,30 @@ export function useEntity<TList, TCreate, TUpdate>(
     const val = listData.value
     if (!val) {
       items.value = []
-      pagination.value.totalItems = 0
+      paginated.syncMeta({ totalItems: 0 })
+      const snapshot = pagination.value
+      snapshot.page = paginated.page.value
+      snapshot.pageSize = paginated.pageSize.value
+      snapshot.totalItems = paginated.totalItems.value
       return
     }
 
     items.value = Array.isArray(val.items) ? val.items : []
     const meta = val.meta
     const pending = !!listPending.value
-    pagination.value.totalItems =
+    const totalItemsFromMeta =
       meta?.totalItems ?? meta?.count ?? val.totalItems ?? items.value.length
 
-    if (meta?.page !== undefined) {
-      if (!pending || meta.page === pagination.value.page) {
-        pagination.value.page = meta.page
-      }
-    }
+    paginated.syncMeta({
+      page: !pending ? meta?.page : undefined,
+      pageSize: !pending ? meta?.pageSize : undefined,
+      totalItems: totalItemsFromMeta,
+    })
 
-    if (meta?.pageSize !== undefined) {
-      if (!pending || meta.pageSize === pagination.value.pageSize) {
-        pagination.value.pageSize = meta.pageSize
-      }
-    }
+    const snapshot = pagination.value
+    snapshot.page = paginated.page.value
+    snapshot.pageSize = paginated.pageSize.value
+    snapshot.totalItems = paginated.totalItems.value
 
     try { listCache.set(listKey.value, val) } catch {}
   })
@@ -504,11 +550,11 @@ export function useEntity<TList, TCreate, TUpdate>(
 
   // Pagination helpers
   function nextPage() {
-    pagination.value.page += 1
+    paginated.setPage(paginated.page.value + 1)
   }
 
   function prevPage() {
-    pagination.value.page = Math.max(1, pagination.value.page - 1)
+    paginated.setPage(Math.max(1, paginated.page.value - 1))
   }
 
   // Auto-refresh on filters/page/lang changes is handled via useAsyncData watch: [listKey]
@@ -525,16 +571,13 @@ export function useEntity<TList, TCreate, TUpdate>(
     onUnmounted(() => document.removeEventListener('visibilitychange', handleVisibility))
   }
 
-  pagination.value.page ||= 1
-  pagination.value.pageSize ||= 20
-  pagination.value.totalItems ||= 0
-
   return {
     // state
     items,
     current,
     filters,
     pagination,
+    pageSizeOptions: paginated.options,
     loading,
     error,
     listError,
@@ -555,5 +598,6 @@ export function useEntity<TList, TCreate, TUpdate>(
     // helpers
     nextPage,
     prevPage,
+    registerPageSizeOptions: paginated.registerPageSizeOptions,
   }
 }

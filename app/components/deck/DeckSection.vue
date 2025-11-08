@@ -90,7 +90,15 @@ const pagination = manageCrud ? useEntityPagination(manageCrud as any) : null
 const paginate = computed(() => props.paginate ?? false)
 const previewLimit = computed(() => props.limit ?? 6)
 
-const basePageSizeOptions = [6, 12, 24, 48]
+watch(
+  previewLimit,
+  (value) => {
+    if (!pagination || !manageCrud?.registerPageSizeOptions) return
+    if (!Number.isFinite(value) || value <= 0) return
+    manageCrud.registerPageSizeOptions(value)
+  },
+  { immediate: true },
+)
 
 const loading = computed(() => deckCrud.loading.value || initialFetchPending.value)
 const items = deckCrud.items
@@ -102,12 +110,29 @@ const currentPageSize = computed(() => {
 })
 
 const pageSizeItems = computed(() => {
-  if (!paginate.value) return basePageSizeOptions.slice(0, 3).map(value => ({ label: String(value), value }))
+  if (!pagination) return []
 
-  const values = new Set<number>(basePageSizeOptions)
-  if (pagination) values.add(pagination.pageSize.value)
-  const sorted = Array.from(values).sort((a, b) => a - b)
-  return sorted.map(value => ({ label: String(value), value }))
+  const base = pagination.defaultPageSizes.value
+  const ensureOptions = (...values: number[]) => {
+    const map = new Map<number, { label: string; value: number }>()
+    for (const option of base) {
+      map.set(option.value, option)
+    }
+    for (const value of values) {
+      if (!Number.isFinite(value) || value <= 0) continue
+      if (!map.has(value)) {
+        map.set(value, { label: String(value), value })
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.value - b.value)
+  }
+
+  if (!paginate.value) {
+    const ensured = ensureOptions(previewLimit.value)
+    return ensured.slice(0, Math.min(3, ensured.length))
+  }
+
+  return ensureOptions(pagination.pageSize.value)
 })
 
 const totalItems = computed(() => (pagination ? pagination.totalItems.value : items.value.length))
