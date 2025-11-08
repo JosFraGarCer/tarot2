@@ -102,11 +102,13 @@ useDeckCrud y combina el estado pending inicial con el loading del CRUD antes de
 
 - No se encontraron tests específicos para `useEntity` o endpoints. Dependencia en runtime para detectar errores.
 
-### [ ] 7 bis. typings explícitos
+### [x] 7 bis. typings explícitos
 
 - Tipos `ManageCrud` provienen de `@/types/manage`, pero composables retornan `any` en varias partes (e.g., `useDeckCrud` returns `ManageCrud<any, any, any>`). Recomendación: definir generics adecuados o `interface DeckCrud<T>` para tipado fuerte.
 
-> a
+> ### Respuesta
+>
+> - Fortifiqué useDeckCrud  con tipados específicos por entidad: ahora mapea cada DeckEntityKey a su ManageCrud<TList, TCreate, TUpdate> respectivo, preserva el tipo de items, y restringe aliases válidos. El retorno puede ser DeckCrudSuccess  tipado o DeckCrudFallback cuando la entidad es inválida. app/composables/deck/useDeckCrud.ts
 
 
 
