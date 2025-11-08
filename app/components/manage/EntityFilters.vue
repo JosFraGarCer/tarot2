@@ -218,9 +218,28 @@ const facetValue = useFilterBinding(facetKey, {
   coerce: (value: any[]) => coerceArrayIds(value),
 })
 
-const typeValue = useFilterBinding(typeKey, {
-  multi: true,
-  coerce: (value: any[]) => coerceArrayIds(value),
+const typeIsRole = computed(() => typeKey.value?.includes('role'))
+
+const typeValue = computed({
+  get() {
+    const key = typeKey.value
+    if (!key) return typeIsRole.value ? null : []
+    const raw = props.crud.filters?.[key]
+    if (typeIsRole.value) {
+      return raw ?? null
+    }
+    return normalizeArrayValue(raw)
+  },
+  set(value: any) {
+    const key = typeKey.value
+    if (!key || !props.crud.filters) return
+    if (typeIsRole.value) {
+      props.crud.filters[key] = coerceSingleId(value)
+      return
+    }
+    const arr = normalizeArrayValue(value)
+    props.crud.filters[key] = coerceArrayIds(arr)
+  }
 })
 
 const statusValue = useFilterBinding(statusKey)
@@ -280,6 +299,15 @@ const { data: cardTypeData, execute: fetchCardTypes } = useLazyAsyncData(
   { immediate: false, server: false }
 )
 
+const { data: roleData, execute: fetchRoles } = useLazyAsyncData(
+  () => `manage-filter-roles::${String(locale)}`,
+  () => useApiFetch('/role', {
+    method: 'GET',
+    params: { pageSize: 100, lang: String(locale) },
+  }),
+  { immediate: false, server: false }
+)
+
 const { data: arcanaData, execute: fetchArcana } = useLazyAsyncData(
   () => `manage-filter-arcana::${String(locale)}`,
   () => useApiFetch('/arcana', {
@@ -309,6 +337,7 @@ const { data: parentData, execute: fetchParentTags } = useLazyAsyncData(
 
 const tagsLoaded = ref(false)
 const cardTypesLoaded = ref(false)
+const rolesLoaded = ref(false)
 const arcanaLoaded = ref(false)
 const facetsLoaded = ref(false)
 const parentLoaded = ref(false)
@@ -321,7 +350,15 @@ watch(() => show.value.tags, (enabled) => {
 }, { immediate: true })
 
 watch(() => show.value.type, (enabled) => {
-  if (enabled && !cardTypesLoaded.value) {
+  if (!enabled) return
+  if (typeIsRole.value) {
+    if (!rolesLoaded.value) {
+      rolesLoaded.value = true
+      fetchRoles()
+    }
+    return
+  }
+  if (!cardTypesLoaded.value) {
     cardTypesLoaded.value = true
     fetchCardTypes()
   }
@@ -351,10 +388,19 @@ const tagOptions = computed(() => unwrapRows(tagData.value).map((item: any) => (
   value: item.id,
 })))
 
-const typeOptions = computed(() => unwrapRows(cardTypeData.value).map((item: any) => ({
-  label: item.name ?? item.code ?? `#${item.id}`,
-  value: item.id,
-})))
+const typeOptions = computed(() => {
+  const key = typeKey.value || ''
+  if (key.includes('role')) {
+    return unwrapRows(roleData.value).map((item: any) => ({
+      label: item.name ?? `#${item.id}`,
+      value: item.id,
+    }))
+  }
+  return unwrapRows(cardTypeData.value).map((item: any) => ({
+    label: item.name ?? item.code ?? `#${item.id}`,
+    value: item.id,
+  }))
+})
 
 const facetOptions = computed(() => {
   const key = facetKey.value
@@ -387,6 +433,7 @@ const facetPlaceholder = computed(() => {
 
 const typePlaceholder = computed(() => {
   const key = typeKey.value
+  if (key.includes('role')) return t('common.roles')
   if (key.includes('card_type')) return t('entities.cardType')
   if (key.includes('world')) return t('entities.world')
   return t('common.type')

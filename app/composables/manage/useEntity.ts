@@ -115,6 +115,147 @@ function sanitizeInitialFilters(raw: Record<string, any>): Record<string, any> {
   return sanitized
 }
 
+type GenericMeta = Partial<ApiMeta> & Record<string, any>
+
+interface NormalizedListResponse<TItem> {
+  items: TItem[]
+  meta?: GenericMeta
+  totalItems: number
+}
+
+function toNumber(value: any): number | undefined {
+  if (value === null || value === undefined) return undefined
+  const num = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(num) ? num : undefined
+}
+
+function normalizeMeta(metaCandidate: any): GenericMeta | undefined {
+  if (!metaCandidate || typeof metaCandidate !== 'object') return undefined
+  const meta: GenericMeta = { ...metaCandidate }
+
+  const page = toNumber(
+    metaCandidate.page ??
+    metaCandidate.page_number ??
+    metaCandidate.current_page ??
+    metaCandidate.pageNumber ??
+    metaCandidate.currentPage
+  )
+  if (page !== undefined) meta.page = page
+
+  const pageSize = toNumber(
+    metaCandidate.pageSize ??
+    metaCandidate.page_size ??
+    metaCandidate.per_page ??
+    metaCandidate.perPage ??
+    metaCandidate.limit
+  )
+  if (pageSize !== undefined) meta.pageSize = pageSize
+
+  const totalItems = toNumber(
+    metaCandidate.totalItems ??
+    metaCandidate.total ??
+    metaCandidate.total_count ??
+    metaCandidate.totalResults ??
+    metaCandidate.total_records ??
+    metaCandidate.count
+  )
+  if (totalItems !== undefined) meta.totalItems = totalItems
+
+  const count = toNumber(metaCandidate.count)
+  if (count !== undefined) meta.count = count
+
+  return meta
+}
+
+function normalizeListResponse<TItem>(raw: any): NormalizedListResponse<TItem> {
+  if (!raw) {
+    return { items: [], totalItems: 0 }
+  }
+
+  if (Array.isArray(raw)) {
+    return { items: raw as TItem[], totalItems: raw.length }
+  }
+
+  const containers = [raw, raw.data, raw.payload, raw.body, raw.result]
+  let items: TItem[] = []
+
+  for (const container of containers) {
+    if (!container) continue
+    if (Array.isArray(container)) {
+      items = container as TItem[]
+      break
+    }
+    for (const key of ['data', 'results', 'items', 'rows', 'list', 'records']) {
+      const candidate = (container as any)?.[key]
+      if (Array.isArray(candidate)) {
+        items = candidate as TItem[]
+        break
+      }
+    }
+    if (items.length) break
+  }
+
+  const metaCandidates = [
+    raw.meta,
+    raw.pagination,
+    raw.pageInfo,
+    raw.metaData,
+    raw.meta_data,
+    raw.paging,
+    raw.data?.meta,
+    raw.data?.pagination,
+    raw.payload?.meta,
+  ].filter(Boolean)
+
+  let meta: GenericMeta | undefined
+  for (const candidate of metaCandidates) {
+    const normalized = normalizeMeta(candidate)
+    if (normalized) {
+      meta = normalized
+      break
+    }
+  }
+  if (!meta) {
+    const inline = normalizeMeta(raw)
+    if (inline) meta = inline
+  }
+
+  const totalCandidates: Array<any> = [
+    meta?.totalItems,
+    meta?.total,
+    meta?.count,
+    raw.totalItems,
+    raw.total,
+    raw.count,
+    raw.total_count,
+    raw.size,
+    raw.data?.total,
+    raw.data?.count,
+    raw.data?.total_count,
+    raw.pagination?.total,
+    raw.pagination?.totalItems,
+  ]
+
+  let totalItems = items.length
+  for (const candidate of totalCandidates) {
+    const num = toNumber(candidate)
+    if (num !== undefined) {
+      totalItems = num
+      break
+    }
+  }
+
+  if (meta) {
+    if (meta.totalItems === undefined) meta.totalItems = totalItems
+    const coercedPage = toNumber(meta.page ?? raw.page ?? raw.currentPage)
+    if (coercedPage !== undefined) meta.page = coercedPage
+    const coercedPageSize = toNumber(meta.pageSize ?? raw.pageSize ?? raw.perPage)
+    if (coercedPageSize !== undefined) meta.pageSize = coercedPageSize
+  }
+
+  return { items, meta, totalItems }
+}
+
 // Main composable
 export function useEntity<TList, TCreate, TUpdate>(
   options: EntityOptions<TList, TCreate, TUpdate>
@@ -173,17 +314,12 @@ export function useEntity<TList, TCreate, TUpdate>(
   const listCache: Map<string, any> = new Map()
 
   const { data: listData, pending: listPending, error: listErr, refresh } =
-    useAsyncData<ApiResponse<TList[]>>(listKey, async () => {
-      // Serve cached data immediately (SWR pattern) by assigning to items via listData effect below
-      const cached = listCache.get(listKey.value)
-      if (cached && Array.isArray(cached.data)) {
-        // noop: listData will be replaced after fetch; cache used by watchEffect below
-      }
+    useAsyncData<NormalizedListResponse<TList>>(listKey, async () => {
       if (listAbort) {
         try { listAbort.abort() } catch {}
       }
       listAbort = new AbortController()
-      const res = await $fetch<ApiResponse<TList[]>>(options.resourcePath, {
+      const raw = await $fetch<any>(options.resourcePath, {
         method: 'GET',
         signal: listAbort.signal,
         params: pruneUndefined({
@@ -193,35 +329,33 @@ export function useEntity<TList, TCreate, TUpdate>(
           lang: lang.value,
         }),
       })
-      return res
+      const normalized = normalizeListResponse<TList>(raw)
+      return normalized
     }, {
       watch: [listKey],
       immediate: true,
       server: true,
     })
 
+  // Keep exposed items and totalItems in sync with async data
+  watchEffect(() => {
+    const val = listData.value
+    if (!val) {
+      items.value = []
+      pagination.value.totalItems = 0
+      return
+    }
 
-// Keep exposed items and totalItems in sync with async data
-watchEffect(() => {
-  const val = listData.value
-  if (!val) {
-    items.value = []
-    pagination.value.totalItems = 0
-    return
-  }
+    items.value = Array.isArray(val.items) ? val.items : []
+    const meta = val.meta
+    pagination.value.totalItems =
+      meta?.totalItems ?? meta?.count ?? val.totalItems ?? items.value.length
 
-  // ✅ Soporte ApiResponse o array directo
-  const data = Array.isArray(val) ? val : val.data
-  if (Array.isArray(data)) items.value = data as TList[]
-  else items.value = []
+    if (meta?.page !== undefined) pagination.value.page = meta.page
+    if (meta?.pageSize !== undefined) pagination.value.pageSize = meta.pageSize
 
-  const meta = (val as any)?.meta
-  pagination.value.totalItems =
-    meta?.totalItems ?? meta?.count ?? (Array.isArray(data) ? data.length : 0)
-
-  // Update SWR cache
-  try { listCache.set(listKey.value, val) } catch {}
-})
+    try { listCache.set(listKey.value, val) } catch {}
+  })
 
   // Mirror list error into a single string error state
   watch(
