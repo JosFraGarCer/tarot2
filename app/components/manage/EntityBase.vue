@@ -184,6 +184,9 @@ import { useOptimisticStatus } from '~/composables/manage/useOptimisticStatus'
 import { useEntityModals } from '~/composables/manage/useEntityModals'
 import type { TableColumn } from '@nuxt/ui'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
+import { useManageFilters } from '~/composables/manage/useManageFilters'
+import { useManageColumns } from '~/composables/manage/useManageColumns'
+import { useManageActions } from '~/composables/manage/useManageActions'
 
 type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
@@ -215,89 +218,18 @@ const toast = useToast?.() as any
 
 const crud = props.useCrud()
 
-const multiFilterAliases = new Set(['tags'])
-const columnMemo = new Map<string, TableColumn<EntityRow>[]>()
+const { initializeDefaults, resetFilters } = useManageFilters(crud as any, {
+  config: props.filtersConfig,
+  fetchOnReset: true,
+})
 
-function initializeFilterDefaults() {
-  const configEntries = Object.entries(props.filtersConfig || {})
-  const aliasByApiKey = new Map<string, string>()
-
-  for (const [alias, target] of configEntries) {
-    if (typeof target === 'string' && target) {
-      aliasByApiKey.set(target, alias)
-    } else if (target === true) {
-      aliasByApiKey.set(alias, alias)
-    }
-  }
-
-  const filters = crud?.filters as Record<string, any> | undefined
-  if (!filters) return
-
-  for (const [key, current] of Object.entries(filters)) {
-    if (current !== true) continue
-    const alias = aliasByApiKey.get(key) ?? key
-    if (multiFilterAliases.has(alias) || key.endsWith('_ids')) {
-      filters[key] = []
-    } else {
-      filters[key] = undefined
-    }
-  }
-}
-
-initializeFilterDefaults()
+initializeDefaults()
 void crud.fetchList()
 
 // Preview composable
 const { previewOpen, previewData, setPreviewOpen, openPreviewFromEntity } = useEntityPreview()
 
-const resolvedColumns = computed<TableColumn<EntityRow>[]>(() => {
-  const key = `${props.entity}::${crud.lang.value}`
-  const cached = columnMemo.get(key)
-  if (cached) return cached
-
-  const extras: TableColumn<EntityRow>[] = []
-
-  const add = (column?: TableColumn<EntityRow>) => {
-    if (!column) return
-    extras.push(column)
-  }
-
-  add({ accessorKey: 'code', header: t('common.code') })
-  add({ accessorKey: 'lang', header: t('common.language') })
-
-  switch (props.entity) {
-    case 'baseCard':
-      add({ accessorKey: 'card_type', header: t('entities.cardType') })
-      add({ accessorKey: 'tags', header: t('common.tags') })
-      break
-    case 'cardType':
-      add({ accessorKey: 'category', header: t('common.category') })
-      break
-    case 'facet':
-      add({ accessorKey: 'arcana', header: t('entities.arcana') })
-      add({ accessorKey: 'tags', header: t('common.tags') })
-      break
-    case 'skill':
-      add({ accessorKey: 'facet', header: t('entities.facet') })
-      add({ accessorKey: 'tags', header: t('common.tags') })
-      break
-    case 'world':
-    case 'arcana':
-      add({ accessorKey: 'tags', header: t('common.tags') })
-      break
-    case 'tag':
-      add({ accessorKey: 'parent', header: t('common.parent') })
-      add({ accessorKey: 'category', header: t('common.category') })
-      break
-    default:
-      break
-  }
-
-  add({ accessorKey: 'updated_at', header: t('common.updatedAt') })
-
-  columnMemo.set(key, extras)
-  return extras
-})
+const resolvedColumns = useManageColumns({ entity: props.entity, crud })
 
 // Expose a refresh helper compatible with legacy template usage
 async function refresh() {
@@ -349,51 +281,16 @@ const savingDelete = computed(() => deletingSaving.value)
 const { page, pageSize, totalItems, totalPages, defaultPageSizes, onPageChange, onPageSizeChange } = useEntityPagination(crud as any)
 
 
-// Edit/Delete handlers from composables already assigned
-function onExport(ids: number[]) {
-  console.log('export', props.label, ids)
-}
-function onBatchUpdate(ids: number[]) {
-  console.log('batchUpdate', props.label, ids)
-}
+const { onExport, onBatchUpdate, onFeedback, onTags } = useManageActions(crud as any, {
+  entityLabel: props.label,
+  toast,
+})
+
 function onPreview(entity: any) {
   openPreviewFromEntity(entity, t)
 }
-
-function onFeedback(entity?: any) {
-  console.log('feedback', props.label, entity)
-}
-function onTags(entity?: any) {
-  // open TagPicker (stub)
-  console.log('tags', props.label, entity)
-}
 function onCreateClickWrapper() {
   onCreateClick((e: 'create') => emit(e))
-}
-
-function resetFilters() {
-  const filters = crud.filters
-  if (filters) {
-    for (const key of Object.keys(filters)) {
-      const current = filters[key]
-      if (Array.isArray(current) || multiFilterAliases.has(key) || key.endsWith('_ids')) {
-        filters[key] = []
-        continue
-      }
-      if (typeof current === 'string') {
-        filters[key] = ''
-        continue
-      }
-      filters[key] = null
-    }
-  }
-
-  const pag = crud.pagination?.value ?? crud.pagination
-  if (pag) {
-    pag.page = 1
-  }
-
-  void crud.fetchList?.()
 }
 
 // Optimistic status update

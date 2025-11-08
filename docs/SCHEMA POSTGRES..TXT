@@ -346,6 +346,7 @@ CREATE TABLE public.users (
 	modified_at timestamptz DEFAULT now() NOT NULL,
 	status public.user_status DEFAULT 'active'::user_status NOT NULL, -- Estado del usuario (active, inactive, banned, pending).
 	image text NULL,
+	effects jsonb DEFAULT '[]'::jsonb NULL,
 	CONSTRAINT users_email_unique UNIQUE (email),
 	CONSTRAINT users_pkey PRIMARY KEY (id),
 	CONSTRAINT users_username_unique UNIQUE (username)

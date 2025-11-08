@@ -25,7 +25,7 @@
 
 ## Hallazgos Clave
 
-### 1. Complejidad del componente `ManageEntity` (frontend)
+### [x] 1. Complejidad del componente `ManageEntity` (frontend)
 
 - `EntityBase.vue` concentra responsabilidades: inicialización de filtros, paginación, columnas dinámicas, gestión de modales, previews, borrados optimistas y logs. @app/components/manage/EntityBase.vue#1-395
 - Consecuencias: curva de mantenimiento alta, dificultad para pruebas unitarias, riesgo de efectos secundarios.
@@ -35,6 +35,15 @@
      - `useManageFilters(config)` → manejar `initializeFilterDefaults` y `resetFilters` con reglas y normalización coherentes.
      - `useManageActions(crud)` → centralizar `onExport`, `onBatchUpdate`, `onFeedback`, `onTags` (actualmente placeholders).
   2. Reducir dependencia directa de `console.log` reemplazándolo por servicios de logging o eventos.
+
+> ### RESPUESTA
+>
+> - Extraje la lógica de filtros a [useManageFilters](cci:1://file:///home/bulu/work/devel/tarot2/app/composables/manage/useManageFilters.ts:27:0-79:1), centralizando inicialización y reseteo con soporte configurable; `EntityBase` la consume para arrancar y limpiar filtros sin duplicar código. @app/composables/manage/useManageFilters.ts#1-68 @app/components/manage/EntityBase.vue#219-227
+> - Moví la resolución de columnas a [useManageColumns](cci:1://file:///home/bulu/work/devel/tarot2/app/composables/manage/useManageColumns.ts:11:0-64:1), reutiliza memoización por entidad/idioma y mantiene la misma estructura dinámica de columnas. @app/composables/manage/useManageColumns.ts#1-65 @app/components/manage/EntityBase.vue#232-237
+> - Reemplacé los [console.log](cci:1://file:///home/bulu/work/devel/tarot2/app/composables/deck/useDeckCrud.ts:71:2-74:3) por [useManageActions](cci:1://file:///home/bulu/work/devel/tarot2/app/composables/manage/useManageActions.ts:15:0-48:1), que encapsula placeholders de export, batch, feedback y tags con notificaciones extensibles. @app/composables/manage/useManageActions.ts#1-39 @app/components/manage/EntityBase.vue#284-287
+> - Creé los nuevos composables dedicados ([useManageFilters](cci:1://file:///home/bulu/work/devel/tarot2/app/composables/manage/useManageFilters.ts:27:0-79:1), [useManageColumns](cci:1://file:///home/bulu/work/devel/tarot2/app/composables/manage/useManageColumns.ts:11:0-64:1), [useManageActions](cci:1://file:///home/bulu/work/devel/tarot2/app/composables/manage/useManageActions.ts:15:0-48:1)) para reducir responsabilidades en `EntityBase`. @app/composables/manage/useManageFilters.ts#1-68 @app/composables/manage/useManageColumns.ts#1-65 @app/composables/manage/useManageActions.ts#1-39
+
+
 
 ### [x] 2. Duplicidad en filtros y paginación
 
