@@ -88,11 +88,12 @@ import { computed, ref, watch } from 'vue'
 import { useI18n, useLazyAsyncData } from '#imports'
 import { useApiFetch } from '~/utils/fetcher'
 import { useCardStatus } from '~/utils/status'
+import type { ManageCrud } from '@/types/manage'
 
 type FilterKey = 'search' | 'tags' | 'facet' | 'type' | 'status' | 'is_active' | 'parent'
 
 const props = withDefaults(defineProps<{
-  crud: any
+  crud: ManageCrud
   config?: Record<string, any>
   label: string
   noTags?: boolean
@@ -184,7 +185,7 @@ function useFilterBinding(keyRef: { value: string }, options: FilterBindingOptio
     get() {
       const key = keyRef.value
       if (!key) return multi ? [] : null
-      const raw = props.crud?.filters?.[key]
+      const raw = props.crud.filters?.[key]
       if (multi) {
         const arr = normalizeArrayValue(raw)
         return normalize ? normalize(arr) : arr
@@ -194,7 +195,7 @@ function useFilterBinding(keyRef: { value: string }, options: FilterBindingOptio
     },
     set(value: any) {
       const key = keyRef.value
-      if (!key || !props.crud?.filters) return
+      if (!key || !props.crud.filters) return
       const mapped = (() => {
         if (multi) {
           const arr = normalizeArrayValue(value)

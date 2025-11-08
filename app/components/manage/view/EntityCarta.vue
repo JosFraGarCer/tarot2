@@ -35,7 +35,7 @@
           :entity-type="label"
           :no-tags="noTags"
           vertical
-          @editform="() => emit('edit', item)"
+          @edit="() => emit('edit', item)"
           @feedback="() => emit('feedback', item)"
           @tags="() => emit('tags', item)"
           @delete="() => emit('delete', item)"
@@ -77,15 +77,17 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from '#imports'
 import { useCardTemplates } from '~/composables/common/useCardTemplates'
 import EntityActions from '~/components/manage/EntityActions.vue'
-import { useCardStatus } from '~/utils/status'
+import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 
 const props = defineProps<{
   crud: any
   label: string
   entity: string
+  templateKey?: string
   noTags?: boolean
   cardType?: boolean
 }>()
@@ -101,49 +103,20 @@ const emit = defineEmits<{
 const { t, locale } = useI18n()
 
 const { resolveTemplate } = useCardTemplates()
-// const Resolved = computed(() => resolveTemplate(props.templateKey as any))
-const templateKey = 'Class'
-const Resolved = computed(() => resolveTemplate(templateKey as any))
+const templateKey = computed(() => props.templateKey ?? 'Class')
+const Resolved = computed(() => resolveTemplate(templateKey.value as any))
 
-function resolveImage(src?: string) {
-  if (!src) return ''
-  if (src.startsWith('http') || src.startsWith('/')) return src
-  
-  return `/img/${props.entity}/${src}`
-}
-
-function titleOf(item: any): string {
-  return item?.name ?? item?.title ?? item?.code ?? '—'
-}
-
-function isActive(item: any): boolean {
-  return Boolean(item?.is_active ?? item?.isActive ?? false)
-}
-
-function langBadge(item: any): string | null {
-  const lc = (item?.language_code_resolved || item?.language_code || item?.lang || '').toString()
-  if (!lc) return null
-  return lc !== String(locale.value) ? lc : null
-}
-
-const statusUtil = useCardStatus()
-const statusOptions = statusUtil.options()
-
-function getStatusMeta(value: string | null | undefined) {
-  if (!value) return null
-  return statusOptions.find(option => option.value === value) ?? null
-}
-
-function statusColor(value: string | null | undefined) {
-  return getStatusMeta(value)?.color ?? 'neutral'
-}
-
-function statusVariant(value: string | null | undefined) {
-  return getStatusMeta(value)?.variant ?? 'subtle'
-}
-
-function statusLabelKey(value: string | null | undefined) {
-  return getStatusMeta(value)?.labelKey ?? 'status.draft'
-}
+const {
+  resolveImage,
+  titleOf,
+  isActive,
+  langBadge,
+  statusColor,
+  statusVariant,
+  statusLabelKey
+} = useCardViewHelpers({
+  entity: computed(() => props.entity),
+  locale
+})
 
 </script>

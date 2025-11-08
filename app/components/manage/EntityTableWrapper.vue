@@ -36,9 +36,10 @@
 import { computed, ref } from 'vue'
 import EntityTable from '~/components/manage/view/EntityTable.vue'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
+import type { ManageCrud } from '@/types/manage'
 
 const props = defineProps<{
-  crud: any
+  crud: ManageCrud
   label: string
   columns?: any[]
 }>()
@@ -53,17 +54,12 @@ const emit = defineEmits<{
 const selectedIds = ref<number[]>([])
 
 const tableRows = computed<EntityRow[]>(() => {
-  const raw = props.crud?.items?.value ?? props.crud?.items
-  if (!Array.isArray(raw)) return []
-
-  return raw.map((entity: any) => normalizeEntity(entity))
+  const raw = props.crud.items.value
+  return raw.map((entity) => normalizeEntity(entity))
 })
 
 const tableLoading = computed<boolean>(() => {
-  const loading = props.crud?.loading
-  if (typeof loading === 'boolean') return loading
-  if (loading && 'value' in loading) return Boolean(loading.value)
-  return false
+  return props.crud.loading.value
 })
 
 function normalizeEntity(entity: any): EntityRow {

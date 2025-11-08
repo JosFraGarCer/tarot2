@@ -12,6 +12,7 @@
             v-model:template-key="templateKey"
             class="shrink-0"
             :template-options="templateOptions as any"
+            storage-key="manage"
           />
         </div>
       </template>
@@ -24,6 +25,7 @@
             :label="currentConfig.label"
             :use-crud="currentConfig.useCrud"
             :view-mode="viewMode"
+            :template-key="templateKey"
             :entity="item.value"
             :filters-config="currentConfig.filters"
             :card-type="currentConfig.cardType"
@@ -54,7 +56,7 @@ import { useTagCrud } from '~/composables/manage/useTag'
 
 definePageMeta({ layout: 'default' })
 const { t } = useI18n()
-const { viewMode, templateKey, templateOptions } = useManageView()
+const { viewMode, templateKey, templateOptions } = useManageView({ storageKey: 'manage' })
 
 // Selected tab
 const selectedTab = ref<'cardType' | 'baseCard' | 'world' | 'arcana' | 'facet' | 'skill' | 'tag'>('cardType')

@@ -19,13 +19,13 @@
         @click="setMode('tarjeta')"
       />
     </UTooltip>
-    <UTooltip :text="$t('view.card')">
+    <UTooltip :text="$t('view.classic')">
       <UButton
         icon="i-heroicons-view-columns"
         size="md"
-        :variant="modelValue === 'tarjeta2' ? 'solid' : 'soft'"
+        :variant="modelValue === 'classic' ? 'solid' : 'soft'"
         color="neutral"
-        @click="setMode('tarjeta2')"
+        @click="setMode('classic')"
       />
     </UTooltip>
     <UTooltip :text="$t('view.carta')">
@@ -54,7 +54,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
-export type ViewMode = 'tarjeta' | 'tarjeta2' | 'carta' | 'tabla'
+export type ViewMode = 'tarjeta' | 'classic' | 'carta' | 'tabla'
 
 const props = defineProps<{
   modelValue: ViewMode

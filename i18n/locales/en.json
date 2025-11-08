@@ -445,6 +445,7 @@
   },
   "view": {
     "card": "Card",
+    "classic": "Classic",
     "carta": "Carta",
     "table": "Table",
     "tableSoon": "Table view coming soon"

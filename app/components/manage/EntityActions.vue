@@ -14,6 +14,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  (e: 'edit', entity: any): void
   (e: 'editform', entity: any): void
   (e: 'feedback', entity: any): void
   (e: 'tags', entity: any): void
@@ -33,6 +34,12 @@ const containerClass = computed(() =>
     ? 'flex flex-col gap-1'
     : 'flex flex-row gap-1 justify-end flex-wrap items-center'
 )
+function handleEditClick() {
+  const entity = props.entity
+  emit('edit', entity)
+  emit('editform', entity)
+  props.onEdit?.(entity)
+}
 </script>
 
 <template>
@@ -44,7 +51,7 @@ const containerClass = computed(() =>
         size="xs"
         color="primary"
         variant="soft"
-        @click="$emit('editform', props.entity)"
+        @click="handleEditClick"
       />
     </div>
 

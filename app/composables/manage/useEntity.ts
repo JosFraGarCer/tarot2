@@ -41,10 +41,31 @@ export interface EntityOptions<TList, TCreate, TUpdate> {
 }
 
 // Pagination state exposed to consumers
-interface PaginationState {
+export interface PaginationState {
   page: number
   pageSize: number
   totalItems: number
+}
+
+export interface EntityCrud<TList, TCreate, TUpdate> {
+  items: Ref<TList[]>
+  current: Ref<TList | null>
+  filters: Record<string, any>
+  pagination: Ref<PaginationState>
+  loading: ComputedRef<boolean>
+  error: Ref<string | null>
+  lang: Ref<string>
+  resourcePath: string
+  schema?: EntityOptions<TList, TCreate, TUpdate>['schema']
+  fetchList: () => Promise<TList[]>
+  fetchOne: (id: string | number) => Promise<TList | null>
+  create: (payload: TCreate) => Promise<TList>
+  update: (id: string | number, payload: TUpdate) => Promise<TList>
+  remove: (id: string | number) => Promise<boolean>
+  updateStatus: (id: string | number, nextStatus: any) => Promise<TList>
+  updateTags: (id: string | number, tagIds: number[]) => Promise<TList>
+  nextPage: () => void
+  prevPage: () => void
 }
 
 // Utilities
@@ -97,7 +118,7 @@ function sanitizeInitialFilters(raw: Record<string, any>): Record<string, any> {
 // Main composable
 export function useEntity<TList, TCreate, TUpdate>(
   options: EntityOptions<TList, TCreate, TUpdate>
-) {
+): EntityCrud<TList, TCreate, TUpdate> {
   // i18n locale as reactive language code (ref)
   const { locale } = useI18n()
   const lang = locale as Ref<string>

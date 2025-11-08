@@ -16,11 +16,11 @@
       :label="label"
       :no-tags="noTags"
       :card-type="cardType"
-      :on-create="onCreateClick"
+      :on-create="onCreateClickWrapper"
     />
 
     <div v-if="viewMode === 'tabla'">
-      <ManageEntityTable
+      <EntityTableWrapper
         :crud="crud"
         :label="label"
         :columns="resolvedColumns"
@@ -31,7 +31,7 @@
       />
     </div>
     <div v-else-if="viewMode === 'tarjeta'">
-      <ManageEntityCards
+      <EntityCards
         :crud="crud"
         :label="label"
         :entity=entity
@@ -44,8 +44,8 @@
         @preview="onPreview"
       />
     </div>
-    <div v-else-if="viewMode === 'tarjeta2'">
-      <ManageEntityCards2
+    <div v-else-if="viewMode === 'classic'">
+      <EntityCardsClassic
         :crud="crud"
         :label="label"
         :entity=entity
@@ -65,6 +65,7 @@
         :entity=entity
         :no-tags="noTags"
         :card-type="cardType"
+        :template-key="templateKey"
         @edit="onEdit"
         @delete="onDelete"
         @feedback="onFeedback"
@@ -124,7 +125,7 @@
       :on-confirm-delete="confirmDeleteEntity"
       :on-confirm-translation-delete="confirmDeleteTranslation"
       :on-cancel="cancelDeleteDialogs"
-      :delete-loading="saving"
+      :delete-loading="savingDelete"
       :translation-loading="deleteTranslationLoading"
       :translation-lang="pendingDeleteTranslationItem?.language_code || localeCode"
     />
@@ -132,29 +133,35 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, reactive } from 'vue'
+import { computed } from 'vue'
 import { useI18n, useToast } from '#imports'
-import { useApiFetch } from '~/utils/fetcher'
 import PaginationControls from '~/components/common/PaginationControls.vue'
 import ManageEntityFilters from '~/components/manage/EntityFilters.vue'
-import ManageEntityTable from '~/components/manage/EntityTable.vue'
-import ManageEntityCards from '~/components/manage/view/EntityCardsView.vue'
-import ManageEntityCards2 from '~/components/manage/view/EntityCardsView2.vue'
+import EntityTableWrapper from '~/components/manage/EntityTableWrapper.vue'
+import EntityCards from '~/components/manage/view/EntityCards.vue'
+import EntityCardsClassic from '~/components/manage/view/EntityCardsClassic.vue'
 import ManageEntityCarta from '~/components/manage/view/EntityCarta.vue'
 import DeleteDialogs from '~/components/manage/common/DeleteDialogs.vue'
 import PreviewModal from '~/components/manage/modal/PreviewModal.vue'
 import FormModal from '~/components/manage/modal/FormModal.vue'
 import { useTranslationActions } from '~/composables/manage/useTranslationActions'
+import { useEntityPreview } from '~/composables/manage/useEntityPreview'
+import { useEntityPagination } from '~/composables/manage/useEntityPagination'
+import { useImageUpload } from '~/composables/manage/useImageUpload'
+import { useEntityDeletion } from '~/composables/manage/useEntityDeletion'
+import { useOptimisticStatus } from '~/composables/manage/useOptimisticStatus'
+import { useEntityModals } from '~/composables/manage/useEntityModals'
 import type { TableColumn } from '@nuxt/ui'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 
-type ManageViewMode = 'tabla' | 'tarjeta' | 'tarjeta2' | 'carta'
+type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
 const props = withDefaults(defineProps<{
   label: string
   useCrud: () => any
   viewMode: ManageViewMode
   entity: string
+  templateKey?: string
   filtersConfig?: Record<string, boolean>
   columns?: any[]
   cardType?: boolean
@@ -208,15 +215,8 @@ function initializeFilterDefaults() {
 initializeFilterDefaults()
 void crud.fetchList()
 
-type PreviewPayload = {
-  title: string
-  img?: string | null
-  shortText?: string | null
-  description?: string | null
-}
-
-const previewOpen = ref(false)
-const previewData = ref<PreviewPayload | null>(null)
+// Preview composable
+const { previewOpen, previewData, setPreviewOpen, openPreviewFromEntity } = useEntityPreview()
 
 const resolvedColumns = computed<TableColumn<EntityRow>[]>(() => {
   const extras: TableColumn<EntityRow>[] = []
@@ -267,199 +267,52 @@ async function refresh() {
   return await crud.fetchList?.()
 }
 
-async function confirmDeleteEntity() {
-  const id = deleteTarget.value?.id
-  if (id == null) return
-  try {
-    saving.value = true
-    await crud.remove?.(id)
-    await refresh()
-    deleteModalOpen.value = false
-    toast?.add?.({ title: t('common.deleted') || 'Deleted', color: 'success' })
-  } catch (e) {
-    toast?.add?.({ title: t('errors.delete_failed') || 'Delete failed', description: crud.error?.value, color: 'error' })
-  } finally {
-    saving.value = false
-  }
-}
-
-function cancelDeleteDialogs() {
-  deleteModalOpen.value = false
-  deleteTranslationModalOpen.value = false
-}
-
-// Locale code for dialogs
-const { locale } = useI18n()
+// Deletion composable
 const localeCode = computed(() => (typeof locale === 'string' ? locale : locale.value) as string)
+const {
+  deleteModalOpen,
+  deleteTranslationModalOpen,
+  deleteTranslationLoading,
+  deleteTarget,
+  pendingDeleteTranslationItem,
+  saving: deletingSaving,
+  cancelDeleteDialogs,
+  confirmDeleteEntity,
+  confirmDeleteTranslation,
+  onDelete,
+} = useEntityDeletion(crud as any, t, toast, () => localeCode.value)
+
+// Locale
+const { locale } = useI18n()
 
 // Normalize entity label for forms/dialogs
 const entityLabel = computed(() => props.label)
 
-// Modal state for create/edit form
-const isModalOpen = ref(false)
-const isEditing = ref(false)
-const saving = ref(false)
-const isUploadingImage = ref(false)
-const imageFile = ref<File | null>(null)
-const imagePreview = ref<string | null>(null)
-const modalImageFieldConfig = ref<Record<string, any> | undefined>(undefined)
-const modalFormState = reactive<Record<string, any>>({})
+// Image upload composable
+const { isUploadingImage, imageFile, imagePreview, modalImageFieldConfig, handleImageFile, handleRemoveImage } = useImageUpload()
 
-// Placeholder for english item if available
-const manage = reactive<{ englishItem: Record<string, any> | null }>({ englishItem: null })
+// Form modals composable
+const {
+  isModalOpen,
+  isEditing,
+  saving,
+  modalFormState,
+  manage,
+  et,
+  onEdit,
+  onCreateClick,
+  handleSubmit,
+  handleCancel,
+} = useEntityModals(crud as any, { localeCode: () => localeCode.value, t, toast, imagePreview })
 
-function et(key: 'create' | 'edit') {
-  return key === 'edit' ? (t('common.edit') || 'Edit') : (t('common.create') || 'Create')
-}
+// map saving for delete dialogs
+const savingDelete = computed(() => deletingSaving.value)
 
-function handleImageFile(file: File | null) {
-  imageFile.value = file
-}
-function handleRemoveImage() {
-  imageFile.value = null
-  imagePreview.value = null
-}
-
-async function handleSubmit() {
-  try {
-    saving.value = true
-    // Shallow clone and normalize values to avoid backend/schema 422s
-    const payload: Record<string, any> = { ...modalFormState }
-    // Normalize boolean flags
-    if ('is_active' in payload) payload.is_active = !!payload.is_active
-    // Drop image if not a valid absolute URL or absolute path (let backend keep existing)
-    if ('image' in payload) {
-      const v = payload.image
-      const s = typeof v === 'string' ? v : ''
-      const looksUrl = s.startsWith('http://') || s.startsWith('https://') || s.startsWith('/')
-      if (!looksUrl) delete payload.image
-    }
-    // Remove empty strings and nulls for optional fields
-    for (const k in payload) {
-      if (payload[k] === '' || payload[k] === null) delete payload[k]
-    }
-
-    if (isEditing.value && payload.id != null) {
-      await crud.update?.(payload.id, payload as any)
-    } else {
-      await crud.create?.(payload as any)
-    }
-    await crud.fetchList?.()
-    isModalOpen.value = false
-    toast?.add?.({ title: t('common.saved') || 'Saved', color: 'success' })
-  } catch (e) {
-    toast?.add?.({ title: t('errors.update_failed') || 'Save failed', description: crud.error?.value, color: 'error' })
-  } finally {
-    saving.value = false
-  }
-}
-
-function handleCancel() {
-  isModalOpen.value = false
-}
-
-// Delete dialogs state
-const deleteModalOpen = ref(false)
-const deleteTranslationModalOpen = ref(false)
-const deleteTranslationLoading = ref(false)
-const deleteTarget = ref<any>({ id: null })
-const pendingDeleteTranslationItem = ref<any | null>(null)
-
-async function confirmDeleteTranslation() {
-  if (!pendingDeleteTranslationItem.value) return
-  deleteTranslationLoading.value = true
-  try {
-    // Backend borra solo la traducción cuando lang !== 'en'
-    await crud.remove?.(pendingDeleteTranslationItem.value.id)
-    await crud.fetchList?.()
-    deleteTranslationModalOpen.value = false
-    toast?.add?.({ title: t('common.deleted') || 'Deleted', color: 'success' })
-  } catch (e) {
-    toast?.add?.({ title: t('errors.delete_failed') || 'Delete failed', description: crud.error?.value, color: 'error' })
-  } finally {
-    deleteTranslationLoading.value = false
-  }
-}
-
-const defaultPageSizes = computed(() => ([
-  { label: '10', value: 10 },
-  { label: '20', value: 20 },
-  { label: '50', value: 50 }
-]))
-
-const page = computed(() => crud.pagination?.page ?? crud.pagination?.value?.page ?? 1)
-const pageSize = computed(() => crud.pagination?.pageSize ?? crud.pagination?.value?.pageSize ?? 20)
-const totalItems = computed(() => crud.pagination?.totalItems ?? crud.pagination?.value?.totalItems ?? 0)
-
-// ✅ totalPages correcto y reactivo
-const totalPages = computed<number>(() => {
-  const pag = crud.pagination?.value ?? crud.pagination
-  const total = Number(pag?.totalItems ?? 0)
-  const size = Number(pag?.pageSize ?? 1)
-  return Math.max(1, Math.ceil(total / size))
-})
-
-function onPageChange(page: number) {
-  if (!crud.pagination) return
-  const pag = crud.pagination.value ?? crud.pagination
-  pag.page = page
-}
-
-function onPageSizeChange(size: number) {
-  if (!Number.isFinite(size) || size <= 0 || !crud.pagination) return
-  const pag = crud.pagination.value ?? crud.pagination
-  pag.pageSize = size
-  pag.page = 1
-}
+// Pagination composable
+const { page, pageSize, totalItems, totalPages, defaultPageSizes, onPageChange, onPageSizeChange } = useEntityPagination(crud as any)
 
 
-function onEdit(entity: any) {
-  if (!entity) return
-  isEditing.value = true
-  // Reset and prefill modal form state
-  for (const k of Object.keys(modalFormState)) delete (modalFormState as any)[k]
-  Object.assign(modalFormState, entity)
-  // Keep current preview if entity has image/thumbnail
-  imagePreview.value = (entity.image || entity.thumbnail_url || null) as any
-  // Preload english fallback for hints when not editing English
-  if (localeCode.value !== 'en') {
-    preloadEnglishItem(entity.id).catch(() => { /* ignore hint preload errors */ })
-    // Si estamos viendo fallback (no existe traducción en el idioma actual), limpiar campos traducibles
-    const resolved = String(entity?.language_code_resolved || entity?.language_code || '')
-    if (resolved && resolved !== String(localeCode.value)) {
-      if ('name' in modalFormState) (modalFormState as any).name = ''
-      if ('short_text' in modalFormState) (modalFormState as any).short_text = ''
-      if ('description' in modalFormState) (modalFormState as any).description = ''
-      if ('effects' in modalFormState) {
-        try {
-          const eff = (modalFormState as any).effects || {}
-          eff[String(localeCode.value)] = []
-          ;(modalFormState as any).effects = eff
-        } catch { /* noop */ }
-      }
-    }
-  } else {
-    manage.englishItem = null
-  }
-  isModalOpen.value = true
-}
-async function onDelete(entity: any) {
-  if (!entity) return
-  const lc = String(localeCode.value || '')
-  const resolved = String(entity?.language_code_resolved || entity?.language_code || '')
-  const isEnglishPage = lc === 'en'
-  const isFallback = resolved && resolved !== lc // viendo fallback inglés (u otro idioma)
-
-  if (isEnglishPage || isFallback) {
-    // Borrar entidad completa
-    deleteTarget.value = { id: entity.id }
-    deleteModalOpen.value = true
-  } else {
-    // Estamos en idioma local y la entidad tiene traducción en ese idioma → borrar solo traducción
-    pendingDeleteTranslationItem.value = entity
-    deleteTranslationModalOpen.value = true
-  }
-}
+// Edit/Delete handlers from composables already assigned
 function onExport(ids: number[]) {
   console.log('export', props.label, ids)
 }
@@ -467,22 +320,9 @@ function onBatchUpdate(ids: number[]) {
   console.log('batchUpdate', props.label, ids)
 }
 function onPreview(entity: any) {
-  if (!entity) return
-  previewData.value = {
-    title: entity.name ?? entity.title ?? entity.code ?? t('common.untitled') ?? '—',
-    img: entity.image ?? entity.thumbnail_url ?? null,
-    shortText: entity.short_text ?? entity.summary ?? null,
-    description: entity.description ?? null,
-  }
-  previewOpen.value = true
+  openPreviewFromEntity(entity, t)
 }
 
-function setPreviewOpen(value: boolean) {
-  previewOpen.value = value
-  if (!value) {
-    previewData.value = null
-  }
-}
 function onFeedback(entity?: any) {
   console.log('feedback', props.label, entity)
 }
@@ -490,31 +330,12 @@ function onTags(entity?: any) {
   // open TagPicker (stub)
   console.log('tags', props.label, entity)
 }
-function onCreateClick() {
-  // Emit event for external listeners, but always open the modal locally
-  emit('create')
-  // Prepare empty form for creation
-  isEditing.value = false
-  for (const k of Object.keys(modalFormState)) delete (modalFormState as any)[k]
-  imageFile.value = null
-  imagePreview.value = null
-  manage.englishItem = null
-  isModalOpen.value = true
+function onCreateClickWrapper() {
+  onCreateClick((e: 'create') => emit(e))
 }
 
-// Status change with optimistic update
-async function onChangeStatus(entity: any, nextStatus: any) {
-  if (!entity) return
-  const prev = entity.status
-  try {
-    entity.status = nextStatus
-    await crud.updateStatus?.(entity.id, nextStatus)
-    toast?.add?.({ title: t('status.updated') || 'Status updated', color: 'success' })
-  } catch (e) {
-    entity.status = prev
-    toast?.add?.({ title: t('errors.update_failed') || 'Update failed', description: crud.error?.value, color: 'error' })
-  }
-}
+// Optimistic status update
+const { onChangeStatus } = useOptimisticStatus(crud as any, t, toast)
 
 // Translation actions
 async function onTranslate(entity: any, payload?: { name: string; short_text?: string|null; description?: string|null }) {
@@ -530,20 +351,8 @@ async function onTranslate(entity: any, payload?: { name: string; short_text?: s
   }
 }
 
-async function onDeleteTranslation(entity: any) {
-  if (!entity) return
-  pendingDeleteTranslationItem.value = entity
-  deleteTranslationModalOpen.value = true
-}
+// onDeleteTranslation handled by deletion composable
 
 // Helper: preload english version for hints in modal
-async function preloadEnglishItem(id: number | string) {
-  try {
-    const $fetch = useApiFetch
-    const res: any = await $fetch(`${crud.resourcePath}/${id}`, { method: 'GET', params: { lang: 'en' } })
-    manage.englishItem = res?.data ?? null
-  } catch {
-    manage.englishItem = null
-  }
-}
+// preloadEnglishItem handled within useEntityModals
 </script>

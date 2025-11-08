@@ -1,15 +1,15 @@
-<!-- /app/components/manage/views/ManageEntityCards2.vue -->
+<!-- /app/components/manage/views/EntityCardsClassic.vue -->
 <template>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     <UCard v-for="item in crud.items?.value ?? crud.items" :key="item.id" class="flex flex-col gap-3 h-full text-sm">
       <div class="flex justify-between items-start gap-3">
         <div class="flex items-start gap-3 flex-1">
           <img
-            v-if="item.image"
-            :src="resolveImage(item.image)"
+            :src="resolveImage(item.image || item.thumbnail_url) || '/img/default.avif'"
             :alt="item.name || item.code"
             class="w-15 h-20 object-cover rounded-md border border-neutral-200 dark:border-neutral-700"
             loading="lazy"
+            @error="imageFallback"
           >
           <div class="flex-1 space-y-1">
             <p class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1">
@@ -68,7 +68,7 @@
             :entity-type="label"
             :no-tags="noTags"
             vertical
-            @editform="() => emit('edit', item)"
+            @edit="() => emit('edit', item)"
             @feedback="() => emit('feedback', item)"
             @tags="() => emit('tags', item)"
             @delete="() => emit('delete', item)"
@@ -101,12 +101,14 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from '#imports'
 import EntityActions from '~/components/manage/EntityActions.vue'
-import { useCardStatus } from '~/utils/status'
+import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
+import type { ManageCrud } from '@/types/manage'
 
 const props = defineProps<{
-  crud: any
+  crud: ManageCrud
   label: string
   entity: string
   noTags?: boolean
@@ -123,47 +125,17 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 
-function resolveImage(src?: string) {
-  if (!src) return ''
-  if (src.startsWith('http') || src.startsWith('/')) return src
-  
-  return `/img/${props.entity}/${src}`
-}
-
-function titleOf(item: any): string {
-  return item?.name ?? item?.title ?? item?.code ?? '—'
-}
-
-function isActive(item: any): boolean {
-  return Boolean(item?.is_active ?? item?.isActive ?? false)
-}
-
-function langBadge(item: any): string | null {
-  const lc = (item?.language_code_resolved || item?.language_code || item?.lang || '').toString()
-  if (!lc) return null
-  return lc !== String(locale.value) ? lc : null
-}
-
-const statusUtil = useCardStatus()
-const statusOptions = statusUtil.options()
-
-
-function getStatusMeta(value: string | null | undefined) {
-  if (!value) return null
-  return statusOptions.find(option => option.value === value) ?? null
-}
-
-function statusColor(value: string | null | undefined) {
-  return getStatusMeta(value)?.color ?? 'neutral'
-}
-
-function statusVariant(value: string | null | undefined) {
-  return getStatusMeta(value)?.variant ?? 'subtle'
-}
-
-function statusLabelKey(value: string | null | undefined) {
-  return getStatusMeta(value)?.labelKey ?? 'status.draft'
-}
-
+const {
+  resolveImage,
+  titleOf,
+  isActive,
+  langBadge,
+  statusColor,
+  statusVariant,
+  statusLabelKey
+} = useCardViewHelpers({
+  entity: computed(() => props.entity),
+  locale
+})
 
 </script>

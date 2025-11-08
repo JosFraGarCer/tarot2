@@ -432,6 +432,7 @@
   },
   "view": {
     "card": "Carta",
+    "classic": "Clásica",
     "carta": "Carta",
     "table": "Tabla",
     "tableSoon": "Vista de tabla próximamente"
