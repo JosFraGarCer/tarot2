@@ -2,13 +2,22 @@
 <template>
   <div class="flex flex-col gap-4">
 
-    <UAlert
-      v-if="crud?.error?.value"
-      :title="t('common.error')"
-      :description="crud.error?.value || ''"
-      color="error"
-      variant="soft"
-    />
+    <div class="space-y-2">
+      <UAlert
+        v-if="crud?.listError?.value"
+        :title="t('errors.list_failed')"
+        :description="crud.listError?.value || ''"
+        color="error"
+        variant="soft"
+      />
+      <UAlert
+        v-if="crud?.actionError?.value"
+        :title="t('errors.action_failed')"
+        :description="crud.actionError?.value || ''"
+        color="error"
+        variant="soft"
+      />
+    </div>
 
     <ManageEntityFilters
       :crud="crud"
@@ -384,7 +393,7 @@ async function onTranslate(entity: any, payload?: { name: string; short_text?: s
     await crud.fetchList?.()
     toast?.add?.({ title: t('common.saved') || 'Saved', color: 'success' })
   } catch (e) {
-    toast?.add?.({ title: t('errors.update_failed') || 'Update failed', description: crud.error?.value, color: 'error' })
+    toast?.add?.({ title: t('errors.update_failed') || 'Update failed', description: crud.actionError?.value || crud.listError?.value || '', color: 'error' })
   }
 }
 

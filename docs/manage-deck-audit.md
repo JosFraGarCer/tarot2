@@ -1,4 +1,12 @@
 # Informe de Auditoría: /manage y /deck/*
+> Debes hacer informes exhaustivo en formato MarkDown que guardaras en /docs
+> Se trata de buscar errores, posibles optimizaciones, analisis minicioso de las paginas solicitadas yTODAS sus dependencias. Tanto frontend como backend
+>
+> Las paginas son: 
+> - /manage
+> - /deck/*
+> 
+> Entre las optimizaciones posibles hay que buscar como eliminar codigo duplicado yu separar la logica de los *.vue para pasarla a composables.
 
 ## Resumen Ejecutivo
 
@@ -32,7 +40,7 @@
 - `useEntityPagination` y `DeckSection` establecen tamaños de página de manera divergente (10/20/50 vs 6/12/24/48), generando confusión entre vistas. @app/composables/manage/useEntityPagination.ts#4-41, @app/components/deck/DeckSection.vue#70-128
 - Recomendación: crear composable compartido `usePaginatedList({ defaultSizes, initialSize })` consumido por `useEntity` y `DeckSection`, permitiendo personalización por entidad.
 
-### 3. Fetch redundante en `/deck`
+### [x] 3. Fetch redundante en `/deck`
 
 - `DeckSection` llama a `useDeckCrud` que a su vez invoca `crud.fetchList()` en cada instancia. En tabs de `/deck/index.vue`, esto dispara múltiples peticiones simultáneas al cambiar de pestaña o renderizar SSR, sin mecanismos de cache compartida. @app/components/deck/DeckSection.vue#61-118, @app/composables/deck/useDeckCrud.ts#43-125
 - `useDeckCrud` reinicia paginación (`crud.pagination.value.page = 1`) en cada llamada, rompiendo continuidad entre re-montajes.
@@ -67,15 +75,22 @@
 - Botones de creación usan directiva `v-can.disable`, pero `onCreateEntity` en `/manage` sólo `console.log`. No se valida rol antes de abrir modales. @app/components/manage/EntityFilters.vue#73-80, @app/pages/manage.vue#167-170
 - Backend confía en middleware de auth global (`server/middleware`), pero no se auditaron scopes específicos por endpoint → sugiere revisar permisos.
 
-### 9. Gestión de errores
+### [x] 9. Gestión de errores
 
 - `useEntity` transforma errores a mensajes genéricos; sin embargo, UI sólo muestra `crud.error?.value` en `UAlert` sin mapear multiple errores simultáneos (create/update vs list). @app/components/manage/EntityBase.vue#5-12, @app/composables/manage/useEntity.ts#372-386
 - Sugerencia: separar `listError` y `actionError` en composable.
 
-### 10. Rendimiento y caching
+> Gestioné errores diferenciando solicitudes de listado y acciones en 
+useEntity, exponiendo listError y actionError además de un error derivado app/composables/manage/useEntity.ts. EntityBase ahora muestra alertas independientes y usa esas señales al lanzar toasts app/components/manage/EntityBase.vue, app/components/manage/EntityBase.vue. Ajusté composables relacionados (useEntityDeletion, useOptimisticStatus,useEntityModals) para reutilizar las nuevas propiedades de error app/composables/manage/useEntityDeletion.ts
+, app/composables/manage/useOptimisticStatus.ts, app/composables/manage/useEntityModals.ts.
+
+### [x] 10. Rendimiento y caching
 
 - `useApiFetch` implementa cache con ETags pero no limpia `responseCache`, potencial de fuga de memoria en sesiones largas. @app/utils/fetcher.ts#1-85
 - Recomendación: exponer `clearCache` y utilizar TTL.
+
+> Implementé gestión de caché con TTL en useApiFetch. Ahora usamos 
+CacheEntry con storedAt y ttl, se purgan entradas expiradas en cada petición GET y se reutilizan valores sólo si siguen vigentes. También añadí resolveTTL para permitir TTL personalizado vía options.context.cacheTTL, getCachedData con invalidación automática, y expuse clearApiFetchCache para limpiado manual por patrón. Cambios en app/utils/fetcher.ts.
 
 ## Recomendaciones Prioritarias
 

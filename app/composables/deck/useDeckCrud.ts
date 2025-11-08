@@ -23,6 +23,8 @@ const crudFactories: Record<DeckEntityKey, CrudFactory> = {
   skill: useSkillCrud as CrudFactory,
 }
 
+const crudCache = new Map<DeckEntityKey, AnyCrud>()
+
 function normalizeEntity(value: string): DeckEntityKey | null {
   const key = value
     .toLowerCase()
@@ -60,7 +62,11 @@ export function useDeckCrud(entity: MaybeRef<string>) {
   }
 
   const crudFactory = crudFactories[entityKey]
-  const crud = crudFactory()
+  let crud = crudCache.get(entityKey)
+  if (!crud) {
+    crud = crudFactory()
+    crudCache.set(entityKey, crud)
+  }
 
   const isDev = import.meta.dev
   const log = (...args: any[]) => {
@@ -68,8 +74,10 @@ export function useDeckCrud(entity: MaybeRef<string>) {
     console.debug('[useDeckCrud]', ...args)
   }
 
-  if (crud.pagination?.value) {
-    crud.pagination.value.page = 1
+  function resetPagination() {
+    if (crud.pagination?.value) {
+      crud.pagination.value.page = 1
+    }
   }
 
   async function fetch(options?: { pageSize?: number; status?: string; is_active?: boolean; page?: number; resetPage?: boolean }) {
@@ -91,7 +99,7 @@ export function useDeckCrud(entity: MaybeRef<string>) {
       if (options?.page !== undefined) {
         crud.pagination.value.page = options.page
       } else if (options?.resetPage ?? true) {
-        crud.pagination.value.page = 1
+        resetPagination()
       }
     }
 
@@ -122,5 +130,6 @@ export function useDeckCrud(entity: MaybeRef<string>) {
     error,
     fetch,
     crud,
+    resetPagination,
   }
 }

@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
-import { useI18n } from '#imports'
+import { useI18n, useAsyncData } from '#imports'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 import { useCardTemplates } from '~/composables/common/useCardTemplates'
 import { useDeckCrud } from '~/composables/deck/useDeckCrud'
@@ -62,6 +62,29 @@ const entityRef = computed(() => props.entity)
 const deckCrud = useDeckCrud(entityRef)
 const manageCrud = deckCrud.crud
 
+const localeCode = computed(() => (typeof locale === 'string' ? locale : locale.value))
+
+watch(entityRef, (next, prev) => {
+  if (next === prev) return
+  deckCrud.resetPagination?.()
+})
+
+const { pending: initialFetchPending } = useAsyncData(
+  () => `deck:${localeCode.value}:${entityRef.value}`,
+  async () => {
+    if (!deckCrud.crud) return []
+    if (deckCrud.items.value.length && !deckCrud.loading.value) {
+      return deckCrud.items.value
+    }
+    return await deckCrud.fetch({ resetPage: false })
+  },
+  {
+    immediate: true,
+    server: true,
+    watch: [entityRef, localeCode],
+  },
+)
+
 const pagination = manageCrud ? useEntityPagination(manageCrud as any) : null
 
 const paginate = computed(() => props.paginate ?? false)
@@ -69,7 +92,7 @@ const previewLimit = computed(() => props.limit ?? 6)
 
 const basePageSizeOptions = [6, 12, 24, 48]
 
-const loading = deckCrud.loading
+const loading = computed(() => deckCrud.loading.value || initialFetchPending.value)
 const items = deckCrud.items
 
 const currentPage = computed(() => (pagination ? pagination.page.value : 1))

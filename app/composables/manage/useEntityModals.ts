@@ -93,7 +93,11 @@ export function useEntityModals(
       isModalOpen.value = false
       toast?.add?.({ title: (t?.('common.saved') ?? 'Saved') as string, color: 'success' })
     } catch (e) {
-      toast?.add?.({ title: (t?.('errors.update_failed') ?? 'Save failed') as string, description: crud.error?.value, color: 'error' })
+      toast?.add?.({
+        title: (t?.('errors.update_failed') ?? 'Save failed') as string,
+        description: crud.actionError?.value || crud.listError?.value || '',
+        color: 'error',
+      })
     } finally {
       saving.value = false
     }

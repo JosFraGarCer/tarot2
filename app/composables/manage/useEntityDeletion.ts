@@ -24,7 +24,11 @@ export function useEntityDeletion(crud: AnyManageCrud, t?: (k: string) => string
       deleteModalOpen.value = false
       toast?.add?.({ title: (t?.('common.deleted') ?? 'Deleted') as string, color: 'success' })
     } catch (e) {
-      toast?.add?.({ title: (t?.('errors.delete_failed') ?? 'Delete failed') as string, description: crud.error?.value, color: 'error' })
+      toast?.add?.({
+        title: (t?.('errors.delete_failed') ?? 'Delete failed') as string,
+        description: crud.actionError?.value || crud.listError?.value || '',
+        color: 'error',
+      })
     } finally {
       saving.value = false
     }
@@ -39,7 +43,11 @@ export function useEntityDeletion(crud: AnyManageCrud, t?: (k: string) => string
       deleteTranslationModalOpen.value = false
       toast?.add?.({ title: (t?.('common.deleted') ?? 'Deleted') as string, color: 'success' })
     } catch (e) {
-      toast?.add?.({ title: (t?.('errors.delete_failed') ?? 'Delete failed') as string, description: crud.error?.value, color: 'error' })
+      toast?.add?.({
+        title: (t?.('errors.delete_failed') ?? 'Delete failed') as string,
+        description: crud.actionError?.value || crud.listError?.value || '',
+        color: 'error',
+      })
     } finally {
       deleteTranslationLoading.value = false
     }

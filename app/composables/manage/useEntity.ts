@@ -53,7 +53,9 @@ export interface EntityCrud<TList, TCreate, TUpdate> {
   filters: Record<string, any>
   pagination: Ref<PaginationState>
   loading: ComputedRef<boolean>
-  error: Ref<string | null>
+  error: ComputedRef<string | null>
+  listError: Ref<string | null>
+  actionError: Ref<string | null>
   lang: Ref<string>
   resourcePath: string
   schema?: EntityOptions<TList, TCreate, TUpdate>['schema']
@@ -281,7 +283,9 @@ export function useEntity<TList, TCreate, TUpdate>(
   // Core state
   const items = shallowRef<TList[]>([])
   const current = shallowRef<TList | null>(null)
-  const error = ref<string | null>(null)
+  const listError = ref<string | null>(null)
+  const actionError = ref<string | null>(null)
+  const error = computed<string | null>(() => actionError.value ?? listError.value)
 
   // We combine list pending with actionPending to expose a single loading flag
   const actionPending = ref(false)
@@ -372,7 +376,8 @@ export function useEntity<TList, TCreate, TUpdate>(
   watch(
     () => listErr.value,
     (e) => {
-      if (e) error.value = toErrorMessage(e)
+      if (e) listError.value = toErrorMessage(e)
+      else listError.value = null
     },
     { immediate: true }
   )
@@ -382,14 +387,14 @@ export function useEntity<TList, TCreate, TUpdate>(
 
   // Manual list refresh (SSR-ready)
   async function fetchList() {
-    error.value = null
+    listError.value = null
     await refresh()
     return items.value
   }
 
   // Fetch one entity by id
   async function fetchOne(id: string | number) {
-    error.value = null
+    actionError.value = null
     actionPending.value = true
     try {
       const res = await $fetch<ApiResponse<TList>>(`${options.resourcePath}/${id}`, {
@@ -400,7 +405,7 @@ export function useEntity<TList, TCreate, TUpdate>(
       current.value = res?.data ?? null
       return current.value
     } catch (e) {
-      error.value = toErrorMessage(e)
+      actionError.value = toErrorMessage(e)
       throw e
     } finally {
       actionPending.value = false
@@ -409,7 +414,7 @@ export function useEntity<TList, TCreate, TUpdate>(
 
   // Create an entity (POST) — always send body with lang: 'en'
   async function create(payload: TCreate) {
-    error.value = null
+    actionError.value = null
     actionPending.value = true
     try {
       const parsed = options.schema?.create ? options.schema.create.parse(payload) : payload
@@ -421,7 +426,7 @@ export function useEntity<TList, TCreate, TUpdate>(
       if (res?.success === false) throw new Error('Request failed')
       return res.data
     } catch (e) {
-      error.value = toErrorMessage(e)
+      actionError.value = toErrorMessage(e)
       throw e
     } finally {
       actionPending.value = false
@@ -430,7 +435,7 @@ export function useEntity<TList, TCreate, TUpdate>(
 
   // Update an entity (PATCH)
   async function update(id: string | number, payload: TUpdate) {
-    error.value = null
+    actionError.value = null
     actionPending.value = true
     try {
       const parsed = options.schema?.update
@@ -444,7 +449,7 @@ export function useEntity<TList, TCreate, TUpdate>(
       if (res?.success === false) throw new Error('Request failed')
       return res.data
     } catch (e) {
-      error.value = toErrorMessage(e)
+      actionError.value = toErrorMessage(e)
       throw e
     } finally {
       actionPending.value = false
@@ -453,7 +458,7 @@ export function useEntity<TList, TCreate, TUpdate>(
 
   // Remove an entity (DELETE) and auto-refresh list
   async function remove(id: string | number) {
-    error.value = null
+    actionError.value = null
     actionPending.value = true
     try {
       const res = await $fetch<ApiResponse<null>>(`${options.resourcePath}/${id}`, {
@@ -464,7 +469,7 @@ export function useEntity<TList, TCreate, TUpdate>(
       await refresh()
       return true
     } catch (e) {
-      error.value = toErrorMessage(e)
+      actionError.value = toErrorMessage(e)
       throw e
     } finally {
       actionPending.value = false
@@ -478,7 +483,7 @@ export function useEntity<TList, TCreate, TUpdate>(
 
   // Replace tag associations via tag_ids
   async function updateTags(id: string | number, tagIds: number[]) {
-    error.value = null
+    actionError.value = null
     actionPending.value = true
     try {
       const res = await $fetch<ApiResponse<TList>>(`${options.resourcePath}/${id}`, {
@@ -490,7 +495,7 @@ export function useEntity<TList, TCreate, TUpdate>(
       await refresh()
       return res.data
     } catch (e) {
-      error.value = toErrorMessage(e)
+      actionError.value = toErrorMessage(e)
       throw e
     } finally {
       actionPending.value = false
@@ -532,6 +537,8 @@ export function useEntity<TList, TCreate, TUpdate>(
     pagination,
     loading,
     error,
+    listError,
+    actionError,
     lang,
     resourcePath: options.resourcePath,
     schema: options.schema,
