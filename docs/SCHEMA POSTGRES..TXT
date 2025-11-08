@@ -1,0 +1,1359 @@
+-- DROP SCHEMA public;
+
+CREATE SCHEMA public AUTHORIZATION bulu;
+
+COMMENT ON SCHEMA public IS 'standard public schema';
+
+-- DROP TYPE public.card_status;
+
+CREATE TYPE public.card_status AS ENUM (
+	'draft',
+	'approved',
+	'archived',
+	'review',
+	'pending_review',
+	'changes_requested',
+	'translation_review',
+	'rejected',
+	'published');
+
+-- DROP DOMAIN public.entity_type;
+
+CREATE DOMAIN public.entity_type AS character varying(50)
+	COLLATE "default"
+	CONSTRAINT entity_type_check CHECK (VALUE::text = ANY (ARRAY['arcana'::character varying, 'facet'::character varying, 'base_card'::character varying, 'base_card_type'::character varying, 'world'::character varying, 'world_card'::character varying, 'base_skills'::character varying]::text[]));
+-- DROP TYPE public.feedback_status;
+
+CREATE TYPE public.feedback_status AS ENUM (
+	'open',
+	'resolved',
+	'dismissed');
+
+-- DROP DOMAIN public.language_code;
+
+CREATE DOMAIN public.language_code AS character varying(5)
+	COLLATE "default"
+	CONSTRAINT language_code_check CHECK (VALUE::text ~ '^[a-z]{2}(-[A-Z]{2})?$'::text);
+COMMENT ON TYPE public.language_code IS 'ISO 639-1 + optional ISO 3166-1 (e.g. en, es, en-US, fr-FR). Used in all *_translations and content_feedback/revisions.';
+-- DROP TYPE public.user_status;
+
+CREATE TYPE public.user_status AS ENUM (
+	'active',
+	'inactive',
+	'suspended',
+	'banned',
+	'pending');
+
+-- DROP SEQUENCE public.arcana_id_seq;
+
+CREATE SEQUENCE public.arcana_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.arcana_translations_id_seq;
+
+CREATE SEQUENCE public.arcana_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.base_card_id_seq;
+
+CREATE SEQUENCE public.base_card_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.base_card_translations_id_seq;
+
+CREATE SEQUENCE public.base_card_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.base_card_type_id_seq;
+
+CREATE SEQUENCE public.base_card_type_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.base_card_type_translations_id_seq;
+
+CREATE SEQUENCE public.base_card_type_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.base_skills_id_seq;
+
+CREATE SEQUENCE public.base_skills_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.base_skills_translations_id_seq;
+
+CREATE SEQUENCE public.base_skills_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.card_effects_id_seq;
+
+CREATE SEQUENCE public.card_effects_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.content_feedback_id_seq;
+
+CREATE SEQUENCE public.content_feedback_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.content_revisions_id_seq;
+
+CREATE SEQUENCE public.content_revisions_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.content_versions_id_seq;
+
+CREATE SEQUENCE public.content_versions_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.effect_target_id_seq;
+
+CREATE SEQUENCE public.effect_target_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.effect_target_translations_id_seq;
+
+CREATE SEQUENCE public.effect_target_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.effect_type_id_seq;
+
+CREATE SEQUENCE public.effect_type_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.effect_type_translations_id_seq;
+
+CREATE SEQUENCE public.effect_type_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.facet_id_seq;
+
+CREATE SEQUENCE public.facet_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.facet_translations_id_seq;
+
+CREATE SEQUENCE public.facet_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.roles_id_seq;
+
+CREATE SEQUENCE public.roles_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.tags_id_seq;
+
+CREATE SEQUENCE public.tags_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 9223372036854775807
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.tags_translations_id_seq;
+
+CREATE SEQUENCE public.tags_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 9223372036854775807
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.users_id_seq;
+
+CREATE SEQUENCE public.users_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.world_card_id_seq;
+
+CREATE SEQUENCE public.world_card_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.world_card_translations_id_seq;
+
+CREATE SEQUENCE public.world_card_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.world_id_seq;
+
+CREATE SEQUENCE public.world_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.world_translations_id_seq;
+
+CREATE SEQUENCE public.world_translations_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;-- public.kysely_migration definition
+
+-- Drop table
+
+-- DROP TABLE public.kysely_migration;
+
+CREATE TABLE public.kysely_migration (
+	"name" varchar(255) NOT NULL,
+	"timestamp" varchar(255) NOT NULL,
+	CONSTRAINT kysely_migration_pkey PRIMARY KEY (name)
+);
+
+
+-- public.kysely_migration_lock definition
+
+-- Drop table
+
+-- DROP TABLE public.kysely_migration_lock;
+
+CREATE TABLE public.kysely_migration_lock (
+	id varchar(255) NOT NULL,
+	is_locked int4 DEFAULT 0 NOT NULL,
+	CONSTRAINT kysely_migration_lock_pkey PRIMARY KEY (id)
+);
+
+
+-- public.roles definition
+
+-- Drop table
+
+-- DROP TABLE public.roles;
+
+CREATE TABLE public.roles (
+	id serial4 NOT NULL,
+	"name" varchar(50) NOT NULL,
+	description text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	permissions jsonb DEFAULT '{}'::jsonb NULL, -- Permisos dinámicos en formato JSONB (ej. {"canEditCards": true}).
+	CONSTRAINT roles_name_unique UNIQUE (name),
+	CONSTRAINT roles_pkey PRIMARY KEY (id)
+);
+
+-- Column comments
+
+COMMENT ON COLUMN public.roles.permissions IS 'Permisos dinámicos en formato JSONB (ej. {"canEditCards": true}).';
+
+-- Table Triggers
+
+create trigger trg_default_permissions before
+insert
+    on
+    public.roles for each row execute function set_default_permissions();
+
+
+-- public.users definition
+
+-- Drop table
+
+-- DROP TABLE public.users;
+
+CREATE TABLE public.users (
+	id serial4 NOT NULL,
+	email varchar(255) NOT NULL,
+	username varchar(50) NOT NULL,
+	password_hash text NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	status public.user_status DEFAULT 'active'::user_status NOT NULL, -- Estado del usuario (active, inactive, banned, pending).
+	image text NULL,
+	CONSTRAINT users_email_unique UNIQUE (email),
+	CONSTRAINT users_pkey PRIMARY KEY (id),
+	CONSTRAINT users_username_unique UNIQUE (username)
+);
+CREATE INDEX idx_users_email_lower ON public.users USING btree (lower((email)::text));
+
+-- Column comments
+
+COMMENT ON COLUMN public.users.status IS 'Estado del usuario (active, inactive, banned, pending).';
+
+-- Table Triggers
+
+create trigger users_set_modified_at before
+update
+    on
+    public.users for each row execute function set_modified_at();
+
+
+-- public.content_feedback definition
+
+-- Drop table
+
+-- DROP TABLE public.content_feedback;
+
+CREATE TABLE public.content_feedback (
+	id serial4 NOT NULL,
+	entity_type varchar(50) NOT NULL,
+	entity_id int4 NOT NULL,
+	version_number int4 NULL, -- Si se indica, el feedback apunta a esa revisión local concreta.
+	language_code public.language_code NULL,
+	"comment" text NOT NULL,
+	category varchar(50) NULL,
+	status public.feedback_status DEFAULT 'open'::feedback_status NOT NULL,
+	created_by int4 NULL,
+	resolved_by int4 NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	resolved_at timestamptz NULL,
+	CONSTRAINT content_feedback_entity_chk CHECK (((entity_type)::text = ANY ((ARRAY['arcana'::character varying, 'base_card'::character varying, 'base_card_type'::character varying, 'facet'::character varying, 'world_card'::character varying, 'world'::character varying, 'base_skills'::character varying])::text[]))),
+	CONSTRAINT content_feedback_pkey PRIMARY KEY (id),
+	CONSTRAINT content_feedback_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT content_feedback_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_content_feedback_created_at ON public.content_feedback USING btree (created_at);
+CREATE INDEX idx_content_feedback_created_by ON public.content_feedback USING btree (created_by);
+CREATE INDEX idx_content_feedback_entity ON public.content_feedback USING btree (entity_type, entity_id);
+CREATE INDEX idx_content_feedback_entity_lang ON public.content_feedback USING btree (entity_type, entity_id, language_code);
+CREATE INDEX idx_content_feedback_entity_status ON public.content_feedback USING btree (entity_type, entity_id, status);
+CREATE INDEX idx_content_feedback_status ON public.content_feedback USING btree (status);
+CREATE INDEX idx_content_feedback_version ON public.content_feedback USING btree (version_number);
+COMMENT ON TABLE public.content_feedback IS 'Comentarios/editorial reviews por traducción y (opcional) versión local.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.content_feedback.version_number IS 'Si se indica, el feedback apunta a esa revisión local concreta.';
+
+
+-- public.content_versions definition
+
+-- Drop table
+
+-- DROP TABLE public.content_versions;
+
+CREATE TABLE public.content_versions (
+	id serial4 NOT NULL,
+	version_semver varchar(32) NOT NULL,
+	description text NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+	created_by int4 NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT content_versions_pkey PRIMARY KEY (id),
+	CONSTRAINT content_versions_version_unique UNIQUE (version_semver),
+	CONSTRAINT content_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_content_versions_created_at ON public.content_versions USING btree (created_at DESC);
+CREATE INDEX idx_content_versions_semver ON public.content_versions USING btree (version_semver);
+COMMENT ON TABLE public.content_versions IS 'Releases globales del contenido (ej. 0.0.1.1).';
+
+
+-- public.effect_target definition
+
+-- Drop table
+
+-- DROP TABLE public.effect_target;
+
+CREATE TABLE public.effect_target (
+	id serial4 NOT NULL,
+	code varchar(50) NOT NULL,
+	target_scope varchar(50) NULL, -- Define el ámbito o sujeto afectado (self, ally, enemy, area, global).
+	metadata jsonb DEFAULT '{}'::jsonb NULL, -- Campo JSONB flexible para parámetros del target (rango, elemento, facet vinculada, etc.).
+	created_at timestamptz DEFAULT now() NOT NULL,
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL, -- Estado editorial del target (draft, review, approved, archived).
+	version_id int4 NULL, -- Versión de contenido asociada al target (FK content_versions.id).
+	is_active bool DEFAULT true NOT NULL, -- Indica si el target está activo o deshabilitado.
+	tag varchar(50) NULL, -- Etiqueta semántica o temática para organización (ej. combat, elemental, resource).
+	validation_state varchar(20) DEFAULT 'valid'::character varying NOT NULL, -- Estado de validación visual (valid, warning, error).
+	CONSTRAINT effect_target_code_unique UNIQUE (code),
+	CONSTRAINT effect_target_pkey PRIMARY KEY (id),
+	CONSTRAINT effect_target_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_effect_target_status_active ON public.effect_target USING btree (status, is_active);
+CREATE INDEX idx_effect_target_tag ON public.effect_target USING btree (tag);
+COMMENT ON TABLE public.effect_target IS 'Catálogo de objetivos afectables por efectos. Ahora con versionado, status e i18n-ready.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.effect_target.target_scope IS 'Define el ámbito o sujeto afectado (self, ally, enemy, area, global).';
+COMMENT ON COLUMN public.effect_target.metadata IS 'Campo JSONB flexible para parámetros del target (rango, elemento, facet vinculada, etc.).';
+COMMENT ON COLUMN public.effect_target.status IS 'Estado editorial del target (draft, review, approved, archived).';
+COMMENT ON COLUMN public.effect_target.version_id IS 'Versión de contenido asociada al target (FK content_versions.id).';
+COMMENT ON COLUMN public.effect_target.is_active IS 'Indica si el target está activo o deshabilitado.';
+COMMENT ON COLUMN public.effect_target.tag IS 'Etiqueta semántica o temática para organización (ej. combat, elemental, resource).';
+COMMENT ON COLUMN public.effect_target.validation_state IS 'Estado de validación visual (valid, warning, error).';
+
+
+-- public.effect_target_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.effect_target_translations;
+
+CREATE TABLE public.effect_target_translations (
+	id serial4 NOT NULL,
+	effect_target_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" text NOT NULL,
+	description text NULL,
+	CONSTRAINT effect_target_translations_lang_unique UNIQUE (effect_target_id, language_code),
+	CONSTRAINT effect_target_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT effect_target_translations_effect_target_id_fkey FOREIGN KEY (effect_target_id) REFERENCES public.effect_target(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_effect_target_translations_lang ON public.effect_target_translations USING btree (language_code);
+CREATE UNIQUE INDEX idx_effect_target_translations_unique ON public.effect_target_translations USING btree (effect_target_id, language_code);
+
+
+-- public.effect_type definition
+
+-- Drop table
+
+-- DROP TABLE public.effect_type;
+
+CREATE TABLE public.effect_type (
+	id serial4 NOT NULL,
+	code varchar(50) NOT NULL,
+	base_json jsonb DEFAULT '{}'::jsonb NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	category varchar(50) DEFAULT 'generic'::character varying NOT NULL, -- Categoría funcional del efecto (modifier, condition, trigger, heal, damage, etc.).
+	"operator" varchar(20) DEFAULT 'add'::character varying NOT NULL, -- Operador aplicado al valor (add, multiply, replace, set, roll, scale).
+	default_duration varchar(50) DEFAULT 'instant'::character varying NOT NULL, -- Duración predeterminada de este tipo de efecto (instant, turn, combat, session, permanent).
+	value_type varchar(20) DEFAULT 'flat'::character varying NOT NULL, -- Tipo de valor esperado (flat, percent, dice, derived).
+	template_text text DEFAULT '+{value} a {target}'::text NOT NULL, -- Plantilla traducible para renderizar el efecto (+{value} a {target}, etc.).
+	metadata jsonb DEFAULT '{}'::jsonb NOT NULL, -- Campo JSONB flexible para definir comportamientos adicionales o triggers.
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL, -- Estado editorial del tipo de efecto.
+	version_id int4 NULL, -- Versión del contenido en la que se definió o actualizó el tipo.
+	is_active bool DEFAULT true NOT NULL, -- Indica si el tipo de efecto está disponible.
+	CONSTRAINT effect_type_code_unique UNIQUE (code),
+	CONSTRAINT effect_type_pkey PRIMARY KEY (id),
+	CONSTRAINT effect_type_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_effect_type_category ON public.effect_type USING btree (category);
+CREATE INDEX idx_effect_type_status_active ON public.effect_type USING btree (status, is_active);
+COMMENT ON TABLE public.effect_type IS 'Catálogo de tipos de efecto (acciones del sistema). Incluye duración por defecto, operador y plantillas.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.effect_type.category IS 'Categoría funcional del efecto (modifier, condition, trigger, heal, damage, etc.).';
+COMMENT ON COLUMN public.effect_type."operator" IS 'Operador aplicado al valor (add, multiply, replace, set, roll, scale).';
+COMMENT ON COLUMN public.effect_type.default_duration IS 'Duración predeterminada de este tipo de efecto (instant, turn, combat, session, permanent).';
+COMMENT ON COLUMN public.effect_type.value_type IS 'Tipo de valor esperado (flat, percent, dice, derived).';
+COMMENT ON COLUMN public.effect_type.template_text IS 'Plantilla traducible para renderizar el efecto (+{value} a {target}, etc.).';
+COMMENT ON COLUMN public.effect_type.metadata IS 'Campo JSONB flexible para definir comportamientos adicionales o triggers.';
+COMMENT ON COLUMN public.effect_type.status IS 'Estado editorial del tipo de efecto.';
+COMMENT ON COLUMN public.effect_type.version_id IS 'Versión del contenido en la que se definió o actualizó el tipo.';
+COMMENT ON COLUMN public.effect_type.is_active IS 'Indica si el tipo de efecto está disponible.';
+
+
+-- public.effect_type_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.effect_type_translations;
+
+CREATE TABLE public.effect_type_translations (
+	id serial4 NOT NULL,
+	effect_type_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" text NOT NULL,
+	template_text text NOT NULL, -- Plantilla traducible del efecto en idioma correspondiente.
+	description text NULL,
+	CONSTRAINT effect_type_translations_lang_unique UNIQUE (effect_type_id, language_code),
+	CONSTRAINT effect_type_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT effect_type_translations_effect_type_id_fkey FOREIGN KEY (effect_type_id) REFERENCES public.effect_type(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_effect_type_translations_lang ON public.effect_type_translations USING btree (language_code);
+CREATE UNIQUE INDEX idx_effect_type_translations_unique ON public.effect_type_translations USING btree (effect_type_id, language_code);
+
+-- Column comments
+
+COMMENT ON COLUMN public.effect_type_translations.template_text IS 'Plantilla traducible del efecto en idioma correspondiente.';
+
+
+-- public.tags definition
+
+-- Drop table
+
+-- DROP TABLE public.tags;
+
+CREATE TABLE public.tags (
+	id serial4 NOT NULL,
+	code varchar(50) NOT NULL,
+	category varchar(50) NOT NULL,
+	parent_id int4 NULL,
+	is_active bool DEFAULT true NOT NULL,
+	sort int4 DEFAULT 0 NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT chk_tags_sort CHECK ((sort >= 0)),
+	CONSTRAINT tags_code_unique UNIQUE (code),
+	CONSTRAINT tags_pkey PRIMARY KEY (id),
+	CONSTRAINT tags_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT tags_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.tags(id) ON DELETE SET NULL,
+	CONSTRAINT tags_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_tags_category ON public.tags USING btree (category);
+CREATE INDEX idx_tags_code ON public.tags USING btree (code);
+CREATE INDEX idx_tags_parent_id ON public.tags USING btree (parent_id);
+COMMENT ON TABLE public.tags IS 'Sistema de etiquetas semánticas para clasificar cartas.';
+
+-- Table Triggers
+
+create trigger tags_set_modified_at before
+update
+    on
+    public.tags for each row execute function set_modified_at();
+
+
+-- public.tags_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.tags_translations;
+
+CREATE TABLE public.tags_translations (
+	id serial4 NOT NULL,
+	tag_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" varchar(100) NOT NULL,
+	short_text varchar(300) NULL,
+	description text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT tags_lang_unique UNIQUE (tag_id, language_code),
+	CONSTRAINT tags_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT tags_translations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT tags_translations_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tags(id) ON DELETE CASCADE,
+	CONSTRAINT tags_translations_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_tags_translations_lang ON public.tags_translations USING btree (language_code);
+CREATE INDEX idx_tags_translations_tag_lang ON public.tags_translations USING btree (tag_id, language_code);
+
+-- Table Triggers
+
+create trigger tags_translations_set_modified_at before
+update
+    on
+    public.tags_translations for each row execute function set_modified_at();
+
+
+-- public.user_roles definition
+
+-- Drop table
+
+-- DROP TABLE public.user_roles;
+
+CREATE TABLE public.user_roles (
+	user_id int4 NOT NULL,
+	role_id int4 NOT NULL,
+	CONSTRAINT user_roles_pkey PRIMARY KEY (user_id, role_id),
+	CONSTRAINT user_roles_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id) ON DELETE CASCADE,
+	CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+
+-- public.world definition
+
+-- Drop table
+
+-- DROP TABLE public.world;
+
+CREATE TABLE public.world (
+	id serial4 NOT NULL,
+	code text NOT NULL,
+	image text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NULL,
+	content_version_id int4 NULL,
+	is_active bool DEFAULT true NOT NULL, -- Indica si el mundo está activo.
+	CONSTRAINT world_code_key UNIQUE (code),
+	CONSTRAINT world_pkey PRIMARY KEY (id),
+	CONSTRAINT world_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL,
+	CONSTRAINT world_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT world_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_world_code ON public.world USING btree (code);
+CREATE INDEX idx_world_content_version ON public.world USING btree (content_version_id);
+COMMENT ON TABLE public.world IS 'Mundos o ambientaciones de juego.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.world.is_active IS 'Indica si el mundo está activo.';
+
+-- Table Triggers
+
+create trigger world_set_modified_at before
+update
+    on
+    public.world for each row execute function set_modified_at();
+
+
+-- public.world_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.world_translations;
+
+CREATE TABLE public.world_translations (
+	id serial4 NOT NULL,
+	world_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" text NOT NULL,
+	short_text text NULL,
+	description text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT world_lang_unique UNIQUE (world_id, language_code),
+	CONSTRAINT world_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT world_translations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT world_translations_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT world_translations_world_id_fkey FOREIGN KEY (world_id) REFERENCES public.world(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_language_code_world ON public.world_translations USING btree (language_code);
+CREATE INDEX idx_world_translations_world_lang ON public.world_translations USING btree (world_id, language_code);
+
+-- Table Triggers
+
+create trigger world_translations_set_modified_at before
+update
+    on
+    public.world_translations for each row execute function set_modified_at();
+
+
+-- public.arcana definition
+
+-- Drop table
+
+-- DROP TABLE public.arcana;
+
+CREATE TABLE public.arcana (
+	id serial4 NOT NULL,
+	code text NOT NULL,
+	is_active bool DEFAULT true NOT NULL,
+	image text NULL,
+	sort int4 DEFAULT 0 NOT NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NULL,
+	content_version_id int4 NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT arcana_code_key UNIQUE (code),
+	CONSTRAINT arcana_pkey PRIMARY KEY (id),
+	CONSTRAINT chk_arcana_sort CHECK ((sort >= 0)),
+	CONSTRAINT arcana_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL,
+	CONSTRAINT arcana_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT arcana_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_arcana_code ON public.arcana USING btree (code);
+CREATE INDEX idx_arcana_content_version ON public.arcana USING btree (content_version_id);
+COMMENT ON TABLE public.arcana IS 'Categorías o escuelas de poder.';
+
+-- Table Triggers
+
+create trigger arcana_set_modified_at before
+update
+    on
+    public.arcana for each row execute function set_modified_at();
+
+
+-- public.arcana_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.arcana_translations;
+
+CREATE TABLE public.arcana_translations (
+	id serial4 NOT NULL,
+	arcana_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" text NOT NULL,
+	short_text text NULL,
+	description text NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT arcana_lang_unique UNIQUE (arcana_id, language_code),
+	CONSTRAINT arcana_translation_pkey PRIMARY KEY (id),
+	CONSTRAINT arcana_translation_arcana_id_fkey FOREIGN KEY (arcana_id) REFERENCES public.arcana(id) ON DELETE CASCADE,
+	CONSTRAINT arcana_translation_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT arcana_translation_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_arcana_translations_arcana_lang ON public.arcana_translations USING btree (arcana_id, language_code);
+
+
+-- public.base_card_type definition
+
+-- Drop table
+
+-- DROP TABLE public.base_card_type;
+
+CREATE TABLE public.base_card_type (
+	id serial4 NOT NULL,
+	code text NOT NULL,
+	image text NULL,
+	sort int4 DEFAULT 0 NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NULL,
+	content_version_id int4 NULL,
+	is_active bool DEFAULT true NOT NULL, -- Indica si el tipo de carta base está activo.
+	CONSTRAINT base_card_type_code_key UNIQUE (code),
+	CONSTRAINT base_card_type_pkey PRIMARY KEY (id),
+	CONSTRAINT base_card_type_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL,
+	CONSTRAINT base_card_type_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT base_card_type_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+
+-- Column comments
+
+COMMENT ON COLUMN public.base_card_type.is_active IS 'Indica si el tipo de carta base está activo.';
+
+-- Table Triggers
+
+create trigger base_card_type_set_modified_at before
+update
+    on
+    public.base_card_type for each row execute function set_modified_at();
+
+
+-- public.base_card_type_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.base_card_type_translations;
+
+CREATE TABLE public.base_card_type_translations (
+	id serial4 NOT NULL,
+	card_type_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" text NOT NULL,
+	short_text text NULL,
+	description text NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT base_card_type_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT card_type_lang_unique UNIQUE (card_type_id, language_code),
+	CONSTRAINT base_card_type_translations_card_type_id_fkey FOREIGN KEY (card_type_id) REFERENCES public.base_card_type(id) ON DELETE CASCADE,
+	CONSTRAINT base_card_type_translations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT base_card_type_translations_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_base_card_type_translations_lang ON public.base_card_type_translations USING btree (card_type_id, language_code);
+
+
+-- public.card_effects definition
+
+-- Drop table
+
+-- DROP TABLE public.card_effects;
+
+CREATE TABLE public.card_effects (
+	id serial4 NOT NULL,
+	entity_type varchar(50) NOT NULL,
+	entity_id int4 NOT NULL,
+	parent_id int4 NULL, -- Permite jerarquía de efectos (efectos hijos dependientes del efecto padre).
+	effect_group varchar(50) NULL, -- Etiqueta semántica que agrupa efectos relacionados o compuestos (ej. vampiric_attack).
+	effect_type_id int4 NULL,
+	effect_target_id int4 NULL,
+	value numeric NULL,
+	"mode" varchar(50) NULL,
+	duration varchar(50) NULL,
+	"condition" varchar(100) NULL,
+	ref_type varchar(50) NULL,
+	ref_id int4 NULL,
+	is_stackable bool DEFAULT false NULL,
+	max_stack int4 NULL,
+	stack_group varchar(50) NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NULL,
+	created_by int4 NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	"scope" varchar(50) DEFAULT 'self'::character varying NOT NULL, -- Define el ámbito o sujeto afectado (self, ally, enemy, area, global).
+	validation_state varchar(20) DEFAULT 'valid'::character varying NOT NULL, -- Estado de validación visual para el efecto (valid, warning, error).
+	formula text NULL, -- Expresión o referencia a cálculos derivados (half_of_parent_damage, etc.).
+	CONSTRAINT card_effects_pkey PRIMARY KEY (id),
+	CONSTRAINT chk_card_effects_max_stack_guard CHECK (((max_stack IS NULL) OR (is_stackable = true))),
+	CONSTRAINT chk_card_effects_ref_type CHECK (((ref_type IS NULL) OR ((ref_type)::text = ANY ((ARRAY['facet'::character varying, 'base_skills'::character varying, 'arcana'::character varying, 'world'::character varying, 'base_card_type'::character varying, 'base_card'::character varying, 'world_card'::character varying])::text[])))),
+	CONSTRAINT chk_card_effects_value CHECK (((value IS NULL) OR ((value >= ('-9999'::integer)::numeric) AND (value <= (9999)::numeric)))),
+	CONSTRAINT card_effects_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT fk_card_effects_effect_target FOREIGN KEY (effect_target_id) REFERENCES public.effect_target(id) ON DELETE SET NULL,
+	CONSTRAINT fk_card_effects_effect_type FOREIGN KEY (effect_type_id) REFERENCES public.effect_type(id) ON DELETE SET NULL,
+	CONSTRAINT fk_card_effects_parent FOREIGN KEY (parent_id) REFERENCES public.card_effects(id) ON DELETE CASCADE
+)
+WITH (
+	autovacuum_vacuum_scale_factor=0.10,
+	autovacuum_analyze_scale_factor=0.05
+);
+CREATE INDEX idx_card_effects_condition ON public.card_effects USING btree (condition);
+CREATE INDEX idx_card_effects_created_by ON public.card_effects USING btree (created_by);
+CREATE INDEX idx_card_effects_entity ON public.card_effects USING btree (entity_type, entity_id);
+CREATE INDEX idx_card_effects_entity_group ON public.card_effects USING btree (entity_type, entity_id, effect_group);
+CREATE INDEX idx_card_effects_group ON public.card_effects USING btree (effect_group);
+CREATE INDEX idx_card_effects_metadata_gin ON public.card_effects USING gin (metadata jsonb_path_ops);
+CREATE INDEX idx_card_effects_parent ON public.card_effects USING btree (parent_id);
+CREATE INDEX idx_card_effects_parent_cascade ON public.card_effects USING btree (parent_id) WHERE (parent_id IS NOT NULL);
+CREATE INDEX idx_card_effects_ref ON public.card_effects USING btree (ref_type, ref_id);
+CREATE INDEX idx_card_effects_scope ON public.card_effects USING btree (scope);
+CREATE INDEX idx_card_effects_stack ON public.card_effects USING btree (stack_group, is_stackable);
+CREATE INDEX idx_card_effects_stack_true ON public.card_effects USING btree (stack_group) WHERE (is_stackable = true);
+CREATE INDEX idx_card_effects_target ON public.card_effects USING btree (effect_target_id);
+CREATE INDEX idx_card_effects_type_target ON public.card_effects USING btree (effect_type_id, effect_target_id);
+COMMENT ON TABLE public.card_effects IS 'Instancias aplicadas de efectos, incluyendo jerarquía, scope y validación.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.card_effects.parent_id IS 'Permite jerarquía de efectos (efectos hijos dependientes del efecto padre).';
+COMMENT ON COLUMN public.card_effects.effect_group IS 'Etiqueta semántica que agrupa efectos relacionados o compuestos (ej. vampiric_attack).';
+COMMENT ON COLUMN public.card_effects."scope" IS 'Define el ámbito o sujeto afectado (self, ally, enemy, area, global).';
+COMMENT ON COLUMN public.card_effects.validation_state IS 'Estado de validación visual para el efecto (valid, warning, error).';
+COMMENT ON COLUMN public.card_effects.formula IS 'Expresión o referencia a cálculos derivados (half_of_parent_damage, etc.).';
+
+
+-- public.content_revisions definition
+
+-- Drop table
+
+-- DROP TABLE public.content_revisions;
+
+CREATE TABLE public.content_revisions (
+	id serial4 NOT NULL,
+	entity_type varchar(50) NOT NULL,
+	entity_id int4 NOT NULL,
+	version_number int4 NOT NULL,
+	diff jsonb DEFAULT '{}'::jsonb NOT NULL, -- JSONB con cambios aplicados (p.ej. {"name":{"old":"A","new":"B"}}).
+	notes text NULL,
+	created_by int4 NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	status text DEFAULT 'draft'::text NOT NULL,
+	language_code public.language_code NULL,
+	prev_snapshot jsonb NULL,
+	next_snapshot jsonb NULL,
+	content_version_id int4 NULL,
+	CONSTRAINT content_revisions_entity_chk CHECK (((entity_type)::text = ANY (ARRAY['arcana'::text, 'facet'::text, 'base_card'::text, 'base_card_type'::text, 'world_card'::text, 'world'::text, 'base_skills'::text]))),
+	CONSTRAINT content_revisions_pkey PRIMARY KEY (id),
+	CONSTRAINT content_revisions_version_unique UNIQUE (entity_type, entity_id, version_number),
+	CONSTRAINT content_revisions_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id),
+	CONSTRAINT content_revisions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_content_revisions_created_at ON public.content_revisions USING btree (created_at);
+CREATE INDEX idx_content_revisions_entity ON public.content_revisions USING btree (entity_type, entity_id);
+CREATE INDEX idx_content_revisions_entity_lang ON public.content_revisions USING btree (entity_type, entity_id, language_code);
+CREATE INDEX idx_content_revisions_entity_version ON public.content_revisions USING btree (entity_type, entity_id, version_number DESC);
+COMMENT ON TABLE public.content_revisions IS 'Historial incremental (diffs) por traducción y versión local.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.content_revisions.diff IS 'JSONB con cambios aplicados (p.ej. {"name":{"old":"A","new":"B"}}).';
+
+
+-- public.facet definition
+
+-- Drop table
+
+-- DROP TABLE public.facet;
+
+CREATE TABLE public.facet (
+	id serial4 NOT NULL,
+	arcana_id int4 NOT NULL,
+	code text NOT NULL,
+	is_active bool DEFAULT true NOT NULL,
+	image text NULL,
+	sort int4 DEFAULT 0 NOT NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NULL,
+	content_version_id int4 NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	legacy_effects bool DEFAULT false NOT NULL, -- Indica si la faceta usa efectos narrativos (legacy) en lugar del sistema semántico.
+	effects jsonb DEFAULT '[]'::jsonb NULL, -- Efectos narrativos o descriptivos en formato JSONB (Markdown por idioma).
+	CONSTRAINT chk_facet_sort CHECK ((sort >= 0)),
+	CONSTRAINT facet_arcana_code_unique UNIQUE (arcana_id, code),
+	CONSTRAINT facet_pkey PRIMARY KEY (id),
+	CONSTRAINT facet_arcana_id_fkey FOREIGN KEY (arcana_id) REFERENCES public.arcana(id) ON DELETE CASCADE,
+	CONSTRAINT facet_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL,
+	CONSTRAINT facet_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT facet_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_facet_code ON public.facet USING btree (code);
+CREATE INDEX idx_facet_content_version ON public.facet USING btree (content_version_id);
+CREATE INDEX idx_facet_legacy_effects ON public.facet USING btree (legacy_effects);
+COMMENT ON TABLE public.facet IS 'Aspectos o dominios vinculados a las Arcanas.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.facet.legacy_effects IS 'Indica si la faceta usa efectos narrativos (legacy) en lugar del sistema semántico.';
+COMMENT ON COLUMN public.facet.effects IS 'Efectos narrativos o descriptivos en formato JSONB (Markdown por idioma).';
+
+-- Table Triggers
+
+create trigger facet_set_modified_at before
+update
+    on
+    public.facet for each row execute function set_modified_at();
+
+
+-- public.facet_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.facet_translations;
+
+CREATE TABLE public.facet_translations (
+	id serial4 NOT NULL,
+	facet_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" text NOT NULL,
+	short_text text NULL,
+	description text NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT facet_lang_unique UNIQUE (facet_id, language_code),
+	CONSTRAINT facet_translation_pkey PRIMARY KEY (id),
+	CONSTRAINT facet_translation_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT facet_translation_facet_id_fkey FOREIGN KEY (facet_id) REFERENCES public.facet(id) ON DELETE CASCADE,
+	CONSTRAINT facet_translation_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_facet_translation_lang ON public.facet_translations USING btree (language_code);
+CREATE INDEX idx_facet_translations_facet_lang ON public.facet_translations USING btree (facet_id, language_code);
+
+
+-- public.tag_links definition
+
+-- Drop table
+
+-- DROP TABLE public.tag_links;
+
+CREATE TABLE public.tag_links (
+	tag_id int4 NOT NULL,
+	entity_type varchar(50) NOT NULL,
+	entity_id int4 NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	created_by int4 NULL,
+	CONSTRAINT tag_links_entity_type_check CHECK (((entity_type)::text = ANY ((ARRAY['base_card'::character varying, 'world_card'::character varying, 'base_card_type'::character varying, 'base_skills'::character varying, 'facet'::character varying, 'arcana'::character varying, 'world'::character varying])::text[]))),
+	CONSTRAINT tag_links_pkey PRIMARY KEY (tag_id, entity_type, entity_id),
+	CONSTRAINT tag_links_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT tag_links_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tags(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_tag_links_entity ON public.tag_links USING btree (entity_type, entity_id);
+CREATE INDEX idx_tag_links_entity_id ON public.tag_links USING btree (entity_id);
+CREATE INDEX idx_tag_links_entity_lookup ON public.tag_links USING btree (entity_type, entity_id);
+CREATE INDEX idx_tag_links_entity_type ON public.tag_links USING btree (entity_type);
+CREATE INDEX idx_tag_links_tag ON public.tag_links USING btree (tag_id);
+CREATE INDEX idx_tag_links_tag_id ON public.tag_links USING btree (tag_id);
+
+
+-- public.base_card definition
+
+-- Drop table
+
+-- DROP TABLE public.base_card;
+
+CREATE TABLE public.base_card (
+	id serial4 NOT NULL,
+	code text NOT NULL,
+	card_type_id int4 NOT NULL,
+	card_family text NOT NULL,
+	is_active bool DEFAULT true NULL,
+	image text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NULL, -- Campo JSONB para información adicional (propiedades, etiquetas dinámicas, etc.)
+	content_version_id int4 NULL,
+	legacy_effects bool DEFAULT false NOT NULL, -- Indica si la carta usa efectos narrativos (legacy) en lugar del sistema semántico.
+	effects jsonb DEFAULT '[]'::jsonb NULL, -- Efectos narrativos o descriptivos en formato JSONB (Markdown por idioma).
+	CONSTRAINT base_card_code_key UNIQUE (code),
+	CONSTRAINT base_card_pkey PRIMARY KEY (id),
+	CONSTRAINT base_card_card_type_id_fkey FOREIGN KEY (card_type_id) REFERENCES public.base_card_type(id),
+	CONSTRAINT base_card_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL,
+	CONSTRAINT base_card_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT base_card_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_base_card_code ON public.base_card USING btree (code);
+CREATE INDEX idx_base_card_content_version ON public.base_card USING btree (content_version_id);
+CREATE INDEX idx_base_card_legacy_effects ON public.base_card USING btree (legacy_effects);
+CREATE INDEX idx_base_card_status ON public.base_card USING btree (status);
+COMMENT ON TABLE public.base_card IS 'Carta base genérica del sistema.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.base_card.metadata IS 'Campo JSONB para información adicional (propiedades, etiquetas dinámicas, etc.)';
+COMMENT ON COLUMN public.base_card.legacy_effects IS 'Indica si la carta usa efectos narrativos (legacy) en lugar del sistema semántico.';
+COMMENT ON COLUMN public.base_card.effects IS 'Efectos narrativos o descriptivos en formato JSONB (Markdown por idioma).';
+
+-- Table Triggers
+
+create trigger base_card_set_modified_at before
+update
+    on
+    public.base_card for each row execute function set_modified_at();
+
+
+-- public.base_card_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.base_card_translations;
+
+CREATE TABLE public.base_card_translations (
+	id serial4 NOT NULL,
+	card_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" varchar(50) NOT NULL,
+	short_text varchar(300) NULL,
+	description text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT base_card_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT card_lang_unique UNIQUE (card_id, language_code),
+	CONSTRAINT base_card_translations_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.base_card(id) ON DELETE CASCADE,
+	CONSTRAINT base_card_translations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT base_card_translations_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_base_card_translations_card_lang ON public.base_card_translations USING btree (card_id, language_code);
+CREATE INDEX idx_language_code_base_card ON public.base_card_translations USING btree (language_code);
+
+-- Table Triggers
+
+create trigger base_card_translations_set_modified_at before
+update
+    on
+    public.base_card_translations for each row execute function set_modified_at();
+
+
+-- public.base_skills definition
+
+-- Drop table
+
+-- DROP TABLE public.base_skills;
+
+CREATE TABLE public.base_skills (
+	id serial4 NOT NULL,
+	code varchar(50) NOT NULL,
+	facet_id int4 NOT NULL,
+	image varchar(255) NULL,
+	is_active bool DEFAULT true NOT NULL,
+	sort int4 DEFAULT 0 NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	content_version_id int4 NULL,
+	legacy_effects bool DEFAULT false NOT NULL, -- Indica si la habilidad usa efectos narrativos (legacy) en lugar del sistema semántico.
+	effects jsonb DEFAULT '[]'::jsonb NULL, -- Efectos narrativos o descriptivos en formato JSONB (Markdown por idioma).
+	CONSTRAINT base_skills_code_key UNIQUE (code),
+	CONSTRAINT base_skills_pkey PRIMARY KEY (id),
+	CONSTRAINT chk_base_skills_sort CHECK ((sort >= 0)),
+	CONSTRAINT base_skills_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL,
+	CONSTRAINT base_skills_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT base_skills_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT fk_base_skills_facet FOREIGN KEY (facet_id) REFERENCES public.facet(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_base_skills_content_version ON public.base_skills USING btree (content_version_id);
+CREATE INDEX idx_base_skills_legacy_effects ON public.base_skills USING btree (legacy_effects);
+CREATE INDEX idx_base_skills_status ON public.base_skills USING btree (status);
+COMMENT ON TABLE public.base_skills IS 'Habilidades base del sistema.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.base_skills.legacy_effects IS 'Indica si la habilidad usa efectos narrativos (legacy) en lugar del sistema semántico.';
+COMMENT ON COLUMN public.base_skills.effects IS 'Efectos narrativos o descriptivos en formato JSONB (Markdown por idioma).';
+
+-- Table Triggers
+
+create trigger base_skills_set_modified_at before
+update
+    on
+    public.base_skills for each row execute function set_modified_at();
+
+
+-- public.base_skills_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.base_skills_translations;
+
+CREATE TABLE public.base_skills_translations (
+	id serial4 NOT NULL,
+	base_skill_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" varchar(100) NOT NULL,
+	short_text varchar(255) NULL,
+	description text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT base_skills_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT base_skills_translations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT base_skills_translations_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT fk_base_skills_translations_base_skill FOREIGN KEY (base_skill_id) REFERENCES public.base_skills(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_base_skills_translations_lang ON public.base_skills_translations USING btree (base_skill_id, language_code);
+CREATE UNIQUE INDEX idx_base_skills_translations_unique ON public.base_skills_translations USING btree (base_skill_id, language_code);
+CREATE INDEX idx_language_code_base_skills ON public.base_skills_translations USING btree (language_code);
+
+-- Table Triggers
+
+create trigger base_skills_translations_set_modified_at before
+update
+    on
+    public.base_skills_translations for each row execute function set_modified_at();
+
+
+-- public.world_card definition
+
+-- Drop table
+
+-- DROP TABLE public.world_card;
+
+CREATE TABLE public.world_card (
+	id serial4 NOT NULL,
+	world_id int4 NOT NULL,
+	base_card_id int4 NULL,
+	code text NOT NULL,
+	is_override bool DEFAULT false NULL,
+	image text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	content_version_id int4 NULL,
+	is_active bool DEFAULT true NOT NULL, -- Indica si la carta del mundo está activa.
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL, -- Estado de la carta del mundo (draft, approved, archived, review).
+	legacy_effects bool DEFAULT false NOT NULL, -- Indica si la carta del mundo usa efectos narrativos (legacy) en lugar del sistema semántico.
+	effects jsonb DEFAULT '[]'::jsonb NULL, -- Efectos narrativos o descriptivos en formato JSONB (Markdown por idioma).
+	CONSTRAINT world_card_pkey PRIMARY KEY (id),
+	CONSTRAINT world_card_unique UNIQUE (world_id, code),
+	CONSTRAINT world_card_base_card_id_fkey FOREIGN KEY (base_card_id) REFERENCES public.base_card(id) ON DELETE SET NULL,
+	CONSTRAINT world_card_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL,
+	CONSTRAINT world_card_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT world_card_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT world_card_world_id_fkey FOREIGN KEY (world_id) REFERENCES public.world(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_world_card_content_version ON public.world_card USING btree (content_version_id);
+CREATE INDEX idx_world_card_legacy_effects ON public.world_card USING btree (legacy_effects);
+CREATE INDEX idx_world_card_status ON public.world_card USING btree (is_override, created_at);
+COMMENT ON TABLE public.world_card IS 'Versión de una carta base adaptada a un mundo.';
+
+-- Column comments
+
+COMMENT ON COLUMN public.world_card.is_active IS 'Indica si la carta del mundo está activa.';
+COMMENT ON COLUMN public.world_card.status IS 'Estado de la carta del mundo (draft, approved, archived, review).';
+COMMENT ON COLUMN public.world_card.legacy_effects IS 'Indica si la carta del mundo usa efectos narrativos (legacy) en lugar del sistema semántico.';
+COMMENT ON COLUMN public.world_card.effects IS 'Efectos narrativos o descriptivos en formato JSONB (Markdown por idioma).';
+
+-- Table Triggers
+
+create trigger world_card_set_modified_at before
+update
+    on
+    public.world_card for each row execute function set_modified_at();
+
+
+-- public.world_card_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.world_card_translations;
+
+CREATE TABLE public.world_card_translations (
+	id serial4 NOT NULL,
+	card_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	"name" text NOT NULL,
+	short_text text NULL,
+	description text NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT world_card_lang_unique UNIQUE (card_id, language_code),
+	CONSTRAINT world_card_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT world_card_translations_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.world_card(id) ON DELETE CASCADE,
+	CONSTRAINT world_card_translations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT world_card_translations_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_world_card_translations_card_lang ON public.world_card_translations USING btree (card_id, language_code);
+CREATE INDEX idx_world_card_translations_lang ON public.world_card_translations USING btree (language_code);
+
+-- Table Triggers
+
+create trigger world_card_translations_set_modified_at before
+update
+    on
+    public.world_card_translations for each row execute function set_modified_at();
+
+
+-- public.v_latest_revision source
+
+CREATE OR REPLACE VIEW public.v_latest_revision
+AS SELECT r.entity_type,
+    r.entity_id,
+    max(r.version_number) AS latest_version,
+    max(r.created_at) AS latest_at
+   FROM content_revisions r
+  GROUP BY r.entity_type, r.entity_id;
+
+
+-- public.v_open_feedback source
+
+CREATE OR REPLACE VIEW public.v_open_feedback
+AS SELECT f.entity_type,
+    f.entity_id,
+    f.version_number,
+    f.language_code,
+    f.category,
+    f.comment,
+    f.created_at,
+    f.created_by
+   FROM content_feedback f
+  WHERE f.status = 'open'::feedback_status;
+
+
+
+-- DROP FUNCTION public.set_default_permissions();
+
+CREATE OR REPLACE FUNCTION public.set_default_permissions()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  IF NEW.permissions IS NULL OR NEW.permissions = '{}'::jsonb THEN
+    CASE LOWER(NEW.name)
+      WHEN 'admin' THEN
+        NEW.permissions := '{"canManageUsers":true,"canEditContent":true,"canReview":true,"canTranslate":true,"canPublish":true,"canAssignTags":true,"canResolveFeedback":true,"canSeeAllStatuses":true}'::jsonb;
+      WHEN 'publisher' THEN
+        NEW.permissions := '{"canPublish":true,"canAssignTags":true,"canResolveFeedback":true,"canSeeAllStatuses":true}'::jsonb;
+      WHEN 'editor' THEN
+        NEW.permissions := '{"canEditContent":true,"canReview":true,"canAssignTags":true,"canSeeAllStatuses":true}'::jsonb;
+      WHEN 'reviewer' THEN
+        NEW.permissions := '{"canReview":true,"canSeeAllStatuses":true}'::jsonb;
+      WHEN 'translator' THEN
+        NEW.permissions := '{"canTranslate":true,"canSeeAllStatuses":false}'::jsonb;
+      WHEN 'staff' THEN
+        NEW.permissions := '{"canEditContent":true,"canReview":true,"canResolveFeedback":true,"canSeeAllStatuses":true}'::jsonb;
+      WHEN 'collaborator' THEN
+        NEW.permissions := '{"canEditContent":true,"canReview":false,"canPublish":false}'::jsonb;
+      WHEN 'contributor' THEN
+        NEW.permissions := '{"canEditContent":true}'::jsonb;
+      WHEN 'reader' THEN
+        NEW.permissions := '{}'::jsonb;
+      WHEN 'tester' THEN
+        NEW.permissions := '{"canSeeAllStatuses":true}'::jsonb;
+      ELSE
+        NEW.permissions := '{}'::jsonb;
+    END CASE;
+  END IF;
+  RETURN NEW;
+END;
+$function$
+;
+
+-- DROP FUNCTION public.set_modified_at();
+
+CREATE OR REPLACE FUNCTION public.set_modified_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+    BEGIN
+      NEW.modified_at = now();
+      RETURN NEW;
+    END;
+    $function$
+;

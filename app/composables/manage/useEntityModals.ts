@@ -1,5 +1,6 @@
 import { reactive, ref } from 'vue'
 import type { AnyManageCrud } from '@/types/manage'
+import { useFormState } from '~/composables/manage/useFormState'
 
 export function useEntityModals(
   crud: AnyManageCrud,
@@ -17,7 +18,8 @@ export function useEntityModals(
   const isEditing = ref(false)
   const saving = ref(false)
 
-  const modalFormState = reactive<Record<string, any>>({})
+  const form = useFormState<Record<string, any>>({ initialValue: () => ({}) })
+  const modalFormState = form.values
   const manage = reactive<{ englishItem: Record<string, any> | null }>({ englishItem: null })
 
   function et(key: 'create' | 'edit') {
@@ -37,8 +39,7 @@ export function useEntityModals(
   function onEdit(entity: any) {
     if (!entity) return
     isEditing.value = true
-    for (const k of Object.keys(modalFormState)) delete (modalFormState as any)[k]
-    Object.assign(modalFormState, entity)
+    form.replace(entity as Record<string, any>, { markDirty: false, updateInitial: true })
     if (imagePreview) imagePreview.value = (entity.image || entity.thumbnail_url || null) as any
     if (localeCode() !== 'en') {
       preloadEnglishItem(entity.id).catch(() => {})
@@ -64,7 +65,7 @@ export function useEntityModals(
   function onCreateClick(emit?: (e: 'create') => void) {
     emit?.('create')
     isEditing.value = false
-    for (const k of Object.keys(modalFormState)) delete (modalFormState as any)[k]
+    form.reset({ to: {} as Record<string, any>, updateInitial: true })
     if (imagePreview) imagePreview.value = null
     manage.englishItem = null
     isModalOpen.value = true
@@ -73,7 +74,7 @@ export function useEntityModals(
   async function handleSubmit() {
     try {
       saving.value = true
-      const payload: Record<string, any> = { ...modalFormState }
+      const payload: Record<string, any> = form.toObject()
       if ('is_active' in payload) payload.is_active = !!payload.is_active
       if ('image' in payload) {
         const v = payload.image
@@ -90,6 +91,7 @@ export function useEntityModals(
         await crud.create?.(payload as any)
       }
       await crud.fetchList?.()
+      form.markClean({ updateInitial: true })
       isModalOpen.value = false
       toast?.add?.({ title: (t?.('common.saved') ?? 'Saved') as string, color: 'success' })
     } catch (e) {
@@ -104,6 +106,7 @@ export function useEntityModals(
   }
 
   function handleCancel() {
+    form.reset()
     isModalOpen.value = false
   }
 
@@ -114,6 +117,7 @@ export function useEntityModals(
     saving,
     modalFormState,
     manage,
+    isFormDirty: form.isDirty,
     // i18n helpers
     et,
     // actions
@@ -122,6 +126,8 @@ export function useEntityModals(
     handleSubmit,
     handleCancel,
     preloadEnglishItem,
+    resetForm: form.reset,
+    formControls: form,
   }
 }
 

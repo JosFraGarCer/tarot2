@@ -72,6 +72,9 @@ useDeckCrud y combina el estado pending inicial con el loading del CRUD antes de
 - `useEntityModals` manipula `modalFormState` mutando referencias directamente, con resets manuales. No existe validación antes de envío en front (dependen sólo de Zod en backend). @app/composables/manage/useEntityModals.ts#20-121
 - Recomendación: extraer `useFormState(initialSchema)` que produzca estado controlado y ofrezca helpers (`reset`, `patch`, `setDirty`). Podría alinear con libs externas (vee-validate).
 
+> a
+
+
 ### 7. Falta de pruebas y typings explícitos
 
 - No se encontraron tests específicos para `useEntity` o endpoints. Dependencia en runtime para detectar errores.
