@@ -14,6 +14,12 @@
       :loading="loading"
       class="w-full"
     >
+      <template #loading>
+        <slot name="loading" />
+      </template>
+      <template #empty>
+        <slot name="empty" />
+      </template>
     <!-- Select all / row select -->
     <template #select-header>
       <UCheckbox v-model="allSelectedComputed" />

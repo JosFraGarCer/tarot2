@@ -28,6 +28,8 @@
         @delete="onDelete"
         @export="onExport"
         @batch-update="onBatchUpdate"
+        @create="onCreateClickWrapper"
+        @reset-filters="resetFilters"
       />
     </div>
     <div v-else-if="viewMode === 'tarjeta'">
@@ -42,6 +44,8 @@
         @feedback="onFeedback"
         @tags="onTags"
         @preview="onPreview"
+        @create="onCreateClickWrapper"
+        @reset-filters="resetFilters"
       />
     </div>
     <div v-else-if="viewMode === 'classic'">
@@ -56,6 +60,8 @@
         @feedback="onFeedback"
         @tags="onTags"
         @preview="onPreview"
+        @create="onCreateClickWrapper"
+        @reset-filters="resetFilters"
       />
     </div>
     <div v-else class="text-xs text-neutral-500">
@@ -185,6 +191,7 @@ const toast = useToast?.() as any
 const crud = props.useCrud()
 
 const multiFilterAliases = new Set(['tags'])
+const columnMemo = new Map<string, TableColumn<EntityRow>[]>()
 
 function initializeFilterDefaults() {
   const configEntries = Object.entries(props.filtersConfig || {})
@@ -219,6 +226,10 @@ void crud.fetchList()
 const { previewOpen, previewData, setPreviewOpen, openPreviewFromEntity } = useEntityPreview()
 
 const resolvedColumns = computed<TableColumn<EntityRow>[]>(() => {
+  const key = `${props.entity}::${crud.lang.value}`
+  const cached = columnMemo.get(key)
+  if (cached) return cached
+
   const extras: TableColumn<EntityRow>[] = []
 
   const add = (column?: TableColumn<EntityRow>) => {
@@ -259,6 +270,7 @@ const resolvedColumns = computed<TableColumn<EntityRow>[]>(() => {
 
   add({ accessorKey: 'updated_at', header: t('common.updatedAt') })
 
+  columnMemo.set(key, extras)
   return extras
 })
 
@@ -332,6 +344,31 @@ function onTags(entity?: any) {
 }
 function onCreateClickWrapper() {
   onCreateClick((e: 'create') => emit(e))
+}
+
+function resetFilters() {
+  const filters = crud.filters
+  if (filters) {
+    for (const key of Object.keys(filters)) {
+      const current = filters[key]
+      if (Array.isArray(current) || multiFilterAliases.has(key) || key.endsWith('_ids')) {
+        filters[key] = []
+        continue
+      }
+      if (typeof current === 'string') {
+        filters[key] = ''
+        continue
+      }
+      filters[key] = null
+    }
+  }
+
+  const pag = crud.pagination?.value ?? crud.pagination
+  if (pag) {
+    pag.page = 1
+  }
+
+  void crud.fetchList?.()
 }
 
 // Optimistic status update

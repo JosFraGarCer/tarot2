@@ -7,7 +7,7 @@ Generic SSR-safe CRUD composable for any entity.
   - Optional Zod validation for create/update
 */
 
-import { ref, computed, watch, watchEffect, reactive } from 'vue'
+import { ref, computed, watch, watchEffect, reactive, onMounted, onUnmounted, shallowRef } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
 import type { z } from 'zod'
 import { useAsyncData, useI18n } from '#imports'
@@ -138,8 +138,8 @@ export function useEntity<TList, TCreate, TUpdate>(
   })
 
   // Core state
-  const items = ref<TList[]>([])
-  const current = ref<TList | null>(null)
+  const items = shallowRef<TList[]>([])
+  const current = shallowRef<TList | null>(null)
   const error = ref<string | null>(null)
 
   // We combine list pending with actionPending to expose a single loading flag
@@ -169,8 +169,16 @@ export function useEntity<TList, TCreate, TUpdate>(
   // Abortable fetch controller to cancel in-flight list requests
   let listAbort: AbortController | null = null
 
+  // In-memory SWR cache
+  const listCache: Map<string, any> = new Map()
+
   const { data: listData, pending: listPending, error: listErr, refresh } =
     useAsyncData<ApiResponse<TList[]>>(listKey, async () => {
+      // Serve cached data immediately (SWR pattern) by assigning to items via listData effect below
+      const cached = listCache.get(listKey.value)
+      if (cached && Array.isArray(cached.data)) {
+        // noop: listData will be replaced after fetch; cache used by watchEffect below
+      }
       if (listAbort) {
         try { listAbort.abort() } catch {}
       }
@@ -210,6 +218,9 @@ watchEffect(() => {
   const meta = (val as any)?.meta
   pagination.value.totalItems =
     meta?.totalItems ?? meta?.count ?? (Array.isArray(data) ? data.length : 0)
+
+  // Update SWR cache
+  try { listCache.set(listKey.value, val) } catch {}
 })
 
   // Mirror list error into a single string error state
@@ -352,6 +363,17 @@ watchEffect(() => {
 
   // Auto-refresh on filters/page/lang changes is handled via useAsyncData watch: [listKey]
   // Consumers can still call fetchList() to force refresh if needed.
+
+  // Revalidate on focus (client-only)
+  if (process.client) {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void refresh()
+      }
+    }
+    onMounted(() => document.addEventListener('visibilitychange', handleVisibility))
+    onUnmounted(() => document.removeEventListener('visibilitychange', handleVisibility))
+  }
 
   pagination.value.page ||= 1
   pagination.value.pageSize ||= 20

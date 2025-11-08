@@ -1,11 +1,49 @@
 <!-- /app/components/manage/views/EntityCardsClassic.vue -->
 <template>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    <UCard v-for="item in crud.items?.value ?? crud.items" :key="item.id" class="flex flex-col gap-3 h-full text-sm">
+    <template v-if="crud.loading.value">
+      <UCard v-for="n in 6" :key="`classic-skeleton-${n}`" class="flex flex-col gap-3 h-full text-sm">
+        <div class="flex items-start gap-3">
+          <USkeleton class="w-15 h-20 rounded-md" />
+          <div class="flex-1 space-y-2">
+            <USkeleton class="h-4 w-3/4" />
+            <USkeleton class="h-3 w-1/2" />
+            <USkeleton class="h-3 w-full" />
+          </div>
+        </div>
+        <USkeleton class="h-3 w-5/6" />
+      </UCard>
+    </template>
+    <template v-else-if="(crud.items?.value ?? crud.items)?.length === 0">
+      <div class="col-span-full">
+        <UCard class="flex flex-col items-center justify-center gap-4 py-10 text-center">
+          <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" />
+          <div class="space-y-2">
+            <p class="text-lg font-semibold text-neutral-700 dark:text-neutral-200">{{ t('common.noResults') }}</p>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ t('common.tryAdjustFilters') }}</p>
+          </div>
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <UButton color="primary" icon="i-heroicons-plus" @click="onCreateFromEmpty">
+              {{ t('common.create') }} {{ label }}
+            </UButton>
+            <UButton
+              variant="ghost"
+              color="neutral"
+              icon="i-heroicons-arrow-path"
+              @click="onResetFiltersFromEmpty"
+            >
+              {{ t('common.resetFilters') }}
+            </UButton>
+          </div>
+        </UCard>
+      </div>
+    </template>
+    <UCard v-else v-for="item in crud.items?.value ?? crud.items" :key="item.id" class="flex flex-col gap-3 h-full text-sm">
       <div class="flex justify-between items-start gap-3">
         <div class="flex items-start gap-3 flex-1">
           <img
-            :src="resolveImage(item.image || item.thumbnail_url) || '/img/default.avif'"
+            v-if="item.image"
+            :src="resolveImage(item.image || item.thumbnail_url)"
             :alt="item.name || item.code"
             class="w-15 h-20 object-cover rounded-md border border-neutral-200 dark:border-neutral-700"
             loading="lazy"
@@ -121,6 +159,8 @@ const emit = defineEmits<{
   (e: 'feedback', entity: any): void
   (e: 'tags', entity: any): void
   (e: 'preview', entity: any): void
+  (e: 'create'): void
+  (e: 'reset-filters'): void
 }>()
 
 const { t, locale } = useI18n()
@@ -138,4 +178,11 @@ const {
   locale
 })
 
+function onPreviewClick(item: any) { emit('preview', item) }
+function onEditClick(item: any) { emit('edit', item) }
+function onDeleteClick(item: any) { emit('delete', item) }
+function onFeedbackClick(item: any) { emit('feedback', item) }
+function onTagsClick(item: any) { emit('tags', item) }
+function onCreateFromEmpty() { emit('create') }
+function onResetFiltersFromEmpty() { emit('reset-filters') }
 </script>

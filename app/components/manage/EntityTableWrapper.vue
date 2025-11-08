@@ -9,6 +9,33 @@
     @export-selected="(ids) => emit('export', ids)"
     @update-selected="(ids) => emit('batchUpdate', ids)"
   >
+    <template #empty>
+      <div class="flex flex-col items-center justify-center gap-4 py-10 text-center">
+        <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" />
+        <div class="space-y-2">
+          <p class="text-lg font-semibold text-neutral-700 dark:text-neutral-200">{{ emptyTitle }}</p>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ emptySubtitle }}</p>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          <UButton color="primary" icon="i-heroicons-plus" @click="emit('create')">
+            {{ emptyCreateLabel }}
+          </UButton>
+          <UButton
+            variant="ghost"
+            color="neutral"
+            icon="i-heroicons-arrow-path"
+            @click="emit('reset-filters')"
+          >
+            {{ emptyResetLabel }}
+          </UButton>
+        </div>
+      </div>
+    </template>
+    <template #loading>
+      <div class="space-y-2 py-6">
+        <USkeleton v-for="n in 6" :key="`row-skeleton-${n}`" class="h-10 w-full rounded" />
+      </div>
+    </template>
     <template #actions="{ row }">
       <div class="flex items-center gap-1">
         <UButton
@@ -34,6 +61,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from '#imports'
 import EntityTable from '~/components/manage/view/EntityTable.vue'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 import type { ManageCrud } from '@/types/manage'
@@ -49,9 +77,13 @@ const emit = defineEmits<{
   (e: 'delete', entity: any): void
   (e: 'export', ids: number[]): void
   (e: 'batchUpdate', ids: number[]): void
+  (e: 'create'): void
+  (e: 'reset-filters'): void
 }>()
 
 const selectedIds = ref<number[]>([])
+
+const { t } = useI18n()
 
 const tableRows = computed<EntityRow[]>(() => {
   const raw = props.crud.items.value
@@ -110,4 +142,9 @@ function resolveImage(entity: any): string | null {
 function onUpdateSelected(ids: number[]) {
   selectedIds.value = ids
 }
+
+const emptyTitle = computed(() => t('common.noResults'))
+const emptySubtitle = computed(() => t('common.tryAdjustFilters'))
+const emptyCreateLabel = computed(() => `${t('common.create')} ${props.label}`)
+const emptyResetLabel = computed(() => t('common.resetFilters'))
 </script>
