@@ -13,7 +13,7 @@
                 color="neutral"
                 variant="ghost"
                 aria-label="Preview"
-                @click="emit('preview', item)"
+                @click="onPreviewClick(item)"
               />
               <UBadge v-if="langBadge(item)" color="neutral" variant="subtle" size="sm">
                 {{ langBadge(item) }}
@@ -30,10 +30,10 @@
             :entity-label="label"
             :entity-type="label"
             :no-tags="noTags"
-            @edit="() => emit('edit', item)"
-            @feedback="() => emit('feedback', item)"
-            @tags="() => emit('tags', item)"
-            @delete="() => emit('delete', item)"
+            @edit="onEditClick(item)"
+            @feedback="onFeedbackClick(item)"
+            @tags="onTagsClick(item)"
+            @delete="onDeleteClick(item)"
           />
         </div>
       </template>
@@ -123,4 +123,9 @@ const {
   locale
 })
 
+function onPreviewClick(item: any) { emit('preview', item) }
+function onEditClick(item: any) { emit('edit', item) }
+function onDeleteClick(item: any) { emit('delete', item) }
+function onFeedbackClick(item: any) { emit('feedback', item) }
+function onTagsClick(item: any) { emit('tags', item) }
 </script>

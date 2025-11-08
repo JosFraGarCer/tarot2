@@ -145,31 +145,52 @@ export function useEntity<TList, TCreate, TUpdate>(
   // We combine list pending with actionPending to expose a single loading flag
   const actionPending = ref(false)
 
-  // Build a stable cache key for useAsyncData based on resource + filters + pagination + lang
+  // Debounced filters string to avoid excessive re-fetching while typing
+  const debouncedFiltersStr = ref(JSON.stringify(filters))
+  let debounceTimer: any = null
+  watch(
+    filters,
+    () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        debouncedFiltersStr.value = JSON.stringify(filters)
+      }, 300)
+    },
+    { deep: true }
+  )
+
+  // Build a stable cache key for useAsyncData based on resource + debounced filters + pagination + lang
   const listKey = computed(() => {
-    const f = JSON.stringify(filters)
+    const f = debouncedFiltersStr.value
     const uid = options.resourcePath.replace(/[^\w]/g, '_') // ejemplo: _api_card_type
     return `entity:${uid}::${lang.value}::${pagination.value.page}::${pagination.value.pageSize}::${f}`
   })
 
-  // List fetching with SSR via useAsyncData
-const { data: listData, pending: listPending, error: listErr, refresh } =
-  useAsyncData<ApiResponse<TList[]>>(listKey, async () => {
-    const res = await $fetch<ApiResponse<TList[]>>(options.resourcePath, {
-      method: 'GET',
-      params: pruneUndefined({
-        ...normalizeFilters(filters),
-        page: pagination.value.page,
-        pageSize: pagination.value.pageSize,
-        lang: lang.value,
-      }),
+  // Abortable fetch controller to cancel in-flight list requests
+  let listAbort: AbortController | null = null
+
+  const { data: listData, pending: listPending, error: listErr, refresh } =
+    useAsyncData<ApiResponse<TList[]>>(listKey, async () => {
+      if (listAbort) {
+        try { listAbort.abort() } catch {}
+      }
+      listAbort = new AbortController()
+      const res = await $fetch<ApiResponse<TList[]>>(options.resourcePath, {
+        method: 'GET',
+        signal: listAbort.signal,
+        params: pruneUndefined({
+          ...normalizeFilters(filters),
+          page: pagination.value.page,
+          pageSize: pagination.value.pageSize,
+          lang: lang.value,
+        }),
+      })
+      return res
+    }, {
+      watch: [listKey],
+      immediate: true,
+      server: true,
     })
-    return res
-  }, {
-    watch: [listKey],
-    immediate: true,
-    server: true,
-  })
 
 
 // Keep exposed items and totalItems in sync with async data

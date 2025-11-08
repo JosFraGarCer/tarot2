@@ -106,7 +106,7 @@ const props = withDefaults(defineProps<{
   onCreate: undefined
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const statusUtil = useCardStatus()
 
 const show = computed(() => ({
@@ -262,42 +262,47 @@ function unwrapRows(raw: any): any[] {
   return []
 }
 
-const { data: tagData, execute: fetchTags } = useLazyAsyncData('manage-filter-tags', () =>
-  useApiFetch('/tag', {
+const { data: tagData, execute: fetchTags } = useLazyAsyncData(
+  () => `manage-filter-tags::${String(locale)}`,
+  () => useApiFetch('/tag', {
     method: 'GET',
-    params: { pageSize: 100, is_active: true },
+    params: { pageSize: 100, is_active: true, lang: String(locale) },
   }),
   { immediate: false, server: false }
 )
 
-const { data: cardTypeData, execute: fetchCardTypes } = useLazyAsyncData('manage-filter-card-types', () =>
-  useApiFetch('/card_type', {
+const { data: cardTypeData, execute: fetchCardTypes } = useLazyAsyncData(
+  () => `manage-filter-card-types::${String(locale)}`,
+  () => useApiFetch('/card_type', {
     method: 'GET',
-    params: { pageSize: 100, is_active: true },
+    params: { pageSize: 100, is_active: true, lang: String(locale) },
   }),
   { immediate: false, server: false }
 )
 
-const { data: arcanaData, execute: fetchArcana } = useLazyAsyncData('manage-filter-arcana', () =>
-  useApiFetch('/arcana', {
+const { data: arcanaData, execute: fetchArcana } = useLazyAsyncData(
+  () => `manage-filter-arcana::${String(locale)}`,
+  () => useApiFetch('/arcana', {
     method: 'GET',
-    params: { pageSize: 100, is_active: true },
+    params: { pageSize: 100, is_active: true, lang: String(locale) },
   }),
   { immediate: false, server: false }
 )
 
-const { data: facetData, execute: fetchFacets } = useLazyAsyncData('manage-filter-facets', () =>
-  useApiFetch('/facet', {
+const { data: facetData, execute: fetchFacets } = useLazyAsyncData(
+  () => `manage-filter-facets::${String(locale)}`,
+  () => useApiFetch('/facet', {
     method: 'GET',
-    params: { pageSize: 100, is_active: true },
+    params: { pageSize: 100, is_active: true, lang: String(locale) },
   }),
   { immediate: false, server: false }
 )
 
-const { data: parentData, execute: fetchParentTags } = useLazyAsyncData('manage-filter-tag-parents', () =>
-  useApiFetch('/tag', {
+const { data: parentData, execute: fetchParentTags } = useLazyAsyncData(
+  () => `manage-filter-tag-parents::${String(locale)}`,
+  () => useApiFetch('/tag', {
     method: 'GET',
-    params: { pageSize: 100, parent_only: true },
+    params: { pageSize: 100, parent_only: true, lang: String(locale) },
   }),
   { immediate: false, server: false }
 )

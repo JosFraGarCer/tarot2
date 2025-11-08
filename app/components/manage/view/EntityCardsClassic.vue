@@ -20,7 +20,7 @@
                 color="neutral"
                 variant="ghost"
                 :title="$t('common.preview')"
-                @click="() => emit('preview', item)"
+                @click="onPreviewClick(item)"
               />
                <UBadge v-if="langBadge(item)" color="neutral" variant="subtle" size="sm">
                 {{ langBadge(item) }}
@@ -68,10 +68,10 @@
             :entity-type="label"
             :no-tags="noTags"
             vertical
-            @edit="() => emit('edit', item)"
-            @feedback="() => emit('feedback', item)"
-            @tags="() => emit('tags', item)"
-            @delete="() => emit('delete', item)"
+            @edit="onEditClick(item)"
+            @feedback="onFeedbackClick(item)"
+            @tags="onTagsClick(item)"
+            @delete="onDeleteClick(item)"
           />
       </div>
       <!-- DESCRIPCIÓN -->
