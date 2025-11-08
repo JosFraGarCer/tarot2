@@ -1,7 +1,61 @@
 import { $fetch as ofetch, type FetchContext, type FetchRequest, type FetchOptions } from 'ofetch'
 
+interface CacheEntry<T = any> {
+  data: T
+  storedAt: number
+  ttl: number
+}
+
 const etagStore = new Map<string, string>()
-const responseCache = new Map<string, any>()
+const responseCache = new Map<string, CacheEntry>()
+
+const DEFAULT_TTL = 1000 * 60 * 5 // 5 minutes
+
+function now() {
+  return Date.now()
+}
+
+function purgeExpired(entries: Map<string, CacheEntry>) {
+  const current = now()
+  for (const [key, entry] of entries.entries()) {
+    const ttl = entry.ttl ?? DEFAULT_TTL
+    if (current - entry.storedAt > ttl) {
+      entries.delete(key)
+      etagStore.delete(key)
+    }
+  }
+}
+
+export function clearApiFetchCache(options: { pattern?: RegExp } = {}) {
+  const { pattern } = options
+  for (const key of responseCache.keys()) {
+    if (!pattern || pattern.test(key)) {
+      responseCache.delete(key)
+      etagStore.delete(key)
+    }
+  }
+}
+
+function resolveTTL(options: FetchOptions): number {
+  const contextTTL = (options.context as any)?.cacheTTL
+  if (typeof contextTTL === 'number' && Number.isFinite(contextTTL) && contextTTL > 0) {
+    return contextTTL
+  }
+  return DEFAULT_TTL
+}
+
+function getCachedData<T = any>(key: string): T | undefined {
+  const entry = responseCache.get(key)
+  if (!entry) return undefined
+  const current = now()
+  const ttl = entry.ttl ?? DEFAULT_TTL
+  if (current - entry.storedAt > ttl) {
+    responseCache.delete(key)
+    etagStore.delete(key)
+    return undefined
+  }
+  return entry.data as T
+}
 
 function toStable(value: any): any {
   if (Array.isArray(value)) {
@@ -40,6 +94,7 @@ export const useApiFetch = ofetch.create({
     options.context = { ...(options.context || {}), __cacheKey: cacheKey }
 
     if (method === 'GET') {
+      purgeExpired(responseCache)
       options.retry = options.retry ?? 2
       options.retryDelay = options.retryDelay ?? 200
       options.retryStatusCodes = options.retryStatusCodes ?? [408, 425, 429, 500, 502, 503, 504]
@@ -60,7 +115,7 @@ export const useApiFetch = ofetch.create({
     if (method !== 'GET') return
 
     if (response.status === 304) {
-      const cached = responseCache.get(cacheKey)
+      const cached = getCachedData(cacheKey)
       if (cached !== undefined) {
         response._data = cached
       }
@@ -71,13 +126,17 @@ export const useApiFetch = ofetch.create({
     if (etag) {
       etagStore.set(cacheKey, etag)
     }
-    responseCache.set(cacheKey, response._data)
+    responseCache.set(cacheKey, {
+      data: response._data,
+      storedAt: now(),
+      ttl: resolveTTL(options),
+    })
   },
   onResponseError({ request, response, options }: FetchContext) {
     if (!response) return
     if (response.status !== 304) return
     const cacheKey = (options.context as any)?.__cacheKey ?? buildCacheKey(request, options)
-    const cached = responseCache.get(cacheKey)
+    const cached = getCachedData(cacheKey)
     if (cached !== undefined) {
       response._data = cached
     }
