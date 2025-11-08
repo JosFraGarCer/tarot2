@@ -69,13 +69,16 @@ useDeckCrud y combina el estado pending inicial con el loading del CRUD antes de
 > - Eliminé basePageSizeOptions de DeckSection y ahora registro el límite de vista previa en el CRUD para incluirlo en las opciones globales. app/components/deck/DeckSection.vue
 > - Las opciones mostradas en PaginationControls provienen de pagination.defaultPageSizes, garantizando coherencia con el nuevo sistema centralizado de paginación. app/components/deck/DeckSection.vue
 
-### [ ] 4. Manejo inconsistente de filtros de tags entre entidades
+### [x] 4. Manejo inconsistente de filtros de tags entre entidades
 
 - Backends de `world`, `arcana`, `facet`, `skill`, `base_card` aplican OR contra tags, mientras `base_card` permite AND via `ANY` (tag_ids) pero sin garantías. @server/api/base_card/index.get.ts#132-153 vs @server/api/arcana/index.get.ts#120-141
 - Frontend `EntityFilters` asume listas múltiples pero no sincroniza `crud.filters` con respuesta normalizada (IDs vs objetos). @app/components/manage/EntityFilters.vue#168-208
 - Recomendaciones: documentar contrato `tag_ids` (AND/OR) y unificar backend. Ajustar `useFilterBinding` para asegurar sincronía (convertir arrays a números/strings según backend).
 
-> a
+> ### Respuesta
+>
+> - Unifiqué la semántica de filtrado por tags con OR en el endpoint world_card, reemplazando el antiguo HAVING que exigía coincidencia total por un EXISTS consistente con el resto de entidades. server/api/world_card/index.get.ts
+> - Aclaré el comentario en base_card para reflejar explícitamente la semántica OR ya implementada. server/api/base_card/index.get.ts
 
 
 
@@ -95,10 +98,17 @@ useDeckCrud y combina el estado pending inicial con el loading del CRUD antes de
 , reset, patch, markClean, etc.) app/composables/manage/useFormState.ts. useEntityModals ahora usa useFormState, elimina mutaciones anuales de modalFormState, reutiliza helpers para resetear/establecer datos y marca el formulario como limpio tras guardar app/composables/manage/useEntityModals.ts.
 
 
-### 7. Falta de pruebas y typings explícitos
+### 7. Falta de pruebas
 
 - No se encontraron tests específicos para `useEntity` o endpoints. Dependencia en runtime para detectar errores.
+
+### [ ] 7 bis. typings explícitos
+
 - Tipos `ManageCrud` provienen de `@/types/manage`, pero composables retornan `any` en varias partes (e.g., `useDeckCrud` returns `ManageCrud<any, any, any>`). Recomendación: definir generics adecuados o `interface DeckCrud<T>` para tipado fuerte.
+
+> a
+
+
 
 ### 8. Seguridad y control de acceso
 

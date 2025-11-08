@@ -129,7 +129,7 @@ export default defineEventHandler(async (event) => {
     if (created_by !== undefined) base = base.where('c.created_by', '=', created_by)
     if (card_type_id) base = base.where('c.card_type_id', '=', card_type_id)
 
-    // Tag filters (AND semantics)
+    // Tag filters (OR semantics)
     if (tagIdsArray && tagIdsArray.length > 0) {
       base = base.where(sql`exists (
         select 1
