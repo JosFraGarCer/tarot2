@@ -5,6 +5,7 @@
     :loading="tableLoading"
     :columns="columns"
     :selected-ids="selectedIds"
+    :crud="crudResource"
     @update:selected-ids="onUpdateSelected"
     @export-selected="(ids) => emit('export', ids)"
     @update-selected="(ids) => emit('batchUpdate', ids)"
@@ -82,6 +83,8 @@ const emit = defineEmits<{
 }>()
 
 const selectedIds = ref<number[]>([])
+
+const crudResource = computed(() => ({ resourcePath: props.crud?.resourcePath || '' }))
 
 const { t } = useI18n()
 

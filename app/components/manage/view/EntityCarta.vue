@@ -47,17 +47,14 @@
     <div class="mt-3 space-y-1 text-center">
       <div class="flex items-center justify-center gap-2 text-sm text-gray-700 dark:text-gray-300">
         <UBadge
-                :label="(item.is_active ? t('ui.states.active') : t('ui.states.inactive')) || '-'"
-                :color="item.is_active ? 'primary' : 'neutral'"
-                size="sm"
-              />
-         <UBadge
-                  size="sm"
-                  :color="statusColor(item.status)"
-                  :variant="statusVariant(item.status)"
-                >
-                  {{ $t(statusLabelKey(item.status)) }}
-                </UBadge>
+          :label="(item.is_active ? t('ui.states.active') : t('ui.states.inactive')) || '-'"
+          :color="item.is_active ? 'primary' : 'neutral'"
+          size="sm"
+        />
+        <StatusBadge
+          :status="item.status"
+          kind="card"
+        />
       </div>
 
       <div v-if="!noTags && Array.isArray(item.tags) && item.tags.length"  class="flex flex-wrap justify-center gap-1">
@@ -81,6 +78,7 @@ import { computed } from 'vue'
 import { useI18n } from '#imports'
 import { useCardTemplates } from '~/composables/common/useCardTemplates'
 import EntityActions from '~/components/manage/EntityActions.vue'
+import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 
 const props = defineProps<{
@@ -110,10 +108,7 @@ const {
   resolveImage,
   titleOf,
   isActive,
-  langBadge,
-  statusColor,
-  statusVariant,
-  statusLabelKey
+  langBadge
 } = useCardViewHelpers({
   entity: computed(() => props.entity),
   locale

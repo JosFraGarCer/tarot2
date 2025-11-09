@@ -83,13 +83,10 @@
               </UBadge>
             </p>
             <div class="flex-1 space-x-2">
-                <UBadge
-                  size="sm"
-                  :color="statusColor(item.status)"
-                  :variant="statusVariant(item.status)"
-                >
-                  {{ $t(statusLabelKey(item.status)) }}
-                </UBadge>
+              <StatusBadge
+                :status="item.status"
+                kind="card"
+              />
               <UBadge
                 :label="(item.is_active ? t('ui.states.active') : t('ui.states.inactive')) || '-'"
                 :color="item.is_active ? 'primary' : 'neutral'"
@@ -142,6 +139,7 @@
 import { computed } from 'vue'
 import { useI18n } from '#imports'
 import EntityActions from '~/components/manage/EntityActions.vue'
+import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 import type { ManageCrud } from '@/types/manage'
 
@@ -169,10 +167,7 @@ const {
   resolveImage,
   titleOf,
   isActive,
-  langBadge,
-  statusColor,
-  statusVariant,
-  statusLabelKey
+  langBadge
 } = useCardViewHelpers({
   entity: computed(() => props.entity),
   locale

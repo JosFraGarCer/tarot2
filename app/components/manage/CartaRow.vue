@@ -11,7 +11,7 @@
           :name="name"
           :short-text="shortText"
           :description="description"
-          :img="img"
+          :img="resolvedImage"
         />
         <component
           :is="resolvedTemplate"
@@ -20,7 +20,7 @@
           :title="name"
           :short-text="shortText"
           :description="description"
-          :img="img"
+          :img="resolvedImage"
           :card-info="cardInfo || typeLabel"
         />
       </div>
@@ -68,9 +68,11 @@ import { useI18n } from '#imports'
 import { useCardTemplates } from '~/composables/common/useCardTemplates'
 import type { CardTemplateKey } from '~/composables/common/useCardTemplates'
 import { useCardStatus } from '~/utils/status'
+import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 
 const props = withDefaults(defineProps<{
   templateKey?: CardTemplateKey
+  entity?: string
   typeLabel?: string
   name: string
   shortText?: string
@@ -82,6 +84,7 @@ const props = withDefaults(defineProps<{
   tags?: Array<any>
 }>(), {
   templateKey: 'Class',
+  entity: '',
   typeLabel: '',
   shortText: '',
   description: '',
@@ -95,6 +98,15 @@ const props = withDefaults(defineProps<{
 const { t } = useI18n()
 const { resolveTemplate } = useCardTemplates()
 const cardStatus = useCardStatus()
+const {
+  resolveImage,
+  imageFallback,
+  statusColor,
+  statusVariant,
+  statusLabelKey
+} = useCardViewHelpers({
+  entity: computed(() => props.entity || ''),
+})
 
 const templateKeyResolved = computed<CardTemplateKey>(() => props.templateKey ?? 'Class')
 const resolvedTemplate = computed(() => resolveTemplate(templateKeyResolved.value))
@@ -104,6 +116,7 @@ const name = computed(() => props.name)
 const shortText = computed(() => props.shortText || '')
 const description = computed(() => props.description || '')
 const img = computed(() => props.img)
+const resolvedImage = computed(() => resolveImage(img.value))
 const cardInfo = computed(() => props.cardInfo || '')
 const active = computed(() => props.active)
 
@@ -114,7 +127,7 @@ const statusMeta = computed(() => {
 
 const statusLabel = computed(() => {
   if (!props.status) return ''
-  return t(cardStatus.labelKey(props.status as any))
+  return t(statusLabelKey(props.status as any))
 })
 
 const showStatusRow = computed(() => active.value !== undefined || statusMeta.value !== null)

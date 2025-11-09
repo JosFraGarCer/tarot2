@@ -49,13 +49,10 @@
 
     <!-- Status badge -->
     <template #status-cell="{ row }">
-      <UBadge
-        size="sm"
-        :color="statusColor(row.original.status)"
-        :variant="statusVariant(row.original.status)"
-      >
-        {{ $t(statusLabelKey(row.original.status)) }}
-      </UBadge>
+      <StatusBadge
+        :status="typeof row.original.status === 'string' ? row.original.status : null"
+        :kind="row.original.statusKind"
+      />
     </template>
 
     <!-- Active badge -->
@@ -114,9 +111,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
-import { useCardStatus } from '~/utils/status'
-import { getUserStatusMeta } from '~/utils/userStatus'
 import { useI18n } from '#imports'
+import StatusBadge from '~/components/common/StatusBadge.vue'
 defineOptions({ inheritAttrs: false })
 
 export type EntityRow = {
@@ -125,6 +121,7 @@ export type EntityRow = {
   short_text?: string
   description?: string
   status?: string | null
+  statusKind?: 'card' | 'user'
   is_active?: boolean | null
   img?: string | null
   code?: string | null
@@ -149,6 +146,7 @@ const props = defineProps<{
   loading?: boolean
   selectedIds?: number[]
   columns?: TableColumn<EntityRow>[]
+  crud?: { resourcePath: string }
 }>()
 
 const emit = defineEmits<{
@@ -158,8 +156,6 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const statusUtil = useCardStatus()
-const statusOptions = statusUtil.options()
 
 const defaultColumns = computed<TableColumn<EntityRow>[]>(() => ([
   { id: 'select', header: '' },
@@ -177,6 +173,8 @@ const tableColumns = computed<TableColumn<EntityRow>[]>(() => {
   const selectColumn = base.find(col => col.id === 'select')
   const actionColumn = base.find(col => col.id === 'actions')
   const baseCore = base.filter(col => col.id !== 'actions' && col.id !== 'select')
+  const resourcePath = props.crud?.resourcePath || ''
+  const isUserEntity = resourcePath.includes('/user')
   const extras = props.columns.filter(col => col.id !== 'select' && col.id !== 'actions')
 
   return [
@@ -212,25 +210,6 @@ function onExportSelected() {
 }
 function onUpdateSelected() {
   emit('update-selected', internalSelected.value)
-}
-
-function getStatusMeta(value: string | null | undefined) {
-  if (!value) return null
-  const userMeta = getUserStatusMeta(value)
-  if (userMeta) return userMeta
-  return statusOptions.find(option => option.value === value) ?? null
-}
-
-function statusColor(value: string | null | undefined) {
-  return getStatusMeta(value)?.color ?? 'neutral'
-}
-
-function statusVariant(value: string | null | undefined) {
-  return getStatusMeta(value)?.variant ?? 'subtle'
-}
-
-function statusLabelKey(value: string | null | undefined) {
-  return getStatusMeta(value)?.labelKey ?? 'system.status.draft'
 }
 
 function formatDate(value: unknown) {

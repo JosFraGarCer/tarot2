@@ -73,6 +73,7 @@ import { useContentVersions } from '~/composables/admin/useContentVersions'
 import { useDebounceFn } from '@vueuse/core'
 import { useToast } from '#imports'
 import { useCurrentUser } from '@/composables/users/useCurrentUser'
+import { useApiFetch } from '@/utils/fetcher'
 
 const { t, te } = useI18n()
 const router = useRouter()
@@ -93,6 +94,7 @@ const statusOptions = [
 
 // Data from API
 const { items, pending, error, meta, fetchList, create, update, publish, remove } = useContentVersions()
+const apiFetch = useApiFetch
 
 const filtered = computed(() => {
   // server filters already applied; local search narrows further if desired
@@ -158,7 +160,10 @@ async function onSave(payload: { id?: number; version_semver: string; descriptio
   try {
     if (publishMode.value) {
       // Guided publish: call publish endpoint with semver/notes in description field
-      const res: any = await $fetch('/api/content_versions/publish', { method: 'POST', body: { version_semver: payload.version_semver, notes: payload.description || null } })
+      const res = await apiFetch<{ success?: boolean; data?: any }>('/content_versions/publish', {
+        method: 'POST',
+        body: { version_semver: payload.version_semver, notes: payload.description || null },
+      })
       toast.add({ title: tt('domains.version.published','Published'), description: `${res?.data?.totalEntities || 0} entities · ${res?.data?.totalRevisionsPublished || 0} revisions`, color: 'success' })
       publishMode.value = false
       modalOpen.value = false

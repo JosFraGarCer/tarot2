@@ -98,13 +98,10 @@
           @error="imageFallback"
         >
         <div class="flex items-center gap-2 mb-2">
-          <UBadge
-            size="sm"
-            :color="statusColorFor(item.status)"
-            :variant="statusVariantFor(item.status)"
-          >
-            {{ $t(statusLabelKeyFor(item.status)) }}
-          </UBadge>
+          <StatusBadge
+            :status="item.status"
+            :kind="isUserEntity ? 'user' : 'card'"
+          />
           <UBadge
             :color="isActive(item) ? 'primary' : 'neutral'"
             size="sm"
@@ -142,8 +139,8 @@
 import { computed } from 'vue'
 import { useI18n } from '#imports'
 import EntityActions from '~/components/manage/EntityActions.vue'
+import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
-import { userStatusColor, userStatusVariant, userStatusLabelKey } from '~/utils/userStatus'
 import type { ManageCrud } from '@/types/manage'
 
 const props = defineProps<{
@@ -171,10 +168,7 @@ const {
   imageFallback,
   titleOf,
   isActive,
-  langBadge,
-  statusColor,
-  statusVariant,
-  statusLabelKey
+  langBadge
 } = useCardViewHelpers({
   entity: computed(() => props.entity),
   locale
@@ -187,18 +181,6 @@ function userRoles(item: any): string[] {
   return roles
     .map((role: any) => role?.name)
     .filter((val: any): val is string => typeof val === 'string' && val.length > 0)
-}
-
-function statusColorFor(value: string | null | undefined) {
-  return isUserEntity.value ? userStatusColor(value) : statusColor(value)
-}
-
-function statusVariantFor(value: string | null | undefined) {
-  return isUserEntity.value ? userStatusVariant(value) : statusVariant(value)
-}
-
-function statusLabelKeyFor(value: string | null | undefined) {
-  return isUserEntity.value ? userStatusLabelKey(value) : statusLabelKey(value)
 }
 
 function formatDate(value: unknown) {

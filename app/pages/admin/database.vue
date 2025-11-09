@@ -72,9 +72,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import ImportJsonModal from '~/components/manage/modal/ImportJson.vue'
+import { useApiFetch } from '@/utils/fetcher'
 
 const { t } = useI18n()
 const toast = useToast()
+const apiFetch = useApiFetch
 
 // JSON Export/Import
 const jsonModalOpen = ref(false)
@@ -85,7 +87,7 @@ const openJsonImport = () => { jsonModalOpen.value = true; jsonImportError.value
 
 const exportJson = async () => {
   try {
-    const res: any = await $fetch('/api/database/export.json')
+    const res = await apiFetch<{ success?: boolean; data?: any }>('/database/export.json')
     const payload = res?.data ?? {}
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -114,7 +116,7 @@ const handleJsonImport = async (file: File) => {
       jsonImportError.value = t('importExport.import.errors.parseError')
       return
     }
-    await $fetch('/api/database/import.json', { method: 'POST', body: payload })
+    await apiFetch('/database/import.json', { method: 'POST', body: payload })
     toast.add({ title: t('ui.actions.import'), color: 'success' })
     jsonModalOpen.value = false
   } catch (error: any) {
@@ -135,7 +137,7 @@ const closeSqlImport = () => { sqlModalOpen.value = false; sqlImportError.value 
 
 const exportSql = async () => {
   try {
-    const res = await $fetch('/api/database/export.sql', { responseType: 'blob' as any })
+    const res = await apiFetch<Blob | ArrayBuffer>('/database/export.sql', { responseType: 'blob' as const })
     const blob = res instanceof Blob ? res : new Blob([res as any], { type: 'application/sql' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -158,7 +160,7 @@ const handleSqlImport = async () => {
   try {
     sqlImportLoading.value = true
     const text = await file.text()
-    await $fetch('/api/database/import.sql', { method: 'POST', body: text, headers: { 'Content-Type': 'text/plain' } })
+    await apiFetch('/database/import.sql', { method: 'POST', body: text, headers: { 'Content-Type': 'text/plain' } })
     toast.add({ title: t('ui.actions.import'), color: 'success' })
     closeSqlImport()
   } catch (error: any) {

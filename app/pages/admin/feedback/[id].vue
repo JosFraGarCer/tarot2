@@ -30,11 +30,12 @@
             <div v-if="card">
               <CartaRow
                 :template-key="'Class'"
+                :entity="card.entity_type || ''"
                 :type-label="card.card_type_name || card.card_type_code"
                 :name="card.name || card.code"
                 :short-text="card.short_text || ''"
                 :description="card.description || ''"
-                :img="card.image || undefined"
+                :img="card.image || card.thumbnail_url || null"
               />
             </div>
             <div v-else class="text-gray-500 text-sm">{{ t('features.feedback.noLinkedCard') || 'No linked card preview' }}</div>

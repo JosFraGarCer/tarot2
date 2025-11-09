@@ -89,11 +89,12 @@
             <div v-else-if="previewCard">
               <CartaRow
                 :template-key="'Class'"
+                :entity="previewCard.entity_type || ''"
                 :type-label="previewCard.card_type_name || previewCard.card_type_code || ''"
                 :name="previewCard.name || previewCard.code"
                 :short-text="previewCard.short_text || ''"
                 :description="previewCard.description || ''"
-                :img="previewCard.image || undefined"
+                :img="previewCard.image || previewCard.thumbnail_url || null"
               />
             </div>
             <div v-else class="py-8 text-center text-gray-500">{{ tt('features.feedback.noLinkedCard', 'No linked card preview') }}</div>

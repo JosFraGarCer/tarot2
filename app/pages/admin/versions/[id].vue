@@ -65,6 +65,7 @@
 import { formatDate } from '~/utils/date'
 import VersionModal from '~/components/admin/VersionModal.vue'
 import JsonModal from '~/components/admin/JsonModal.vue'
+import { useApiFetch } from '@/utils/fetcher'
 const route = useRoute()
 const router = useRouter()
 const localePath = useLocalePath()
@@ -76,13 +77,15 @@ const pending = ref(true)
 const error = ref<any>(null)
 const version = ref<any>(null)
 
+const apiFetch = useApiFetch
+
 const prettyMeta = computed(() => JSON.stringify(version.value?.metadata ?? {}, null, 2))
 
 async function load() {
   pending.value = true
   error.value = null
   try {
-    const res = await $fetch<{ success: boolean; data: any }>(`/api/content_versions/${id.value}`)
+    const res = await apiFetch<{ success: boolean; data: any }>(`/content_versions/${id.value}`)
     version.value = res?.data
   } catch (e: any) {
     error.value = e?.data?.message || e?.message || String(e)

@@ -93,7 +93,6 @@
   - Varias páginas (`/admin/database`, `/admin/versions/[id]`, parte de `/admin/versions`) usan `$fetch('/api/...')` directo, perdiendo ETag/304 y política de reintentos de `useApiFetch`.
   - Solución: unificar en `useApiFetch` cuando aplique (especialmente GETs).
 - [P3] Desfase documental sobre usuarios y card types
-  - Parte de la documentación antigua usa `/api/users/*` (plural) pero el backend expone `/api/user/*` (singular). Ajustar documentación/consumidores.
   - La ruta `/api/card_type` mapea a la tabla `base_card_type` (nota en API.MD). Mantener la convención y documentar el mapeo.
 
 ## Seguridad y permisos
@@ -102,14 +101,11 @@
 - Recomendación: exponer mensajería más explícita si falta permiso (se hace parcialmente).
 
 ## Optimización y eliminación de duplicados
-- StatusBadge reutilizable
-  - Extraer componente `StatusBadge.vue` para consolidar colores/variants/labelKey (hoy replicado en `EntityTable`, `EntityCards`, `CartaRow`, `admin` vistas).
 - Selección y acciones masivas
   - Extraer `useSelection(ids)` común (tabla feedback y tablas de entidades repiten patrón de selección y acciones bulk).
 - Previsualización unificada
   - Unificar carga de snapshot de entidad (lista/detalle de feedback) en `useEntityPreviewFetch(entityType, id, lang)` para evitar divergencias (y el bug del endpoint by-translation).
-- Fetch wrapper
-  - Adoptar `useApiFetch` para GETs en admin (beneficios: ETag, cache TTL configurable, reintentos controlados).
+
 
 ## Funcionalidades posibles
 - Publicación guiada real
