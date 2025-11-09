@@ -23,7 +23,7 @@
               multiple
               searchable
               clearable
-              :items="options"
+              :items="sortedOptions"
               value-key="value"
               class="w-full"
               option-attribute="label"
@@ -78,6 +78,19 @@ const emit = defineEmits<{
 const selectedOptions = computed(() => {
   const values = Array.isArray(props.modelValue) ? props.modelValue : []
   return (props.options || []).filter(o => values.includes(o.value))
+})
+
+const sortedOptions = computed(() => {
+  const values = Array.isArray(props.modelValue) ? props.modelValue : []
+  if (!Array.isArray(props.options) || props.options.length === 0) return props.options ?? []
+  const selected = new Set(values)
+  const selectedItems: typeof props.options = []
+  const unselectedItems: typeof props.options = []
+  for (const option of props.options) {
+    if (selected.has(option.value)) selectedItems.push(option)
+    else unselectedItems.push(option)
+  }
+  return [...selectedItems, ...unselectedItems]
 })
 
 const clearAll = () => emit('update:modelValue', [])

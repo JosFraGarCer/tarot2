@@ -177,6 +177,20 @@
       @cancel="closeImportModal"
       @update:open="value => (importModalOpen = value)"
     />
+
+    <EntityTagsModal
+      :open="tagsModalOpen"
+      :title="tagsModalTitle"
+      :description="null"
+      :model-value="tagsSelection"
+      :options="tagsOptions"
+      :saving="tagsSaving"
+      :confirm-label="$t('common.save') || 'Save'"
+      :cancel-label="$t('common.cancel') || 'Cancel'"
+      @update:open="handleTagsModalOpenChange"
+      @update:model-value="setTagsSelection"
+      @confirm="confirmTags"
+    />
   </div>
 </template>
 
@@ -207,6 +221,8 @@ import { useManageActions } from '~/composables/manage/useManageActions'
 import type { EntityFilterConfig } from '~/composables/manage/useEntity'
 import ImportJson from '~/components/manage/modal/ImportJson.vue'
 import { useEntityTransfer } from '~/composables/manage/useEntityTransfer'
+import EntityTagsModal from '~/components/manage/modal/EntityTagsModal.vue'
+import { useEntityTags } from '~/composables/manage/useEntityTags'
 
 type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
@@ -343,10 +359,39 @@ const savingDelete = computed(() => deletingSaving.value)
 const { page, pageSize, totalItems, totalPages, defaultPageSizes, onPageChange, onPageSizeChange } = useEntityPagination(crud as any)
 
 
-const { onBatchUpdate, onFeedback, onTags } = useManageActions(crud as any, {
+const { onBatchUpdate, onFeedback, onTags: notifyTags } = useManageActions(crud as any, {
   entityLabel: props.label,
   toast,
 })
+
+const {
+  modalOpen: tagsModalOpen,
+  selection: tagsSelection,
+  tagOptions: tagsOptions,
+  saving: tagsSaving,
+  open: openTagsModal,
+  close: closeTagsModal,
+  setSelection: setTagsSelection,
+  confirm: confirmTags,
+} = useEntityTags({
+  entityKey: props.entity,
+  entityLabel: props.label,
+  crud: crud as any,
+  toast,
+})
+
+const tagsModalTitle = computed(() => `${t('common.tags') || 'Tags'} ${props.label}`)
+
+async function onTags(entity: any) {
+  notifyTags?.(entity)
+  await openTagsModal({ entity })
+}
+
+function handleTagsModalOpenChange(value: boolean) {
+  if (!value) {
+    closeTagsModal()
+  }
+}
 
 function onPreview(entity: any) {
   openPreviewFromEntity(entity, t)
@@ -371,9 +416,4 @@ async function onTranslate(entity: any, payload?: { name: string; short_text?: s
     toast?.add?.({ title: t('errors.update_failed') || 'Update failed', description: crud.actionError?.value || crud.listError?.value || '', color: 'error' })
   }
 }
-
-// onDeleteTranslation handled by deletion composable
-
-// Helper: preload english version for hints in modal
-// preloadEnglishItem handled within useEntityModals
 </script>

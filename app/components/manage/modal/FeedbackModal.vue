@@ -101,7 +101,8 @@ const typeOptions = [
   { label: tt('feedback.bug', 'Bug'), value: 'bug' },
   { label: tt('feedback.suggestion', 'Suggestion'), value: 'suggestion' },
   { label: tt('feedback.balance', 'Balance'), value: 'balance' },
-  { label: tt('feedback.translation', 'Translation'), value: 'translation' }
+  { label: tt('feedback.translation', 'Translation'), value: 'translation' },
+  { label: tt('feedback.other', 'Other'), value: 'other' }
 ]
 
 // ------------------------------------------------
