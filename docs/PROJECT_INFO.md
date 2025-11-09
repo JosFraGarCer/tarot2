@@ -36,6 +36,11 @@ Todas las traduccion tendran como minimo estos campos: name, code, short_text, d
 ## Breve explicación del sistema Tarot
 Tarot es un sistema de juego de rol universal diseñado para ser adaptable a múltiples mundos
 
+### ¿Mundos?
+Si, poderemos gestionar nuestro propio set de cartas para añadir mundos de fantasia o ambientaciones. De momento tenemos creado la coleccion World pero world_cards podremos hacer nuestro propio set de cartas.
+EN PROYECTO: Primero hemos de terminar la base de gestion y base de sistema. Proximamente lo añadiremos.
+
+
 ### Los Arcanos y sus Facetas
 
 Los atributos del personaje se organizan en **tres Arcanos**, cada uno conteniendo tres Facetas específicas.
@@ -76,6 +81,8 @@ Distribuye **9 puntos totales** entre los tres Arcanos:
 
 #### Creación de un personaje
 
+EN PROYECTO: Proximamente, primero sentaremos las bases del sistema.
+
 Un personaje se construye a partir de cinco cartas conceptuales que definen completamente su identidad mecánica y narrativa. Cada carta responde a una pregunta fundamental sobre el personaje y otorga beneficios específicos.
 
 **Linaje** responde a la pregunta "QUÉ ERES" y representa la herencia biológica, cultural o artificial del personaje. Esta carta otorga un bonus de +1 a una Faceta específica y una habilidad pasiva que refleja la naturaleza inherente del personaje.
@@ -99,3 +106,17 @@ Despues deberiamos hacer las cartas base y añadir tablas para enlazar con las v
 
 #### Ejemplos de cartas
 El pruebas/cards/worlds tenemos varias universos con diseño preliminares de cartas
+
+### Paginas de la APP
+De momentos tenemos desarrollado /admin, /manage y /deck
+En un futuro se añadira gestion de mundos y personajes, y plantillas para las cartas.
+
+#### Admin
+solo pueden acceder los administradores excepto en feedback que lo hara tambien el staff para resolver feeback como incidencias, etc.
+
+#### Manage
+Gestion para creacion, edicion y traduccion de cartas
+
+#### Deck
+Para la visualizacion de las cartas
+
