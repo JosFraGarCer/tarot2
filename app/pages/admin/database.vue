@@ -12,8 +12,8 @@
           <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold">JSON</h2>
             <div class="flex gap-2">
-              <UButton size="xs" icon="i-heroicons-arrow-up-tray" variant="soft" color="neutral" :label="$t('common.export')" @click="exportJson" />
-              <UButton size="xs" icon="i-heroicons-arrow-down-tray" variant="soft" color="neutral" :label="$t('common.import')" @click="openJsonImport" />
+              <UButton size="xs" icon="i-heroicons-arrow-up-tray" variant="soft" color="neutral" :label="$t('ui.actions.export')" @click="exportJson" />
+              <UButton size="xs" icon="i-heroicons-arrow-down-tray" variant="soft" color="neutral" :label="$t('ui.actions.import')" @click="openJsonImport" />
             </div>
           </div>
         </template>
@@ -25,8 +25,8 @@
           <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold">SQL</h2>
             <div class="flex gap-2">
-              <UButton size="xs" icon="i-heroicons-arrow-up-tray" variant="soft" color="neutral" :label="$t('common.export')" @click="exportSql" />
-              <UButton size="xs" icon="i-heroicons-arrow-down-tray" variant="soft" color="neutral" :label="$t('common.import')" @click="openSqlImport" />
+              <UButton size="xs" icon="i-heroicons-arrow-up-tray" variant="soft" color="neutral" :label="$t('ui.actions.export')" @click="exportSql" />
+              <UButton size="xs" icon="i-heroicons-arrow-down-tray" variant="soft" color="neutral" :label="$t('ui.actions.import')" @click="openSqlImport" />
             </div>
           </div>
         </template>
@@ -37,11 +37,11 @@
     <!-- JSON Import Modal -->
     <ImportJsonModal
       :open="jsonModalOpen"
-      :title="$t('common.import') + ' JSON'"
-      :description="$t('import.descriptionMultiLang')"
-      :confirm-label="$t('import.confirm')"
-      :cancel-label="$t('common.cancel')"
-      :file-label="$t('import.fileLabel')"
+      :title="$t('ui.actions.import') + ' JSON'"
+      :description="$t('importExport.import.instructions.descriptionMultiLang')"
+      :confirm-label="$t('importExport.import.actions.confirm')"
+      :cancel-label="$t('ui.actions.cancel')"
+      :file-label="$t('importExport.import.instructions.fileLabel')"
       :loading="jsonImportLoading"
       :error="jsonImportError"
       @update:open="(v) => (jsonModalOpen = v)"
@@ -61,8 +61,8 @@
       </template>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton color="neutral" variant="soft" :label="$t('common.cancel')" @click="closeSqlImport" />
-          <UButton color="primary" :label="$t('import.confirm')" :loading="sqlImportLoading" @click="handleSqlImport" />
+          <UButton color="neutral" variant="soft" :label="$t('ui.actions.cancel')" @click="closeSqlImport" />
+          <UButton color="primary" :label="$t('importExport.import.actions.confirm')" :loading="sqlImportLoading" @click="handleSqlImport" />
         </div>
       </template>
     </UModal>
@@ -96,9 +96,9 @@ const exportJson = async () => {
     a.click()
     a.remove()
     URL.revokeObjectURL(url)
-    toast.add({ title: t('common.export'), color: 'success' })
+    toast.add({ title: t('ui.actions.export'), color: 'success' })
   } catch (error: any) {
-    toast.add({ title: t('messages.error'), description: error?.data?.message || error?.message, color: 'error' })
+    toast.add({ title: t('ui.notifications.error'), description: error?.data?.message || error?.message, color: 'error' })
   }
 }
 
@@ -111,14 +111,14 @@ const handleJsonImport = async (file: File) => {
     try {
       payload = JSON.parse(text)
     } catch {
-      jsonImportError.value = t('import.parseError')
+      jsonImportError.value = t('importExport.import.errors.parseError')
       return
     }
     await $fetch('/api/database/import.json', { method: 'POST', body: payload })
-    toast.add({ title: t('common.import'), color: 'success' })
+    toast.add({ title: t('ui.actions.import'), color: 'success' })
     jsonModalOpen.value = false
   } catch (error: any) {
-    jsonImportError.value = error?.data?.message || error?.message || t('messages.error')
+    jsonImportError.value = error?.data?.message || error?.message || t('ui.notifications.error')
   } finally {
     jsonImportLoading.value = false
   }
@@ -145,9 +145,9 @@ const exportSql = async () => {
     a.click()
     a.remove()
     URL.revokeObjectURL(url)
-    toast.add({ title: t('common.export'), color: 'success' })
+    toast.add({ title: t('ui.actions.export'), color: 'success' })
   } catch (error: any) {
-    toast.add({ title: t('messages.error'), description: error?.data?.message || error?.message, color: 'error' })
+    toast.add({ title: t('ui.notifications.error'), description: error?.data?.message || error?.message, color: 'error' })
   }
 }
 
@@ -159,10 +159,10 @@ const handleSqlImport = async () => {
     sqlImportLoading.value = true
     const text = await file.text()
     await $fetch('/api/database/import.sql', { method: 'POST', body: text, headers: { 'Content-Type': 'text/plain' } })
-    toast.add({ title: t('common.import'), color: 'success' })
+    toast.add({ title: t('ui.actions.import'), color: 'success' })
     closeSqlImport()
   } catch (error: any) {
-    sqlImportError.value = error?.data?.message || error?.message || t('messages.error')
+    sqlImportError.value = error?.data?.message || error?.message || t('ui.notifications.error')
   } finally {
     sqlImportLoading.value = false
   }

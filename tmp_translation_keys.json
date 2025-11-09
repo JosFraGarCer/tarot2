@@ -1,0 +1,2163 @@
+{
+  "active": [
+    [
+      "components/manage/view/EntityTable.vue",
+      64,
+      ":label=\"row.original.is_active ? $t('active') : $t('inactive')\""
+    ]
+  ],
+  "admin.entityHistory.back": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      6,
+      "<UButton icon=\"i-heroicons-arrow-left\" variant=\"soft\" @click=\"goBack\">{{ $t('admin.entityHistory.back','Back to versions') }}</UButton>"
+    ]
+  ],
+  "admin.entityHistory.noDiff": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      76,
+      "<div v-if=\"!highlightOps.length\" class=\"mt-2 text-sm text-gray-500\">{{ $t('admin.entityHistory.noDiff','No differences') }}</div>"
+    ]
+  ],
+  "admin.entityHistory.selectRevision": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      30,
+      "<div v-if=\"revisions.length === 0\" class=\"text-sm text-gray-400\">{{ $t('admin.entityHistory.selectRevision','Select a revision to view changes') }}</div>"
+    ]
+  ],
+  "admin.entityHistory.title": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      5,
+      "<h1 class=\"text-xl font-semibold\">{{ $t('admin.entityHistory.title','Entity revision history') }} \u2013 {{ entity }} #{{ id }}</h1>"
+    ]
+  ],
+  "admin.feedback.actions.openEntity": [
+    [
+      "components/admin/FeedbackList.vue",
+      80,
+      ":title=\"$t('admin.feedback.actions.openEntity','Open related entity')\""
+    ]
+  ],
+  "admin.feedback.actions.reopen": [
+    [
+      "components/admin/FeedbackList.vue",
+      88,
+      ":title=\"$t('admin.feedback.actions.reopen','Reopen')\""
+    ]
+  ],
+  "admin.feedback.actions.viewNotes": [
+    [
+      "components/admin/FeedbackList.vue",
+      72,
+      ":title=\"!isEditor ? $t('common.noPermission','No permission') : $t('admin.feedback.actions.viewNotes','View notes')\""
+    ]
+  ],
+  "admin.feedback.card": [
+    [
+      "components/admin/FeedbackList.vue",
+      9,
+      "<th class=\"py-2 pr-4\">{{ $t('admin.feedback.card', 'Card') }}</th>"
+    ]
+  ],
+  "admin.feedback.category": [
+    [
+      "components/admin/FeedbackList.vue",
+      11,
+      "<th class=\"py-2 pr-4\">{{ $t('admin.feedback.category', 'Category') }}</th>"
+    ]
+  ],
+  "admin.feedback.createdBy": [
+    [
+      "components/admin/FeedbackList.vue",
+      32,
+      "<UTooltip :text=\"$t('admin.feedback.createdBy','Created by') + ': ' + (f.created_by_name || 'Unknown')\">"
+    ]
+  ],
+  "admin.feedback.new": [
+    [
+      "components/admin/FeedbackList.vue",
+      42,
+      ":title=\"$t('admin.feedback.new','New feedback')\""
+    ]
+  ],
+  "admin.feedback.notes.addNote": [
+    [
+      "components/admin/FeedbackNotesModal.vue",
+      13,
+      "<UTextarea v-model=\"newNote\" :rows=\"5\" :placeholder=\"$t('admin.feedback.notes.addNote','Add note')\" />"
+    ]
+  ],
+  "admin.feedback.notes.empty": [
+    [
+      "components/admin/FeedbackNotesModal.vue",
+      6,
+      "<div v-if=\"notesList.length === 0\" class=\"text-sm text-gray-500\">{{ $t('admin.feedback.notes.empty','No internal notes yet') }}</div>"
+    ]
+  ],
+  "admin.feedback.notes.hasNotes": [
+    [
+      "components/admin/FeedbackList.vue",
+      48,
+      ":title=\"$t('admin.feedback.notes.hasNotes','Has internal notes')\""
+    ]
+  ],
+  "admin.feedback.notes.save": [
+    [
+      "components/admin/FeedbackNotesModal.vue",
+      20,
+      "<UButton v-if=\"isEditor\" color=\"primary\" :disabled=\"saving || newNote.trim().length===0\" @click=\"onSave\">{{ $t('admin.feedback.notes.save','Save note') }}</UButton>"
+    ]
+  ],
+  "admin.feedback.notes.title": [
+    [
+      "components/admin/FeedbackNotesModal.vue",
+      3,
+      "<UModal :open=\"open\" :title=\"$t('admin.feedback.notes.title','Internal notes')\" @update:open=\"v => emit('update:open', v)\">"
+    ]
+  ],
+  "admin.feedback.status": [
+    [
+      "components/admin/FeedbackList.vue",
+      12,
+      "<th class=\"py-2 pr-4\">{{ $t('admin.feedback.status', 'Status') }}</th>"
+    ]
+  ],
+  "admin.feedback.title": [
+    [
+      "components/admin/FeedbackList.vue",
+      10,
+      "<th class=\"py-2 pr-4\">{{ $t('admin.feedback.title', 'Title') }}</th>"
+    ]
+  ],
+  "admin.feedback.viewJson": [
+    [
+      "components/admin/FeedbackList.vue",
+      65,
+      "<UButton size=\"xs\" icon=\"i-heroicons-code-bracket-square\" variant=\"soft\" :title=\"$t('admin.feedback.viewJson','View JSON')\" @click=\"$emit('view-json', f)\" />"
+    ]
+  ],
+  "admin.feedbackDashboard.byType": [
+    [
+      "components/admin/FeedbackDashboard.vue",
+      18,
+      "<template #header>{{ $t('admin.feedbackDashboard.byType','By type') }}</template>"
+    ]
+  ],
+  "admin.feedbackDashboard.open": [
+    [
+      "components/admin/FeedbackDashboard.vue",
+      10,
+      "<template #header>{{ $t('admin.feedbackDashboard.open','Open') }}</template>"
+    ]
+  ],
+  "admin.feedbackDashboard.resolved": [
+    [
+      "components/admin/FeedbackDashboard.vue",
+      14,
+      "<template #header>{{ $t('admin.feedbackDashboard.resolved','Resolved') }}</template>"
+    ]
+  ],
+  "admin.feedbackDashboard.total": [
+    [
+      "components/admin/FeedbackDashboard.vue",
+      6,
+      "<template #header>{{ $t('admin.feedbackDashboard.total','Total feedbacks') }}</template>"
+    ]
+  ],
+  "admin.feedbackDashboard.weekly": [
+    [
+      "components/admin/FeedbackDashboard.vue",
+      28,
+      "<template #header>{{ $t('admin.feedbackDashboard.weekly','Weekly activity (last 30 days)') }}</template>"
+    ]
+  ],
+  "admin.feedbackDeleteDescription": [
+    [
+      "pages/admin/feedback/[id].vue",
+      67,
+      ":description=\"t('admin.feedbackDeleteDescription') || 'This will permanently delete this feedback entry. This action cannot be undone.'\""
+    ]
+  ],
+  "admin.feedbackDeleteTitle": [
+    [
+      "pages/admin/feedback/[id].vue",
+      66,
+      ":title=\"t('admin.feedbackDeleteTitle') || 'Delete feedback'\""
+    ]
+  ],
+  "admin.feedbackTitle": [
+    [
+      "pages/admin/feedback/[id].vue",
+      9,
+      "{{ t('admin.feedbackTitle') || 'Feedback' }} #{{ feedback?.id ?? route.params.id }}"
+    ],
+    [
+      "pages/admin/feedback/[id].vue",
+      90,
+      "useSeoMeta({ title: `${t('nav.admin') || 'Admin'} \u00b7 ${t('admin.feedbackTitle') || 'Feedback'} \u00b7 #${route.params.id}` })"
+    ]
+  ],
+  "admin.revisions.approveSelected": [
+    [
+      "components/admin/RevisionsTable.vue",
+      13,
+      "<UButton size=\"xs\" color=\"primary\" :disabled=\"!isEditor || selectedIds.length===0\" :title=\"!isEditor ? $t('common.noPermission') : ''\" @click=\"bulkApprove\">{{ $t('admin.revisions.approveSelected','Approve selected') }}</UButton>"
+    ]
+  ],
+  "admin.revisions.diffTitle": [
+    [
+      "components/admin/RevisionsTable.vue",
+      64,
+      "<JsonModal v-model=\"diffOpen\" :value=\"currentDiff\" :title=\"$t('admin.revisions.diffTitle','Revision diff')\" />"
+    ]
+  ],
+  "admin.revisions.rejectSelected": [
+    [
+      "components/admin/RevisionsTable.vue",
+      14,
+      "<UButton size=\"xs\" color=\"error\" variant=\"soft\" :disabled=\"!isEditor || selectedIds.length===0\" :title=\"!isEditor ? $t('common.noPermission') : ''\" @click=\"bulkReject\">{{ $t('admin.revisions.rejectSelected','Reject selected') }}</UButton>"
+    ]
+  ],
+  "admin.revisions.viewDiff": [
+    [
+      "components/admin/RevisionsTable.vue",
+      39,
+      "<UButton size=\"xs\" icon=\"i-heroicons-document-magnifying-glass\" variant=\"soft\" :title=\"$t('admin.revisions.viewDiff','View diff')\" @click=\"onViewDiff(r)\" />"
+    ]
+  ],
+  "admin.revisionsHistory.author": [
+    [
+      "components/admin/RevisionHistory.vue",
+      20,
+      "<th class=\"py-2 pr-4\">{{ $t('admin.revisionsHistory.author','Author') }}</th>"
+    ]
+  ],
+  "admin.revisionsHistory.baseEntity": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      41,
+      "{{ r.language_code ? $t('admin.revisionsHistory.translation','Translation ({lang})').replace('{lang}', String(r.language_code)) : $t('admin.revisionsHistory.baseEntity','Base entity') }}"
+    ],
+    [
+      "components/admin/RevisionHistory.vue",
+      31,
+      "{{ r.language_code ? $t('admin.revisionsHistory.translation','Translation ({lang})').replace('{lang}', String(r.language_code)) : $t('admin.revisionsHistory.baseEntity','Base entity') }}"
+    ]
+  ],
+  "admin.revisionsHistory.changesSummary": [
+    [
+      "components/admin/RevisionCompareModal.vue",
+      7,
+      "<span v-if=\"summary.total>0\">{{ $t('admin.revisionsHistory.changesSummary','{n} fields changed').replace('{n}', String(summary.total)) }}</span>"
+    ]
+  ],
+  "admin.revisionsHistory.compareSelected": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      20,
+      ":label=\"$t('admin.revisionsHistory.compareSelected','Compare selected')\""
+    ]
+  ],
+  "admin.revisionsHistory.comparisonTitle": [
+    [
+      "components/admin/RevisionCompareModal.vue",
+      3,
+      "<UModal v-model:open=\"open\" :title=\"$t('admin.revisionsHistory.comparisonTitle','Revision comparison')\">"
+    ]
+  ],
+  "admin.revisionsHistory.feedbackTab": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      57,
+      "<div class=\"mb-1 text-xs text-gray-500\">{{ feedbackMeta.totalItems || 0 }} {{ $t('admin.revisionsHistory.feedbackTab','Feedback') }}</div>"
+    ],
+    [
+      "pages/admin/versions/entity/[id].vue",
+      142,
+      "{ label: `${t('admin.revisionsHistory.feedbackTab','Feedback')} (${feedbackMeta.value?.totalItems || 0})`, value: 'feedback' }"
+    ]
+  ],
+  "admin.revisionsHistory.language": [
+    [
+      "components/admin/RevisionHistory.vue",
+      19,
+      "<th class=\"py-2 pr-4\">{{ $t('admin.revisionsHistory.language','Language') }}</th>"
+    ]
+  ],
+  "admin.revisionsHistory.left": [
+    [
+      "components/admin/RevisionCompareModal.vue",
+      15,
+      "<template #header>{{ $t('admin.revisionsHistory.left','Revision A') }} (#{{ revA?.id }})</template>"
+    ]
+  ],
+  "admin.revisionsHistory.noDiff": [
+    [
+      "components/admin/RevisionCompareModal.vue",
+      8,
+      "<span v-else>{{ $t('admin.revisionsHistory.noDiff','No differences found') }}</span>"
+    ]
+  ],
+  "admin.revisionsHistory.revert": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      49,
+      "<UButton size=\"xs\" icon=\"i-heroicons-arrow-path\" color=\"primary\" variant=\"soft\" @click.stop=\"revertRevision(r.id)\">{{ $t('admin.revisionsHistory.revert','Revert to this revision') }}</UButton>"
+    ]
+  ],
+  "admin.revisionsHistory.revertConfirm": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      237,
+      "const ok = window.confirm(String(t('admin.revisionsHistory.revertConfirm', 'Are you sure you want to restore this revision?')))"
+    ]
+  ],
+  "admin.revisionsHistory.revertError": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      245,
+      "useToast().add({ title: t('admin.revisionsHistory.revertError','Error reverting revision'), description: e?.data?.message || e?.message, color: 'error' })"
+    ]
+  ],
+  "admin.revisionsHistory.revertSuccess": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      241,
+      "useToast().add({ title: t('admin.revisionsHistory.revertSuccess','Revision reverted successfully'), color: 'success' })"
+    ]
+  ],
+  "admin.revisionsHistory.right": [
+    [
+      "components/admin/RevisionCompareModal.vue",
+      19,
+      "<template #header>{{ $t('admin.revisionsHistory.right','Revision B') }} (#{{ revB?.id }})</template>"
+    ]
+  ],
+  "admin.revisionsHistory.source": [
+    [
+      "components/admin/RevisionHistory.vue",
+      18,
+      "<th class=\"py-2 pr-4\">{{ $t('admin.revisionsHistory.source','Source') }}</th>"
+    ]
+  ],
+  "admin.revisionsHistory.status": [
+    [
+      "components/admin/RevisionHistory.vue",
+      17,
+      "<th class=\"py-2 pr-4\">{{ $t('admin.revisionsHistory.status','Status') }}</th>"
+    ]
+  ],
+  "admin.revisionsHistory.title": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      14,
+      "<div>{{ $t('admin.revisionsHistory.title','Revision history') }}</div>"
+    ],
+    [
+      "pages/admin/versions/entity/[id].vue",
+      141,
+      "{ label: t('admin.revisionsHistory.title', 'Revisions'), value: 'revisions' },"
+    ],
+    [
+      "components/admin/RevisionHistory.vue",
+      83,
+      "const title = computed(() => `${useI18n().t('admin.revisionsHistory.title','Revision history')} \u00b7 ${props.entityType} #${props.entityId}`)"
+    ]
+  ],
+  "admin.revisionsHistory.translation": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      41,
+      "{{ r.language_code ? $t('admin.revisionsHistory.translation','Translation ({lang})').replace('{lang}', String(r.language_code)) : $t('admin.revisionsHistory.baseEntity','Base entity') }}"
+    ],
+    [
+      "components/admin/RevisionHistory.vue",
+      31,
+      "{{ r.language_code ? $t('admin.revisionsHistory.translation','Translation ({lang})').replace('{lang}', String(r.language_code)) : $t('admin.revisionsHistory.baseEntity','Base entity') }}"
+    ]
+  ],
+  "admin.revisionsHistory.version": [
+    [
+      "components/admin/RevisionHistory.vue",
+      21,
+      "<th class=\"py-2 pr-4\">{{ $t('admin.revisionsHistory.version','Version') }}</th>"
+    ]
+  ],
+  "admin.revisionsHistory.viewDiff": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      48,
+      "<UButton size=\"xs\" icon=\"i-heroicons-document-magnifying-glass\" variant=\"soft\" @click.stop=\"viewDiff(r)\">{{ $t('admin.revisionsHistory.viewDiff','View diff') }}</UButton>"
+    ],
+    [
+      "pages/admin/versions/entity/[id].vue",
+      80,
+      "<JsonModal v-model=\"diffOpen\" :value=\"currentDiff\" :title=\"$t('admin.revisionsHistory.viewDiff','View diff')\" />"
+    ],
+    [
+      "components/admin/RevisionHistory.vue",
+      40,
+      "<UButton size=\"xs\" icon=\"i-heroicons-document-magnifying-glass\" variant=\"soft\" :title=\"$t('admin.revisionsHistory.viewDiff','View diff')\" @click=\"onViewDiff(r)\" />"
+    ],
+    [
+      "components/admin/RevisionHistory.vue",
+      52,
+      "<JsonModal v-model=\"diffOpen\" :value=\"currentDiff\" :title=\"$t('admin.revisionsHistory.viewDiff','View diff')\" />"
+    ]
+  ],
+  "admin.revisionsHistory.viewSnapshots": [
+    [
+      "components/admin/RevisionHistory.vue",
+      41,
+      "<UButton size=\"xs\" icon=\"i-heroicons-rectangle-stack\" variant=\"soft\" :title=\"$t('admin.revisionsHistory.viewSnapshots','View snapshots')\" @click=\"onViewSnapshots(r)\" />"
+    ],
+    [
+      "components/admin/RevisionHistory.vue",
+      54,
+      "<UModal v-model:open=\"snapshotsOpen\" :title=\"$t('admin.revisionsHistory.viewSnapshots','View snapshots')\">"
+    ]
+  ],
+  "app.title": [
+    [
+      "layouts/default.vue",
+      20,
+      "<p>{{ $t('app.title') }} &copy; {{ currentYear }}</p>"
+    ],
+    [
+      "components/AppHeader/AppHeaderDesktop.vue",
+      45,
+      "{{ $t('app.title') }}"
+    ],
+    [
+      "components/AppHeader/AppHeaderMobile.vue",
+      30,
+      "{{ $t('app.title') }}"
+    ]
+  ],
+  "auth.identifierLabel": [
+    [
+      "pages/login.vue",
+      18,
+      "<UFormField :label=\"$t('auth.identifierLabel')\" required>"
+    ]
+  ],
+  "auth.identifierPlaceholder": [
+    [
+      "pages/login.vue",
+      21,
+      ":placeholder=\"$t('auth.identifierPlaceholder')\""
+    ]
+  ],
+  "auth.loginButton": [
+    [
+      "pages/login.vue",
+      48,
+      "{{ $t('auth.loginButton') }}"
+    ]
+  ],
+  "auth.loginDescription": [
+    [
+      "pages/login.vue",
+      11,
+      "{{ $t('auth.loginDescription') }}"
+    ]
+  ],
+  "auth.loginTitle": [
+    [
+      "pages/login.vue",
+      8,
+      "{{ $t('auth.loginTitle') }}"
+    ]
+  ],
+  "auth.logoutError": [
+    [
+      "pages/user.vue",
+      538,
+      "title: t('auth.logoutError'),"
+    ]
+  ],
+  "auth.passwordLabel": [
+    [
+      "pages/login.vue",
+      27,
+      "<UFormField :label=\"$t('auth.passwordLabel')\" required>"
+    ]
+  ],
+  "auth.passwordPlaceholder": [
+    [
+      "pages/login.vue",
+      31,
+      ":placeholder=\"$t('auth.passwordPlaceholder')\""
+    ]
+  ],
+  "common.actions": [
+    [
+      "components/manage/view/EntityTable.vue",
+      170,
+      "{ id: 'actions', header: t('common.actions') }"
+    ],
+    [
+      "components/admin/RevisionHistory.vue",
+      23,
+      "<th class=\"py-2 pr-4 text-right\">{{ $t('common.actions','Actions') }}</th>"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      27,
+      "<th class=\"py-2 pr-4 text-right\">{{ $t('common.actions','Actions') }}</th>"
+    ],
+    [
+      "components/admin/FeedbackList.vue",
+      14,
+      "<th class=\"py-2 pr-4 text-right\">{{ $t('common.actions', 'Actions') }}</th>"
+    ]
+  ],
+  "common.active": [
+    [
+      "components/manage/EntityFilters.vue",
+      267,
+      "{ label: t('common.active'), value: 'true' },"
+    ],
+    [
+      "components/manage/EntityFilters.vue",
+      449,
+      "const activePlaceholder = computed(() => t('common.active'))"
+    ],
+    [
+      "components/manage/view/EntityTable.vue",
+      169,
+      "{ accessorKey: 'is_active', header: t('common.active') },"
+    ],
+    [
+      "components/manage/view/EntityCarta.vue",
+      50,
+      ":label=\"(item.is_active ? t('common.active') : t('common.inactive')) || '-'\""
+    ],
+    [
+      "components/manage/view/EntityCardsClassic.vue",
+      94,
+      ":label=\"(item.is_active ? t('common.active') : t('common.inactive')) || '-'\""
+    ],
+    [
+      "components/manage/view/EntityCards.vue",
+      113,
+      "{{ isActive(item) ? t('common.active') : t('common.inactive') }}"
+    ]
+  ],
+  "common.back": [
+    [
+      "pages/admin/feedback/[id].vue",
+      27,
+      "<UButton icon=\"i-heroicons-arrow-left\" variant=\"soft\" :label=\"t('common.back') || 'Back'\" @click=\"router.replace(localePath('/admin/feedback'))\" />"
+    ]
+  ],
+  "common.cancel": [
+    [
+      "pages/admin/database.vue",
+      43,
+      ":cancel-label=\"$t('common.cancel')\""
+    ],
+    [
+      "pages/admin/database.vue",
+      64,
+      "<UButton color=\"neutral\" variant=\"soft\" :label=\"$t('common.cancel')\" @click=\"closeSqlImport\" />"
+    ],
+    [
+      "pages/admin/feedback/[id].vue",
+      69,
+      ":cancel-label=\"t('common.cancel') || 'Cancel'\""
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      138,
+      ":cancel-label=\"$t('common.cancel')\""
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      175,
+      ":cancel-label=\"$t('common.cancel') || 'Cancel'\""
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      189,
+      ":cancel-label=\"$t('common.cancel') || 'Cancel'\""
+    ],
+    [
+      "components/manage/common/DeleteDialogs.vue",
+      24,
+      ":cancel-label=\"$t('common.cancel')\""
+    ],
+    [
+      "components/manage/common/DeleteDialogs.vue",
+      35,
+      ":cancel-label=\"$t('common.cancel')\""
+    ],
+    [
+      "components/manage/modal/EntityTagsModal.vue",
+      51,
+      "<UButton color=\"neutral\" variant=\"soft\" :label=\"cancelLabel || $t('common.cancel')\" @click=\"$emit('update:open', false)\" />"
+    ],
+    [
+      "components/admin/RoleForm.vue",
+      78,
+      "<UButton variant=\"ghost\" color=\"neutral\" @click=\"close\">{{ $t('common.cancel') }}</UButton>"
+    ],
+    [
+      "components/admin/FeedbackNotesModal.vue",
+      19,
+      "<UButton variant=\"soft\" @click=\"emit('update:open', false)\">{{ $t('common.cancel','Cancel') }}</UButton>"
+    ]
+  ],
+  "common.card": [
+    [
+      "pages/admin/feedback/[id].vue",
+      29,
+      "<h3 class=\"font-semibold mb-2 text-gray-800 dark:text-gray-100\">{{ t('common.card') || 'Card' }}</h3>"
+    ]
+  ],
+  "common.category": [
+    [
+      "pages/admin/feedback/[id].vue",
+      48,
+      "<div class=\"text-xs text-gray-500\">{{ t('common.category') || 'Category' }}</div>"
+    ],
+    [
+      "composables/manage/useManageColumns.ts",
+      38,
+      "add({ accessorKey: 'category', header: t('common.category') })"
+    ],
+    [
+      "composables/manage/useManageColumns.ts",
+      54,
+      "add({ accessorKey: 'category', header: t('common.category') })"
+    ]
+  ],
+  "common.clear": [
+    [
+      "components/manage/modal/EntityTagsModal.vue",
+      17,
+      "<UButton size=\"xs\" color=\"neutral\" variant=\"soft\" :label=\"$t('common.clear')\" @click=\"clearAll\" />"
+    ]
+  ],
+  "common.close": [
+    [
+      "components/admin/RevisionCompareModal.vue",
+      27,
+      "<UButton variant=\"soft\" @click=\"open=false\">{{ $t('common.close','Close') }}</UButton>"
+    ]
+  ],
+  "common.code": [
+    [
+      "composables/manage/useManageColumns.ts",
+      29,
+      "add({ accessorKey: 'code', header: t('common.code') })"
+    ]
+  ],
+  "common.comment": [
+    [
+      "pages/admin/feedback/[id].vue",
+      52,
+      "<div class=\"text-xs text-gray-500\">{{ t('common.comment') || 'Comment' }}</div>"
+    ]
+  ],
+  "common.create": [
+    [
+      "components/manage/EntityTableWrapper.vue",
+      197,
+      "const emptyCreateLabel = computed(() => `${t('common.create')} ${props.label}`)"
+    ],
+    [
+      "components/manage/EntityFilters.vue",
+      78,
+      ":label=\"`${t('common.create')} ${label}`\""
+    ],
+    [
+      "components/manage/view/EntityCardsClassic.vue",
+      27,
+      "{{ t('common.create') }} {{ label }}"
+    ],
+    [
+      "components/manage/view/EntityCards.vue",
+      24,
+      "{{ t('common.create') }} {{ label }}"
+    ]
+  ],
+  "common.createdAt": [
+    [
+      "pages/admin/users.vue",
+      76,
+      "header: t('common.createdAt'),"
+    ],
+    [
+      "components/manage/view/EntityCards.vue",
+      123,
+      "{{ t('common.createdAt') }}: {{ formatDate(item.created_at) }}"
+    ],
+    [
+      "components/admin/RevisionHistory.vue",
+      22,
+      "<th class=\"py-2 pr-4\">{{ $t('common.createdAt','Created') }}</th>"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      26,
+      "<th class=\"py-2 pr-4\">{{ $t('common.createdAt','Created') }}</th>"
+    ],
+    [
+      "components/admin/FeedbackList.vue",
+      13,
+      "<th class=\"py-2 pr-4\">{{ $t('common.createdAt', 'Created') }}</th>"
+    ]
+  ],
+  "common.delete": [
+    [
+      "pages/admin/feedback/[id].vue",
+      20,
+      "<UButton icon=\"i-heroicons-trash\" color=\"error\" variant=\"soft\" :label=\"t('common.delete') || 'Delete'\" @click=\"deleteOpen=true\" />"
+    ],
+    [
+      "components/admin/FeedbackList.vue",
+      92,
+      "<UButton size=\"xs\" icon=\"i-heroicons-trash\" color=\"error\" variant=\"soft\" :title=\"$t('common.delete','Delete')\" @click=\"$emit('delete', f)\" />"
+    ]
+  ],
+  "common.details": [
+    [
+      "pages/admin/feedback/[id].vue",
+      45,
+      "<h3 class=\"font-semibold mb-2 text-gray-800 dark:text-gray-100\">{{ t('common.details') || 'Details' }}</h3>"
+    ]
+  ],
+  "common.email": [
+    [
+      "pages/admin/users.vue",
+      64,
+      "header: t('common.email'),"
+    ]
+  ],
+  "common.entity": [
+    [
+      "components/admin/RevisionsTable.vue",
+      23,
+      "<th class=\"py-2 pr-4\">{{ $t('common.entity','Entity') }}</th>"
+    ]
+  ],
+  "common.error": [
+    [
+      "components/admin/RevisionHistory.vue",
+      7,
+      "<UAlert color=\"error\" :title=\"$t('common.error','Error')\" :description=\"String(error)\" />"
+    ]
+  ],
+  "common.export": [
+    [
+      "pages/admin/database.vue",
+      15,
+      "<UButton size=\"xs\" icon=\"i-heroicons-arrow-up-tray\" variant=\"soft\" color=\"neutral\" :label=\"$t('common.export')\" @click=\"exportJson\" />"
+    ],
+    [
+      "pages/admin/database.vue",
+      28,
+      "<UButton size=\"xs\" icon=\"i-heroicons-arrow-up-tray\" variant=\"soft\" color=\"neutral\" :label=\"$t('common.export')\" @click=\"exportSql\" />"
+    ],
+    [
+      "pages/admin/database.vue",
+      99,
+      "toast.add({ title: t('common.export'), color: 'success' })"
+    ],
+    [
+      "pages/admin/database.vue",
+      148,
+      "toast.add({ title: t('common.export'), color: 'success' })"
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      37,
+      ":label=\"$t('common.export') || 'Export'\""
+    ],
+    [
+      "components/manage/view/EntityTable.vue",
+      7,
+      "<UButton icon=\"i-heroicons-arrow-up-tray\" color=\"primary\" variant=\"soft\" :label=\"$t('common.export') || 'Export'\" @click=\"onExportSelected\" />"
+    ]
+  ],
+  "common.exportSuccess": [
+    [
+      "composables/manage/useEntityTransfer.ts",
+      67,
+      "description: t('common.exportSuccess') || 'Export completed',"
+    ],
+    [
+      "composables/admin/useDatabaseManager.ts",
+      45,
+      "toast.add({ title: t('common.exportSuccess'), color: 'success' })"
+    ],
+    [
+      "composables/admin/useDatabaseManager.ts",
+      81,
+      "toast.add({ title: t('common.exportSuccess'), color: 'success' })"
+    ]
+  ],
+  "common.import": [
+    [
+      "pages/admin/database.vue",
+      16,
+      "<UButton size=\"xs\" icon=\"i-heroicons-arrow-down-tray\" variant=\"soft\" color=\"neutral\" :label=\"$t('common.import')\" @click=\"openJsonImport\" />"
+    ],
+    [
+      "pages/admin/database.vue",
+      29,
+      "<UButton size=\"xs\" icon=\"i-heroicons-arrow-down-tray\" variant=\"soft\" color=\"neutral\" :label=\"$t('common.import')\" @click=\"openSqlImport\" />"
+    ],
+    [
+      "pages/admin/database.vue",
+      40,
+      ":title=\"$t('common.import') + ' JSON'\""
+    ],
+    [
+      "pages/admin/database.vue",
+      118,
+      "toast.add({ title: t('common.import'), color: 'success' })"
+    ],
+    [
+      "pages/admin/database.vue",
+      162,
+      "toast.add({ title: t('common.import'), color: 'success' })"
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      174,
+      ":confirm-label=\"$t('common.import') || 'Import'\""
+    ]
+  ],
+  "common.importSuccess": [
+    [
+      "composables/manage/useEntityTransfer.ts",
+      104,
+      "description: t('common.importSuccess') || 'Import completed',"
+    ],
+    [
+      "composables/admin/useDatabaseManager.ts",
+      63,
+      "toast.add({ title: t('common.importSuccess'), color: 'success' })"
+    ],
+    [
+      "composables/admin/useDatabaseManager.ts",
+      102,
+      "toast.add({ title: t('common.importSuccess'), color: 'success' })"
+    ]
+  ],
+  "common.inactive": [
+    [
+      "components/manage/EntityFilters.vue",
+      268,
+      "{ label: t('common.inactive'), value: 'false' }"
+    ],
+    [
+      "components/manage/view/EntityCarta.vue",
+      50,
+      ":label=\"(item.is_active ? t('common.active') : t('common.inactive')) || '-'\""
+    ],
+    [
+      "components/manage/view/EntityCardsClassic.vue",
+      94,
+      ":label=\"(item.is_active ? t('common.active') : t('common.inactive')) || '-'\""
+    ],
+    [
+      "components/manage/view/EntityCards.vue",
+      113,
+      "{{ isActive(item) ? t('common.active') : t('common.inactive') }}"
+    ]
+  ],
+  "common.language": [
+    [
+      "composables/manage/useManageColumns.ts",
+      30,
+      "add({ accessorKey: 'lang', header: t('common.language') })"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      24,
+      "<th class=\"py-2 pr-4\">{{ $t('common.language','Language') }}</th>"
+    ]
+  ],
+  "common.loading": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      28,
+      "<div v-if=\"pending\" class=\"py-2 text-sm text-gray-500\">{{ $t('common.loading','Loading...') }}</div>"
+    ]
+  ],
+  "common.name": [
+    [
+      "components/manage/view/EntityTable.vue",
+      166,
+      "{ accessorKey: 'name', header: t('common.name') },"
+    ]
+  ],
+  "common.noData": [
+    [
+      "components/admin/RevisionHistory.vue",
+      46,
+      "<td colspan=\"7\" class=\"py-6 text-center text-gray-400\">{{ $t('common.noData','No data') }}</td>"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      46,
+      "<td colspan=\"6\" class=\"py-6 text-center text-gray-400\">{{ $t('common.noData','No data') }}</td>"
+    ],
+    [
+      "components/admin/FeedbackList.vue",
+      97,
+      "<td colspan=\"7\" class=\"py-6 text-center text-gray-400\">{{ $t('common.noData','No data') }}</td>"
+    ]
+  ],
+  "common.noPermission": [
+    [
+      "components/admin/RevisionsTable.vue",
+      13,
+      "<UButton size=\"xs\" color=\"primary\" :disabled=\"!isEditor || selectedIds.length===0\" :title=\"!isEditor ? $t('common.noPermission') : ''\" @click=\"bulkApprove\">{{ $t('admin.revisions.approveSelected','Approve selected') }}</UButton>"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      14,
+      "<UButton size=\"xs\" color=\"error\" variant=\"soft\" :disabled=\"!isEditor || selectedIds.length===0\" :title=\"!isEditor ? $t('common.noPermission') : ''\" @click=\"bulkReject\">{{ $t('admin.revisions.rejectSelected','Reject selected') }}</UButton>"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      40,
+      "<UButton size=\"xs\" icon=\"i-heroicons-check-circle\" color=\"primary\" variant=\"soft\" :disabled=\"!isEditor\" :title=\"!isEditor ? $t('common.noPermission') : $t('status.approved','Approve')\" @click=\"setOne(r.id, 'approved')\" />"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      41,
+      "<UButton size=\"xs\" icon=\"i-heroicons-x-circle\" color=\"error\" variant=\"soft\" :disabled=\"!isEditor\" :title=\"!isEditor ? $t('common.noPermission') : $t('status.draft','Reject')\" @click=\"setOne(r.id, 'rejected')\" />"
+    ],
+    [
+      "components/admin/FeedbackList.vue",
+      72,
+      ":title=\"!isEditor ? $t('common.noPermission','No permission') : $t('admin.feedback.actions.viewNotes','View notes')\""
+    ],
+    [
+      "components/admin/FeedbackList.vue",
+      91,
+      "<UButton size=\"xs\" icon=\"i-heroicons-check-circle\" color=\"primary\" variant=\"soft\" :disabled=\"!isEditor || f.status==='resolved'\" :title=\"!isEditor ? $t('common.noPermission','No permission') : $t('common.resolve','Resolve')\" @click=\"$emit('resolve', f)\" />"
+    ]
+  ],
+  "common.noResults": [
+    [
+      "components/manage/EntityTableWrapper.vue",
+      195,
+      "const emptyTitle = computed(() => t('common.noResults'))"
+    ],
+    [
+      "components/manage/view/EntityCardsClassic.vue",
+      22,
+      "<p class=\"text-lg font-semibold text-neutral-700 dark:text-neutral-200\">{{ t('common.noResults') }}</p>"
+    ],
+    [
+      "components/manage/view/EntityCards.vue",
+      19,
+      "<p class=\"text-lg font-semibold text-neutral-700 dark:text-neutral-200\">{{ t('common.noResults') }}</p>"
+    ]
+  ],
+  "common.pageSize": [
+    [
+      "components/common/PaginationControls.vue",
+      10,
+      "<span>{{ t('common.pageSize') }}</span>"
+    ]
+  ],
+  "common.parent": [
+    [
+      "composables/manage/useManageColumns.ts",
+      53,
+      "add({ accessorKey: 'parent', header: t('common.parent') })"
+    ]
+  ],
+  "common.preview": [
+    [
+      "components/manage/view/EntityCardsClassic.vue",
+      60,
+      ":title=\"$t('common.preview')\""
+    ],
+    [
+      "components/admin/FeedbackList.vue",
+      66,
+      "<UButton size=\"xs\" icon=\"i-heroicons-eye\" variant=\"soft\" :title=\"$t('common.preview','Preview')\" @click=\"$emit('view', f)\" />"
+    ]
+  ],
+  "common.refresh": [
+    [
+      "components/admin/RevisionsTable.vue",
+      12,
+      "<UButton size=\"xs\" variant=\"soft\" color=\"neutral\" :disabled=\"pending\" @click=\"reload\">{{ $t('common.refresh','Refresh') }}</UButton>"
+    ]
+  ],
+  "common.related": [
+    [
+      "components/manage/EntityFilters.vue",
+      436,
+      "return t('common.related')"
+    ]
+  ],
+  "common.resetFilters": [
+    [
+      "components/manage/EntityTableWrapper.vue",
+      198,
+      "const emptyResetLabel = computed(() => t('common.resetFilters'))"
+    ],
+    [
+      "components/manage/view/EntityCardsClassic.vue",
+      35,
+      "{{ t('common.resetFilters') }}"
+    ],
+    [
+      "components/manage/view/EntityCards.vue",
+      32,
+      "{{ t('common.resetFilters') }}"
+    ]
+  ],
+  "common.resolve": [
+    [
+      "pages/admin/feedback/[id].vue",
+      19,
+      "<UButton icon=\"i-heroicons-check-circle\" color=\"primary\" variant=\"soft\" :disabled=\"feedback?.status==='resolved'\" :label=\"t('common.resolve') || 'Resolve'\" @click=\"onResolve\" />"
+    ],
+    [
+      "components/admin/FeedbackList.vue",
+      91,
+      "<UButton size=\"xs\" icon=\"i-heroicons-check-circle\" color=\"primary\" variant=\"soft\" :disabled=\"!isEditor || f.status==='resolved'\" :title=\"!isEditor ? $t('common.noPermission','No permission') : $t('common.resolve','Resolve')\" @click=\"$emit('resolve', f)\" />"
+    ]
+  ],
+  "common.roles": [
+    [
+      "pages/admin/users.vue",
+      68,
+      "header: t('common.roles'),"
+    ],
+    [
+      "components/manage/EntityFilters.vue",
+      441,
+      "if (key.includes('role')) return t('common.roles')"
+    ]
+  ],
+  "common.save": [
+    [
+      "pages/user.vue",
+      119,
+      ":label=\"$t('common.save')\""
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      137,
+      ":submit-label=\"$t('common.save')\""
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      188,
+      ":confirm-label=\"$t('common.save') || 'Save'\""
+    ],
+    [
+      "components/manage/modal/EntityTagsModal.vue",
+      52,
+      "<UButton color=\"primary\" :loading=\"saving\" :label=\"confirmLabel || $t('common.save')\" @click=\"onSubmit\" />"
+    ],
+    [
+      "components/admin/RoleForm.vue",
+      79,
+      "<UButton color=\"primary\" @click=\"onSave\">{{ $t('common.save') }}</UButton>"
+    ]
+  ],
+  "common.saved": [
+    [
+      "composables/manage/useFeedback.ts",
+      136,
+      "toast?.add?.({ title: options.entityLabel, description: t('common.saved') || 'Saved', color: 'success' })"
+    ],
+    [
+      "composables/manage/useEntityTags.ts",
+      223,
+      "description: t('common.saved') || 'Saved',"
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      458,
+      "toast?.add?.({ title: t('common.saved') || 'Saved', color: 'success' })"
+    ]
+  ],
+  "common.search": [
+    [
+      "components/manage/EntityFilters.vue",
+      9,
+      ":placeholder=\"t('common.search')\""
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      5,
+      "<UInput v-model=\"search\" :placeholder=\"$t('common.search','Search')\" icon=\"i-heroicons-magnifying-glass\" class=\"w-full sm:w-72\" />"
+    ]
+  ],
+  "common.selected": [
+    [
+      "components/manage/modal/EntityTagsModal.vue",
+      14,
+      "{{ $t('common.selected') }}: {{ (modelValue || []).length }}"
+    ]
+  ],
+  "common.shortText": [
+    [
+      "components/manage/view/EntityTable.vue",
+      167,
+      "{ accessorKey: 'short_text', header: t('common.shortText') },"
+    ]
+  ],
+  "common.showing": [
+    [
+      "pages/admin/versions/entity/[id].vue",
+      59,
+      "{{ $t('common.showing','Showing') }} feedback for base entity: {{ entityType }}"
+    ]
+  ],
+  "common.status": [
+    [
+      "pages/admin/users.vue",
+      80,
+      "header: t('common.status'),"
+    ],
+    [
+      "pages/admin/feedback/[id].vue",
+      56,
+      "<div class=\"text-xs text-gray-500\">{{ t('common.status') || 'Status' }}</div>"
+    ],
+    [
+      "components/manage/EntityFilters.vue",
+      447,
+      "const statusPlaceholder = computed(() => t('common.status'))"
+    ],
+    [
+      "components/manage/view/EntityTable.vue",
+      168,
+      "{ accessorKey: 'status', header: t('common.status') },"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      8,
+      "<span class=\"text-sm text-gray-600 dark:text-gray-300\">{{ $t('common.status','Status') }}</span>"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      25,
+      "<th class=\"py-2 pr-4\">{{ $t('common.status','Status') }}</th>"
+    ]
+  ],
+  "common.success": [
+    [
+      "pages/admin/feedback/[id].vue",
+      136,
+      "toast.add({ title: t('common.success') || 'Success', description: t('status.resolved') || 'resolved', color: 'success' })"
+    ],
+    [
+      "pages/admin/feedback/[id].vue",
+      149,
+      "toast.add({ title: t('common.success') || 'Success', description: t('messages.deleteSuccess') || 'Deleted successfully', color: 'success' })"
+    ]
+  ],
+  "common.tags": [
+    [
+      "composables/manage/useManageColumns.ts",
+      35,
+      "add({ accessorKey: 'tags', header: t('common.tags') })"
+    ],
+    [
+      "composables/manage/useManageColumns.ts",
+      42,
+      "add({ accessorKey: 'tags', header: t('common.tags') })"
+    ],
+    [
+      "composables/manage/useManageColumns.ts",
+      46,
+      "add({ accessorKey: 'tags', header: t('common.tags') })"
+    ],
+    [
+      "composables/manage/useManageColumns.ts",
+      50,
+      "add({ accessorKey: 'tags', header: t('common.tags') })"
+    ],
+    [
+      "components/manage/EntityFilters.vue",
+      448,
+      "const tagsPlaceholder = computed(() => t('common.tags'))"
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      396,
+      "const tagsModalTitle = computed(() => `${t('common.tags') || 'Tags'} ${props.label}`)"
+    ],
+    [
+      "components/manage/modal/EntityTagsModal.vue",
+      21,
+      "<UFormField :label=\"$t('common.tags')\">"
+    ]
+  ],
+  "common.template": [
+    [
+      "components/manage/ViewControls.vue",
+      11,
+      ":placeholder=\"$t('common.template')\""
+    ]
+  ],
+  "common.tryAdjustFilters": [
+    [
+      "components/manage/EntityTableWrapper.vue",
+      196,
+      "const emptySubtitle = computed(() => t('common.tryAdjustFilters'))"
+    ],
+    [
+      "components/manage/view/EntityCardsClassic.vue",
+      23,
+      "<p class=\"text-sm text-neutral-500 dark:text-neutral-400\">{{ t('common.tryAdjustFilters') }}</p>"
+    ],
+    [
+      "components/manage/view/EntityCards.vue",
+      20,
+      "<p class=\"text-sm text-neutral-500 dark:text-neutral-400\">{{ t('common.tryAdjustFilters') }}</p>"
+    ]
+  ],
+  "common.type": [
+    [
+      "components/manage/EntityFilters.vue",
+      444,
+      "return t('common.type')"
+    ]
+  ],
+  "common.untitled": [
+    [
+      "composables/manage/useEntityPreview.ts",
+      22,
+      "title: entity.name ?? entity.title ?? entity.code ?? (t ? t('common.untitled') : '\u2014'),"
+    ]
+  ],
+  "common.update": [
+    [
+      "components/manage/view/EntityTable.vue",
+      8,
+      "<UButton icon=\"i-heroicons-arrow-path\" color=\"neutral\" variant=\"soft\" :label=\"$t('common.update') || 'Update'\" @click=\"onUpdateSelected\" />"
+    ]
+  ],
+  "common.updatedAt": [
+    [
+      "composables/manage/useManageColumns.ts",
+      60,
+      "add({ accessorKey: 'updated_at', header: t('common.updatedAt') })"
+    ]
+  ],
+  "deck.arcanaDescription": [
+    [
+      "pages/deck/index.vue",
+      81,
+      "description: t('deck.arcanaDescription'),"
+    ]
+  ],
+  "deck.baseCardsDescription": [
+    [
+      "pages/deck/index.vue",
+      63,
+      "description: t('deck.baseCardsDescription'),"
+    ]
+  ],
+  "deck.cardTypesDescription": [
+    [
+      "pages/deck/index.vue",
+      54,
+      "description: t('deck.cardTypesDescription'),"
+    ]
+  ],
+  "deck.emptySubtitle": [
+    [
+      "components/deck/DeckSection.vue",
+      14,
+      "<p class=\"text-sm text-neutral-500 dark:text-neutral-400\">{{ t('deck.emptySubtitle') }}</p>"
+    ]
+  ],
+  "deck.emptyTitle": [
+    [
+      "components/deck/DeckSection.vue",
+      13,
+      "<p class=\"text-lg font-semibold text-neutral-700 dark:text-neutral-200\">{{ t('deck.emptyTitle') }}</p>"
+    ]
+  ],
+  "deck.facetsDescription": [
+    [
+      "pages/deck/index.vue",
+      90,
+      "description: t('deck.facetsDescription'),"
+    ]
+  ],
+  "deck.skillsDescription": [
+    [
+      "pages/deck/index.vue",
+      99,
+      "description: t('deck.skillsDescription'),"
+    ]
+  ],
+  "deck.subtitle": [
+    [
+      "pages/deck/index.vue",
+      9,
+      "{{ t('deck.subtitle') }}"
+    ]
+  ],
+  "deck.title": [
+    [
+      "pages/deck/index.vue",
+      6,
+      "{{ t('deck.title') }}"
+    ]
+  ],
+  "deck.viewAll": [
+    [
+      "pages/deck/index.vue",
+      26,
+      ":label=\"t('deck.viewAll')\""
+    ]
+  ],
+  "deck.worldsDescription": [
+    [
+      "pages/deck/index.vue",
+      72,
+      "description: t('deck.worldsDescription'),"
+    ]
+  ],
+  "entities.arcana": [
+    [
+      "composables/manage/useManageColumns.ts",
+      41,
+      "add({ accessorKey: 'arcana', header: t('entities.arcana') })"
+    ],
+    [
+      "components/manage/EntityFilters.vue",
+      434,
+      "if (key.includes('arcana')) return t('entities.arcana')"
+    ]
+  ],
+  "entities.cardType": [
+    [
+      "composables/manage/useManageColumns.ts",
+      34,
+      "add({ accessorKey: 'card_type', header: t('entities.cardType') })"
+    ],
+    [
+      "components/manage/EntityFilters.vue",
+      442,
+      "if (key.includes('card_type')) return t('entities.cardType')"
+    ]
+  ],
+  "entities.facet": [
+    [
+      "composables/manage/useManageColumns.ts",
+      45,
+      "add({ accessorKey: 'facet', header: t('entities.facet') })"
+    ],
+    [
+      "components/manage/EntityFilters.vue",
+      435,
+      "if (key.includes('facet')) return t('entities.facet')"
+    ]
+  ],
+  "entities.world": [
+    [
+      "components/manage/EntityFilters.vue",
+      443,
+      "if (key.includes('world')) return t('entities.world')"
+    ]
+  ],
+  "errors.action_failed": [
+    [
+      "components/manage/EntityBase.vue",
+      15,
+      ":title=\"t('errors.action_failed')\""
+    ]
+  ],
+  "errors.list_failed": [
+    [
+      "components/manage/EntityBase.vue",
+      8,
+      ":title=\"t('errors.list_failed')\""
+    ]
+  ],
+  "errors.unsupportedEntityTags": [
+    [
+      "composables/manage/useEntityTags.ts",
+      145,
+      "description: t('errors.unsupportedEntityTags') || 'Tags are not supported for this entity',"
+    ]
+  ],
+  "errors.unsupportedFeedback": [
+    [
+      "composables/manage/useFeedback.ts",
+      90,
+      "description: t('errors.unsupportedFeedback') || 'Feedback not available for this entity',"
+    ]
+  ],
+  "errors.update_failed": [
+    [
+      "composables/manage/useEntityTags.ts",
+      176,
+      "error.value = t('errors.update_failed') || 'Update failed'"
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      460,
+      "toast?.add?.({ title: t('errors.update_failed') || 'Update failed', description: crud.actionError?.value || crud.listError?.value || '', color: 'error' })"
+    ]
+  ],
+  "feedback.noLinkedCard": [
+    [
+      "pages/admin/feedback/[id].vue",
+      40,
+      "<div v-else class=\"text-gray-500 text-sm\">{{ t('feedback.noLinkedCard') || 'No linked card preview' }}</div>"
+    ]
+  ],
+  "filters.all": [
+    [
+      "components/manage/EntityFilters.vue",
+      266,
+      "{ label: t('filters.all'), value: 'all' },"
+    ],
+    [
+      "components/manage/EntityFilters.vue",
+      273,
+      "{ label: t('filters.all'), value: null },"
+    ],
+    [
+      "components/admin/RevisionsTable.vue",
+      83,
+      "{ label: t('filters.all','All'), value: null },"
+    ]
+  ],
+  "filters.parent": [
+    [
+      "components/manage/EntityFilters.vue",
+      451,
+      "const parentPlaceholder = computed(() => t('filters.parent'))"
+    ]
+  ],
+  "import.button": [
+    [
+      "components/manage/EntityBase.vue",
+      45,
+      ":label=\"$t('import.button') || 'Import'\""
+    ],
+    [
+      "components/manage/EntityBase.vue",
+      305,
+      "const importModalTitle = computed(() => `${t('import.button') || 'Import'} ${props.label}`)"
+    ]
+  ],
+  "import.confirm": [
+    [
+      "pages/admin/database.vue",
+      42,
+      ":confirm-label=\"$t('import.confirm')\""
+    ],
+    [
+      "pages/admin/database.vue",
+      65,
+      "<UButton color=\"primary\" :label=\"$t('import.confirm')\" :loading=\"sqlImportLoading\" @click=\"handleSqlImport\" />"
+    ]
+  ],
+  "import.descriptionMultiLang": [
+    [
+      "pages/admin/database.vue",
+      41,
+      ":description=\"$t('import.descriptionMultiLang')\""
+    ]
+  ],
+  "import.fileLabel": [
+    [
+      "pages/admin/database.vue",
+      44,
+      ":file-label=\"$t('import.fileLabel')\""
+    ]
+  ],
+  "import.parseError": [
+    [
+      "pages/admin/database.vue",
+      114,
+      "jsonImportError.value = t('import.parseError')"
+    ]
+  ],
+  "inactive": [
+    [
+      "components/manage/view/EntityTable.vue",
+      64,
+      ":label=\"row.original.is_active ? $t('active') : $t('inactive')\""
+    ]
+  ],
+  "manageConfirm.deleteConfirm": [
+    [
+      "pages/admin/feedback/[id].vue",
+      68,
+      ":confirm-label=\"t('manageConfirm.deleteConfirm') || 'Delete'\""
+    ],
+    [
+      "components/manage/common/DeleteDialogs.vue",
+      23,
+      ":confirm-label=\"$t('manageConfirm.deleteConfirm')\""
+    ]
+  ],
+  "manageConfirm.deleteDescription": [
+    [
+      "components/manage/common/DeleteDialogs.vue",
+      22,
+      ":description=\"$t('manageConfirm.deleteDescription', { entity: props.entityLabel })\""
+    ]
+  ],
+  "manageConfirm.deleteTitle": [
+    [
+      "components/manage/common/DeleteDialogs.vue",
+      21,
+      ":title=\"$t('manageConfirm.deleteTitle', { entity: props.entityLabel })\""
+    ]
+  ],
+  "manageConfirm.deleteTranslationConfirm": [
+    [
+      "components/manage/common/DeleteDialogs.vue",
+      34,
+      ":confirm-label=\"$t('manageConfirm.deleteTranslationConfirm')\""
+    ]
+  ],
+  "manageConfirm.deleteTranslationDescription": [
+    [
+      "components/manage/common/DeleteDialogs.vue",
+      33,
+      ":description=\"$t('manageConfirm.deleteTranslationDescription', { entity: props.entityLabel, lang: props.translationLang || 'en' })\""
+    ]
+  ],
+  "manageConfirm.deleteTranslationTitle": [
+    [
+      "components/manage/common/DeleteDialogs.vue",
+      32,
+      ":title=\"$t('manageConfirm.deleteTranslationTitle', { entity: props.entityLabel })\""
+    ]
+  ],
+  "messages.deleteSuccess": [
+    [
+      "pages/admin/feedback/[id].vue",
+      149,
+      "toast.add({ title: t('common.success') || 'Success', description: t('messages.deleteSuccess') || 'Deleted successfully', color: 'success' })"
+    ]
+  ],
+  "messages.error": [
+    [
+      "pages/user.vue",
+      310,
+      "const errorMessage = computed(() => (error.value as any)?.data?.message || (error.value as Error)?.message || t('messages.error'))"
+    ],
+    [
+      "pages/user.vue",
+      380,
+      "title: t('messages.error'),"
+    ],
+    [
+      "pages/user.vue",
+      419,
+      "title: t('messages.error'),"
+    ],
+    [
+      "pages/user.vue",
+      447,
+      "title: t('messages.error'),"
+    ],
+    [
+      "pages/user.vue",
+      497,
+      "title: t('messages.error'),"
+    ],
+    [
+      "pages/user.vue",
+      524,
+      "title: t('messages.error'),"
+    ],
+    [
+      "pages/admin/database.vue",
+      101,
+      "toast.add({ title: t('messages.error'), description: error?.data?.message || error?.message, color: 'error' })"
+    ],
+    [
+      "pages/admin/database.vue",
+      121,
+      "jsonImportError.value = error?.data?.message || error?.message || t('messages.error')"
+    ],
+    [
+      "pages/admin/database.vue",
+      150,
+      "toast.add({ title: t('messages.error'), description: error?.data?.message || error?.message, color: 'error' })"
+    ],
+    [
+      "pages/admin/database.vue",
+      165,
+      "sqlImportError.value = error?.data?.message || error?.message || t('messages.error')"
+    ],
+    [
+      "composables/admin/useDatabaseManager.ts",
+      47,
+      "toast.add({ title: t('messages.error'), description: e?.message, color: 'error' })"
+    ],
+    [
+      "composables/admin/useDatabaseManager.ts",
+      67,
+      "toast.add({ title: t('messages.error'), description: e?.message, color: 'error' })"
+    ],
+    [
+      "composables/admin/useDatabaseManager.ts",
+      83,
+      "toast.add({ title: t('messages.error'), description: e?.message, color: 'error' })"
+    ],
+    [
+      "composables/admin/useDatabaseManager.ts",
+      106,
+      "toast.add({ title: t('messages.error'), description: e?.message, color: 'error' })"
+    ]
+  ],
+  "messages.updateSuccess": [
+    [
+      "pages/user.vue",
+      375,
+      "title: t('messages.updateSuccess'),"
+    ]
+  ],
+  "nav.admin": [
+    [
+      "pages/admin/versions/index.vue",
+      83,
+      "useSeoMeta({ title: `${t('nav.admin') || 'Admin'} \u00b7 ${tt('admin.versionsTitle', 'Versions')}` })"
+    ],
+    [
+      "pages/admin/feedback/index.vue",
+      175,
+      "useSeoMeta({ title: `${t('nav.admin') || 'Admin'} \u00b7 ${tt('admin.feedbackTitle', 'Feedback')}` })"
+    ],
+    [
+      "pages/admin/feedback/[id].vue",
+      90,
+      "useSeoMeta({ title: `${t('nav.admin') || 'Admin'} \u00b7 ${t('admin.feedbackTitle') || 'Feedback'} \u00b7 #${route.params.id}` })"
+    ]
+  ],
+  "nav.arcana": [
+    [
+      "pages/manage.vue",
+      69,
+      "{ label: t('nav.arcana'), value: 'arcana', icon: 'i-heroicons-sparkles' },"
+    ],
+    [
+      "pages/manage.vue",
+      114,
+      "label: t('nav.arcana'),"
+    ],
+    [
+      "pages/deck/index.vue",
+      79,
+      "label: t('nav.arcana'),"
+    ]
+  ],
+  "nav.baseCards": [
+    [
+      "pages/manage.vue",
+      67,
+      "{ label: t('nav.baseCards'), value: 'baseCard', icon: 'i-heroicons-rectangle-stack' },"
+    ],
+    [
+      "pages/manage.vue",
+      89,
+      "label: t('nav.baseCards'),"
+    ],
+    [
+      "pages/deck/index.vue",
+      61,
+      "label: t('nav.baseCards'),"
+    ]
+  ],
+  "nav.cardTypes": [
+    [
+      "pages/manage.vue",
+      66,
+      "{ label: t('nav.cardTypes'), value: 'cardType', icon: 'i-heroicons-squares-2x2' },"
+    ],
+    [
+      "pages/manage.vue",
+      78,
+      "label: t('nav.cardTypes'),"
+    ],
+    [
+      "pages/deck/index.vue",
+      52,
+      "label: t('nav.cardTypes'),"
+    ]
+  ],
+  "nav.changeLanguage": [
+    [
+      "components/AppHeader/AppHeaderDesktop.vue",
+      60,
+      ":aria-label=\"$t('nav.changeLanguage')\""
+    ],
+    [
+      "components/AppHeader/AppHeaderMobile.vue",
+      48,
+      ":aria-label=\"$t('nav.changeLanguage')\""
+    ]
+  ],
+  "nav.facets": [
+    [
+      "pages/manage.vue",
+      70,
+      "{ label: t('nav.facets'), value: 'facet', icon: 'i-heroicons-beaker' },"
+    ],
+    [
+      "pages/manage.vue",
+      126,
+      "label: t('nav.facets'),"
+    ],
+    [
+      "pages/deck/index.vue",
+      88,
+      "label: t('nav.facets'),"
+    ]
+  ],
+  "nav.home": [
+    [
+      "composables/common/useNavigationMenu.ts",
+      38,
+      "{ label: t('nav.home'), to: safePath('/'), active: isActive('/') },"
+    ],
+    [
+      "composables/common/useNavigationMenu.ts",
+      77,
+      "label: t('nav.home'),"
+    ]
+  ],
+  "nav.login": [
+    [
+      "composables/common/useNavigationMenu.ts",
+      39,
+      "{ label: t('nav.login'), to: safePath('/login'), active: isActive('/login') },"
+    ]
+  ],
+  "nav.logout": [
+    [
+      "pages/user.vue",
+      100,
+      "{{ $t('nav.logout') }}"
+    ],
+    [
+      "components/AppHeader/AppHeaderDesktop.vue",
+      25,
+      "label: t('nav.logout'),"
+    ],
+    [
+      "components/AppHeader/AppHeaderMobile.vue",
+      84,
+      "{{ t('nav.logout') }}"
+    ]
+  ],
+  "nav.manage": [
+    [
+      "pages/manage.vue",
+      8,
+      "{{ t('nav.manage') }}"
+    ]
+  ],
+  "nav.manageUsers": [
+    [
+      "pages/admin/users.vue",
+      8,
+      "{{ t('nav.manageUsers') }}"
+    ],
+    [
+      "pages/admin/users.vue",
+      21,
+      ":label=\"t('nav.manageUsers')\""
+    ]
+  ],
+  "nav.skills": [
+    [
+      "pages/manage.vue",
+      71,
+      "{ label: t('nav.skills'), value: 'skill', icon: 'i-heroicons-academic-cap' },"
+    ],
+    [
+      "pages/manage.vue",
+      139,
+      "label: t('nav.skills'),"
+    ],
+    [
+      "pages/deck/index.vue",
+      97,
+      "label: t('nav.skills'),"
+    ]
+  ],
+  "nav.tags": [
+    [
+      "pages/manage.vue",
+      72,
+      "{ label: t('nav.tags'), value: 'tag', icon: 'i-heroicons-tag' }"
+    ],
+    [
+      "pages/manage.vue",
+      152,
+      "label: t('nav.tags'),"
+    ]
+  ],
+  "nav.userProfile": [
+    [
+      "components/AppHeader/AppHeaderDesktop.vue",
+      21,
+      "{ label: t('nav.userProfile'), icon: 'i-heroicons-user', to: localePath('/user') }"
+    ],
+    [
+      "components/AppHeader/AppHeaderMobile.vue",
+      74,
+      "{{ t('nav.userProfile') }}"
+    ]
+  ],
+  "nav.worlds": [
+    [
+      "pages/manage.vue",
+      68,
+      "{ label: t('nav.worlds'), value: 'world', icon: 'i-heroicons-map' },"
+    ],
+    [
+      "pages/manage.vue",
+      102,
+      "label: t('nav.worlds'),"
+    ],
+    [
+      "pages/deck/index.vue",
+      70,
+      "label: t('nav.worlds'),"
+    ]
+  ],
+  "perm.canAccessAdmin": [
+    [
+      "components/admin/RoleForm.vue",
+      74,
+      "<UCheckbox v-model=\"form.permissions.canAccessAdmin\" :label=\"$t('perm.canAccessAdmin')\" />"
+    ]
+  ],
+  "perm.canAccessManage": [
+    [
+      "components/admin/RoleForm.vue",
+      73,
+      "<UCheckbox v-model=\"form.permissions.canAccessManage\" :label=\"$t('perm.canAccessManage')\" />"
+    ]
+  ],
+  "perm.canAssignTags": [
+    [
+      "components/admin/RoleForm.vue",
+      70,
+      "<UCheckbox v-model=\"form.permissions.canAssignTags\" :label=\"$t('perm.canAssignTags')\" />"
+    ]
+  ],
+  "perm.canEditContent": [
+    [
+      "components/admin/RoleForm.vue",
+      66,
+      "<UCheckbox v-model=\"form.permissions.canEditContent\" :label=\"$t('perm.canEditContent')\" />"
+    ]
+  ],
+  "perm.canManageUsers": [
+    [
+      "components/admin/RoleForm.vue",
+      65,
+      "<UCheckbox v-model=\"form.permissions.canManageUsers\" :label=\"$t('perm.canManageUsers')\" />"
+    ]
+  ],
+  "perm.canPublish": [
+    [
+      "components/admin/RoleForm.vue",
+      69,
+      "<UCheckbox v-model=\"form.permissions.canPublish\" :label=\"$t('perm.canPublish')\" />"
+    ]
+  ],
+  "perm.canResolveFeedback": [
+    [
+      "components/admin/RoleForm.vue",
+      71,
+      "<UCheckbox v-model=\"form.permissions.canResolveFeedback\" :label=\"$t('perm.canResolveFeedback')\" />"
+    ]
+  ],
+  "perm.canReview": [
+    [
+      "components/admin/RoleForm.vue",
+      67,
+      "<UCheckbox v-model=\"form.permissions.canReview\" :label=\"$t('perm.canReview')\" />"
+    ]
+  ],
+  "perm.canSeeAllStatuses": [
+    [
+      "components/admin/RoleForm.vue",
+      72,
+      "<UCheckbox v-model=\"form.permissions.canSeeAllStatuses\" :label=\"$t('perm.canSeeAllStatuses')\" />"
+    ]
+  ],
+  "perm.canTranslate": [
+    [
+      "components/admin/RoleForm.vue",
+      68,
+      "<UCheckbox v-model=\"form.permissions.canTranslate\" :label=\"$t('perm.canTranslate')\" />"
+    ]
+  ],
+  "roles.description": [
+    [
+      "components/admin/RoleForm.vue",
+      60,
+      "<label class=\"text-sm font-medium\">{{ $t('roles.description') }}</label>"
+    ]
+  ],
+  "roles.editRole": [
+    [
+      "components/admin/RoleForm.vue",
+      55,
+      "<h2 class=\"text-lg font-semibold\">{{ $t('roles.editRole') }} \u2014 {{ props.role?.name }}</h2>"
+    ]
+  ],
+  "status.approved": [
+    [
+      "components/admin/RevisionsTable.vue",
+      40,
+      "<UButton size=\"xs\" icon=\"i-heroicons-check-circle\" color=\"primary\" variant=\"soft\" :disabled=\"!isEditor\" :title=\"!isEditor ? $t('common.noPermission') : $t('status.approved','Approve')\" @click=\"setOne(r.id, 'approved')\" />"
+    ]
+  ],
+  "status.draft": [
+    [
+      "components/admin/RevisionsTable.vue",
+      41,
+      "<UButton size=\"xs\" icon=\"i-heroicons-x-circle\" color=\"error\" variant=\"soft\" :disabled=\"!isEditor\" :title=\"!isEditor ? $t('common.noPermission') : $t('status.draft','Reject')\" @click=\"setOne(r.id, 'rejected')\" />"
+    ]
+  ],
+  "status.resolved": [
+    [
+      "pages/admin/feedback/[id].vue",
+      136,
+      "toast.add({ title: t('common.success') || 'Success', description: t('status.resolved') || 'resolved', color: 'success' })"
+    ]
+  ],
+  "users.avatarHint": [
+    [
+      "pages/user.vue",
+      55,
+      "{{ $t('users.avatarHint') }}"
+    ]
+  ],
+  "users.avatarRemove": [
+    [
+      "pages/user.vue",
+      50,
+      "{{ $t('users.avatarRemove') }}"
+    ]
+  ],
+  "users.avatarRemoveError": [
+    [
+      "pages/user.vue",
+      521,
+      "const message = (error as any)?.data?.message || (error as Error)?.message || t('users.avatarRemoveError')"
+    ]
+  ],
+  "users.avatarRemoved": [
+    [
+      "pages/user.vue",
+      517,
+      "title: t('users.avatarRemoved'),"
+    ]
+  ],
+  "users.avatarUpdated": [
+    [
+      "pages/user.vue",
+      490,
+      "title: t('users.avatarUpdated'),"
+    ]
+  ],
+  "users.avatarUploadError": [
+    [
+      "pages/user.vue",
+      463,
+      "avatarError.value = t('users.avatarUploadError')"
+    ],
+    [
+      "pages/user.vue",
+      482,
+      "throw new Error(t('users.avatarUploadError'))"
+    ],
+    [
+      "pages/user.vue",
+      494,
+      "const message = (error as any)?.data?.message || (error as Error)?.message || t('users.avatarUploadError')"
+    ]
+  ],
+  "users.confirmPassword": [
+    [
+      "pages/user.vue",
+      144,
+      "<UFormField :label=\"$t('users.confirmPassword')\" required>"
+    ]
+  ],
+  "users.email": [
+    [
+      "pages/user.vue",
+      109,
+      "<UFormField :label=\"$t('users.email')\" required>"
+    ]
+  ],
+  "users.infoHeading": [
+    [
+      "pages/user.vue",
+      65,
+      "{{ $t('users.infoHeading') }}"
+    ]
+  ],
+  "users.noRoles": [
+    [
+      "pages/user.vue",
+      88,
+      "{{ $t('users.noRoles') }}"
+    ],
+    [
+      "components/manage/view/EntityTable.vue",
+      99,
+      "<span v-if=\"!row.original.roles?.length\" class=\"text-xs text-neutral-400\">{{ $t('users.noRoles') }}</span>"
+    ]
+  ],
+  "users.password": [
+    [
+      "pages/user.vue",
+      141,
+      "<UFormField :label=\"$t('users.password')\" required>"
+    ]
+  ],
+  "users.passwordHeading": [
+    [
+      "pages/user.vue",
+      133,
+      "{{ $t('users.passwordHeading') }}"
+    ]
+  ],
+  "users.passwordMismatch": [
+    [
+      "pages/user.vue",
+      400,
+      "passwordError.value = t('users.passwordMismatch')"
+    ]
+  ],
+  "users.passwordRequirements": [
+    [
+      "pages/user.vue",
+      136,
+      "{{ $t('users.passwordRequirements') }}"
+    ],
+    [
+      "pages/user.vue",
+      395,
+      "passwordError.value = t('users.passwordRequirements')"
+    ]
+  ],
+  "users.profileDescription": [
+    [
+      "pages/user.vue",
+      11,
+      "{{ $t('users.profileDescription') }}"
+    ]
+  ],
+  "users.profileTitle": [
+    [
+      "pages/user.vue",
+      8,
+      "{{ $t('users.profileTitle') }}"
+    ]
+  ],
+  "users.statusActive": [
+    [
+      "pages/user.vue",
+      328,
+      "return t('users.statusActive')"
+    ]
+  ],
+  "users.statusInactive": [
+    [
+      "pages/user.vue",
+      330,
+      "return t('users.statusInactive')"
+    ]
+  ],
+  "users.statusSuspended": [
+    [
+      "pages/user.vue",
+      332,
+      "return t('users.statusSuspended')"
+    ]
+  ],
+  "users.updatePassword": [
+    [
+      "pages/user.vue",
+      154,
+      ":label=\"$t('users.updatePassword')\""
+    ],
+    [
+      "pages/user.vue",
+      414,
+      "title: t('users.updatePassword'),"
+    ]
+  ],
+  "users.updateStatus": [
+    [
+      "pages/user.vue",
+      442,
+      "title: t('users.updateStatus'),"
+    ]
+  ],
+  "users.username": [
+    [
+      "pages/user.vue",
+      112,
+      "<UFormField :label=\"$t('users.username')\" required>"
+    ]
+  ],
+  "view.card": [
+    [
+      "components/manage/ViewControls.vue",
+      13,
+      "<UTooltip :text=\"$t('view.card')\">"
+    ]
+  ],
+  "view.carta": [
+    [
+      "components/manage/ViewControls.vue",
+      31,
+      "<UTooltip :text=\"$t('view.carta')\">"
+    ]
+  ],
+  "view.classic": [
+    [
+      "components/manage/ViewControls.vue",
+      22,
+      "<UTooltip :text=\"$t('view.classic')\">"
+    ]
+  ],
+  "view.table": [
+    [
+      "components/manage/ViewControls.vue",
+      40,
+      "<UTooltip :text=\"$t('view.table')\">"
+    ]
+  ],
+  "view.tableSoon": [
+    [
+      "components/manage/ViewControls.vue",
+      47,
+      ":title=\"disableTable ? $t('view.tableSoon') : ''\""
+    ]
+  ]
+}

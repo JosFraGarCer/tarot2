@@ -7,7 +7,7 @@
       v-if="canChangePageSize"
       class="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400"
     >
-      <span>{{ t('common.pageSize') }}</span>
+      <span>{{ t('ui.pagination.pageSize') }}</span>
       <USelectMenu
         :model-value="currentPageSize"
         :items="pageSizeItems"

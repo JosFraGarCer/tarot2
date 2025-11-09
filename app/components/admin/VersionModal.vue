@@ -3,21 +3,21 @@
   <UModal
     v-model:open="open"
     :title="isEdit ? tt('versions.editTitle', 'Edit version') : tt('versions.createTitle', 'Create version')"
-    :description="tt('versions.modalDescription', 'Provide version information and optional metadata')"
+    :description="tt('domains.version.modalDescription', 'Provide version information and optional metadata')"
   >
     <template #body>
       <form class="space-y-4" @submit.prevent="submit">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('versions.version', 'Version (semver)') }}</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.version', 'Version (semver)') }}</label>
           <UInput v-model="form.version_semver" placeholder="1.0.0" @input="validateSemver" />
           <p v-if="semverError" class="text-xs mt-1 text-error">{{ semverError }}</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('common.description', 'Description') }}</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.description', 'Description') }}</label>
           <UTextarea v-model="form.description" :rows="3" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('versions.release.label', 'Release type') }}</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.release.label', 'Release type') }}</label>
           <USelectMenu
             v-model="form.release"
             :items="releaseItems"
@@ -27,7 +27,7 @@
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('common.metadata', 'Metadata (JSON)') }}</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.metadata', 'Metadata (JSON)') }}</label>
           <UTextarea v-model="form.metadataText" :rows="6" placeholder='{"key":"value"}' />
           <p v-if="metaError" class="text-xs text-error mt-1">{{ metaError }}</p>
         </div>
@@ -36,8 +36,8 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton variant="soft" color="neutral" :label="tt('common.cancel', 'Cancel')" @click="close" />
-        <UButton color="primary" :label="tt('common.save', 'Save')" :loading="saving" :disabled="Boolean(semverError)" @click="submit" />
+        <UButton variant="soft" color="neutral" :label="tt('ui.actions.cancel', 'Cancel')" @click="close" />
+        <UButton color="primary" :label="tt('ui.actions.save', 'Save')" :loading="saving" :disabled="Boolean(semverError)" @click="submit" />
       </div>
     </template>
   </UModal>
@@ -114,9 +114,9 @@ function validateSemver() {
   const value = form.version_semver?.trim() || ''
   const re = /^\d+\.\d+\.\d+(?:\.\d+)?$/
   if (!value) {
-    semverError.value = tt('versions.semverRequired', 'Version is required')
+    semverError.value = tt('domains.version.semverRequired', 'Version is required')
   } else if (!re.test(value)) {
-    semverError.value = tt('versions.semverInvalid', 'Invalid version format. Use MAJOR.MINOR.PATCH[.BUILD]')
+    semverError.value = tt('domains.version.semverInvalid', 'Invalid version format. Use MAJOR.MINOR.PATCH[.BUILD]')
   } else {
     semverError.value = null
   }

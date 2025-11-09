@@ -5,23 +5,23 @@
       <template #header>
         <div class="flex items-start justify-between">
           <div>
-            <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ tt('admin.versionsTitle', 'Versions') }}</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ tt('admin.versionsSubtitle', 'Manage card versions and releases') }}</p>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ tt('features.admin.versionsTitle', 'Versions') }}</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ tt('features.admin.versionsSubtitle', 'Manage card versions and releases') }}</p>
           </div>
           <div class="flex gap-2">
-            <UButton icon="i-heroicons-plus" color="primary" :label="tt('common.new', 'New')" @click="openCreate" />
-            <UButton icon="i-heroicons-arrow-path" color="neutral" variant="soft" :label="tt('common.refresh', 'Refresh')" @click="reload" />
+            <UButton icon="i-heroicons-plus" color="primary" :label="tt('ui.states.new', 'New')" @click="openCreate" />
+            <UButton icon="i-heroicons-arrow-path" color="neutral" variant="soft" :label="tt('ui.actions.refresh', 'Refresh')" @click="reload" />
           </div>
         </div>
       </template>
 
       <div class="flex items-center gap-2 mb-3">
-        <UInput v-model="search" :placeholder="tt('common.search', 'Search')" icon="i-heroicons-magnifying-glass" class="w-full sm:w-72" />
+        <UInput v-model="search" :placeholder="tt('ui.actions.search', 'Search')" icon="i-heroicons-magnifying-glass" class="w-full sm:w-72" />
         <USelectMenu v-model="status" :items="statusOptions" value-key="value" option-attribute="label" class="w-40" />
       </div>
 
       <div v-if="error" class="mb-3">
-        <UAlert color="error" :title="tt('common.error', 'Error')" :description="String(error)" />
+        <UAlert color="error" :title="tt('ui.notifications.error', 'Error')" :description="String(error)" />
       </div>
 
       <div v-if="pending" class="py-6">
@@ -44,18 +44,18 @@
         @update:page-size="handlePageSizeChange"
       />
       <div v-if="isEditor" class="mt-4 flex justify-end">
-        <UButton color="primary" variant="soft" icon="i-heroicons-cloud-arrow-up" :label="tt('versions.publishApproved','Publish approved revisions')" @click="openPublish" />
+        <UButton color="primary" variant="soft" icon="i-heroicons-cloud-arrow-up" :label="tt('domains.version.publishApproved','Publish approved revisions')" @click="openPublish" />
       </div>
 
       <VersionModal v-model="modalOpen" :value="selected" @save="onSave" />
-      <JsonModal v-model="metaOpen" :value="metaData" :title="tt('common.metadata', 'Metadata')" :description="tt('versions.viewMetadata', 'View metadata')" />
+      <JsonModal v-model="metaOpen" :value="metaData" :title="tt('ui.fields.metadata', 'Metadata')" :description="tt('domains.version.viewMetadata', 'View metadata')" />
     </UCard>
 
     <UCard class="mt-6">
       <template #header>
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-semibold">{{ tt('revisions.title','Approved Revisions') }}</h2>
-          <UButton v-if="isEditor" color="primary" variant="soft" icon="i-heroicons-cloud-arrow-up" :label="tt('versions.publishApproved','Publish approved revisions')" @click="openPublish" />
+          <UButton v-if="isEditor" color="primary" variant="soft" icon="i-heroicons-cloud-arrow-up" :label="tt('domains.version.publishApproved','Publish approved revisions')" @click="openPublish" />
         </div>
       </template>
       <RevisionsTable />
@@ -80,15 +80,15 @@ const localePath = useLocalePath()
 function tt(key: string, fallback: string) {
   return te(key) ? t(key) : fallback
 }
-useSeoMeta({ title: `${t('nav.admin') || 'Admin'} · ${tt('admin.versionsTitle', 'Versions')}` })
+useSeoMeta({ title: `${t('navigation.menu.admin') || 'Admin'} · ${tt('features.admin.versionsTitle', 'Versions')}` })
 
 // State
 const search = ref('')
 const status = ref<'all' | 'draft' | 'published'>('all')
 const statusOptions = [
-  { label: tt('filters.all', 'All'), value: 'all' },
-  { label: tt('status.draft', 'Draft'), value: 'draft' },
-  { label: tt('status.published', 'Published'), value: 'published' }
+  { label: tt('ui.filters.all', 'All'), value: 'all' },
+  { label: tt('system.status.draft', 'Draft'), value: 'draft' },
+  { label: tt('system.status.published', 'Published'), value: 'published' }
 ]
 
 // Data from API
@@ -146,10 +146,10 @@ async function onEdit(v:any) {
   modalOpen.value = true
 }
 async function onDelete(v:any) {
-  const ok = confirm(tt('versions.deleteConfirm', 'Delete this version?'))
+  const ok = confirm(tt('domains.version.deleteConfirm', 'Delete this version?'))
   if (!ok) return
   await remove(v.id)
-  toast.add({ title: tt('common.success', 'Success'), description: tt('versions.deleted', 'Version deleted'), color: 'success' })
+  toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('domains.version.deleted', 'Version deleted'), color: 'success' })
   await reload()
 }
 
@@ -159,7 +159,7 @@ async function onSave(payload: { id?: number; version_semver: string; descriptio
     if (publishMode.value) {
       // Guided publish: call publish endpoint with semver/notes in description field
       const res: any = await $fetch('/api/content_versions/publish', { method: 'POST', body: { version_semver: payload.version_semver, notes: payload.description || null } })
-      toast.add({ title: tt('versions.published','Published'), description: `${res?.data?.totalEntities || 0} entities · ${res?.data?.totalRevisionsPublished || 0} revisions`, color: 'success' })
+      toast.add({ title: tt('domains.version.published','Published'), description: `${res?.data?.totalEntities || 0} entities · ${res?.data?.totalRevisionsPublished || 0} revisions`, color: 'success' })
       publishMode.value = false
       modalOpen.value = false
       await reload()
@@ -169,16 +169,16 @@ async function onSave(payload: { id?: number; version_semver: string; descriptio
       const desc = payload.description ?? null
       if (payload.id) await update(payload.id, { version_semver: payload.version_semver, description: desc, metadata: metaPlain, release: payload.release })
       else await create({ version_semver: payload.version_semver, description: desc, metadata: metaPlain, release: payload.release })
-      toast.add({ title: tt('common.success', 'Success'), description: tt('versions.saved', 'Version saved'), color: 'success' })
+      toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('domains.version.saved', 'Version saved'), color: 'success' })
       await reload()
     }
   } catch (e: any) {
     const status = e?.statusCode || e?.response?.status
     let friendly = e?.data?.message || e?.message || String(e)
-    if (status === 400) friendly = tt('versions.err400', 'Please review the fields and try again')
-    else if (status === 409) friendly = tt('versions.err409', 'A version with this number already exists')
-    else if (status >= 500) friendly = tt('versions.err500', 'Unexpected server error')
-    toast.add({ title: tt('common.error', 'Error'), description: friendly, color: 'error' })
+    if (status === 400) friendly = tt('domains.version.err400', 'Please review the fields and try again')
+    else if (status === 409) friendly = tt('domains.version.err409', 'A version with this number already exists')
+    else if (status >= 500) friendly = tt('domains.version.err500', 'Unexpected server error')
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: friendly, color: 'error' })
   }
 }
 

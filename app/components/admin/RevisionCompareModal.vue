@@ -1,22 +1,22 @@
 <!-- app/components/admin/RevisionCompareModal.vue -->
 <template>
-  <UModal v-model:open="open" :title="$t('admin.revisionsHistory.comparisonTitle','Revision comparison')">
+  <UModal v-model:open="open" :title="$t('features.admin.revisionsHistory.comparisonTitle','Revision comparison')">
     <template #body>
       <div class="space-y-3">
         <div class="text-sm text-gray-600 dark:text-gray-300">
-          <span v-if="summary.total>0">{{ $t('admin.revisionsHistory.changesSummary','{n} fields changed').replace('{n}', String(summary.total)) }}</span>
-          <span v-else>{{ $t('admin.revisionsHistory.noDiff','No differences found') }}</span>
+          <span v-if="summary.total>0">{{ $t('features.admin.revisionsHistory.changesSummary','{n} fields changed').replace('{n}', String(summary.total)) }}</span>
+          <span v-else>{{ $t('features.admin.revisionsHistory.noDiff','No differences found') }}</span>
           <span v-if="summary.total>0" class="ml-2 text-xs text-gray-500">
             +{{ summary.added.length }} / ~{{ summary.changed.length }} / -{{ summary.removed.length }}
           </span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <UCard>
-            <template #header>{{ $t('admin.revisionsHistory.left','Revision A') }} (#{{ revA?.id }})</template>
+            <template #header>{{ $t('features.admin.revisionsHistory.left','Revision A') }} (#{{ revA?.id }})</template>
             <pre class="text-xs overflow-auto max-h-[70vh]" v-html="jsonHtmlA"></pre>
           </UCard>
           <UCard>
-            <template #header>{{ $t('admin.revisionsHistory.right','Revision B') }} (#{{ revB?.id }})</template>
+            <template #header>{{ $t('features.admin.revisionsHistory.right','Revision B') }} (#{{ revB?.id }})</template>
             <pre class="text-xs overflow-auto max-h-[70vh]" v-html="jsonHtmlB"></pre>
           </UCard>
         </div>

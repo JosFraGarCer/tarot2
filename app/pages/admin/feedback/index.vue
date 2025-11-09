@@ -6,13 +6,13 @@
         <div class="flex items-start justify-between">
           <div>
             <h1 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              {{ tt('admin.feedbackTitle', 'Feedback') }}
+              {{ tt('features.admin.feedbackTitle', 'Feedback') }}
               <UBadge color="primary" variant="soft">{{ openCount }} open</UBadge>
             </h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ tt('admin.feedbackSubtitle', 'Review and manage card feedback') }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ tt('features.admin.feedbackSubtitle', 'Review and manage card feedback') }}</p>
           </div>
           <div class="flex gap-2">
-            <UButton icon="i-heroicons-arrow-path" color="neutral" variant="soft" :label="tt('common.refresh', 'Refresh')" @click="reload" />
+            <UButton icon="i-heroicons-arrow-path" color="neutral" variant="soft" :label="tt('ui.actions.refresh', 'Refresh')" @click="reload" />
           </div>
         </div>
       </template>
@@ -21,10 +21,9 @@
       <FeedbackDashboard class="mb-4" :query="{ status: status, type: type }" />
 
       <div class="flex flex-wrap items-center gap-2 mb-3">
-        <UInput v-model="search" :placeholder="tt('common.search', 'Search')" icon="i-heroicons-magnifying-glass" class="w-full sm:w-72" />
+        <UInput v-model="search" :placeholder="tt('ui.actions.search', 'Search')" icon="i-heroicons-magnifying-glass" class="w-full sm:w-72" />
         <USelectMenu v-model="status" :items="statusOptions" value-key="value" option-attribute="label" class="w-40" />
-        <USelectMenu v-model="type" :items="typeOptions" value-key="value" option-attribute="label" class="w-40" />
-        <USwitch v-model="mineOnly" :label="tt('admin.feedback.filters.mineOnly','My feedbacks')" size="sm" />
+        <USwitch v-model="mineOnly" :label="tt('features.admin.feedback.filters.mineOnly','My feedbacks')" size="sm" />
       </div>
 
       <!-- Type tabs -->
@@ -33,7 +32,7 @@
       </div>
 
       <div v-if="error" class="mb-3">
-        <UAlert color="error" :title="tt('common.error', 'Error')" :description="String(error)" />
+        <UAlert color="error" :title="tt('ui.notifications.error', 'Error')" :description="String(error)" />
       </div>
 
       <div v-if="pending" class="py-6">
@@ -42,13 +41,13 @@
       </div>
       <div v-else>
         <div class="flex items-center justify-between mb-2">
-          <div class="text-sm text-gray-500">{{ tt('common.selectedCount','{n} selected').replace('{n}', String(selectedIds.length)) }}</div>
+          <div class="text-sm text-gray-500">{{ tt('ui.table.selectedCount','{n} selected').replace('{n}', String(selectedIds.length)) }}</div>
           <div class="flex gap-2">
             <UButton
               size="sm"
               color="primary"
               :disabled="!isEditor || selectedIds.length===0"
-              :title="!isEditor ? tt('common.noPermission','No permission') : tt('feedback.resolveSelected','Resolve selected')"
+              :title="!isEditor ? tt('ui.messages.noPermission','No permission') : tt('feedback.resolveSelected','Resolve selected')"
               @click="openResolveConfirm"
             >{{ tt('feedback.resolveSelected','Resolve selected') }}</UButton>
             <UButton
@@ -83,10 +82,10 @@
       </div>
 
       <!-- Preview Modal -->
-      <UModal v-model:open="previewOpen" :title="tt('common.preview', 'Preview')">
+      <UModal v-model:open="previewOpen" :title="tt('ui.actions.preview', 'Preview')">
         <template #body>
           <div class="min-h-20">
-            <div v-if="previewLoading" class="py-8 text-center text-gray-500">{{ tt('common.loading', 'Loading...') }}</div>
+            <div v-if="previewLoading" class="py-8 text-center text-gray-500">{{ tt('ui.states.loading', 'Loading...') }}</div>
             <div v-else-if="previewCard">
               <CartaRow
                 :template-key="'Class'"
@@ -97,7 +96,7 @@
                 :img="previewCard.image || undefined"
               />
             </div>
-            <div v-else class="py-8 text-center text-gray-500">{{ tt('feedback.noLinkedCard', 'No linked card preview') }}</div>
+            <div v-else class="py-8 text-center text-gray-500">{{ tt('features.feedback.noLinkedCard', 'No linked card preview') }}</div>
           </div>
         </template>
       </UModal>
@@ -127,13 +126,13 @@
     />
 
     <!-- Resolve Confirm Modal -->
-    <UModal v-model:open="resolveOpen" :title="tt('admin.feedback.actions.confirmResolve','Confirm resolve')">
+    <UModal v-model:open="resolveOpen" :title="tt('features.admin.feedback.actions.confirmResolve','Confirm resolve')">
       <template #body>
-        <p class="text-sm text-gray-600 dark:text-gray-300">{{ tt('admin.feedback.actions.confirmResolve','Confirm resolve') }} — {{ tt('common.selectedCount','{n} selected').replace('{n}', String(selectedIds.length)) }}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-300">{{ tt('features.admin.feedback.actions.confirmResolve','Confirm resolve') }} — {{ tt('ui.table.selectedCount','{n} selected').replace('{n}', String(selectedIds.length)) }}</p>
       </template>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton variant="soft" @click="resolveOpen=false">{{ tt('common.cancel','Cancel') }}</UButton>
+          <UButton variant="soft" @click="resolveOpen=false">{{ tt('ui.actions.cancel','Cancel') }}</UButton>
           <UButton color="primary" :disabled="resolving" @click="confirmResolveSelected">{{ tt('feedback.resolveSelected','Resolve selected') }}</UButton>
         </div>
       </template>
@@ -142,10 +141,10 @@
     <!-- Global Delete Modal -->
     <ConfirmDeleteModal
       :open="deleteOpen"
-      :title="tt('admin.feedbackDeleteTitle', 'Delete feedback')"
-      :description="tt('admin.feedbackDeleteDescription', 'This will permanently delete this feedback entry. This action cannot be undone.')"
-      :confirm-label="tt('manageConfirm.deleteConfirm', 'Delete')"
-      :cancel-label="tt('common.cancel', 'Cancel')"
+      :title="tt('features.admin.feedbackDeleteTitle', 'Delete feedback')"
+      :description="tt('features.admin.feedbackDeleteDescription', 'This will permanently delete this feedback entry. This action cannot be undone.')"
+      :confirm-label="tt('ui.dialogs.confirm.deleteConfirm', 'Delete')"
+      :cancel-label="tt('ui.actions.cancel', 'Cancel')"
       :loading="deleting"
       @update:open="v => deleteOpen.value = v"
       @confirm="confirmDelete"
@@ -172,7 +171,7 @@ function tt(key: string, fallback: string) {
   return te(key) ? t(key) : fallback
 }
 
-useSeoMeta({ title: `${t('nav.admin') || 'Admin'} · ${tt('admin.feedbackTitle', 'Feedback')}` })
+useSeoMeta({ title: `${t('navigation.menu.admin') || 'Admin'} · ${tt('features.admin.feedbackTitle', 'Feedback')}` })
 
 const route = useRoute()
 const router = useRouter()
@@ -190,19 +189,13 @@ const feedbackTabs = computed(() => [
   { label: `${tt('admin.feedback.tabs.bug', 'Bugs')} (${counts.value.bug})`, value: 'bug' },
   { label: `${tt('admin.feedback.tabs.suggestion', 'Suggestions')} (${counts.value.suggestion})`, value: 'suggestion' },
   { label: `${tt('admin.feedback.tabs.balance', 'Balance')} (${counts.value.balance})`, value: 'balance' },
+  { label: `${tt('admin.feedback.tabs.translation', 'Translation')} (${counts.value.balance})`, value: 'translation' },
 ])
 
 const statusOptions = [
-  { label: tt('filters.all', 'All'), value: 'all' },
-  { label: tt('status.open', 'Open'), value: 'open' },
-  { label: tt('status.resolved', 'Resolved'), value: 'resolved' },
-]
-
-const typeOptions = [
-  { label: tt('feedback.allTypes', 'All types'), value: 'all' },
-  { label: tt('feedback.bug', 'Bug'), value: 'bug' },
-  { label: tt('feedback.suggestion', 'Suggestion'), value: 'suggestion' },
-  { label: tt('feedback.balance', 'Balance'), value: 'balance' },
+  { label: tt('ui.filters.all', 'All'), value: 'all' },
+  { label: tt('system.status.open', 'Open'), value: 'open' },
+  { label: tt('system.status.resolved', 'Resolved'), value: 'resolved' },
 ]
 
 const {
@@ -402,20 +395,20 @@ async function onViewJson(f: any) {
 async function onResolve(f: any) {
   try {
     await resolve(f.id)
-    toast.add({ title: tt('common.success', 'Success'), description: tt('admin.feedback.resolvedOk', 'Resolved successfully'), color: 'success' })
+    toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.feedback.resolvedOk', 'Resolved successfully'), color: 'success' })
     await reload()
   } catch (err) {
-    toast.add({ title: tt('common.error', 'Error'), description: tt('admin.feedback.resolvedErr', 'Error resolving feedback'), color: 'error' })
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: tt('features.admin.feedback.resolvedErr', 'Error resolving feedback'), color: 'error' })
   }
 }
 
 async function onReopen(f: any) {
   try {
     await reopen(f.id)
-    toast.add({ title: tt('admin.feedback.actions.reopen', 'Reopen'), color: 'success' })
+    toast.add({ title: tt('features.admin.feedback.actions.reopen', 'Reopen'), color: 'success' })
     await reload()
   } catch (err) {
-    toast.add({ title: tt('common.error', 'Error'), description: tt('admin.feedback.reopenError', 'Error reopening feedback'), color: 'error' })
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: tt('admin.feedback.reopenError', 'Error reopening feedback'), color: 'error' })
   }
 }
 
@@ -433,12 +426,12 @@ async function saveNotes(nextDetail: string) {
   if (!notesItem.value) return
   try {
     await update(notesItem.value.id, { detail: nextDetail })
-    toast.add({ title: tt('common.success', 'Success'), description: tt('feedback.saved', 'Feedback saved'), color: 'success' })
+    toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.feedback.saved', 'Feedback saved'), color: 'success' })
     notesOpen.value = false
     notesItem.value = null
     await loadList()
   } catch (err: any) {
-    toast.add({ title: tt('common.error', 'Error'), description: String(err?.data?.message ?? err?.message ?? err), color: 'error' })
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: String(err?.data?.message ?? err?.message ?? err), color: 'error' })
   }
 }
 
@@ -453,15 +446,15 @@ async function confirmResolveSelected() {
     const results = await Promise.allSettled(selectedIds.value.map(id => resolve(id)))
     const allOk = results.every(result => result.status === 'fulfilled')
     toast.add({
-      title: allOk ? tt('common.success', 'Success') : tt('common.partial', 'Partial'),
-      description: allOk ? tt('admin.feedback.resolvedOk', 'Resolved successfully') : tt('admin.feedback.resolvedPartial', 'Some items failed'),
+      title: allOk ? tt('ui.notifications.success', 'Success') : tt('common.partial', 'Partial'),
+      description: allOk ? tt('features.admin.feedback.resolvedOk', 'Resolved successfully') : tt('features.admin.feedback.resolvedPartial', 'Some items failed'),
       color: allOk ? 'success' : 'warning',
     })
     selectedIds.value = []
     resolveOpen.value = false
     await reload()
   } catch (err) {
-    toast.add({ title: tt('common.error', 'Error'), description: tt('admin.feedback.resolvedErr', 'Error resolving feedback'), color: 'error' })
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: tt('features.admin.feedback.resolvedErr', 'Error resolving feedback'), color: 'error' })
   } finally {
     resolving.value = false
   }
@@ -472,7 +465,7 @@ async function confirmDelete() {
   try {
     deleting.value = true
     await remove(toDelete.value.id)
-    toast.add({ title: tt('common.success', 'Success'), description: tt('messages.deleteSuccess', 'Deleted successfully'), color: 'success' })
+    toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('ui.notifications.deleteSuccess', 'Deleted successfully'), color: 'success' })
     deleteOpen.value = false
     toDelete.value = null
     await reload()
@@ -523,7 +516,7 @@ async function bulkReopen() {
     selectedIds.value = []
     await reload()
   } catch (err) {
-    toast.add({ title: tt('common.error', 'Error'), description: tt('admin.feedback.reopenError', 'Error reopening feedback'), color: 'error' })
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: tt('admin.feedback.reopenError', 'Error reopening feedback'), color: 'error' })
   }
 }
 
@@ -532,11 +525,11 @@ async function bulkDelete() {
   if (typeof window !== 'undefined' && !window.confirm(tt('admin.feedback.confirmDelete', 'Delete selected feedback?'))) return
   try {
     await Promise.all(selectedIds.value.map(id => remove(id)))
-    toast.add({ title: tt('messages.deleteSuccess', 'Deleted successfully'), color: 'success' })
+    toast.add({ title: tt('ui.notifications.deleteSuccess', 'Deleted successfully'), color: 'success' })
     selectedIds.value = []
     await reload()
   } catch (err) {
-    toast.add({ title: tt('common.error', 'Error'), description: tt('admin.feedback.deleteError', 'Error deleting feedback'), color: 'error' })
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: tt('admin.feedback.deleteError', 'Error deleting feedback'), color: 'error' })
   }
 }
 </script>

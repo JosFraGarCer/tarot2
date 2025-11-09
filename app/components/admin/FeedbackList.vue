@@ -6,12 +6,12 @@
         <thead>
           <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
             <th class="py-2 pr-2"><UCheckbox :model-value="allChecked" :indeterminate="indeterminate" @update:model-value="toggleAll" /></th>
-            <th class="py-2 pr-4">{{ $t('admin.feedback.card', 'Card') }}</th>
-            <th class="py-2 pr-4">{{ $t('admin.feedback.title', 'Title') }}</th>
-            <th class="py-2 pr-4">{{ $t('admin.feedback.category', 'Category') }}</th>
-            <th class="py-2 pr-4">{{ $t('admin.feedback.status', 'Status') }}</th>
-            <th class="py-2 pr-4">{{ $t('common.createdAt', 'Created') }}</th>
-            <th class="py-2 pr-4 text-right">{{ $t('common.actions', 'Actions') }}</th>
+            <th class="py-2 pr-4">{{ $t('features.admin.feedback.card', 'Card') }}</th>
+            <th class="py-2 pr-4">{{ $t('features.admin.feedback.title', 'Title') }}</th>
+            <th class="py-2 pr-4">{{ $t('features.admin.feedback.category', 'Category') }}</th>
+            <th class="py-2 pr-4">{{ $t('features.admin.feedback.status', 'Status') }}</th>
+            <th class="py-2 pr-4">{{ $t('ui.misc.createdAt', 'Created') }}</th>
+            <th class="py-2 pr-4 text-right">{{ $t('ui.table.actions', 'Actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -29,7 +29,7 @@
             <td class="py-2 pr-4 font-mono">{{ f.card_code }}</td>
             <td class="py-2 pr-4">
               <div class="flex items-center gap-2">
-                <UTooltip :text="$t('admin.feedback.createdBy','Created by') + ': ' + (f.created_by_name || 'Unknown')">
+                <UTooltip :text="$t('features.admin.feedback.createdBy','Created by') + ': ' + (f.created_by_name || 'Unknown')">
                   <UAvatar size="xs" :text="(f.created_by_name?.[0] || '?').toUpperCase()" />
                 </UTooltip>
                 <div class="font-medium flex items-center gap-2">
@@ -39,13 +39,13 @@
                       v-if="Date.now() - new Date(f.created_at).getTime() < 24 * 60 * 60 * 1000"
                       name="i-heroicons-sparkles"
                       class="text-blue-400 ml-1"
-                      :title="$t('admin.feedback.new','New feedback')"
+                      :title="$t('features.admin.feedback.new','New feedback')"
                     />
                     <UIcon
                       v-if="f.detail && f.detail.includes('--- [')"
                       name="i-heroicons-chat-bubble-left-ellipsis"
                       class="text-gray-400 ml-1"
-                      :title="$t('admin.feedback.notes.hasNotes','Has internal notes')"
+                      :title="$t('features.admin.feedback.notes.hasNotes','Has internal notes')"
                     />
                   </span>
                   <UBadge v-if="f.language_code" variant="soft" color="primary">{{ String(f.language_code).toUpperCase() }}</UBadge>
@@ -62,14 +62,14 @@
             <td class="py-2 pr-4">{{ formatDate(f.created_at) }}</td>
             <td class="py-2 pr-0">
               <div class="flex justify-end gap-2">
-                <UButton size="xs" icon="i-heroicons-code-bracket-square" variant="soft" :title="$t('admin.feedback.viewJson','View JSON')" @click="$emit('view-json', f)" />
-                <UButton size="xs" icon="i-heroicons-eye" variant="soft" :title="$t('common.preview','Preview')" @click="$emit('view', f)" />
+                <UButton size="xs" icon="i-heroicons-code-bracket-square" variant="soft" :title="$t('features.admin.feedback.viewJson','View JSON')" @click="$emit('view-json', f)" />
+                <UButton size="xs" icon="i-heroicons-eye" variant="soft" :title="$t('ui.actions.preview','Preview')" @click="$emit('view', f)" />
                 <UButton
                   size="xs"
                   icon="i-heroicons-pencil-square"
                   variant="soft"
                   :disabled="!isEditor"
-                  :title="!isEditor ? $t('common.noPermission','No permission') : $t('admin.feedback.actions.viewNotes','View notes')"
+                  :title="!isEditor ? $t('ui.messages.noPermission','No permission') : $t('features.admin.feedback.actions.viewNotes','View notes')"
                   @click="$emit('notes', f)"
                 />
                 <UButton
@@ -77,7 +77,7 @@
                   size="xs"
                   icon="i-heroicons-link"
                   variant="soft"
-                  :title="$t('admin.feedback.actions.openEntity','Open related entity')"
+                  :title="$t('features.admin.feedback.actions.openEntity','Open related entity')"
                   @click="openEntity(f)"
                 />
                 <UButton
@@ -85,16 +85,16 @@
                   size="xs"
                   icon="i-heroicons-arrow-path"
                   variant="soft"
-                  :title="$t('admin.feedback.actions.reopen','Reopen')"
+                  :title="$t('features.admin.feedback.actions.reopen','Reopen')"
                   @click="$emit('reopen', f)"
                 />
-                <UButton size="xs" icon="i-heroicons-check-circle" color="primary" variant="soft" :disabled="!isEditor || f.status==='resolved'" :title="!isEditor ? $t('common.noPermission','No permission') : $t('common.resolve','Resolve')" @click="$emit('resolve', f)" />
-                <UButton size="xs" icon="i-heroicons-trash" color="error" variant="soft" :title="$t('common.delete','Delete')" @click="$emit('delete', f)" />
+                <UButton size="xs" icon="i-heroicons-check-circle" color="primary" variant="soft" :disabled="!isEditor || f.status==='resolved'" :title="!isEditor ? $t('ui.messages.noPermission','No permission') : $t('ui.actions.resolve','Resolve')" @click="$emit('resolve', f)" />
+                <UButton size="xs" icon="i-heroicons-trash" color="error" variant="soft" :title="$t('ui.actions.delete','Delete')" @click="$emit('delete', f)" />
               </div>
             </td>
           </tr>
           <tr v-if="!items || items.length === 0">
-            <td colspan="7" class="py-6 text-center text-gray-400">{{ $t('common.noData','No data') }}</td>
+            <td colspan="7" class="py-6 text-center text-gray-400">{{ $t('ui.empty.noData','No data') }}</td>
           </tr>
         </tbody>
       </table>

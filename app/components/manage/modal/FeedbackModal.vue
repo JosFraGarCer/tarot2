@@ -3,7 +3,7 @@
 <template>
   <UModal
     :open="open"
-    :title="tt('feedback.title', 'Feedback')"
+    :title="tt('features.feedback.title', 'Feedback')"
     @update:open="handleOpenChange"
   >
     <template #body>
@@ -14,7 +14,7 @@
         </div>
 
         <!-- Tipo de feedback -->
-        <UFormField :label="tt('feedback.type', 'Type')">
+        <UFormField :label="tt('features.feedback.type', 'Type')">
           <USelectMenu
             v-model="local.type"
             :items="typeOptions"
@@ -25,22 +25,22 @@
         </UFormField>
 
         <!-- Comentario -->
-        <UFormField :label="tt('feedback.comment', 'Comment')">
+        <UFormField :label="tt('features.feedback.comment', 'Comment')">
           <UTextarea
             ref="commentRef"
             v-model="local.comment"
             class="w-full"
             :rows="5"
-            :placeholder="tt('feedback.commentPlaceholder', 'Describe your feedback...')"
+            :placeholder="tt('features.feedback.commentPlaceholder', 'Describe your feedback...')"
           />
         </UFormField>
 
         <!-- Adjuntos opcionales -->
-        <UFormField :label="tt('feedback.attach', 'Attachment (optional)')">
+        <UFormField :label="tt('features.feedback.attach', 'Attachment (optional)')">
           <UInput
             v-model="local.attachment"
             class="w-full"
-            :placeholder="tt('feedback.attachmentPlaceholder', 'Link or reference')"
+            :placeholder="tt('features.feedback.attachmentPlaceholder', 'Link or reference')"
           />
         </UFormField>
       </div>
@@ -51,12 +51,12 @@
         <UButton
           color="neutral"
           variant="soft"
-          :label="tt('common.cancel', 'Cancel')"
+          :label="tt('ui.actions.cancel', 'Cancel')"
           @click="close"
         />
         <UButton
           color="primary"
-          :label="tt('common.save', 'Save')"
+          :label="tt('ui.actions.save', 'Save')"
           :disabled="!local.comment.trim() || saving"
           :loading="saving"
           @click="submit"
@@ -99,9 +99,9 @@ const emit = defineEmits<{
 // Tipos disponibles
 // ------------------------------------------------
 const typeOptions = [
-  { label: tt('feedback.bug', 'Bug'), value: 'bug' },
-  { label: tt('feedback.suggestion', 'Suggestion'), value: 'suggestion' },
-  { label: tt('feedback.balance', 'Balance'), value: 'balance' },
+  { label: tt('features.feedback.bug', 'Bug'), value: 'bug' },
+  { label: tt('features.feedback.suggestion', 'Suggestion'), value: 'suggestion' },
+  { label: tt('features.feedback.balance', 'Balance'), value: 'balance' },
   { label: tt('feedback.translation', 'Translation'), value: 'translation' },
   { label: tt('feedback.other', 'Other'), value: 'other' }
 ]

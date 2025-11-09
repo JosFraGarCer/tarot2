@@ -35,8 +35,8 @@ export function useNavigationMenu() {
     // 🧭 Menú público si no hay usuario autenticado
     if (!user.value || Object.keys(user.value).length === 0) {
       return [
-        { label: t('nav.home'), to: safePath('/'), active: isActive('/') },
-        { label: t('nav.login'), to: safePath('/login'), active: isActive('/login') },
+        { label: t('navigation.menu.home'), to: safePath('/'), active: isActive('/') },
+        { label: t('navigation.menu.login'), to: safePath('/login'), active: isActive('/login') },
       ]
     }
 
@@ -74,7 +74,7 @@ export function useNavigationMenu() {
 
     // Añadir "Home" si no está presente
     const homeItem: NavigationMenuItem = {
-      label: t('nav.home'),
+      label: t('navigation.menu.home'),
       to: safePath('/'),
       active: isActive('/'),
       activeClass: 'font-semibold underline underline-offset-8',

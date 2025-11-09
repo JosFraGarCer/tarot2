@@ -11,14 +11,14 @@
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div class="text-sm text-neutral-600 dark:text-neutral-400">
-              {{ $t('common.selected') }}: {{ (modelValue || []).length }}
+              {{ $t('ui.table.selected') }}: {{ (modelValue || []).length }}
             </div>
             <div class="flex gap-2">
-              <UButton size="xs" color="neutral" variant="soft" :label="$t('common.clear')" @click="clearAll" />
+              <UButton size="xs" color="neutral" variant="soft" :label="$t('ui.actions.clear')" @click="clearAll" />
             </div>
           </div>
 
-          <UFormField :label="$t('common.tags')">
+          <UFormField :label="$t('ui.fields.tags')">
             <USelectMenu
               multiple
               searchable
@@ -48,8 +48,8 @@
     </template>
     <template #footer>
       <div class="flex justify-end gap-2 w-full">
-        <UButton color="neutral" variant="soft" :label="cancelLabel || $t('common.cancel')" @click="$emit('update:open', false)" />
-        <UButton color="primary" :loading="saving" :label="confirmLabel || $t('common.save')" @click="onSubmit" />
+        <UButton color="neutral" variant="soft" :label="cancelLabel || $t('ui.actions.cancel')" @click="$emit('update:open', false)" />
+        <UButton color="primary" :loading="saving" :label="confirmLabel || $t('ui.actions.save')" @click="onSubmit" />
       </div>
     </template>
   </UModal>

@@ -5,12 +5,12 @@
       <table class="min-w-full text-sm">
         <thead>
           <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-            <th class="py-2 pr-4">{{ tt('versions.version', 'Version') }}</th>
-            <th class="py-2 pr-4">{{ tt('versions.release.label', 'Release type') }}</th>
-            <th class="py-2 pr-4">{{ tt('common.description', 'Description') }}</th>
-            <th class="py-2 pr-4">{{ tt('common.createdAt', 'Created') }}</th>
-            <th class="py-2 pr-4">{{ tt('common.metadata', 'Metadata') }}</th>
-            <th class="py-2 pr-4 text-right">{{ tt('common.actions', 'Actions') }}</th>
+            <th class="py-2 pr-4">{{ tt('domains.version.version', 'Version') }}</th>
+            <th class="py-2 pr-4">{{ tt('domains.version.release.label', 'Release type') }}</th>
+            <th class="py-2 pr-4">{{ tt('ui.fields.description', 'Description') }}</th>
+            <th class="py-2 pr-4">{{ tt('ui.misc.createdAt', 'Created') }}</th>
+            <th class="py-2 pr-4">{{ tt('ui.fields.metadata', 'Metadata') }}</th>
+            <th class="py-2 pr-4 text-right">{{ tt('ui.table.actions', 'Actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -28,7 +28,7 @@
                 size="xs"
                 variant="ghost"
                 color="neutral"
-                :title="tt('versions.viewMetadata', 'View metadata')"
+                :title="tt('domains.version.viewMetadata', 'View metadata')"
                 @click="$emit('meta', v)"
               >
                 <div class="max-w-[30ch] truncate font-mono text-xs text-gray-500 dark:text-gray-400 text-left">{{ stringifyMeta(v.metadata) }}</div>
@@ -37,13 +37,13 @@
             <td class="py-2 pr-0">
               <div class="flex justify-end gap-2">
                 <UButton size="xs" icon="i-heroicons-eye" variant="soft" :title="tt('common.view', 'View')" @click="$emit('view', v)" />
-                <UButton size="xs" icon="i-heroicons-pencil-square" variant="soft" :title="tt('common.edit', 'Edit')" @click="$emit('edit', v)" />
-                <UButton size="xs" icon="i-heroicons-trash" color="error" variant="soft" :title="tt('common.delete', 'Delete')" @click="$emit('delete', v)" />
+                <UButton size="xs" icon="i-heroicons-pencil-square" variant="soft" :title="tt('ui.actions.edit', 'Edit')" @click="$emit('edit', v)" />
+                <UButton size="xs" icon="i-heroicons-trash" color="error" variant="soft" :title="tt('ui.actions.delete', 'Delete')" @click="$emit('delete', v)" />
               </div>
             </td>
           </tr>
           <tr v-if="!versions || versions.length === 0">
-            <td colspan="6" class="py-6 text-center text-gray-400">{{ tt('common.noData', 'No data') }}</td>
+            <td colspan="6" class="py-6 text-center text-gray-400">{{ tt('ui.empty.noData', 'No data') }}</td>
           </tr>
         </tbody>
       </table>

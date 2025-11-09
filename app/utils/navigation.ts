@@ -11,20 +11,20 @@ export type NavItem = {
 
 export const navigationMap: NavItem[] = [
   // 🏠 Home
-  { id: 'home', labelKey: 'nav.home', to: '/', visible: () => true },
+  { id: 'home', labelKey: 'navigation.menu.home', to: '/', visible: () => true },
 
   // 📦 Deck
   {
     id: 'deck',
-    labelKey: 'nav.deck',
+    labelKey: 'navigation.menu.deck',
     to: '/deck',
     children: [
-      { labelKey: 'nav.cardTypes', to: '/deck/card-types' },
-      { labelKey: 'nav.baseCards', to: '/deck/base-cards' },
-      { labelKey: 'nav.worlds', to: '/deck/worlds' },
-      { labelKey: 'nav.arcana', to: '/deck/arcana' },
-      { labelKey: 'nav.facets', to: '/deck/facets' },
-      { labelKey: 'nav.skills', to: '/deck/skills' }
+      { labelKey: 'navigation.menu.cardTypes', to: '/deck/card-types' },
+      { labelKey: 'navigation.menu.baseCards', to: '/deck/base-cards' },
+      { labelKey: 'navigation.menu.worlds', to: '/deck/worlds' },
+      { labelKey: 'navigation.menu.arcana', to: '/deck/arcana' },
+      { labelKey: 'navigation.menu.facets', to: '/deck/facets' },
+      { labelKey: 'navigation.menu.skills', to: '/deck/skills' }
     ],
     visible: () => true
   },
@@ -32,7 +32,7 @@ export const navigationMap: NavItem[] = [
   // ⚙️ Manage
   {
     id: 'manage',
-    labelKey: 'nav.manage',
+    labelKey: 'navigation.menu.manage',
     to: '/manage',
     visible: (p, role) =>
       Boolean(
@@ -47,28 +47,28 @@ export const navigationMap: NavItem[] = [
   // 🧭 Admin
   {
     id: 'admin',
-    labelKey: 'nav.admin',
+    labelKey: 'navigation.menu.admin',
     to: '/admin',
     children: [
       {
-        labelKey: 'nav.manageUsers',
+        labelKey: 'navigation.menu.manageUsers',
         to: '/admin/users',
         visible: (p, role) => Boolean(
           p.canManageUsers || (role && ['admin'].includes(role))
         )
       },
       {
-        labelKey: 'nav.database',
+        labelKey: 'navigation.menu.database',
         to: '/admin/database',
         visible: (p, role) => Boolean(role === 'admin')
       },
       {
-        labelKey: 'nav.versions',
+        labelKey: 'navigation.menu.versions',
         to: '/admin/versions',
         visible: (p, role) => Boolean(role === 'admin')
       },
       {
-        labelKey: 'nav.feedback',
+        labelKey: 'navigation.menu.feedback',
         to: '/admin/feedback',
         visible: (p, role) => Boolean(
           p.canResolveFeedback || (role && ['admin', 'staff', 'reviewer'].includes(role))

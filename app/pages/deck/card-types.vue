@@ -2,8 +2,8 @@
 <template>
   <DeckEntityPage
     entity="cardType"
-    title-key="nav.cardTypes"
-    label-key="card-types.title"
+    title-key="navigation.menu.cardTypes"
+    label-key="domains.cardType.title"
     description-key="deck.cardTypesDescription"
   />
 </template>

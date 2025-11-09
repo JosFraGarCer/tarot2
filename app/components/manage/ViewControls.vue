@@ -8,9 +8,9 @@
       value-key="value"
       size="xs"
       class="w-40"
-      :placeholder="$t('common.template')"
+      :placeholder="$t('ui.fields.template')"
     />
-    <UTooltip :text="$t('view.card')">
+    <UTooltip :text="$t('viewModes.card')">
       <UButton
         icon="i-heroicons-square-3-stack-3d"
         size="md"
@@ -19,7 +19,7 @@
         @click="setMode('tarjeta')"
       />
     </UTooltip>
-    <UTooltip :text="$t('view.classic')">
+    <UTooltip :text="$t('viewModes.classic')">
       <UButton
         icon="i-heroicons-view-columns"
         size="md"
@@ -28,7 +28,7 @@
         @click="setMode('classic')"
       />
     </UTooltip>
-    <UTooltip :text="$t('view.carta')">
+    <UTooltip :text="$t('viewModes.carta')">
       <UButton
         icon="i-heroicons-rectangle-stack"
         size="md"
@@ -37,14 +37,14 @@
         @click="setMode('carta')"
       />
     </UTooltip>
-    <UTooltip :text="$t('view.table')">
+    <UTooltip :text="$t('viewModes.table')">
       <UButton
         icon="i-heroicons-table-cells"
         size="md"
         :variant="modelValue === 'tabla' ? 'solid' : 'soft'"
         color="neutral"
         :disabled="disableTable"
-        :title="disableTable ? $t('view.tableSoon') : ''"
+        :title="disableTable ? $t('viewModes.tableSoon') : ''"
         @click="setMode('tabla')"
       />
     </UTooltip>

@@ -2,16 +2,16 @@
 <template>
   <div class="space-y-3">
     <div class="flex flex-wrap items-center gap-2">
-      <UInput v-model="search" :placeholder="$t('common.search','Search')" icon="i-heroicons-magnifying-glass" class="w-full sm:w-72" />
+      <UInput v-model="search" :placeholder="$t('ui.actions.search','Search')" icon="i-heroicons-magnifying-glass" class="w-full sm:w-72" />
       <USelectMenu v-model="entityType" :items="entityTypeItems" value-key="value" option-attribute="label" class="w-64" />
       <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-600 dark:text-gray-300">{{ $t('common.status','Status') }}</span>
+        <span class="text-sm text-gray-600 dark:text-gray-300">{{ $t('ui.fields.status','Status') }}</span>
         <USelectMenu v-model="status" :items="statusItems" value-key="value" option-attribute="label" class="w-40" />
       </div>
       <div class="ml-auto flex gap-2">
-        <UButton size="xs" variant="soft" color="neutral" :disabled="pending" @click="reload">{{ $t('common.refresh','Refresh') }}</UButton>
-        <UButton size="xs" color="primary" :disabled="!isEditor || selectedIds.length===0" :title="!isEditor ? $t('common.noPermission') : ''" @click="bulkApprove">{{ $t('admin.revisions.approveSelected','Approve selected') }}</UButton>
-        <UButton size="xs" color="error" variant="soft" :disabled="!isEditor || selectedIds.length===0" :title="!isEditor ? $t('common.noPermission') : ''" @click="bulkReject">{{ $t('admin.revisions.rejectSelected','Reject selected') }}</UButton>
+        <UButton size="xs" variant="soft" color="neutral" :disabled="pending" @click="reload">{{ $t('ui.actions.refresh','Refresh') }}</UButton>
+        <UButton size="xs" color="primary" :disabled="!isEditor || selectedIds.length===0" :title="!isEditor ? $t('ui.messages.noPermission') : ''" @click="bulkApprove">{{ $t('features.admin.revisions.approveSelected','Approve selected') }}</UButton>
+        <UButton size="xs" color="error" variant="soft" :disabled="!isEditor || selectedIds.length===0" :title="!isEditor ? $t('ui.messages.noPermission') : ''" @click="bulkReject">{{ $t('features.admin.revisions.rejectSelected','Reject selected') }}</UButton>
       </div>
     </div>
 
@@ -20,11 +20,11 @@
         <thead>
           <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
             <th class="py-2 pr-2"><UCheckbox v-model="allChecked" :indeterminate="indeterminate" @change="toggleAll" /></th>
-            <th class="py-2 pr-4">{{ $t('common.entity','Entity') }}</th>
-            <th class="py-2 pr-4">{{ $t('common.language','Language') }}</th>
-            <th class="py-2 pr-4">{{ $t('common.status','Status') }}</th>
-            <th class="py-2 pr-4">{{ $t('common.createdAt','Created') }}</th>
-            <th class="py-2 pr-4 text-right">{{ $t('common.actions','Actions') }}</th>
+            <th class="py-2 pr-4">{{ $t('ui.fields.entity','Entity') }}</th>
+            <th class="py-2 pr-4">{{ $t('ui.fields.language','Language') }}</th>
+            <th class="py-2 pr-4">{{ $t('ui.fields.status','Status') }}</th>
+            <th class="py-2 pr-4">{{ $t('ui.misc.createdAt','Created') }}</th>
+            <th class="py-2 pr-4 text-right">{{ $t('ui.table.actions','Actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -36,14 +36,14 @@
             <td class="py-2 pr-4">{{ formatDate(r.created_at) }}</td>
             <td class="py-2 pr-0">
               <div class="flex justify-end gap-2">
-                <UButton size="xs" icon="i-heroicons-document-magnifying-glass" variant="soft" :title="$t('admin.revisions.viewDiff','View diff')" @click="onViewDiff(r)" />
-                <UButton size="xs" icon="i-heroicons-check-circle" color="primary" variant="soft" :disabled="!isEditor" :title="!isEditor ? $t('common.noPermission') : $t('status.approved','Approve')" @click="setOne(r.id, 'approved')" />
-                <UButton size="xs" icon="i-heroicons-x-circle" color="error" variant="soft" :disabled="!isEditor" :title="!isEditor ? $t('common.noPermission') : $t('status.draft','Reject')" @click="setOne(r.id, 'rejected')" />
+                <UButton size="xs" icon="i-heroicons-document-magnifying-glass" variant="soft" :title="$t('features.admin.revisions.viewDiff','View diff')" @click="onViewDiff(r)" />
+                <UButton size="xs" icon="i-heroicons-check-circle" color="primary" variant="soft" :disabled="!isEditor" :title="!isEditor ? $t('ui.messages.noPermission') : $t('system.status.approved','Approve')" @click="setOne(r.id, 'approved')" />
+                <UButton size="xs" icon="i-heroicons-x-circle" color="error" variant="soft" :disabled="!isEditor" :title="!isEditor ? $t('ui.messages.noPermission') : $t('system.status.draft','Reject')" @click="setOne(r.id, 'rejected')" />
               </div>
             </td>
           </tr>
           <tr v-if="!items || items.length===0">
-            <td colspan="6" class="py-6 text-center text-gray-400">{{ $t('common.noData','No data') }}</td>
+            <td colspan="6" class="py-6 text-center text-gray-400">{{ $t('ui.empty.noData','No data') }}</td>
           </tr>
         </tbody>
       </table>
@@ -61,7 +61,7 @@
       @update:page-size="handlePageSizeChange"
     />
 
-    <JsonModal v-model="diffOpen" :value="currentDiff" :title="$t('admin.revisions.diffTitle','Revision diff')" />
+    <JsonModal v-model="diffOpen" :value="currentDiff" :title="$t('features.admin.revisions.diffTitle','Revision diff')" />
   </div>
 </template>
 
@@ -80,7 +80,7 @@ const props = withDefaults(defineProps<{ defaultStatus?: 'draft'|'approved'|'rej
 const search = ref('')
 const entityType = ref<string | null>(null)
 const entityTypeItems = [
-  { label: t('filters.all','All'), value: null },
+  { label: t('ui.filters.all','All'), value: null },
   { label: 'arcana_translation', value: 'arcana_translation' },
   { label: 'base_card_translations', value: 'base_card_translations' },
   { label: 'base_skills_translations', value: 'base_skills_translations' },

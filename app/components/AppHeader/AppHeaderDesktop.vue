@@ -18,11 +18,11 @@ const navigationItems = useNavigationMenu()
 /** User dropdown */
 const itemsUser = computed(() => [
   [
-    { label: t('nav.userProfile'), icon: 'i-heroicons-user', to: localePath('/user') }
+    { label: t('navigation.menu.userProfile'), icon: 'i-heroicons-user', to: localePath('/user') }
   ],
   [
     {
-      label: t('nav.logout'),
+      label: t('navigation.menu.logout'),
       icon: 'i-heroicons-arrow-left-on-rectangle',
       onSelect: async (e: Event) => {
         e?.preventDefault?.()
@@ -42,7 +42,7 @@ const itemsUser = computed(() => [
       :to="localePath('/')"
       class="font-semibold text-lg tracking-tight hover:opacity-80"
     >
-      {{ $t('app.title') }}
+      {{ $t('app.brand.title') }}
     </NuxtLink>
 
     <!-- Navegación principal -->
@@ -57,7 +57,7 @@ const itemsUser = computed(() => [
         size="sm"
         variant="ghost"
         class="w-28"
-        :aria-label="$t('nav.changeLanguage')"
+        :aria-label="$t('navigation.menu.changeLanguage')"
         @update:model-value="(code) => { const path = switchLocalePath(code as any); if (path) navigateTo(path) }"
       />
 

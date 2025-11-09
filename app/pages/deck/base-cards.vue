@@ -2,8 +2,8 @@
 <template>
   <DeckEntityPage
     entity="baseCard"
-    title-key="nav.baseCards"
-    label-key="base_card.title"
+    title-key="navigation.menu.baseCards"
+    label-key="domains.baseCard.title"
     description-key="deck.baseCardsDescription"
   />
 </template>

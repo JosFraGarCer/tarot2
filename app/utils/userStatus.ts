@@ -9,11 +9,11 @@ export interface UserStatusMeta {
 }
 
 const MAP: Record<string, UserStatusMeta> = {
-  active: { labelKey: 'users.statusActive', color: 'success', variant: 'soft' },
-  inactive: { labelKey: 'users.statusInactive', color: 'neutral', variant: 'outline' },
-  suspended: { labelKey: 'users.statusSuspended', color: 'warning', variant: 'soft' },
-  banned: { labelKey: 'users.statusBanned', color: 'error', variant: 'soft' },
-  pending: { labelKey: 'users.statusPending', color: 'warning', variant: 'outline' },
+  active: { labelKey: 'domains.user.statusActive', color: 'success', variant: 'soft' },
+  inactive: { labelKey: 'domains.user.statusInactive', color: 'neutral', variant: 'outline' },
+  suspended: { labelKey: 'domains.user.statusSuspended', color: 'warning', variant: 'soft' },
+  banned: { labelKey: 'domains.user.statusBanned', color: 'error', variant: 'soft' },
+  pending: { labelKey: 'domains.user.statusPending', color: 'warning', variant: 'outline' },
 }
 
 export function getUserStatusMeta(status?: string | null): (UserStatusMeta & { value: string }) | null {
@@ -24,7 +24,7 @@ export function getUserStatusMeta(status?: string | null): (UserStatusMeta & { v
 }
 
 export function userStatusLabelKey(status?: string | null): string {
-  return getUserStatusMeta(status)?.labelKey ?? 'users.status'
+  return getUserStatusMeta(status)?.labelKey ?? 'domains.user.status'
 }
 
 export function userStatusColor(status?: string | null): UserStatusColor {

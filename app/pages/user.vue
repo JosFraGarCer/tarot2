@@ -5,10 +5,10 @@
       <template #header>
         <div class="space-y-1">
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-            {{ $t('users.profileTitle') }}
+            {{ $t('domains.user.profileTitle') }}
           </h1>
           <p class="text-sm text-neutral-600 dark:text-neutral-300">
-            {{ $t('users.profileDescription') }}
+            {{ $t('domains.user.profileDescription') }}
           </p>
         </div>
       </template>
@@ -47,12 +47,12 @@
                 :loading="avatarUploading"
                 @click="removeAvatar"
               >
-                {{ $t('users.avatarRemove') }}
+                {{ $t('domains.user.avatarRemove') }}
               </UButton>
             </div>
           </div>
           <p v-if="!user.image" class="text-xs text-neutral-500 dark:text-neutral-400">
-            {{ $t('users.avatarHint') }}
+            {{ $t('domains.user.avatarHint') }}
           </p>
           <p v-if="avatarError" class="text-xs text-error-600 dark:text-error-400">
             {{ avatarError }}
@@ -62,7 +62,7 @@
         <section class="space-y-4">
           <div>
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ $t('users.infoHeading') }}
+              {{ $t('domains.user.infoHeading') }}
             </h2>
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
               {{ user.email }} · {{ user.username }}
@@ -85,7 +85,7 @@
                 {{ role.name }}
               </UBadge>
               <span v-if="!user.roles.length" class="text-xs text-neutral-500 dark:text-neutral-400">
-                {{ $t('users.noRoles') }}
+                {{ $t('domains.user.noRoles') }}
               </span>
             </div>
           </div>
@@ -97,7 +97,7 @@
               :loading="loggingOut"
               @click="handleLogout"
             >
-              {{ $t('nav.logout') }}
+              {{ $t('navigation.menu.logout') }}
             </UButton>
           </div>
 
@@ -106,17 +106,17 @@
           <ClientOnly>
             <UForm :state="accountForm" class="space-y-4" @submit.prevent="saveAccount">
               <div class="grid gap-4 sm:grid-cols-2">
-                <UFormField :label="$t('users.email')" required>
+                <UFormField :label="$t('domains.user.email')" required>
                   <UInput v-model="accountForm.email" type="email" required />
                 </UFormField>
-                <UFormField :label="$t('users.username')" required>
+                <UFormField :label="$t('domains.user.username')" required>
                   <UInput v-model="accountForm.username" required />
                 </UFormField>
               </div>
               <div class="flex justify-end gap-2">
                 <UButton
                   type="submit"
-                  :label="$t('common.save')"
+                  :label="$t('ui.actions.save')"
                   :loading="accountSaving"
                   color="primary"
                 />
@@ -130,18 +130,18 @@
         <section class="space-y-4">
           <div>
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ $t('users.passwordHeading') }}
+              {{ $t('domains.user.passwordHeading') }}
             </h2>
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
-              {{ $t('users.passwordRequirements') }}
+              {{ $t('domains.user.passwordRequirements') }}
             </p>
           </div>
           <UForm :state="passwordForm" class="space-y-4" @submit.prevent="savePassword">
             <div class="grid gap-4 sm:grid-cols-2">
-              <UFormField :label="$t('users.password')" required>
+              <UFormField :label="$t('domains.user.password')" required>
                 <UInput v-model="passwordForm.password" type="password" required />
               </UFormField>
-              <UFormField :label="$t('users.confirmPassword')" required>
+              <UFormField :label="$t('domains.user.confirmPassword')" required>
                 <UInput v-model="passwordForm.confirmPassword" type="password" required />
               </UFormField>
             </div>
@@ -151,7 +151,7 @@
             <div class="flex justify-end gap-2">
               <UButton
                 type="submit"
-                :label="$t('users.updatePassword')"
+                :label="$t('domains.user.updatePassword')"
                 :loading="passwordSaving"
               />
             </div>
@@ -307,7 +307,7 @@ watch(avatarFile, async (file) => {
   await handleAvatarUpload(file)
 })
 
-const errorMessage = computed(() => (error.value as any)?.data?.message || (error.value as Error)?.message || t('messages.error'))
+const errorMessage = computed(() => (error.value as any)?.data?.message || (error.value as Error)?.message || t('ui.notifications.error'))
 
 const avatarSrc = computed(() => {
   const image = user.value?.image
@@ -325,11 +325,11 @@ const avatarSrc = computed(() => {
 const statusLabel = (status: string) => {
   switch (status) {
     case 'active':
-      return t('users.statusActive')
+      return t('domains.user.statusActive')
     case 'inactive':
-      return t('users.statusInactive')
+      return t('domains.user.statusInactive')
     case 'suspended':
-      return t('users.statusSuspended')
+      return t('domains.user.statusSuspended')
     default:
       return status
   }
@@ -372,12 +372,12 @@ const saveAccount = async () => {
       username: accountForm.username
     })
     toast.add({
-      title: t('messages.updateSuccess'),
+      title: t('ui.notifications.updateSuccess'),
       color: 'success'
     })
   } catch (err) {
     toast.add({
-      title: t('messages.error'),
+      title: t('ui.notifications.error'),
       description: (err as Error)?.message,
       color: 'error'
     })
@@ -392,12 +392,12 @@ const savePassword = async () => {
   }
 
   if (!passwordForm.password || passwordForm.password.length < 8) {
-    passwordError.value = t('users.passwordRequirements')
+    passwordError.value = t('domains.user.passwordRequirements')
     return
   }
 
   if (passwordForm.password !== passwordForm.confirmPassword) {
-    passwordError.value = t('users.passwordMismatch')
+    passwordError.value = t('domains.user.passwordMismatch')
     return
   }
 
@@ -411,12 +411,12 @@ const savePassword = async () => {
     passwordForm.password = ''
     passwordForm.confirmPassword = ''
     toast.add({
-      title: t('users.updatePassword'),
+      title: t('domains.user.updatePassword'),
       color: 'success'
     })
   } catch (err) {
     toast.add({
-      title: t('messages.error'),
+      title: t('ui.notifications.error'),
       description: (err as Error)?.message,
       color: 'error'
     })
@@ -439,12 +439,12 @@ const saveStatus = async () => {
     })
     statusSaved.value = true
     toast.add({
-      title: t('users.updateStatus'),
+      title: t('domains.user.updateStatus'),
       color: 'success'
     })
   } catch (err) {
     toast.add({
-      title: t('messages.error'),
+      title: t('ui.notifications.error'),
       description: (err as Error)?.message,
       color: 'error'
     })
@@ -460,7 +460,7 @@ const handleAvatarUpload = async (payload: unknown) => {
   const file = normalizeFileInput(payload)
 
   if (!file) {
-    avatarError.value = t('users.avatarUploadError')
+    avatarError.value = t('domains.user.avatarUploadError')
     return
   }
 
@@ -479,7 +479,7 @@ const handleAvatarUpload = async (payload: unknown) => {
     })
 
     if (!response?.success || !response.url || !response.path) {
-      throw new Error(t('users.avatarUploadError'))
+      throw new Error(t('domains.user.avatarUploadError'))
     }
 
     const storedPath = response.path.startsWith('/img/') ? response.path.slice(5) : response.path
@@ -487,14 +487,14 @@ const handleAvatarUpload = async (payload: unknown) => {
     await updateCurrentUser({ image: storedPath })
 
     toast.add({
-      title: t('users.avatarUpdated'),
+      title: t('domains.user.avatarUpdated'),
       color: 'success'
     })
   } catch (error) {
-    const message = (error as any)?.data?.message || (error as Error)?.message || t('users.avatarUploadError')
+    const message = (error as any)?.data?.message || (error as Error)?.message || t('domains.user.avatarUploadError')
     avatarError.value = message
     toast.add({
-      title: t('messages.error'),
+      title: t('ui.notifications.error'),
       description: message,
       color: 'error'
     })
@@ -514,14 +514,14 @@ const removeAvatar = async () => {
   try {
     await updateCurrentUser({ image: null })
     toast.add({
-      title: t('users.avatarRemoved'),
+      title: t('domains.user.avatarRemoved'),
       color: 'success'
     })
   } catch (error) {
-    const message = (error as any)?.data?.message || (error as Error)?.message || t('users.avatarRemoveError')
+    const message = (error as any)?.data?.message || (error as Error)?.message || t('domains.user.avatarRemoveError')
     avatarError.value = message
     toast.add({
-      title: t('messages.error'),
+      title: t('ui.notifications.error'),
       description: message,
       color: 'error'
     })
@@ -535,7 +535,7 @@ const handleLogout = async () => {
     await logout()
   } catch (error) {
     toast.add({
-      title: t('auth.logoutError'),
+      title: t('features.auth.logoutError'),
       description: (error as Error)?.message,
       color: 'error'
     })

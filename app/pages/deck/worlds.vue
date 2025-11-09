@@ -2,8 +2,8 @@
 <template>
   <DeckEntityPage
     entity="world"
-    title-key="nav.worlds"
-    label-key="world.title"
+    title-key="navigation.menu.worlds"
+    label-key="domains.world.title"
     description-key="deck.worldsDescription"
   />
 </template>

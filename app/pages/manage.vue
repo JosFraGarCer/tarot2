@@ -5,7 +5,7 @@
       <template #header>
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-            {{ t('nav.manage') }}
+            {{ t('navigation.menu.manage') }}
           </h1>
           <ViewControls
             v-model="viewMode"
@@ -63,19 +63,19 @@ const selectedTab = ref<'cardType' | 'baseCard' | 'world' | 'arcana' | 'facet' |
 
 // Tab items
 const tabs = computed(() => [
-  { label: t('nav.cardTypes'), value: 'cardType', icon: 'i-heroicons-squares-2x2' },
-  { label: t('nav.baseCards'), value: 'baseCard', icon: 'i-heroicons-rectangle-stack' },
-  { label: t('nav.worlds'), value: 'world', icon: 'i-heroicons-map' },
-  { label: t('nav.arcana'), value: 'arcana', icon: 'i-heroicons-sparkles' },
-  { label: t('nav.facets'), value: 'facet', icon: 'i-heroicons-beaker' },
-  { label: t('nav.skills'), value: 'skill', icon: 'i-heroicons-academic-cap' },
-  { label: t('nav.tags'), value: 'tag', icon: 'i-heroicons-tag' }
+  { label: t('navigation.menu.cardTypes'), value: 'cardType', icon: 'i-heroicons-squares-2x2' },
+  { label: t('navigation.menu.baseCards'), value: 'baseCard', icon: 'i-heroicons-rectangle-stack' },
+  { label: t('navigation.menu.worlds'), value: 'world', icon: 'i-heroicons-map' },
+  { label: t('navigation.menu.arcana'), value: 'arcana', icon: 'i-heroicons-sparkles' },
+  { label: t('navigation.menu.facets'), value: 'facet', icon: 'i-heroicons-beaker' },
+  { label: t('navigation.menu.skills'), value: 'skill', icon: 'i-heroicons-academic-cap' },
+  { label: t('navigation.menu.tags'), value: 'tag', icon: 'i-heroicons-tag' }
 ])
 
 // Configuración por entidad
 const entityConfigs = {
   cardType: {
-    label: t('nav.cardTypes'),
+    label: t('navigation.menu.cardTypes'),
     useCrud: useCardTypeCrud,
     filters: {
       search: 'search',
@@ -86,7 +86,7 @@ const entityConfigs = {
     noTags: true
   },
   baseCard: {
-    label: t('nav.baseCards'),
+    label: t('navigation.menu.baseCards'),
     useCrud: useBaseCardCrud,
     filters: {
       search: 'search',
@@ -99,7 +99,7 @@ const entityConfigs = {
     noTags: false
   },
   world: {
-    label: t('nav.worlds'),
+    label: t('navigation.menu.worlds'),
     useCrud: useWorldCrud,
     filters: {
       search: 'search',
@@ -111,7 +111,7 @@ const entityConfigs = {
     noTags: false
   },
   arcana: {
-    label: t('nav.arcana'),
+    label: t('navigation.menu.arcana'),
     useCrud: useArcanaCrud,
     filters: {
       search: 'search',
@@ -123,7 +123,7 @@ const entityConfigs = {
     noTags: false
   },
   facet: {
-    label: t('nav.facets'),
+    label: t('navigation.menu.facets'),
     useCrud: useFacetCrud,
     filters: {
       search: 'search',
@@ -136,7 +136,7 @@ const entityConfigs = {
     noTags: false
   },
   skill: {
-    label: t('nav.skills'),
+    label: t('navigation.menu.skills'),
     useCrud: useSkillCrud,
     filters: {
       search: 'search',
@@ -149,7 +149,7 @@ const entityConfigs = {
     noTags: false
   },
   tag: {
-    label: t('nav.tags'),
+    label: t('navigation.menu.tags'),
     useCrud: useTagCrud,
     filters: {
       search: 'search',

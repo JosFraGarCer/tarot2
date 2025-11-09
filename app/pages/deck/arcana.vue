@@ -1,6 +1,11 @@
 <!-- app/pages/deck/arcana.vue -->
 <template>
-  <DeckEntityPage entity="arcana" title-key="nav.arcana" label-key="arcana.title" />
+  <DeckEntityPage
+    entity="arcana"
+    title-key="navigation.menu.arcana"
+    label-key="domains.arcana.title"
+    description-key="deck.arcanaDescription"
+  />
 </template>
 
 <script setup lang="ts">

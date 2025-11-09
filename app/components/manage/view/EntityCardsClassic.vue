@@ -24,7 +24,7 @@
           </div>
           <div class="flex flex-wrap items-center justify-center gap-2">
             <UButton color="primary" icon="i-heroicons-plus" @click="onCreateFromEmpty">
-              {{ t('common.create') }} {{ label }}
+              {{ t('ui.actions.create') }} {{ label }}
             </UButton>
             <UButton
               variant="ghost"
@@ -57,7 +57,7 @@
                 size="xs"
                 color="neutral"
                 variant="ghost"
-                :title="$t('common.preview')"
+                :title="$t('ui.actions.preview')"
                 @click="onPreviewClick(item)"
               />
                <UBadge v-if="langBadge(item)" color="neutral" variant="subtle" size="sm">
@@ -91,7 +91,7 @@
                   {{ $t(statusLabelKey(item.status)) }}
                 </UBadge>
               <UBadge
-                :label="(item.is_active ? t('common.active') : t('common.inactive')) || '-'"
+                :label="(item.is_active ? t('ui.states.active') : t('ui.states.inactive')) || '-'"
                 :color="item.is_active ? 'primary' : 'neutral'"
                 size="sm"
               />

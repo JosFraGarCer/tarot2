@@ -194,6 +194,6 @@ function onUpdateSelected(ids: number[]) {
 
 const emptyTitle = computed(() => t('common.noResults'))
 const emptySubtitle = computed(() => t('common.tryAdjustFilters'))
-const emptyCreateLabel = computed(() => `${t('common.create')} ${props.label}`)
+const emptyCreateLabel = computed(() => `${t('ui.actions.create')} ${props.label}`)
 const emptyResetLabel = computed(() => t('common.resetFilters'))
 </script>

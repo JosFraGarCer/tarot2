@@ -34,7 +34,7 @@
         color="neutral"
         variant="soft"
         :loading="exporting"
-        :label="$t('common.export') || 'Export'"
+        :label="$t('ui.actions.export') || 'Export'"
         @click="exportAll"
       />
       <UButton
@@ -42,7 +42,7 @@
         icon="i-heroicons-arrow-down-tray"
         color="neutral"
         variant="soft"
-        :label="$t('import.button') || 'Import'"
+        :label="$t('importExport.import.actions.trigger') || 'Import'"
         :loading="importing"
         @click="openImportModal"
       />
@@ -134,8 +134,8 @@
     <FormModal
       :open="isModalOpen"
       :title="isEditing ? et('edit') : et('create')"
-      :submit-label="$t('common.save')"
-      :cancel-label="$t('common.cancel')"
+      :submit-label="$t('ui.actions.save')"
+      :cancel-label="$t('ui.actions.cancel')"
       :loading="saving || isUploadingImage"
       :form="modalFormState || {}" 
       :entity-label="entityLabel"
@@ -171,8 +171,8 @@
       :description="null"
       :loading="importing"
       :error="importError"
-      :confirm-label="$t('common.import') || 'Import'"
-      :cancel-label="$t('common.cancel') || 'Cancel'"
+      :confirm-label="$t('ui.actions.import') || 'Import'"
+      :cancel-label="$t('ui.actions.cancel') || 'Cancel'"
       @submit="handleImportSubmit"
       @cancel="closeImportModal"
       @update:open="value => (importModalOpen = value)"
@@ -185,8 +185,8 @@
       :model-value="tagsSelection"
       :options="tagsOptions"
       :saving="tagsSaving"
-      :confirm-label="$t('common.save') || 'Save'"
-      :cancel-label="$t('common.cancel') || 'Cancel'"
+      :confirm-label="$t('ui.actions.save') || 'Save'"
+      :cancel-label="$t('ui.actions.cancel') || 'Cancel'"
       @update:open="handleTagsModalOpenChange"
       @update:model-value="setTagsSelection"
       @confirm="confirmTags"
@@ -302,7 +302,7 @@ const {
 })
 
 const importModalOpen = ref(false)
-const importModalTitle = computed(() => `${t('import.button') || 'Import'} ${props.label}`)
+const importModalTitle = computed(() => `${t('importExport.import.actions.trigger') || 'Import'} ${props.label}`)
 
 function openImportModal() {
   importModalOpen.value = true
@@ -393,7 +393,7 @@ const {
   toast,
 })
 
-const tagsModalTitle = computed(() => `${t('common.tags') || 'Tags'} ${props.label}`)
+const tagsModalTitle = computed(() => `${t('ui.fields.tags') || 'Tags'} ${props.label}`)
 
 async function onTags(entity: any) {
   notifyTags?.(entity)

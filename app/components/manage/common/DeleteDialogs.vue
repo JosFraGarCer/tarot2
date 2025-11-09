@@ -18,10 +18,10 @@ const props = defineProps<{
 <template>
   <ConfirmDialog
     :open="props.deleteOpen"
-    :title="$t('manageConfirm.deleteTitle', { entity: props.entityLabel })"
-    :description="$t('manageConfirm.deleteDescription', { entity: props.entityLabel })"
-    :confirm-label="$t('manageConfirm.deleteConfirm')"
-    :cancel-label="$t('common.cancel')"
+    :title="$t('ui.dialogs.confirm.deleteTitle', { entity: props.entityLabel })"
+    :description="$t('ui.dialogs.confirm.deleteDescription', { entity: props.entityLabel })"
+    :confirm-label="$t('ui.dialogs.confirm.deleteConfirm')"
+    :cancel-label="$t('ui.actions.cancel')"
     :loading="props.deleteLoading"
     @update:open="(v: boolean) => { if (!v) props.onCancel() }"
     @confirm="props.onConfirmDelete"
@@ -29,10 +29,10 @@ const props = defineProps<{
   />
   <ConfirmDialog
     :open="props.translationOpen"
-    :title="$t('manageConfirm.deleteTranslationTitle', { entity: props.entityLabel })"
-    :description="$t('manageConfirm.deleteTranslationDescription', { entity: props.entityLabel, lang: props.translationLang || 'en' })"
-    :confirm-label="$t('manageConfirm.deleteTranslationConfirm')"
-    :cancel-label="$t('common.cancel')"
+    :title="$t('ui.dialogs.confirm.deleteTranslationTitle', { entity: props.entityLabel })"
+    :description="$t('ui.dialogs.confirm.deleteTranslationDescription', { entity: props.entityLabel, lang: props.translationLang || 'en' })"
+    :confirm-label="$t('ui.dialogs.confirm.deleteTranslationConfirm')"
+    :cancel-label="$t('ui.actions.cancel')"
     :loading="props.translationLoading"
     @update:open="(v: boolean) => { if (!v) props.onCancel() }"
     @confirm="props.onConfirmTranslationDelete"

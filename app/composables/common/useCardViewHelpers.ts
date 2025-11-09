@@ -78,7 +78,7 @@ export function useCardViewHelpers(options: CardViewHelperOptions) {
   }
 
   function statusLabelKey(value: string | null | undefined) {
-    return getStatusMeta(value)?.labelKey ?? 'status.draft'
+    return getStatusMeta(value)?.labelKey ?? 'system.status.draft'
   }
 
   return {

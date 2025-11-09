@@ -64,6 +64,17 @@ server/
   - `POST /api/database/import.json` → best-effort import by entity
   - `GET /api/database/export.sql` → SQL dump (DELETE + INSERT)
   - `POST /api/database/import.sql` → best-effort restore (transaction, continues on statement errors)
+- **/api/content_versions/**
+  - `GET /api/content_versions`
+    - Query params: `page`, `pageSize`, `search`, `version_semver`, `created_by`, `release`, `sort`, `direction`.
+    - Returns paginated list with `release` stage, author name and metadata.
+  - `POST /api/content_versions`
+    - Body: `{ version_semver, description?, metadata?, release? }` (`release` defaults to `alfa`).
+    - Enforces unique `version_semver`; associates `created_by` from auth context.
+  - `GET /api/content_versions/:id`
+    - Returns single version with `release`, metadata and creator info.
+  - `PATCH /api/content_versions/:id`
+    - Body: partial update `{ version_semver?, description?, metadata?, release? }` with uniqueness check.
 - **/api/uploads/**
   - `POST /api/uploads?type=<bucket>` → validates image, strips EXIF, resizes (≤1600px), converts jpeg/png/webp to avif, stores under `public/img/<type>/`
 

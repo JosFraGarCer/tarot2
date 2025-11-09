@@ -75,8 +75,8 @@ function onSave() { if (props.role) emit('save', { id: props.role.id, descriptio
       </div>
 
       <div class="flex justify-end gap-2">
-        <UButton variant="ghost" color="neutral" @click="close">{{ $t('common.cancel') }}</UButton>
-        <UButton color="primary" @click="onSave">{{ $t('common.save') }}</UButton>
+        <UButton variant="ghost" color="neutral" @click="close">{{ $t('ui.actions.cancel') }}</UButton>
+        <UButton color="primary" @click="onSave">{{ $t('ui.actions.save') }}</UButton>
       </div>
     </div>
   </UModal>

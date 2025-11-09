@@ -27,7 +27,7 @@ const navItems = useNavigationMenu()
     <!-- Título -->
     <template #title>
       <NuxtLink :to="localePath('/')" class="font-semibold text-lg tracking-tight hover:opacity-80">
-        {{ $t('app.title') }}
+        {{ $t('app.brand.title') }}
       </NuxtLink>
     </template>
 
@@ -45,7 +45,7 @@ const navItems = useNavigationMenu()
             size="sm"
             variant="ghost"
             class="w-full"
-            :aria-label="$t('nav.changeLanguage')"
+            :aria-label="$t('navigation.menu.changeLanguage')"
             @update:model-value="(code) => {
               const path = switchLocalePath(code as any)
               if (path) navigateTo(path)
@@ -71,7 +71,7 @@ const navItems = useNavigationMenu()
 
           <div class="mt-2 grid gap-1 px-2.5">
             <ULink :to="localePath('/user')" class="px-2 py-2 rounded-md text-sm hover:bg-elevated/50">
-              {{ t('nav.userProfile') }}
+              {{ t('navigation.menu.userProfile') }}
             </ULink>
             <UButton
               color="neutral"
@@ -81,7 +81,7 @@ const navItems = useNavigationMenu()
               icon="i-heroicons-arrow-left-on-rectangle"
               @click="logout"
             >
-              {{ t('nav.logout') }}
+              {{ t('navigation.menu.logout') }}
             </UButton>
           </div>
         </div>

@@ -6,7 +6,7 @@
         <UInput
           v-model="crud.filters.search"
           size="xs"
-          :placeholder="t('common.search')"
+          :placeholder="t('ui.actions.search')"
           class="w-56"
           icon="i-heroicons-magnifying-glass-20-solid"
         />
@@ -75,7 +75,7 @@
           icon="i-heroicons-plus-20-solid"
           size="md"
           color="primary"
-          :label="`${t('common.create')} ${label}`"
+          :label="`${t('ui.actions.create')} ${label}`"
           @click="onCreate?.()"
         />
       </div>
@@ -263,14 +263,14 @@ const parentValue = useFilterBinding(parentKey, {
 })
 
 const isActiveOptions = computed(() => ([
-  { label: t('filters.all'), value: 'all' },
-  { label: t('common.active'), value: 'true' },
-  { label: t('common.inactive'), value: 'false' }
+  { label: t('ui.filters.all'), value: 'all' },
+  { label: t('ui.states.active'), value: 'true' },
+  { label: t('ui.states.inactive'), value: 'false' }
 ]))
 
 const statusOptions = computed(() => (
   [
-    { label: t('filters.all'), value: null },
+    { label: t('ui.filters.all'), value: null },
     ...statusUtil.options().map(option => ({
       label: t(option.labelKey),
       value: option.value,
@@ -444,9 +444,9 @@ const typePlaceholder = computed(() => {
   return t('common.type')
 })
 
-const statusPlaceholder = computed(() => t('common.status'))
-const tagsPlaceholder = computed(() => t('common.tags'))
-const activePlaceholder = computed(() => t('common.active'))
+const statusPlaceholder = computed(() => t('ui.fields.status'))
+const tagsPlaceholder = computed(() => t('ui.fields.tags'))
+const activePlaceholder = computed(() => t('ui.states.active'))
 
 const parentPlaceholder = computed(() => t('filters.parent'))
 </script>

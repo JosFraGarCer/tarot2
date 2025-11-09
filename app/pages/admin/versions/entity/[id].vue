@@ -2,8 +2,8 @@
 <template>
   <div class="p-4">
     <div class="flex items-center justify-between mb-3">
-      <h1 class="text-xl font-semibold">{{ $t('admin.entityHistory.title','Entity revision history') }} – {{ entity }} #{{ id }}</h1>
-      <UButton icon="i-heroicons-arrow-left" variant="soft" @click="goBack">{{ $t('admin.entityHistory.back','Back to versions') }}</UButton>
+      <h1 class="text-xl font-semibold">{{ $t('features.admin.entityHistory.title','Entity revision history') }} – {{ entity }} #{{ id }}</h1>
+      <UButton icon="i-heroicons-arrow-left" variant="soft" @click="goBack">{{ $t('features.admin.entityHistory.back','Back to versions') }}</UButton>
     </div>
 
     <div class="flex flex-col md:flex-row gap-4">
@@ -11,13 +11,13 @@
       <UCard class="md:w-1/4 w-full">
         <template #header>
           <div class="flex items-center justify-between">
-            <div>{{ $t('admin.revisionsHistory.title','Revision history') }}</div>
+            <div>{{ $t('features.admin.revisionsHistory.title','Revision history') }}</div>
             <UButton
               color="primary"
               variant="soft"
               icon="i-heroicons-scale"
               :disabled="selectedIds.length !== 2"
-              :label="$t('admin.revisionsHistory.compareSelected','Compare selected')"
+              :label="$t('features.admin.revisionsHistory.compareSelected','Compare selected')"
               @click="openCompare"
             />
           </div>
@@ -25,9 +25,9 @@
         <div class="space-y-2 max-h-[70vh] overflow-auto">
           <UTabs v-model="activeTab" :items="tabItems" class="mb-2" />
           <div v-if="activeTab === 'revisions'">
-            <div v-if="pending" class="py-2 text-sm text-gray-500">{{ $t('common.loading','Loading...') }}</div>
+            <div v-if="pending" class="py-2 text-sm text-gray-500">{{ $t('ui.states.loading','Loading...') }}</div>
             <div v-else>
-              <div v-if="revisions.length === 0" class="text-sm text-gray-400">{{ $t('admin.entityHistory.selectRevision','Select a revision to view changes') }}</div>
+              <div v-if="revisions.length === 0" class="text-sm text-gray-400">{{ $t('features.admin.entityHistory.selectRevision','Select a revision to view changes') }}</div>
               <div v-for="r in revisions" :key="r.id" class="p-2 rounded border hover:bg-gray-50 dark:hover:bg-gray-800">
                 <div class="flex items-start gap-2">
                   <UCheckbox :model-value="selectedIds.includes(r.id)" @update:model-value="v => toggleSelect(r.id, v)" />
@@ -38,15 +38,15 @@
                     </div>
                     <div class="mt-1">
                       <UBadge :color="r.language_code ? 'primary' : 'neutral'" variant="soft" size="xs">
-                        {{ r.language_code ? $t('admin.revisionsHistory.translation','Translation ({lang})').replace('{lang}', String(r.language_code)) : $t('admin.revisionsHistory.baseEntity','Base entity') }}
+                        {{ r.language_code ? $t('features.admin.revisionsHistory.translation','Translation ({lang})').replace('{lang}', String(r.language_code)) : $t('features.admin.revisionsHistory.baseEntity','Base entity') }}
                       </UBadge>
                     </div>
                     <div class="text-xs text-gray-600 dark:text-gray-300 mt-1">{{ formatDate(r.created_at) }}</div>
                     <div class="text-xs text-gray-500">{{ (r as any).author_name || r.created_by || '' }}</div>
                     <div v-if="r.content_version_id" class="text-[11px] text-gray-500">v{{ r.content_version_id }}</div>
                     <div class="mt-1 flex gap-2">
-                      <UButton size="xs" icon="i-heroicons-document-magnifying-glass" variant="soft" @click.stop="viewDiff(r)">{{ $t('admin.revisionsHistory.viewDiff','View diff') }}</UButton>
-                      <UButton size="xs" icon="i-heroicons-arrow-path" color="primary" variant="soft" @click.stop="revertRevision(r.id)">{{ $t('admin.revisionsHistory.revert','Revert to this revision') }}</UButton>
+                      <UButton size="xs" icon="i-heroicons-document-magnifying-glass" variant="soft" @click.stop="viewDiff(r)">{{ $t('features.admin.revisionsHistory.viewDiff','View diff') }}</UButton>
+                      <UButton size="xs" icon="i-heroicons-arrow-path" color="primary" variant="soft" @click.stop="revertRevision(r.id)">{{ $t('features.admin.revisionsHistory.revert','Revert to this revision') }}</UButton>
                     </div>
                   </div>
                 </div>
@@ -54,7 +54,7 @@
             </div>
           </div>
           <div v-else>
-            <div class="mb-1 text-xs text-gray-500">{{ feedbackMeta.totalItems || 0 }} {{ $t('admin.revisionsHistory.feedbackTab','Feedback') }}</div>
+            <div class="mb-1 text-xs text-gray-500">{{ feedbackMeta.totalItems || 0 }} {{ $t('features.admin.revisionsHistory.feedbackTab','Feedback') }}</div>
             <p v-if="entityType !== entity" class="text-xs text-gray-500 italic mb-2">
               {{ $t('common.showing','Showing') }} feedback for base entity: {{ entityType }}
             </p>
@@ -73,11 +73,11 @@
       <!-- Main: Entity viewer -->
       <div class="flex-1">
         <EntityViewer :entity="entityData" :highlight-diff="highlightOps" :language-code="selectedRevision?.language_code" />
-        <div v-if="!highlightOps.length" class="mt-2 text-sm text-gray-500">{{ $t('admin.entityHistory.noDiff','No differences') }}</div>
+        <div v-if="!highlightOps.length" class="mt-2 text-sm text-gray-500">{{ $t('features.admin.entityHistory.noDiff','No differences') }}</div>
       </div>
     </div>
 
-    <JsonModal v-model="diffOpen" :value="currentDiff" :title="$t('admin.revisionsHistory.viewDiff','View diff')" />
+    <JsonModal v-model="diffOpen" :value="currentDiff" :title="$t('features.admin.revisionsHistory.viewDiff','View diff')" />
     <RevisionCompareModal v-model:open="compareOpen" :rev-a="revA" :rev-b="revB" />
     <FeedbackNotesModal
       :open="notesOpen"
@@ -138,8 +138,8 @@ const { items: feedbackItemsRef, meta: feedbackMetaRef, fetchList: fetchFeedback
 const feedbackItems = feedbackItemsRef
 const feedbackMeta = feedbackMetaRef
 const tabItems = computed(() => [
-  { label: t('admin.revisionsHistory.title', 'Revisions'), value: 'revisions' },
-  { label: `${t('admin.revisionsHistory.feedbackTab','Feedback')} (${feedbackMeta.value?.totalItems || 0})`, value: 'feedback' }
+  { label: t('features.admin.revisionsHistory.title', 'Revisions'), value: 'revisions' },
+  { label: `${t('features.admin.revisionsHistory.feedbackTab','Feedback')} (${feedbackMeta.value?.totalItems || 0})`, value: 'feedback' }
 ])
 
 const { currentUser } = useCurrentUser()
@@ -234,15 +234,15 @@ async function revertRevision(revId:number) {
   try {
     // confirm
     if (typeof window !== 'undefined') {
-      const ok = window.confirm(String(t('admin.revisionsHistory.revertConfirm', 'Are you sure you want to restore this revision?')))
+      const ok = window.confirm(String(t('features.admin.revisionsHistory.revertConfirm', 'Are you sure you want to restore this revision?')))
       if (!ok) return
     }
     await apiFetch(`/content_revisions/${revId}/revert`, { method: 'POST' })
-    useToast().add({ title: t('admin.revisionsHistory.revertSuccess','Revision reverted successfully'), color: 'success' })
+    useToast().add({ title: t('features.admin.revisionsHistory.revertSuccess','Revision reverted successfully'), color: 'success' })
     await loadEntity()
     await refreshRevisions()
   } catch (e:any) {
-    useToast().add({ title: t('admin.revisionsHistory.revertError','Error reverting revision'), description: e?.data?.message || e?.message, color: 'error' })
+    useToast().add({ title: t('features.admin.revisionsHistory.revertError','Error reverting revision'), description: e?.data?.message || e?.message, color: 'error' })
   }
 }
 

@@ -21,7 +21,7 @@
           </div>
           <div class="flex flex-wrap items-center justify-center gap-2">
             <UButton color="primary" icon="i-heroicons-plus" @click="onCreateFromEmpty">
-              {{ t('common.create') }} {{ label }}
+              {{ t('ui.actions.create') }} {{ label }}
             </UButton>
             <UButton
               variant="ghost"
@@ -110,7 +110,7 @@
             size="sm"
             variant="outline"
           >
-            {{ isActive(item) ? t('common.active') : t('common.inactive') }}
+            {{ isActive(item) ? t('ui.states.active') : t('ui.states.inactive') }}
           </UBadge>
         </div>
         <p v-if="!isUserEntity && item.short_text" class="text-sm text-neutral-700 dark:text-neutral-300">
@@ -120,7 +120,7 @@
           {{ item.description }}
         </p>
         <p v-if="isUserEntity && item.created_at" class="text-xs text-neutral-500 dark:text-neutral-400">
-          {{ t('common.createdAt') }}: {{ formatDate(item.created_at) }}
+          {{ t('ui.misc.createdAt') }}: {{ formatDate(item.created_at) }}
         </p>
         <div v-if="!noTags && Array.isArray(item.tags) && item.tags.length" class="mt-3 flex flex-wrap gap-1.5">
           <UBadge

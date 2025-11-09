@@ -6,7 +6,7 @@
         <div class="flex items-start justify-between w-full">
           <div>
             <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-              {{ t('admin.feedbackTitle') || 'Feedback' }} #{{ feedback?.id ?? route.params.id }}
+              {{ t('features.admin.feedbackTitle') || 'Feedback' }} #{{ feedback?.id ?? route.params.id }}
             </h1>
             <p v-if="feedback" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
               <span class="font-mono">{{ feedback.entity_type }}</span>
@@ -16,17 +16,17 @@
             </p>
           </div>
           <div class="flex gap-2">
-            <UButton icon="i-heroicons-check-circle" color="primary" variant="soft" :disabled="feedback?.status==='resolved'" :label="t('common.resolve') || 'Resolve'" @click="onResolve" />
-            <UButton icon="i-heroicons-trash" color="error" variant="soft" :label="t('common.delete') || 'Delete'" @click="deleteOpen=true" />
+            <UButton icon="i-heroicons-check-circle" color="primary" variant="soft" :disabled="feedback?.status==='resolved'" :label="t('ui.actions.resolve') || 'Resolve'" @click="onResolve" />
+            <UButton icon="i-heroicons-trash" color="error" variant="soft" :label="t('ui.actions.delete') || 'Delete'" @click="deleteOpen=true" />
           </div>
         </div>
       </template>
 
       <template #footer>
         <div class="flex justify-between items-center w-full">
-          <UButton icon="i-heroicons-arrow-left" variant="soft" :label="t('common.back') || 'Back'" @click="router.replace(localePath('/admin/feedback'))" />
+          <UButton icon="i-heroicons-arrow-left" variant="soft" :label="t('ui.actions.back') || 'Back'" @click="router.replace(localePath('/admin/feedback'))" />
           <div>
-            <h3 class="font-semibold mb-2 text-gray-800 dark:text-gray-100">{{ t('common.card') || 'Card' }}</h3>
+            <h3 class="font-semibold mb-2 text-gray-800 dark:text-gray-100">{{ t('ui.fields.card') || 'Card' }}</h3>
             <div v-if="card">
               <CartaRow
                 :template-key="'Class'"
@@ -37,23 +37,23 @@
                 :img="card.image || undefined"
               />
             </div>
-            <div v-else class="text-gray-500 text-sm">{{ t('feedback.noLinkedCard') || 'No linked card preview' }}</div>
+            <div v-else class="text-gray-500 text-sm">{{ t('features.feedback.noLinkedCard') || 'No linked card preview' }}</div>
           </div>
 
           <!-- Right: Feedback detail -->
           <div>
-            <h3 class="font-semibold mb-2 text-gray-800 dark:text-gray-100">{{ t('common.details') || 'Details' }}</h3>
+            <h3 class="font-semibold mb-2 text-gray-800 dark:text-gray-100">{{ t('ui.fields.details') || 'Details' }}</h3>
             <div class="space-y-3">
               <div>
-                <div class="text-xs text-gray-500">{{ t('common.category') || 'Category' }}</div>
+                <div class="text-xs text-gray-500">{{ t('ui.fields.category') || 'Category' }}</div>
                 <div class="mt-0.5"><UBadge variant="soft">{{ feedback?.category || '-' }}</UBadge></div>
               </div>
               <div>
-                <div class="text-xs text-gray-500">{{ t('common.comment') || 'Comment' }}</div>
+                <div class="text-xs text-gray-500">{{ t('ui.fields.comment') || 'Comment' }}</div>
                 <p class="mt-1 whitespace-pre-wrap">{{ feedback?.comment }}</p>
               </div>
               <div class="flex items-center gap-2">
-                <div class="text-xs text-gray-500">{{ t('common.status') || 'Status' }}</div>
+                <div class="text-xs text-gray-500">{{ t('ui.fields.status') || 'Status' }}</div>
                 <UBadge :color="feedback?.status==='resolved' ? 'primary' : 'neutral'" variant="soft">{{ feedback?.status }}</UBadge>
               </div>
             </div>
@@ -63,10 +63,10 @@
     </UCard>
     <ConfirmDeleteModal
       :open="deleteOpen"
-      :title="t('admin.feedbackDeleteTitle') || 'Delete feedback'"
-      :description="t('admin.feedbackDeleteDescription') || 'This will permanently delete this feedback entry. This action cannot be undone.'"
-      :confirm-label="t('manageConfirm.deleteConfirm') || 'Delete'"
-      :cancel-label="t('common.cancel') || 'Cancel'"
+      :title="t('features.admin.feedbackDeleteTitle') || 'Delete feedback'"
+      :description="t('features.admin.feedbackDeleteDescription') || 'This will permanently delete this feedback entry. This action cannot be undone.'"
+      :confirm-label="t('ui.dialogs.confirm.deleteConfirm') || 'Delete'"
+      :cancel-label="t('ui.actions.cancel') || 'Cancel'"
       :loading="deleting"
       @update:open="v => deleteOpen = v"
       @confirm="confirmDelete"
@@ -87,7 +87,7 @@ const router = useRouter()
 const localePath = useLocalePath()
 const { t } = useI18n()
 
-useSeoMeta({ title: `${t('nav.admin') || 'Admin'} · ${t('admin.feedbackTitle') || 'Feedback'} · #${route.params.id}` })
+useSeoMeta({ title: `${t('navigation.menu.admin') || 'Admin'} · ${t('features.admin.feedbackTitle') || 'Feedback'} · #${route.params.id}` })
 
 const id = computed(() => Number(route.params.id))
 
@@ -133,7 +133,7 @@ const deleting = ref(false)
 async function onResolve() {
   if (!feedback.value) return
   await resolveFeedback(feedback.value.id)
-  toast.add({ title: t('common.success') || 'Success', description: t('status.resolved') || 'resolved', color: 'success' })
+  toast.add({ title: t('ui.notifications.success') || 'Success', description: t('system.status.resolved') || 'resolved', color: 'success' })
   await load()
 }
 async function onDelete() {
@@ -146,7 +146,7 @@ async function confirmDelete() {
   try {
     deleting.value = true
     await remove(feedback.value.id)
-    toast.add({ title: t('common.success') || 'Success', description: t('messages.deleteSuccess') || 'Deleted successfully', color: 'success' })
+    toast.add({ title: t('ui.notifications.success') || 'Success', description: t('ui.notifications.deleteSuccess') || 'Deleted successfully', color: 'success' })
     router.replace(localePath('/admin/feedback'))
   } finally {
     deleting.value = false

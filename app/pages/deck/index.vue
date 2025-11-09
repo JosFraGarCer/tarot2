@@ -48,8 +48,8 @@ const tabs = computed(() => ([
   {
     value: 'cardType',
     entity: 'cardType',
-    labelKey: 'nav.cardTypes',
-    label: t('nav.cardTypes'),
+    labelKey: 'navigation.menu.cardTypes',
+    label: t('navigation.menu.cardTypes'),
     descriptionKey: 'deck.cardTypesDescription',
     description: t('deck.cardTypesDescription'),
     to: '/deck/card-types'
@@ -57,8 +57,8 @@ const tabs = computed(() => ([
   {
     value: 'baseCard',
     entity: 'baseCard',
-    labelKey: 'nav.baseCards',
-    label: t('nav.baseCards'),
+    labelKey: 'navigation.menu.baseCards',
+    label: t('navigation.menu.baseCards'),
     descriptionKey: 'deck.baseCardsDescription',
     description: t('deck.baseCardsDescription'),
     to: '/deck/base-cards'
@@ -66,8 +66,8 @@ const tabs = computed(() => ([
   {
     value: 'world',
     entity: 'world',
-    labelKey: 'nav.worlds',
-    label: t('nav.worlds'),
+    labelKey: 'navigation.menu.worlds',
+    label: t('navigation.menu.worlds'),
     descriptionKey: 'deck.worldsDescription',
     description: t('deck.worldsDescription'),
     to: '/deck/worlds'
@@ -75,8 +75,8 @@ const tabs = computed(() => ([
   {
     value: 'arcana',
     entity: 'arcana',
-    labelKey: 'nav.arcana',
-    label: t('nav.arcana'),
+    labelKey: 'navigation.menu.arcana',
+    label: t('navigation.menu.arcana'),
     descriptionKey: 'deck.arcanaDescription',
     description: t('deck.arcanaDescription'),
     to: '/deck/arcana'
@@ -84,8 +84,8 @@ const tabs = computed(() => ([
   {
     value: 'facet',
     entity: 'facet',
-    labelKey: 'nav.facets',
-    label: t('nav.facets'),
+    labelKey: 'navigation.menu.facets',
+    label: t('navigation.menu.facets'),
     descriptionKey: 'deck.facetsDescription',
     description: t('deck.facetsDescription'),
     to: '/deck/facets'
@@ -93,8 +93,8 @@ const tabs = computed(() => ([
   {
     value: 'skill',
     entity: 'skill',
-    labelKey: 'nav.skills',
-    label: t('nav.skills'),
+    labelKey: 'navigation.menu.skills',
+    label: t('navigation.menu.skills'),
     descriptionKey: 'deck.skillsDescription',
     description: t('deck.skillsDescription'),
     to: '/deck/skills'

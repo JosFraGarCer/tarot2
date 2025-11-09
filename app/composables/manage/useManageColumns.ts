@@ -26,32 +26,32 @@ export function useManageColumns(options: ManageColumnsOptions): ComputedRef<Tab
       extras.push(column)
     }
 
-    add({ accessorKey: 'code', header: t('common.code') })
-    add({ accessorKey: 'lang', header: t('common.language') })
+    add({ accessorKey: 'code', header: t('ui.fields.code') })
+    add({ accessorKey: 'lang', header: t('ui.fields.language') })
 
     switch (entity) {
       case 'baseCard':
         add({ accessorKey: 'card_type', header: t('entities.cardType') })
-        add({ accessorKey: 'tags', header: t('common.tags') })
+        add({ accessorKey: 'tags', header: t('ui.fields.tags') })
         break
       case 'cardType':
-        add({ accessorKey: 'category', header: t('common.category') })
+        add({ accessorKey: 'category', header: t('ui.fields.category') })
         break
       case 'facet':
         add({ accessorKey: 'arcana', header: t('entities.arcana') })
-        add({ accessorKey: 'tags', header: t('common.tags') })
+        add({ accessorKey: 'tags', header: t('ui.fields.tags') })
         break
       case 'skill':
         add({ accessorKey: 'facet', header: t('entities.facet') })
-        add({ accessorKey: 'tags', header: t('common.tags') })
+        add({ accessorKey: 'tags', header: t('ui.fields.tags') })
         break
       case 'world':
       case 'arcana':
-        add({ accessorKey: 'tags', header: t('common.tags') })
+        add({ accessorKey: 'tags', header: t('ui.fields.tags') })
         break
       case 'tag':
         add({ accessorKey: 'parent', header: t('common.parent') })
-        add({ accessorKey: 'category', header: t('common.category') })
+        add({ accessorKey: 'category', header: t('ui.fields.category') })
         break
       default:
         break

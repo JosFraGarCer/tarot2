@@ -5,7 +5,7 @@
       <template #header>
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-            {{ t('nav.manageUsers') }}
+            {{ t('navigation.menu.manageUsers') }}
           </h1>
           <ViewControls
             v-model="viewMode"
@@ -18,7 +18,7 @@
       </template>
 
       <EntityBase
-        :label="t('nav.manageUsers')"
+        :label="t('navigation.menu.manageUsers')"
         :use-crud="useAdminUsersCrud"
         :view-mode="viewMode"
         :template-key="templateKey"
@@ -73,11 +73,11 @@ const columns = computed<TableColumn<EntityRow>[]>(() => ([
   },
   {
     accessorKey: 'created_at',
-    header: t('common.createdAt'),
+    header: t('ui.misc.createdAt'),
   },
   {
     accessorKey: 'status',
-    header: t('common.status'),
+    header: t('ui.fields.status'),
   },
 ]))
 </script>

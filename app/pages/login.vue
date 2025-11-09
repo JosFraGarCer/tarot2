@@ -5,30 +5,30 @@
       <template #header>
         <div class="space-y-2 text-center">
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-            {{ $t('auth.loginTitle') }}
+            {{ $t('features.auth.loginTitle') }}
           </h1>
           <p class="text-sm text-neutral-600 dark:text-neutral-400">
-            {{ $t('auth.loginDescription') }}
+            {{ $t('features.auth.loginDescription') }}
           </p>
         </div>
       </template>
 
       <UForm :state="form" class="space-y-5" @submit.prevent="handleSubmit">
         <div class="space-y-4">
-          <UFormField :label="$t('auth.identifierLabel')" required>
+          <UFormField :label="$t('features.auth.identifierLabel')" required>
             <UInput
               v-model="form.identifier"
-              :placeholder="$t('auth.identifierPlaceholder')"
+              :placeholder="$t('features.auth.identifierPlaceholder')"
               autocomplete="username"
               required
             />
           </UFormField>
 
-          <UFormField :label="$t('auth.passwordLabel')" required>
+          <UFormField :label="$t('features.auth.passwordLabel')" required>
             <UInput
               v-model="form.password"
               type="password"
-              :placeholder="$t('auth.passwordPlaceholder')"
+              :placeholder="$t('features.auth.passwordPlaceholder')"
               autocomplete="current-password"
               required
             />
@@ -45,7 +45,7 @@
           color="primary"
           :loading="loading"
         >
-          {{ $t('auth.loginButton') }}
+          {{ $t('features.auth.loginButton') }}
         </UButton>
       </UForm>
     </UCard>

@@ -4,8 +4,8 @@
     <!-- Selection toolbar -->
     <div v-if="internalSelected.length" v-can="['canEditContent','canPublish']" class="mb-3 flex items-center gap-2">
       <span class="text-sm text-gray-500">{{ internalSelected.length }} selected</span>
-      <UButton icon="i-heroicons-arrow-up-tray" color="primary" variant="soft" :label="$t('common.export') || 'Export'" @click="onExportSelected" />
-      <UButton icon="i-heroicons-arrow-path" color="neutral" variant="soft" :label="$t('common.update') || 'Update'" @click="onUpdateSelected" />
+      <UButton icon="i-heroicons-arrow-up-tray" color="primary" variant="soft" :label="$t('ui.actions.export') || 'Export'" @click="onExportSelected" />
+      <UButton icon="i-heroicons-arrow-path" color="neutral" variant="soft" :label="$t('ui.actions.update') || 'Update'" @click="onUpdateSelected" />
     </div>
 
     <UTable
@@ -96,7 +96,7 @@
         >
           {{ role }}
         </UBadge>
-        <span v-if="!row.original.roles?.length" class="text-xs text-neutral-400">{{ $t('users.noRoles') }}</span>
+        <span v-if="!row.original.roles?.length" class="text-xs text-neutral-400">{{ $t('domains.user.noRoles') }}</span>
       </div>
     </template>
     <template #parent-cell="{ getValue }">
@@ -163,11 +163,11 @@ const statusOptions = statusUtil.options()
 
 const defaultColumns = computed<TableColumn<EntityRow>[]>(() => ([
   { id: 'select', header: '' },
-  { accessorKey: 'name', header: t('common.name') },
-  { accessorKey: 'short_text', header: t('common.shortText') },
-  { accessorKey: 'status', header: t('common.status') },
-  { accessorKey: 'is_active', header: t('common.active') },
-  { id: 'actions', header: t('common.actions') }
+  { accessorKey: 'name', header: t('ui.fields.name') },
+  { accessorKey: 'short_text', header: t('ui.fields.shortText') },
+  { accessorKey: 'status', header: t('ui.fields.status') },
+  { accessorKey: 'is_active', header: t('ui.states.active') },
+  { id: 'actions', header: t('ui.table.actions') }
 ]))
 
 const tableColumns = computed<TableColumn<EntityRow>[]>(() => {
@@ -230,7 +230,7 @@ function statusVariant(value: string | null | undefined) {
 }
 
 function statusLabelKey(value: string | null | undefined) {
-  return getStatusMeta(value)?.labelKey ?? 'status.draft'
+  return getStatusMeta(value)?.labelKey ?? 'system.status.draft'
 }
 
 function formatDate(value: unknown) {

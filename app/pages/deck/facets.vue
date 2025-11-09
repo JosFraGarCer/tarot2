@@ -2,8 +2,8 @@
 <template>
   <DeckEntityPage
     entity="facet"
-    title-key="nav.facets"
-    label-key="facets.title"
+    title-key="navigation.menu.facets"
+    label-key="domains.facet.title"
     description-key="deck.facetsDescription"
   />
 </template>

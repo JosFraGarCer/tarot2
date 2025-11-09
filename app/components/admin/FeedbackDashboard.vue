@@ -3,19 +3,19 @@
   <div class="space-y-4">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <UCard>
-        <template #header>{{ $t('admin.feedbackDashboard.total','Total feedbacks') }}</template>
+        <template #header>{{ $t('features.admin.feedbackDashboard.total','Total feedbacks') }}</template>
         <div class="text-2xl font-semibold">{{ totals.total }}</div>
       </UCard>
       <UCard>
-        <template #header>{{ $t('admin.feedbackDashboard.open','Open') }}</template>
+        <template #header>{{ $t('features.admin.feedbackDashboard.open','Open') }}</template>
         <div class="text-2xl font-semibold">{{ totals.open }}</div>
       </UCard>
       <UCard>
-        <template #header>{{ $t('admin.feedbackDashboard.resolved','Resolved') }}</template>
+        <template #header>{{ $t('features.admin.feedbackDashboard.resolved','Resolved') }}</template>
         <div class="text-2xl font-semibold">{{ totals.resolved }}</div>
       </UCard>
       <UCard>
-        <template #header>{{ $t('admin.feedbackDashboard.byType','By type') }}</template>
+        <template #header>{{ $t('features.admin.feedbackDashboard.byType','By type') }}</template>
         <div class="text-sm space-y-1">
           <div class="flex justify-between"><span>bug</span><span>{{ totalsByType.bug }}</span></div>
           <div class="flex justify-between"><span>suggestion</span><span>{{ totalsByType.suggestion }}</span></div>
@@ -25,7 +25,7 @@
     </div>
 
     <UCard>
-      <template #header>{{ $t('admin.feedbackDashboard.weekly','Weekly activity (last 30 days)') }}</template>
+      <template #header>{{ $t('features.admin.feedbackDashboard.weekly','Weekly activity (last 30 days)') }}</template>
       <div class="flex items-end gap-1 h-24">
         <div v-for="b in weeklyBuckets" :key="b.label" class="flex-1">
           <div class="bg-primary-500 dark:bg-primary-400" :style="{height: barHeight(b.count)}" title="{{ b.label }}: {{ b.count }}" />

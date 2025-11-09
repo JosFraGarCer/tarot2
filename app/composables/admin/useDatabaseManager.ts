@@ -44,7 +44,7 @@ export function useDatabaseManager() {
       downloadFile(`database-${new Date().toISOString().slice(0, 10)}.json`, blob, 'JSON')
       toast.add({ title: t('common.exportSuccess'), color: 'success' })
     } catch (e: any) {
-      toast.add({ title: t('messages.error'), description: e?.message, color: 'error' })
+      toast.add({ title: t('ui.notifications.error'), description: e?.message, color: 'error' })
       log('JSON Export', false, e?.message || 'Failed')
     } finally {
       jsonExporting.value = false
@@ -64,7 +64,7 @@ export function useDatabaseManager() {
       log('JSON Import', true, file.name)
     } catch (e: any) {
       jsonImportError.value = e?.message
-      toast.add({ title: t('messages.error'), description: e?.message, color: 'error' })
+      toast.add({ title: t('ui.notifications.error'), description: e?.message, color: 'error' })
       log('JSON Import', false, e?.message || 'Failed')
     } finally {
       jsonImporting.value = false
@@ -80,7 +80,7 @@ export function useDatabaseManager() {
       downloadFile(`database-${new Date().toISOString().slice(0, 10)}.sql`, blob, 'SQL')
       toast.add({ title: t('common.exportSuccess'), color: 'success' })
     } catch (e: any) {
-      toast.add({ title: t('messages.error'), description: e?.message, color: 'error' })
+      toast.add({ title: t('ui.notifications.error'), description: e?.message, color: 'error' })
       log('SQL Export', false, e?.message || 'Failed')
     } finally {
       sqlExporting.value = false
@@ -103,7 +103,7 @@ export function useDatabaseManager() {
       log('SQL Import', true, file.name)
     } catch (e: any) {
       sqlImportError.value = e?.message
-      toast.add({ title: t('messages.error'), description: e?.message, color: 'error' })
+      toast.add({ title: t('ui.notifications.error'), description: e?.message, color: 'error' })
       log('SQL Import', false, e?.message || 'Failed')
     } finally {
       sqlImporting.value = false

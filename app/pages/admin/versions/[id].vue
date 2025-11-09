@@ -6,16 +6,16 @@
         <div class="flex items-start justify-between w-full">
           <div>
             <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-              {{ tt('versions.detailTitle', 'Version detail') }} · {{ version?.version_semver || ('#' + route.params.id) }}
+              {{ tt('domains.version.detailTitle', 'Version detail') }} · {{ version?.version_semver || ('#' + route.params.id) }}
             </h1>
             <p v-if="version" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {{ tt('common.createdAt', 'Created') }}: {{ formatDate(version.created_at) }}
+              {{ tt('ui.misc.createdAt', 'Created') }}: {{ formatDate(version.created_at) }}
             </p>
           </div>
           <div class="flex gap-2">
-            <UButton icon="i-heroicons-pencil-square" color="primary" variant="soft" :label="tt('common.edit', 'Edit')" :disabled="!version" @click="openEdit" />
-            <UButton icon="i-heroicons-code-bracket-square" color="neutral" variant="soft" :label="tt('versions.viewMetadata', 'View metadata')" :disabled="!version" @click="openMeta" />
-            <UButton color="neutral" variant="soft" :label="tt('common.back', 'Back')" @click="goBack" />
+            <UButton icon="i-heroicons-pencil-square" color="primary" variant="soft" :label="tt('ui.actions.edit', 'Edit')" :disabled="!version" @click="openEdit" />
+            <UButton icon="i-heroicons-code-bracket-square" color="neutral" variant="soft" :label="tt('domains.version.viewMetadata', 'View metadata')" :disabled="!version" @click="openMeta" />
+            <UButton color="neutral" variant="soft" :label="tt('ui.actions.back', 'Back')" @click="goBack" />
           </div>
         </div>
       </template>
@@ -25,18 +25,18 @@
         <USkeleton class="h-8 w-full" />
       </div>
       <div v-else-if="error" class="mb-3">
-        <UAlert color="error" :title="tt('common.error', 'Error')" :description="String(error)" />
+        <UAlert color="error" :title="tt('ui.notifications.error', 'Error')" :description="String(error)" />
       </div>
-      <div v-else-if="!version" class="text-gray-500">{{ tt('common.noData', 'No data') }}</div>
+      <div v-else-if="!version" class="text-gray-500">{{ tt('ui.empty.noData', 'No data') }}</div>
       <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Left: details -->
         <div class="space-y-4">
           <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div class="text-xs text-gray-500 mb-1">{{ tt('versions.version', 'Version') }}</div>
+            <div class="text-xs text-gray-500 mb-1">{{ tt('domains.version.version', 'Version') }}</div>
             <div class="font-mono">{{ version.version_semver }}</div>
           </div>
           <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div class="text-xs text-gray-500 mb-1">{{ tt('common.description', 'Description') }}</div>
+            <div class="text-xs text-gray-500 mb-1">{{ tt('ui.fields.description', 'Description') }}</div>
             <p class="whitespace-pre-wrap">{{ version.description }}</p>
           </div>
         </div>
@@ -44,10 +44,10 @@
         <!-- Right: metadata -->
         <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
           <div class="flex items-center justify-between mb-2">
-            <div class="text-xs text-gray-500">{{ tt('common.metadata', 'Metadata') }}</div>
+            <div class="text-xs text-gray-500">{{ tt('ui.fields.metadata', 'Metadata') }}</div>
             <div class="flex gap-2">
-              <UButton size="xs" variant="soft" color="neutral" icon="i-heroicons-clipboard" :title="tt('common.copy', 'Copy')" @click="copyMeta" />
-              <UButton size="xs" variant="soft" color="neutral" icon="i-heroicons-code-bracket-square" :title="tt('versions.viewMetadata', 'View metadata')" @click="openMeta" />
+              <UButton size="xs" variant="soft" color="neutral" icon="i-heroicons-clipboard" :title="tt('ui.actions.copy', 'Copy')" @click="copyMeta" />
+              <UButton size="xs" variant="soft" color="neutral" icon="i-heroicons-code-bracket-square" :title="tt('domains.version.viewMetadata', 'View metadata')" @click="openMeta" />
             </div>
           </div>
           <pre class="text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 overflow-auto max-h-96"><code>{{ prettyMeta }}</code></pre>
@@ -57,7 +57,7 @@
 
     <!-- Modals -->
     <VersionModal v-model="editOpen" :value="version" @save="afterSave" />
-    <JsonModal v-model="metaOpen" :value="version?.metadata" :title="tt('common.metadata', 'Metadata')" :description="tt('versions.viewMetadata', 'View metadata')" />
+    <JsonModal v-model="metaOpen" :value="version?.metadata" :title="tt('ui.fields.metadata', 'Metadata')" :description="tt('domains.version.viewMetadata', 'View metadata')" />
   </div>
 </template>
 

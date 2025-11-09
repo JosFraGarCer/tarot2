@@ -23,7 +23,7 @@ export function useEntityModals(
   const manage = reactive<{ englishItem: Record<string, any> | null }>({ englishItem: null })
 
   function et(key: 'create' | 'edit') {
-    return key === 'edit' ? (t?.('common.edit') || 'Edit') : (t?.('common.create') || 'Create')
+    return key === 'edit' ? (t?.('ui.actions.edit') || 'Edit') : (t?.('ui.actions.create') || 'Create')
   }
 
   async function preloadEnglishItem(id: number | string) {

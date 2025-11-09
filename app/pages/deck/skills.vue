@@ -2,8 +2,8 @@
 <template>
   <DeckEntityPage
     entity="skill"
-    title-key="nav.skills"
-    label-key="skills.title"
+    title-key="navigation.menu.skills"
+    label-key="domains.skill.title"
     description-key="deck.skillsDescription"
   />
 </template>

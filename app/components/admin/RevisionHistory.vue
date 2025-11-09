@@ -4,7 +4,7 @@
     <template #body>
       <div class="space-y-3">
         <div v-if="error">
-          <UAlert color="error" :title="$t('common.error','Error')" :description="String(error)" />
+          <UAlert color="error" :title="$t('ui.notifications.error','Error')" :description="String(error)" />
         </div>
         <div v-if="pending" class="py-6">
           <USkeleton class="h-8 w-full mb-2" />
@@ -15,12 +15,12 @@
             <thead>
               <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                 <th class="py-2 pr-4">{{ $t('admin.revisionsHistory.status','Status') }}</th>
-                <th class="py-2 pr-4">{{ $t('admin.revisionsHistory.source','Source') }}</th>
+                <th class="py-2 pr-4">{{ $t('features.admin.revisionsHistory.source','Source') }}</th>
                 <th class="py-2 pr-4">{{ $t('admin.revisionsHistory.language','Language') }}</th>
                 <th class="py-2 pr-4">{{ $t('admin.revisionsHistory.author','Author') }}</th>
                 <th class="py-2 pr-4">{{ $t('admin.revisionsHistory.version','Version') }}</th>
-                <th class="py-2 pr-4">{{ $t('common.createdAt','Created') }}</th>
-                <th class="py-2 pr-4 text-right">{{ $t('common.actions','Actions') }}</th>
+                <th class="py-2 pr-4">{{ $t('ui.misc.createdAt','Created') }}</th>
+                <th class="py-2 pr-4 text-right">{{ $t('ui.table.actions','Actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -28,7 +28,7 @@
                 <td class="py-2 pr-4"><UBadge variant="soft">{{ r.status }}</UBadge></td>
                 <td class="py-2 pr-4">
                   <UBadge :color="r.language_code ? 'primary' : 'neutral'" variant="soft">
-                    {{ r.language_code ? $t('admin.revisionsHistory.translation','Translation ({lang})').replace('{lang}', String(r.language_code)) : $t('admin.revisionsHistory.baseEntity','Base entity') }}
+                    {{ r.language_code ? $t('features.admin.revisionsHistory.translation','Translation ({lang})').replace('{lang}', String(r.language_code)) : $t('features.admin.revisionsHistory.baseEntity','Base entity') }}
                   </UBadge>
                 </td>
                 <td class="py-2 pr-4">{{ r.language_code || '—' }}</td>
@@ -37,21 +37,21 @@
                 <td class="py-2 pr-4">{{ formatDate(r.created_at) }}</td>
                 <td class="py-2 pr-0">
                   <div class="flex justify-end gap-2">
-                    <UButton size="xs" icon="i-heroicons-document-magnifying-glass" variant="soft" :title="$t('admin.revisionsHistory.viewDiff','View diff')" @click="onViewDiff(r)" />
-                    <UButton size="xs" icon="i-heroicons-rectangle-stack" variant="soft" :title="$t('admin.revisionsHistory.viewSnapshots','View snapshots')" @click="onViewSnapshots(r)" />
+                    <UButton size="xs" icon="i-heroicons-document-magnifying-glass" variant="soft" :title="$t('features.admin.revisionsHistory.viewDiff','View diff')" @click="onViewDiff(r)" />
+                    <UButton size="xs" icon="i-heroicons-rectangle-stack" variant="soft" :title="$t('features.admin.revisionsHistory.viewSnapshots','View snapshots')" @click="onViewSnapshots(r)" />
                   </div>
                 </td>
               </tr>
               <tr v-if="!items || items.length===0">
-                <td colspan="7" class="py-6 text-center text-gray-400">{{ $t('common.noData','No data') }}</td>
+                <td colspan="7" class="py-6 text-center text-gray-400">{{ $t('ui.empty.noData','No data') }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <JsonModal v-model="diffOpen" :value="currentDiff" :title="$t('admin.revisionsHistory.viewDiff','View diff')" />
+        <JsonModal v-model="diffOpen" :value="currentDiff" :title="$t('features.admin.revisionsHistory.viewDiff','View diff')" />
 
-        <UModal v-model:open="snapshotsOpen" :title="$t('admin.revisionsHistory.viewSnapshots','View snapshots')">
+        <UModal v-model:open="snapshotsOpen" :title="$t('features.admin.revisionsHistory.viewSnapshots','View snapshots')">
           <template #body>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <UCard>
@@ -80,7 +80,7 @@ const open = defineModel<boolean>('open')
 
 const { items, pending, error, fetchByEntity } = useRevisions()
 
-const title = computed(() => `${useI18n().t('admin.revisionsHistory.title','Revision history')} · ${props.entityType} #${props.entityId}`)
+const title = computed(() => `${useI18n().t('features.admin.revisionsHistory.title','Revision history')} · ${props.entityType} #${props.entityId}`)
 
 watch(() => [props.entityType, props.entityId, props.languageCode, open.value], async ([et, id, lang, isOpen]) => {
   if (isOpen && et && id) await fetchByEntity(et, id, lang || undefined)

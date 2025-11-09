@@ -337,10 +337,10 @@ function trLabel(key: string, fallback?: string) {
 
   // Common fallbacks for frequent keys
   const commonMap: Record<string, string> = {
-    status: 'common.status',
-    is_active: 'common.active',
-    name: 'common.name',
-    description: 'common.description',
+    status: 'ui.fields.status',
+    is_active: 'ui.states.active',
+    name: 'ui.fields.name',
+    description: 'ui.fields.description',
     short_text: 'common.short_text',
     arcana_id: 'entities.arcana',
     facet_id: 'entities.facet',

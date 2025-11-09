@@ -47,7 +47,7 @@
     <div class="mt-3 space-y-1 text-center">
       <div class="flex items-center justify-center gap-2 text-sm text-gray-700 dark:text-gray-300">
         <UBadge
-                :label="(item.is_active ? t('common.active') : t('common.inactive')) || '-'"
+                :label="(item.is_active ? t('ui.states.active') : t('ui.states.inactive')) || '-'"
                 :color="item.is_active ? 'primary' : 'neutral'"
                 size="sm"
               />
