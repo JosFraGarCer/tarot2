@@ -1,0 +1,170 @@
+<!-- app/components/manage/Modal/FeedbackModal.vue -->
+<!-- /app/components/manage/Modal/FeedbackModal.vue -->
+<template>
+  <UModal
+    :open="open"
+    :title="tt('feedback.title', 'Feedback')"
+    @update:open="(v) => emit('update:open', v)"
+  >
+    <template #body>
+      <div class="space-y-3">
+        <div v-if="entityLabel" class="text-sm text-neutral-600 dark:text-neutral-300">
+          <span class="font-medium">{{ entityLabel }}</span>
+          <span v-if="entityName"> · {{ entityName }}</span>
+        </div>
+
+        <!-- Tipo de feedback -->
+        <UFormField :label="tt('feedback.type', 'Type')">
+          <USelectMenu
+            v-model="local.type"
+            :items="typeOptions"
+            value-key="value"
+            option-attribute="label"
+            class="w-full"
+          />
+        </UFormField>
+
+        <!-- Comentario -->
+        <UFormField :label="tt('feedback.comment', 'Comment')">
+          <UTextarea
+            ref="commentRef"
+            v-model="local.comment"
+            class="w-full"
+            :rows="5"
+            :placeholder="tt('feedback.commentPlaceholder', 'Describe your feedback...')"
+          />
+        </UFormField>
+
+        <!-- Adjuntos opcionales -->
+        <UFormField :label="tt('feedback.attach', 'Attachment (optional)')">
+          <UInput
+            v-model="local.attachment"
+            class="w-full"
+            :placeholder="tt('feedback.attachmentPlaceholder', 'Link or reference')"
+          />
+        </UFormField>
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <UButton
+          color="neutral"
+          variant="soft"
+          :label="tt('common.cancel', 'Cancel')"
+          @click="close"
+        />
+        <UButton
+          color="primary"
+          :label="tt('common.save', 'Save')"
+          :disabled="!local.comment.trim() || submitting"
+          :loading="submitting"
+          @click="submit"
+        />
+      </div>
+    </template>
+  </UModal>
+</template>
+
+<script setup lang="ts">
+const { t, te } = useI18n()
+function tt(key: string, fallback: string) {
+  return te(key) ? t(key) : fallback
+}
+
+// ------------------------------------------------
+// Tipado actualizado: incluye "translation"
+// ------------------------------------------------
+interface FeedbackPayload {
+  type: 'bug' | 'suggestion' | 'balance' | 'translation'
+  comment: string
+  attachment?: string | null
+}
+
+const props = defineProps<{
+  open: boolean
+  entityId?: number | string
+  entityType?: string
+  entityName?: string
+  entityLabel?: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:open', value: boolean): void
+  (e: 'submit', payload: { entityId?: number | string; entityType?: string; data: FeedbackPayload }): void
+}>()
+
+// ------------------------------------------------
+// Tipos disponibles
+// ------------------------------------------------
+const typeOptions = [
+  { label: tt('feedback.bug', 'Bug'), value: 'bug' },
+  { label: tt('feedback.suggestion', 'Suggestion'), value: 'suggestion' },
+  { label: tt('feedback.balance', 'Balance'), value: 'balance' },
+  { label: tt('feedback.translation', 'Translation'), value: 'translation' }
+]
+
+// ------------------------------------------------
+// Estado local del formulario
+// ------------------------------------------------
+const local = reactive<FeedbackPayload>({
+  type: 'suggestion',
+  comment: '',
+  attachment: ''
+})
+
+const submitting = ref(false)
+const commentRef = ref<any>(null)
+
+function close() {
+  emit('update:open', false)
+}
+
+function reset() {
+  local.type = 'suggestion'
+  local.comment = ''
+  local.attachment = ''
+}
+
+watch(
+  () => props.open,
+  (v) => {
+    if (v) {
+      reset()
+      nextTick(() => {
+        const el = (commentRef?.value?.$el as HTMLElement | undefined)
+          ?.querySelector?.('textarea') as HTMLTextAreaElement | undefined
+        if (el) el.focus()
+        else if (typeof commentRef?.value?.focus === 'function') commentRef.value.focus()
+      })
+    }
+  }
+)
+
+watch(
+  () => [props.entityId, props.entityType, props.entityName],
+  () => {
+    if (props.open) reset()
+  }
+)
+
+async function submit() {
+  if (!local.comment.trim()) return
+  submitting.value = true
+  try {
+    const data: FeedbackPayload = {
+      type: local.type,
+      comment: local.comment.trim(),
+      attachment: local.attachment?.trim() || undefined
+    }
+    emit('submit', {
+      entityId: props.entityId,
+      entityType: props.entityType,
+      data
+    })
+    emit('update:open', false)
+  } finally {
+    submitting.value = false
+  }
+}
+</script>

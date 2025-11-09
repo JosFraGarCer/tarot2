@@ -27,22 +27,26 @@
       :card-type="cardType"
       :on-create="onCreateClickWrapper"
     />
-    <div v-can.disable="['canEditContent','canPublish']" class="flex gap-2">
-          <UButton
-            size="xs"
-            icon="i-heroicons-arrow-up-tray"
-            color="neutral"
-            variant="soft"
-            :label="$t('common.export') || 'Export'"
-          />
-          <UButton
-            size="xs"
-            icon="i-heroicons-arrow-down-tray"
-            color="neutral"
-            variant="soft"
-            :label="$t('import.button') || 'Import'"
-          />
-        </div>
+    <div class="flex gap-2">
+      <UButton
+        size="xs"
+        icon="i-heroicons-arrow-up-tray"
+        color="neutral"
+        variant="soft"
+        :loading="exporting"
+        :label="$t('common.export') || 'Export'"
+        @click="exportAll"
+      />
+      <UButton
+        size="xs"
+        icon="i-heroicons-arrow-down-tray"
+        color="neutral"
+        variant="soft"
+        :label="$t('import.button') || 'Import'"
+        :loading="importing"
+        @click="openImportModal"
+      />
+    </div>
 
     <div v-if="viewMode === 'tabla'">
       <EntityTableWrapper
@@ -51,7 +55,7 @@
         :columns="resolvedColumns"
         @edit="onEdit"
         @delete="onDelete"
-        @export="onExport"
+        @export="exportSelected"
         @batch-update="onBatchUpdate"
         @create="onCreateClickWrapper"
         @reset-filters="resetFilters"
@@ -160,11 +164,24 @@
       :translation-loading="deleteTranslationLoading"
       :translation-lang="pendingDeleteTranslationItem?.language_code || localeCode"
     />
+
+    <ImportJson
+      :open="importModalOpen"
+      :title="importModalTitle"
+      :description="null"
+      :loading="importing"
+      :error="importError"
+      :confirm-label="$t('common.import') || 'Import'"
+      :cancel-label="$t('common.cancel') || 'Cancel'"
+      @submit="handleImportSubmit"
+      @cancel="closeImportModal"
+      @update:open="value => (importModalOpen = value)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n, useToast } from '#imports'
 import PaginationControls from '~/components/common/PaginationControls.vue'
 import ManageEntityFilters from '~/components/manage/EntityFilters.vue'
@@ -188,6 +205,8 @@ import { useManageFilters } from '~/composables/manage/useManageFilters'
 import { useManageColumns } from '~/composables/manage/useManageColumns'
 import { useManageActions } from '~/composables/manage/useManageActions'
 import type { EntityFilterConfig } from '~/composables/manage/useEntity'
+import ImportJson from '~/components/manage/modal/ImportJson.vue'
+import { useEntityTransfer } from '~/composables/manage/useEntityTransfer'
 
 type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
@@ -238,6 +257,47 @@ async function refresh() {
   return await crud.fetchList?.()
 }
 
+const {
+  importing,
+  exporting,
+  importError,
+  exportEntities: runEntityExport,
+  importEntities: runEntityImport,
+} = useEntityTransfer({
+  resourcePath: crud.resourcePath,
+  entityLabel: props.label,
+  filePrefix: props.entity,
+  onImported: async () => {
+    await crud.fetchList?.()
+  }
+})
+
+const importModalOpen = ref(false)
+const importModalTitle = computed(() => `${t('import.button') || 'Import'} ${props.label}`)
+
+function openImportModal() {
+  importModalOpen.value = true
+}
+
+function closeImportModal() {
+  importModalOpen.value = false
+}
+
+async function handleImportSubmit(file: File) {
+  const success = await runEntityImport(file)
+  if (success) {
+    closeImportModal()
+  }
+}
+
+function exportAll() {
+  void runEntityExport()
+}
+
+function exportSelected(ids: number[]) {
+  void runEntityExport(ids?.length ? { ids } : undefined)
+}
+
 // Deletion composable
 const localeCode = computed(() => (typeof locale === 'string' ? locale : locale.value) as string)
 const {
@@ -283,7 +343,7 @@ const savingDelete = computed(() => deletingSaving.value)
 const { page, pageSize, totalItems, totalPages, defaultPageSizes, onPageChange, onPageSizeChange } = useEntityPagination(crud as any)
 
 
-const { onExport, onBatchUpdate, onFeedback, onTags } = useManageActions(crud as any, {
+const { onBatchUpdate, onFeedback, onTags } = useManageActions(crud as any, {
   entityLabel: props.label,
   toast,
 })

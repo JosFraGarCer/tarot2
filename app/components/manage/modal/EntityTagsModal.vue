@@ -1,0 +1,85 @@
+<!-- app/components/manage/Modal/EntityTagsModal.vue -->
+<template>
+  <UModal
+    :open="open"
+    :title="title"
+    :description="description"
+    @update:open="val => $emit('update:open', val)"
+  >
+    <template #body>
+      <UForm @submit="onSubmit">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="text-sm text-neutral-600 dark:text-neutral-400">
+              {{ $t('common.selected') }}: {{ (modelValue || []).length }}
+            </div>
+            <div class="flex gap-2">
+              <UButton size="xs" color="neutral" variant="soft" :label="$t('common.clear')" @click="clearAll" />
+            </div>
+          </div>
+
+          <UFormField :label="$t('common.tags')">
+            <USelectMenu
+              multiple
+              searchable
+              clearable
+              :items="options"
+              value-key="value"
+              class="w-full"
+              option-attribute="label"
+              :model-value="modelValue"
+              @update:model-value="val => $emit('update:modelValue', val as number[])"
+            />
+          </UFormField>
+
+          <div v-if="selectedOptions.length" class="flex flex-wrap gap-1">
+            <UBadge
+              v-for="opt in selectedOptions"
+              :key="`tag-${opt.value}`"
+              size="sm"
+              color="info"
+              variant="soft"
+            >
+              {{ opt.label }}
+            </UBadge>
+          </div>
+        </div>
+      </UForm>
+    </template>
+    <template #footer>
+      <div class="flex justify-end gap-2 w-full">
+        <UButton color="neutral" variant="soft" :label="cancelLabel || $t('common.cancel')" @click="$emit('update:open', false)" />
+        <UButton color="primary" :loading="saving" :label="confirmLabel || $t('common.save')" @click="onSubmit" />
+      </div>
+    </template>
+  </UModal>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = defineProps<{
+  open: boolean
+  title: string
+  description?: string
+  modelValue: number[]
+  options: Array<{ label: string; value: number }>
+  saving?: boolean
+  confirmLabel?: string
+  cancelLabel?: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:open', value: boolean): void
+  (e: 'update:modelValue', value: number[]): void
+  (e: 'confirm'): void
+}>()
+
+const selectedOptions = computed(() => {
+  const values = Array.isArray(props.modelValue) ? props.modelValue : []
+  return (props.options || []).filter(o => values.includes(o.value))
+})
+
+const clearAll = () => emit('update:modelValue', [])
+const onSubmit = () => emit('confirm')
+</script>
