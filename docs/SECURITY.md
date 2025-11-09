@@ -17,7 +17,7 @@ This document describes how authentication, authorization, and session security 
   - Middleware `server/middleware/00.auth.hydrate.ts` extracts `auth_token` from cookies, verifies it via `verifyToken`, loads the full user (including roles), merges permissions with `mergePermissions`, and attaches `event.context.user`.
 
 - **Session Fetch (Client)**
-  - Composable: `app/composables/auth/useAuth.ts` → `fetchCurrentUser()` calls GET `/api/users/me` (ensure the server route is `user/me`, see note below) and sets the Pinia store with the returned user.
+  - Composable: `app/composables/auth/useAuth.ts` → `fetchCurrentUser()` calls GET `/api/user/me` y setea el store de usuario con la respuesta.
   - Server endpoint providing the “me” response: `server/api/user/me.get.ts`.
 
 - **Logout**

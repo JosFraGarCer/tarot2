@@ -34,6 +34,15 @@
 - Endpoints usados por /manage (presentes y consistentes):
   - `/api/card_type/*`, `/api/base_card/*`, `/api/world/*`, `/api/arcana/*`, `/api/facet/*`, `/api/skill/*`, `/api/tag/*`, `/api/tag_links` (POST/DELETE), export/import para cada entidad.
 
+## Alineación con /docs (API, SERVER, SCHEMA, effect-system)
+
+- Respuestas y paginación: `{ success, data, meta { page, pageSize, totalItems, totalPages, count, search } }`.
+- I18n: uso de `<entidad>_translations` con fallback `'en'` y campo `language_code_resolved` en listados/detalles.
+- Borrado por idioma: si la página está en `en`, el borrado elimina la entidad + traducciones; en otro idioma, se ofrece eliminar sólo la traducción (comportamiento ya reflejado en UI de `DeleteDialogs`).
+- Tags: la documentación general (SERVER.md) señala filtros AND por múltiples tags; algunos listados actuales usan OR. Definir y alinear semántica a nivel de producto y actualizar consultas/UX.
+- Card types: la ruta `/api/card_type` mapea a la tabla `base_card_type` (API.MD). Mantener esta convención en componentes/presets.
+- Sistema de efectos: el esquema incorpora `effect_type`, `effect_target` y `card_effects` (semántico) y modo legacy (`legacy_effects` + `effects` JSONB). Se recomienda preparar `FormModal`/presets para soportar edición de efectos cuando se active el módulo en UI.
+
 ## Flujo de datos
 - `useEntity` normaliza respuestas heterogéneas (meta/paginación) y expone `items`, `pagination`, `filters`, `fetchList/fetchOne/create/update/remove`.
 - SSR: `useAsyncData` con `watch` por clave estable (`resourcePath + filtros + paginación + lang`).

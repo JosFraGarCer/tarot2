@@ -65,6 +65,14 @@
 - Plugins: `server/plugins/db.ts` (Kysely+PG), `server/plugins/auth.ts` (JWT helpers).
 - Rutas: `server/api/{content_versions,content_revisions,content_feedback,role,user,uploads,database,...}`.
 
+## Alineación con /docs (API, SERVER, SECURITY, SCHEMA)
+
+- `release` en `content_versions` está confirmado en el esquema (`release_stage`) y en la documentación de API; el UI ya lo usa correctamente.
+- Seguridad: `POST /api/auth/logout` existe pero no limpia la cookie `auth_token` (SECURITY.md). Recomendado añadir limpieza del cookie.
+- Convención de rutas de usuarios: la API actual usa `/api/user/*` (singular). Parte de la documentación antigua usa `/api/users/*` (plural). Recomendado unificar a singular y, si procede, ofrecer alias temporal para compatibilidad.
+- `card_type` vs `base_card_type`: la documentación señala la diferencia de nombre entre la ruta y la tabla base; en el backend actual la ruta es `/api/card_type` y mapea a `base_card_type`. Mantener coherencia en nuevas utilidades/consultas.
+- Filtros por tags: documentación (SERVER.md) describe semántica AND; en algunos listados actuales (p.ej. base_card) se aplica OR. Definir semántica objetivo y alinear código + documentación.
+
 ## Problemas y bugs detectados (con evidencia)
 - [P0] Endpoint de publicación FALTANTE
   - UI llama `POST /api/content_versions/publish` desde `/admin/versions/index.vue` (líneas ~161–165). No existe en `server/api` (búsqueda global de "publish").
@@ -84,6 +92,9 @@
 - [P2] Uso inconsistente de `$fetch` vs `useApiFetch`
   - Varias páginas (`/admin/database`, `/admin/versions/[id]`, parte de `/admin/versions`) usan `$fetch('/api/...')` directo, perdiendo ETag/304 y política de reintentos de `useApiFetch`.
   - Solución: unificar en `useApiFetch` cuando aplique (especialmente GETs).
+- [P3] Desfase documental sobre usuarios y card types
+  - Parte de la documentación antigua usa `/api/users/*` (plural) pero el backend expone `/api/user/*` (singular). Ajustar documentación/consumidores.
+  - La ruta `/api/card_type` mapea a la tabla `base_card_type` (nota en API.MD). Mantener la convención y documentar el mapeo.
 
 ## Seguridad y permisos
 - Middleware exige sesión para todo `/api` (correcto para admin).

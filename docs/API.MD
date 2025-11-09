@@ -22,6 +22,7 @@ Esta guía documenta exhaustivamente los endpoints bajo `/server/api` y los util
 - **Tags**:
   - Varios listados admiten filtros `tags` (nombres, string o array o CSV/JSON), y `tag_ids` (ids numéricos).
   - Semántica: OR entre las etiquetas proporcionadas.
+  - Filtros por FKs (multi-valor): `card_type_id`, `arcana_id`, `facet_id` aceptan valores múltiples (CSV/JSON) y se aplican con semántica OR.
 - **Formato de respuesta**:
   - Éxito: `{ success: true, data, meta? }`
   - Error (validador/zod/h3): HTTP `statusCode` con `statusMessage`. Algunos helpers también exponen `{ success: false, error: { message, statusCode } }`.
@@ -71,33 +72,33 @@ A continuación se documentan todos los recursos bajo `/api`. Para cada uno se i
 
 ## Users
 
-- `GET /api/users`
+- `GET /api/user`
   - Query: `page, pageSize, q|search, status, is_active (boolean), role_id, sort (username|email|created_at|modified_at|status|is_active), direction`.
   - Retorna usuarios con agregación de roles (JSON) y `permissions` combinados.
-- `POST /api/users`
+- `POST /api/user`
   - Body: `{ username, email, password, image?, status='active', is_active? (mapea a status), role_ids: number[] }`
   - Valida email único. Inserta usuario y roles. Retorna usuario enriquecido con roles y `permissions`.
-- `GET /api/users/me`
+- `GET /api/user/me`
   - Retorna el usuario autenticado (via cookie/JWT) con roles y `permissions`.
-- `GET /api/users/:id`
+- `GET /api/user/:id`
   - Retorna usuario con roles agregados y `permissions`.
-- `PATCH /api/users/:id`
+- `PATCH /api/user/:id`
   - Body parcial: `{ email?, username?, image?, status?, is_active?, password?, role_ids? }`
   - Actualiza usuario y (si se incluyen) reemplaza roles. Retorna usuario actualizado con roles y `permissions`.
-- `DELETE /api/users/:id`
+- `DELETE /api/user/:id`
   - Desactiva usuario (`status='inactive'`) y elimina sus roles. Retorna `{ ok:true }`.
 
 ### Campos y validación
 
-- **POST /api/users**
+- **POST /api/user**
   - Requeridos: `username (min 3)`, `email (email)`, `password (min 6)`, `role_ids (array<number> no vacío)`
   - Opcionales: `image (string|null)`, `status (string, default 'active')`, `is_active (boolean, default true)`
-- **PATCH /api/users/:id**
+- **PATCH /api/user/:id**
   - Todos los campos del POST son opcionales. `password` si se envía debe cumplir min 6.
 
 ### Ejemplos de salida
 
-- GET `/api/users`:
+- GET `/api/user`:
 ```json
 {
   "success": true,
@@ -117,7 +118,7 @@ A continuación se documentan todos los recursos bajo `/api`. Para cada uno se i
   "meta": { "page": 1, "pageSize": 20, "totalItems": 1, "totalPages": 1, "count": 1 }
 }
 ```
-- POST `/api/users`:
+- POST `/api/user`:
 ```json
 {
   "success": true,

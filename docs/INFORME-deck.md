@@ -25,6 +25,19 @@
 - Reutiliza endpoints de `/api/{card_type, base_card, world, arcana, facet, skill}` que existen con operaciones completas (index.get/post, id.get/patch/delete, export/import, batch.patch).
 - Filtros y paginación se resuelven en el servidor con Kysely + utilidades (`buildFilters`, `createPaginatedResponse`) y traducciones fallback (joins `*_translations` y coalesce con `en`).
 
+## Alineación con /docs (API, SERVER, SCHEMA)
+
+- Base URL `/api` y respuestas `{ success, data, meta? }` (API.MD/SERVER.md).
+- I18n: los listados resuelven `name/short_text/description` con fallback a `'en'` y exponen `language_code_resolved`.
+- Mapeo `card_type` → tabla base `base_card_type` (nota en API.MD). En /deck consumimos `/api/card_type` que internamente mapea a dicha tabla.
+- Tags: la documentación generaliza filtros AND; algunos listados actuales (p.ej. base_card) aplican OR. Alinear semántica (decisión de producto) y actualizar consultas/documentación.
+- Carga de imágenes: rutas bajo `/img/<entity>/...` servidas desde `public/img` y/o generadas por `/api/uploads`.
+
+### Sistema de efectos (Effect System 2.0)
+
+- El esquema y `effect-system.md` introducen `effect_type`, `effect_target` y `card_effects` (semántico), además de modo narrativo (`legacy_effects` + `effects` JSONB por idioma).
+- /deck puede integrar una presentación de efectos (semánticos o legacy) en la previsualización de cartas base/world/skills/facets como mejora futura.
+
 ## Flujo de datos
 - `useDeckCrud` mapea la entidad solicitada a su CRUD de `manage` (cacheado para no re-instanciar).
 - `fetch(options)` de `useDeckCrud` ajusta paginación, status/is_active y dispara `crud.fetchList()`.

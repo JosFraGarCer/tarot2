@@ -5,9 +5,9 @@ Nuestro proyecto es la gestion y desarrollo de una app para la creación gestion
 Estamos en las fases temprana de desarrollo donde aun estamos estableciendo las bases tanto de la aplicación como del sistema de juego Tarot
 
 ## La aplicación
-La aplicación usa Nuxt 4 en su ultima version, NuxtUI 4 (en su ultima version), Pinia y pinia colada, TailwindCSS, i18n, zod y kisely con Postgres.
+La aplicación usa Nuxt 4 en su ultima version, NuxtUI 4 (en su ultima version), Pinia y pinia colada, TailwindCSS, i18n, zod y kysely con Postgres.
 Buscamos un buen tipado, una base de datos eficiente, una API optimizada y un codigo limpio, optimizado y sin duplicación de codigo inutil.
-Para su desarollo usamos el gestot pnpm
+Para su desarollo usamos el gestor pnpm
 
 
 ## Multi-idioma
@@ -120,3 +120,51 @@ Gestion para creacion, edicion y traduccion de cartas
 #### Deck
 Para la visualizacion de las cartas
 
+
+## Arquitectura y stack (resumen derivado de /docs)
+
+- Backend: Nuxt 4 (H3/Nitro) + PostgreSQL vía Kysely (tipado) + JWT (jose) + Pino (logger).
+- Base URL API: `/api`. Respuestas normalizadas: `{ success, data, meta? }`.
+- Cliente: `useApiFetch` con ETag/If-None-Match y cache 304, SSR para listados críticos.
+- Módulos API por entidad: `world`, `world_card`, `arcana`, `base_card`, `card_type`, `skill`, `facet`, `tag`, además de `user`, `role`, `uploads`, `database`, `content_feedback`, `content_revisions`, `content_versions`.
+
+## Seguridad y autenticación
+
+- Login `POST /api/auth/login` → cookie `auth_token` HttpOnly. Middleware `00.auth.hydrate` carga usuario/roles/permissions; `01.auth.guard` protege `/api/*` (excepto login/logout).
+- Nota SECURITY: `POST /api/auth/logout` existe, pero no limpia la cookie todavía; recomendado añadir `setCookie(..., maxAge:0)`.
+
+## Esquema y versionado de contenido
+
+- `content_versions` incluye `version_semver`, `description`, `metadata`, `release` (`dev|alfa|beta|candidate|release|revision`).
+- Varias tablas referencian versiones (`content_version_id`/`version_id`) y comparten `status` (`card_status`) e `is_active`.
+- Internacionalización: tablas `<entidad>_translations` con `language_code` y fallback a `'en'` en las consultas.
+- Borrado por idioma: si `lang==='en'` se elimina la entidad y sus traducciones; en otro caso, sólo la traducción.
+
+## Sistema de efectos (Effect System 2.0)
+
+- Catálogos: `effect_type` y `effect_target` (+ traducciones). Instancias: `card_effects` con jerarquía (parent_id), `value/formula`, `scope`, `duration` y metadatos.
+- Modo narrativo (legacy): campos `legacy_effects` (bool) y `effects` (JSONB por idioma) en entidades como `base_card`, `world_card`, `base_skills`, `facet`.
+- UI: alterna entre modo legacy (Markdown) y semántico (estructurado) según `legacy_effects`.
+
+## Tags y filtros
+
+- Vínculos en `tag_links` por `entity_type` (`arcana|facet|base_card|base_card_type|world|world_card|base_skills`).
+- Documentación presenta diferencias: SERVER.md describe filtros de tags en modo AND; algunos endpoints actuales (p.ej. base_card) aplican OR (ANY). Se recomienda alinear (decidir y estandarizar: AND o OR) y actualizar docs/código en conjunto.
+
+## Rutas y convenciones
+
+- Usuarios: el backend implementa `/api/user/*` (singular). Parte de la documentación antigua menciona `/api/users/*` (plural). Recomendado unificar a singular y/o ofrecer alias temporal.
+- Endpoints especiales: `uploads` (imágenes optimizadas AVIF), `database` (export/import JSON/SQL), `content_feedback` (comentarios editoriales), `content_revisions` (historial y diffs), `content_versions` (releases) con `release`.
+
+## Alineaciones pendientes
+
+- Implementar `POST /api/content_versions/publish` (publicación de revisiones aprobadas) y `POST /api/content_revisions/:id/revert` (revert de revisión); la UI los referencia.
+- Unificar semántica de filtros de tags (AND vs OR) y actualizar documentación/consultas.
+- Corregir referencias antiguas a `/api/users` → `/api/user`.
+- Adoptar `useApiFetch` en GETs de admin para aprovechar ETag/304 de forma consistente.
+
+## Próximos pasos
+
+- Consolidar editor de cartas con integración del sistema de efectos (semántico/legacy).
+- Completar endpoints de publicación/revert y la UX de versiones.
+- Añadir rate limiting básico (SECURITY) y pulir logout para limpiar cookie.
