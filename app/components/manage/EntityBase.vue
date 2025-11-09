@@ -191,6 +191,17 @@
       @update:model-value="setTagsSelection"
       @confirm="confirmTags"
     />
+
+    <FeedbackModal
+      :open="feedbackModalOpen"
+      :entity-id="feedbackEntityId"
+      :entity-type="feedbackEntityType"
+      :entity-name="feedbackEntityName"
+      :entity-label="label"
+      :saving="feedbackSaving"
+      @update:open="handleFeedbackOpenChange"
+      @submit="handleFeedbackSubmit"
+    />
   </div>
 </template>
 
@@ -223,6 +234,8 @@ import ImportJson from '~/components/manage/modal/ImportJson.vue'
 import { useEntityTransfer } from '~/composables/manage/useEntityTransfer'
 import EntityTagsModal from '~/components/manage/modal/EntityTagsModal.vue'
 import { useEntityTags } from '~/composables/manage/useEntityTags'
+import FeedbackModal from '~/components/manage/modal/FeedbackModal.vue'
+import { useFeedback } from '~/composables/manage/useFeedback'
 
 type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
@@ -359,7 +372,7 @@ const savingDelete = computed(() => deletingSaving.value)
 const { page, pageSize, totalItems, totalPages, defaultPageSizes, onPageChange, onPageSizeChange } = useEntityPagination(crud as any)
 
 
-const { onBatchUpdate, onFeedback, onTags: notifyTags } = useManageActions(crud as any, {
+const { onBatchUpdate, onFeedback: notifyFeedback, onTags: notifyTags } = useManageActions(crud as any, {
   entityLabel: props.label,
   toast,
 })
@@ -391,6 +404,37 @@ function handleTagsModalOpenChange(value: boolean) {
   if (!value) {
     closeTagsModal()
   }
+}
+
+const {
+  modalOpen: feedbackModalOpen,
+  saving: feedbackSaving,
+  entityId: feedbackEntityId,
+  entityName: feedbackEntityName,
+  entityType: feedbackEntityType,
+  open: openFeedbackModal,
+  close: closeFeedbackModal,
+  submit: submitFeedback,
+} = useFeedback({
+  entityKey: props.entity,
+  entityLabel: props.label,
+  crud: crud as any,
+  toast,
+})
+
+function handleFeedbackOpenChange(value: boolean) {
+  if (!value) {
+    closeFeedbackModal()
+  }
+}
+
+async function handleFeedbackSubmit(payload: { entityId?: number | string; entityType?: string; data: any }) {
+  await submitFeedback(payload.data)
+}
+
+async function onFeedback(entity: any) {
+  notifyFeedback?.(entity)
+  openFeedbackModal({ entity })
 }
 
 function onPreview(entity: any) {

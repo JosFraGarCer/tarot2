@@ -4,7 +4,7 @@
   <UModal
     :open="open"
     :title="tt('feedback.title', 'Feedback')"
-    @update:open="(v) => emit('update:open', v)"
+    @update:open="handleOpenChange"
   >
     <template #body>
       <div class="space-y-3">
@@ -57,8 +57,8 @@
         <UButton
           color="primary"
           :label="tt('common.save', 'Save')"
-          :disabled="!local.comment.trim() || submitting"
-          :loading="submitting"
+          :disabled="!local.comment.trim() || saving"
+          :loading="saving"
           @click="submit"
         />
       </div>
@@ -87,6 +87,7 @@ const props = defineProps<{
   entityType?: string
   entityName?: string
   entityLabel?: string
+  saving?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -114,7 +115,6 @@ const local = reactive<FeedbackPayload>({
   attachment: ''
 })
 
-const submitting = ref(false)
 const commentRef = ref<any>(null)
 
 function close() {
@@ -150,22 +150,22 @@ watch(
 )
 
 async function submit() {
-  if (!local.comment.trim()) return
-  submitting.value = true
-  try {
-    const data: FeedbackPayload = {
-      type: local.type,
-      comment: local.comment.trim(),
-      attachment: local.attachment?.trim() || undefined
-    }
-    emit('submit', {
-      entityId: props.entityId,
-      entityType: props.entityType,
-      data
-    })
-    emit('update:open', false)
-  } finally {
-    submitting.value = false
+  if (!local.comment.trim() || props.saving) return
+  const data: FeedbackPayload = {
+    type: local.type,
+    comment: local.comment.trim(),
+    attachment: local.attachment?.trim() || undefined
   }
+  emit('submit', {
+    entityId: props.entityId,
+    entityType: props.entityType,
+    data
+  })
+}
+
+const saving = computed(() => !!props.saving)
+
+function handleOpenChange(value: boolean) {
+  emit('update:open', value)
 }
 </script>
