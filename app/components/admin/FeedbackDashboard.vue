@@ -40,56 +40,69 @@
 </template>
 
 <script setup lang="ts">
+import { useContentFeedback } from '@/composables/admin/useContentFeedback'
+import { useApiFetch } from '@/utils/fetcher'
+
 const props = defineProps<{ query?: { type?: string | null; status?: string | null } }>()
 
 const totals = reactive({ total: 0, open: 0, resolved: 0 })
 const totalsByType = reactive({ bug: 0, suggestion: 0, balance: 0 })
+const weeklyBuckets = ref<{ label: string; count: number }[]>([])
+
+const { fetchMeta } = useContentFeedback()
+const apiFetch = useApiFetch
 
 async function fetchCount(q: Record<string, any>) {
-  const res = await $fetch<any>('/api/content_feedback', { method: 'GET', query: q })
-  if (res?.meta?.totalItems != null) return Number(res.meta.totalItems)
-  if (Array.isArray(res)) return res.length
+  try {
+    const meta = await fetchMeta({ ...q, page: 1, pageSize: 1 })
+    if (meta?.totalItems != null) return Number(meta.totalItems)
+  } catch {}
   return 0
 }
 
 async function loadTotals() {
-  const base: any = {}
-  if (props.query?.type && props.query.type !== 'all') base.type = props.query.type
+  const base: Record<string, any> = {}
+  if (props.query?.type && props.query.type !== 'all') base.category = props.query.type
   totals.total = await fetchCount(base)
   totals.open = await fetchCount({ ...base, status: 'open' })
   totals.resolved = await fetchCount({ ...base, status: 'resolved' })
-  totalsByType.bug = await fetchCount({ status: 'open', type: 'bug' }) + await fetchCount({ status: 'resolved', type: 'bug' })
-  totalsByType.suggestion = await fetchCount({ status: 'open', type: 'suggestion' }) + await fetchCount({ status: 'resolved', type: 'suggestion' })
-  totalsByType.balance = await fetchCount({ status: 'open', type: 'balance' }) + await fetchCount({ status: 'resolved', type: 'balance' })
+  totalsByType.bug = await fetchCount({ category: 'bug' })
+  totalsByType.suggestion = await fetchCount({ category: 'suggestion' })
+  totalsByType.balance = await fetchCount({ category: 'balance' })
 }
 
-const weeklyBuckets = ref<{ label: string; count: number }[]>([])
+function startOfDay(d: Date) {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x
+}
 
-function startOfDay(d: Date) { const x = new Date(d); x.setHours(0,0,0,0); return x }
-function format(d: Date) { return `${d.getMonth()+1}/${d.getDate()}` }
+function format(d: Date) {
+  return `${d.getMonth() + 1}/${d.getDate()}`
+}
 
 async function loadWeekly() {
-  // Pull last 30 days (paginated aggregations are not available, we sample pages until enough or rely on meta to hint)
-  // For simplicity, we load first N pages to cover recent entries
   const now = new Date()
   const since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
   const dates: Date[] = []
-  for (let i=0;i<30;i++) dates.push(new Date(since.getTime() + i*24*60*60*1000))
+  for (let i = 0; i < 30; i++) dates.push(new Date(since.getTime() + i * 24 * 60 * 60 * 1000))
   const map = new Map<string, number>()
   for (const d of dates) map.set(format(d), 0)
 
-  // Fetch first 5 pages (max 250 items) to get recent activity
-  for (let page=1; page<=5; page++) {
-    const res = await $fetch<any>('/api/content_feedback', { method: 'GET', query: { page, pageSize: 50 } })
-    const arr = Array.isArray(res) ? res : (res?.data || [])
-    for (const it of arr) {
-      const created = new Date(it.created_at || it.createdAt)
+  for (let page = 1; page <= 5; page++) {
+    const response = await apiFetch<{ data?: any[] } | any[]>('/content_feedback', {
+      method: 'GET',
+      params: { page, pageSize: 50 },
+    })
+    const data = Array.isArray(response) ? response : Array.isArray(response?.data) ? response.data : []
+    for (const it of data) {
+      const created = new Date((it as any).created_at || (it as any).createdAt)
       if (created >= since) {
         const key = format(startOfDay(created))
         map.set(key, (map.get(key) || 0) + 1)
       }
     }
-    if ((res?.data?.length || 0) < 50) break
+    if (data.length < 50) break
   }
 
   weeklyBuckets.value = Array.from(map.entries()).map(([label, count]) => ({ label, count }))

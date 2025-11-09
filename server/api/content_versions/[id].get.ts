@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
         'cv.metadata',
         'cv.created_by',
         'cv.created_at',
+        'cv.release',
         sql`coalesce(u.username, u.email)`.as('created_by_name'),
       ])
       .where('cv.id', '=', id)

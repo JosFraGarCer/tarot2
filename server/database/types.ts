@@ -31,6 +31,8 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type UserStatus = "active" | "banned" | "inactive" | "pending" | "suspended";
 
+export type ReleaseStage = "alfa" | "beta" | "candidate" | "dev" | "release" | "revision";
+
 export interface Arcana {
   code: string;
   content_version_id: number | null;
@@ -245,6 +247,7 @@ export interface ContentVersions {
   description: string | null;
   id: Generated<number>;
   metadata: Generated<Json>;
+  release: ReleaseStage;
   version_semver: string;
 }
 

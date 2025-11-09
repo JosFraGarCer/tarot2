@@ -154,10 +154,10 @@ async function onDelete(v:any) {
 }
 
 const toast = useToast()
-async function onSave(payload: { id?: number; version_semver: string; description?: string | null; metadata?: Record<string, any> }) {
+async function onSave(payload: { id?: number; version_semver: string; description?: string | null; metadata?: Record<string, any>; release: 'dev' | 'alfa' | 'beta' | 'candidate' | 'release' | 'revision' }) {
   try {
     if (publishMode.value) {
-      // Guided publish: call publish endpoint with semver and notes (mapped from description)
+      // Guided publish: call publish endpoint with semver/notes in description field
       const res: any = await $fetch('/api/content_versions/publish', { method: 'POST', body: { version_semver: payload.version_semver, notes: payload.description || null } })
       toast.add({ title: tt('versions.published','Published'), description: `${res?.data?.totalEntities || 0} entities · ${res?.data?.totalRevisionsPublished || 0} revisions`, color: 'success' })
       publishMode.value = false
@@ -167,8 +167,8 @@ async function onSave(payload: { id?: number; version_semver: string; descriptio
       // Ensure plain JSON (no Vue proxies)
       const metaPlain = payload.metadata ? JSON.parse(JSON.stringify(payload.metadata)) : {}
       const desc = payload.description ?? null
-      if (payload.id) await update(payload.id, { version_semver: payload.version_semver, description: desc, metadata: metaPlain })
-      else await create({ version_semver: payload.version_semver, description: desc, metadata: metaPlain })
+      if (payload.id) await update(payload.id, { version_semver: payload.version_semver, description: desc, metadata: metaPlain, release: payload.release })
+      else await create({ version_semver: payload.version_semver, description: desc, metadata: metaPlain, release: payload.release })
       toast.add({ title: tt('common.success', 'Success'), description: tt('versions.saved', 'Version saved'), color: 'success' })
       await reload()
     }

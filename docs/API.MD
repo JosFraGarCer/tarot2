@@ -757,22 +757,22 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 ## Content Versions
 
 - `GET /api/content_versions`
-  - Query: `page, pageSize, search, version_semver, created_by, sort (created_at|version_semver), direction`.
+  - Query: `page, pageSize, search, version_semver, created_by, release, sort (created_at|version_semver), direction`.
 - `POST /api/content_versions`
-  - Body: `{ version_semver, description?, metadata? (obj) }` (único `version_semver`). Usa `created_by` del usuario en contexto. Devuelve fila con `created_by_name`.
+  - Body: `{ version_semver, description?, metadata? (obj), release? }` (único `version_semver`). Usa `created_by` del usuario en contexto. Devuelve fila con `created_by_name` y `release`.
 - `GET /api/content_versions/:id`
-  - Retorna versión con `created_by_name`.
+  - Retorna versión con `created_by_name` y `release`.
 - `PATCH /api/content_versions/:id`
-  - Valida `version_semver` único si cambia. Body parcial `{ version_semver?, description?(nullable), metadata? (obj) }`.
+  - Valida `version_semver` único si cambia. Body parcial `{ version_semver?, description?(nullable), metadata? (obj), release? }`.
 - `DELETE /api/content_versions/:id` — Borra versión. `{ ok:true }`.
 
 ### Campos y validación
 
 - **POST /api/content_versions**
   - Requeridos: `version_semver (string)`
-  - Opcionales: `description (string)`, `metadata (obj, default {})`
+  - Opcionales: `description (string)`, `metadata (obj, default {})`, `release (dev|alfa|beta|candidate|release|revision, default alfa)`
 - **PATCH /api/content_versions/:id**
-  - Opcionales: `version_semver (string, único)`, `description (string|null)`, `metadata (obj)`
+  - Opcionales: `version_semver (string, único)`, `description (string|null)`, `metadata (obj)`, `release (enum)`
 
 ### Ejemplos de salida
 
@@ -783,6 +783,7 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
   "version_semver": "1.0.0",
   "description": "Primera versión",
   "metadata": {},
+  "release": "alfa",
   "created_by": 1,
   "created_at": "2025-01-01T10:00:00.000Z",
   "created_by_name": "admin"

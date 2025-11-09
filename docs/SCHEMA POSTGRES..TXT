@@ -35,6 +35,16 @@ CREATE DOMAIN public.language_code AS character varying(5)
 	COLLATE "default"
 	CONSTRAINT language_code_check CHECK (VALUE::text ~ '^[a-z]{2}(-[A-Z]{2})?$'::text);
 COMMENT ON TYPE public.language_code IS 'ISO 639-1 + optional ISO 3166-1 (e.g. en, es, en-US, fr-FR). Used in all *_translations and content_feedback/revisions.';
+-- DROP TYPE public.release_stage;
+
+CREATE TYPE public.release_stage AS ENUM (
+	'dev',
+	'alfa',
+	'beta',
+	'candidate',
+	'release',
+	'revision');
+
 -- DROP TYPE public.user_status;
 
 CREATE TYPE public.user_status AS ENUM (
@@ -416,6 +426,7 @@ CREATE TABLE public.content_versions (
 	metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
 	created_by int4 NULL,
 	created_at timestamptz DEFAULT now() NOT NULL,
+	"release" public.release_stage DEFAULT 'alfa'::release_stage NOT NULL,
 	CONSTRAINT content_versions_pkey PRIMARY KEY (id),
 	CONSTRAINT content_versions_version_unique UNIQUE (version_semver),
 	CONSTRAINT content_versions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL

@@ -428,7 +428,16 @@
   },
   "versions": {
     "publishApproved": "Publicar revisiones aprobadas",
-    "published": "Publicado"
+    "published": "Publicado",
+    "release": {
+      "label": "Tipo de release",
+      "dev": "Dev",
+      "alfa": "Alfa",
+      "beta": "Beta",
+      "candidate": "Release Candidate",
+      "release": "Release",
+      "revision": "Revisión"
+    }
   },
   "view": {
     "card": "Carta",

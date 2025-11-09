@@ -431,6 +431,15 @@
     "deleteConfirm": "Delete this version?",
     "deleted": "Version deleted",
     "detailTitle": "Version detail",
+    "release": {
+      "label": "Release type",
+      "dev": "Dev",
+      "alfa": "Alpha",
+      "beta": "Beta",
+      "candidate": "Release Candidate",
+      "release": "Release",
+      "revision": "Revision"
+    },
     "err400": "Please review the fields and try again",
     "err409": "A version with this number already exists",
     "err500": "Unexpected server error",

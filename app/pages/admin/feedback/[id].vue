@@ -80,6 +80,7 @@ import { formatDate } from '~/utils/date'
 import CartaRow from '~/components/manage/CartaRow.vue'
 import { useContentFeedback } from '~/composables/admin/useContentFeedback'
 import ConfirmDeleteModal from '~/components/common/ConfirmDeleteModal.vue'
+import { useApiFetch } from '@/utils/fetcher'
 
 const route = useRoute()
 const router = useRouter()
@@ -99,14 +100,16 @@ async function load() {
   loading.value = true
   error.value = null
   try {
-    const res = await $fetch<{ success:boolean; data:any }>(`/api/content_feedback/${id.value}`)
-    feedback.value = res?.data
+    const res = await fetchOne(id.value)
+    feedback.value = res
 
     // If feedback refers to a base card translation, fetch the base card
     if (feedback.value?.entity_type === 'base_card_translations') {
       try {
-        const cardRes = await $fetch<{ success:boolean; data:any }>(`/api/base_card/by-translation/${feedback.value.entity_id}`)
-        card.value = cardRes?.data
+        const cardRes = await apiFetch<{ success?: boolean; data?: any }>(`/base_card/by-translation/${feedback.value.entity_id}`, {
+          method: 'GET',
+        })
+        card.value = cardRes?.data ?? cardRes ?? null
       } catch (e) {
         // ignore card load error; show feedback anyway
         console.error(e)
@@ -122,7 +125,8 @@ async function load() {
 onMounted(load)
 watch(() => route.params.id, load)
 
-const { resolve: resolveFeedback, remove } = useContentFeedback()
+const { fetchOne, resolve: resolveFeedback, remove } = useContentFeedback()
+const apiFetch = useApiFetch
 const toast = useToast()
 const deleteOpen = ref(false)
 const deleting = ref(false)

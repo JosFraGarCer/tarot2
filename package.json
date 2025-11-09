@@ -45,7 +45,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.10.0",
     "@types/pg": "^8.15.6",
-    "@vueuse/core": "^14.0.0",
+    "@vueuse/core": "^13.0.0",
     "autoprefixer": "^10.4.21",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.1",

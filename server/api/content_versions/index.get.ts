@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   try {
     const q = getQuery(event)
     const parsed = safeParseOrThrow(contentVersionQuerySchema, q)
-    const { page, pageSize, search, version_semver, created_by, sort, direction } = parsed
+    const { page, pageSize, search, version_semver, created_by, release, sort, direction } = parsed
 
     let base = globalThis.db
       .selectFrom('content_versions as cv')
@@ -23,11 +23,13 @@ export default defineEventHandler(async (event) => {
         'cv.metadata',
         'cv.created_by',
         'cv.created_at',
+        'cv.release',
         sql`coalesce(u.username, u.email)`.as('created_by_name'),
       ])
 
     if (version_semver) base = base.where('cv.version_semver', '=', version_semver)
     if (created_by !== undefined) base = base.where('cv.created_by', '=', created_by)
+    if (release) base = base.where('cv.release', '=', release)
 
     const { query, totalItems, page: currentPage, pageSize: currentSize, resolvedSortField, resolvedSortDirection } =
       await buildFilters(base, {

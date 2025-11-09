@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
     }
     if (payload.description !== undefined) patch.description = payload.description ?? null
     if (payload.metadata !== undefined) patch.metadata = payload.metadata ?? {}
+    if (payload.release !== undefined) patch.release = payload.release
 
     if (Object.keys(patch).length > 0) {
       const updated = await globalThis.db
@@ -59,6 +60,7 @@ export default defineEventHandler(async (event) => {
         'cv.metadata',
         'cv.created_by',
         'cv.created_at',
+        'cv.release',
         sql`coalesce(u.username, u.email)`.as('created_by_name'),
       ])
       .where('cv.id', '=', id)

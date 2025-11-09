@@ -9,7 +9,7 @@
         <USelectMenu v-model="status" :items="statusItems" value-key="value" option-attribute="label" class="w-40" />
       </div>
       <div class="ml-auto flex gap-2">
-        <UButton size="xs" variant="soft" color="neutral" @click="reload">{{ $t('common.refresh','Refresh') }}</UButton>
+        <UButton size="xs" variant="soft" color="neutral" :disabled="pending" @click="reload">{{ $t('common.refresh','Refresh') }}</UButton>
         <UButton size="xs" color="primary" :disabled="!isEditor || selectedIds.length===0" :title="!isEditor ? $t('common.noPermission') : ''" @click="bulkApprove">{{ $t('admin.revisions.approveSelected','Approve selected') }}</UButton>
         <UButton size="xs" color="error" variant="soft" :disabled="!isEditor || selectedIds.length===0" :title="!isEditor ? $t('common.noPermission') : ''" @click="bulkReject">{{ $t('admin.revisions.rejectSelected','Reject selected') }}</UButton>
       </div>
@@ -49,6 +49,18 @@
       </table>
     </div>
 
+    <PaginationControls
+      class="pt-2"
+      :page="pageForUi"
+      :page-size="pageSizeForUi"
+      :total-items="totalItemsForUi"
+      :total-pages="totalPagesForUi"
+      :has-server-pagination="true"
+      :page-size-items="pageSizeItems"
+      @update:page="handlePageChange"
+      @update:page-size="handlePageSizeChange"
+    />
+
     <JsonModal v-model="diffOpen" :value="currentDiff" :title="$t('admin.revisions.diffTitle','Revision diff')" />
   </div>
 </template>
@@ -58,6 +70,8 @@ import { useRevisions } from '@/composables/admin/useRevisions'
 import JsonModal from '@/components/admin/JsonModal.vue'
 import { formatDate } from '@/utils/date'
 import { useCurrentUser } from '@/composables/users/useCurrentUser'
+import PaginationControls from '@/components/common/PaginationControls.vue'
+import { useDebounceFn } from '@vueuse/core'
 
 const { t } = useI18n()
 
@@ -74,7 +88,17 @@ const entityTypeItems = [
   { label: 'world_translations', value: 'world_translations' }
 ]
 
-const { items, pending, error, meta, fetchList, setStatus, bulkSetStatus } = useRevisions()
+const {
+  items,
+  pending,
+  error,
+  meta,
+  fetchList,
+  fetchOne,
+  setStatus,
+  bulkSetStatus,
+  lastQuery,
+} = useRevisions()
 const { currentUser } = useCurrentUser()
 const isEditor = computed(() => {
   const roles = currentUser.value?.roles?.map(r => r.name) || []
@@ -92,8 +116,38 @@ function toggleAll() {
   for (const r of items.value) selectedMap[r.id] = target
 }
 
-async function reload() {
-  await fetchList({ search: search.value, status: status.value, entity_type: entityType.value || undefined })
+const pagination = reactive({ page: 1, pageSize: 20 })
+const pageSizeItems = [
+  { label: '10', value: 10 },
+  { label: '20', value: 20 },
+  { label: '50', value: 50 },
+]
+
+const pageForUi = computed(() => meta.value?.page ?? pagination.page)
+const pageSizeForUi = computed(() => meta.value?.pageSize ?? pagination.pageSize)
+const totalItemsForUi = computed(() => meta.value?.totalItems ?? items.value.length)
+const totalPagesForUi = computed(() => {
+  if (meta.value?.totalPages != null) return meta.value.totalPages
+  return Math.max(1, Math.ceil(Math.max(0, totalItemsForUi.value) / Math.max(1, pageSizeForUi.value)))
+})
+
+const filters = computed(() => ({
+  search: search.value || undefined,
+  status: status.value,
+  entity_type: entityType.value || undefined,
+  page: pagination.page,
+  pageSize: pagination.pageSize,
+}))
+
+async function reload(overrides: { page?: number; pageSize?: number } = {}) {
+  const query = {
+    ...filters.value,
+    page: overrides.page ?? filters.value.page,
+    pageSize: overrides.pageSize ?? filters.value.pageSize,
+  }
+  await fetchList(query)
+  pagination.page = meta.value?.page ?? query.page ?? pagination.page
+  pagination.pageSize = meta.value?.pageSize ?? query.pageSize ?? pagination.pageSize
 }
 
 async function setOne(id:number, status:'approved'|'rejected'|'draft'|'published') {
@@ -106,11 +160,13 @@ async function bulkApprove() {
   if (!isEditor.value || selectedIds.value.length===0) return
   await bulkSetStatus(selectedIds.value, 'approved')
   for (const id of selectedIds.value) selectedMap[id] = false
+  await reload()
 }
 async function bulkReject() {
   if (!isEditor.value || selectedIds.value.length===0) return
   await bulkSetStatus(selectedIds.value, 'rejected')
   for (const id of selectedIds.value) selectedMap[id] = false
+  await reload()
 }
 
 const diffOpen = ref(false)
@@ -129,9 +185,31 @@ const statusItems = [
   { label: 'Published', value: 'published' }
 ]
 
-watch([status, entityType, search], () => { /* no auto fetch on each keystroke except when desired */ }, { deep: false })
+const applyFilters = useDebounceFn(async () => {
+  pagination.page = 1
+  await reload({ page: 1 })
+}, 250)
 
-watch(status, async () => { await reload() })
+watch([search, entityType], () => { applyFilters() })
 
-onMounted(() => { reload() })
+watch(status, async () => {
+  pagination.page = 1
+  await reload({ page: 1 })
+})
+
+onMounted(async () => {
+  if (lastQuery.value.pageSize) pagination.pageSize = lastQuery.value.pageSize
+  await reload()
+})
+
+function handlePageChange(next: number) {
+  pagination.page = next
+  reload({ page: next })
+}
+
+function handlePageSizeChange(next: number) {
+  pagination.pageSize = next
+  pagination.page = 1
+  reload({ page: 1, pageSize: next })
+}
 </script>

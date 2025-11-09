@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     await collect('world_card', { event, table: 'world_card', translationForeignKey: 'card_id' })
     await collect('arcana', { event, table: 'arcana' })
     await collect('base_card', { event, table: 'base_card', translationForeignKey: 'card_id' })
-    await collect('card_type', { event, table: 'base_card_type' })
+    await collect('card_type', { event, table: 'base_card_type', translationForeignKey: 'card_type_id' })
     await collect('skill', { event, table: 'base_skills' })
     await collect('facet', { event, table: 'facet' })
     await collect('tag', { event, table: 'tags' })

@@ -99,6 +99,7 @@ import FeedbackNotesModal from '@/components/admin/FeedbackNotesModal.vue'
 import { useRevisions } from '@/composables/admin/useRevisions'
 import { useContentFeedback } from '@/composables/admin/useContentFeedback'
 import { useCurrentUser } from '@/composables/users/useCurrentUser'
+import { useApiFetch } from '@/utils/fetcher'
 import { formatDate } from '@/utils/date'
 const { t } = useI18n()
 
@@ -124,7 +125,7 @@ const baseEntityMap: Record<string, string> = {
 const entityType = computed(() => baseEntityMap[entity.value] || entity.value)
 const entityId = id
 
-const { items, pending, error, fetchByEntity } = useRevisions()
+const { items, pending, error, fetchByEntity, fetchList, fetchOne, setStatus } = useRevisions()
 const revisions = items
 const selectedRevision = ref<any | null>(null)
 const selectedIds = ref<number[]>([])
@@ -147,16 +148,20 @@ const isEditor = computed(() => {
   return roles.includes('admin') || roles.includes('editor')
 })
 
+const apiFetch = useApiFetch
+
 function goBack() { router.push('/admin/versions') }
 
 async function loadEntity() {
   // try language if available
-  const lang = language.value ? `?lang=${encodeURIComponent(language.value)}` : ''
   try {
-    const url = `/api/${entity.value}/${id.value}${lang}`
-    const res = await $fetch<any>(url)
+    const params = language.value ? { lang: language.value } : undefined
+    const res = await apiFetch<any>(`/${entity.value}/${id.value}`, {
+      method: 'GET',
+      params,
+    })
     entityData.value = res?.data ?? res ?? {}
-  } catch {
+  } catch (e) {
     entityData.value = {}
   }
 }
@@ -190,7 +195,7 @@ const revB = computed(() => revisions.value.find(r => r.id === selectedIds.value
 function openCompare() { if (selectedIds.value.length === 2) compareOpen.value = true }
 
 async function refreshRevisions() {
-  await fetchByEntity(entity.value, Number(id.value))
+  await fetchByEntity(entity.value, Number(id.value), language.value)
 }
 
 async function refreshFeedback() {
@@ -232,7 +237,7 @@ async function revertRevision(revId:number) {
       const ok = window.confirm(String(t('admin.revisionsHistory.revertConfirm', 'Are you sure you want to restore this revision?')))
       if (!ok) return
     }
-    await $fetch(`/api/content_revisions/${revId}/revert`, { method: 'POST' })
+    await apiFetch(`/content_revisions/${revId}/revert`, { method: 'POST' })
     useToast().add({ title: t('admin.revisionsHistory.revertSuccess','Revision reverted successfully'), color: 'success' })
     await loadEntity()
     await refreshRevisions()
