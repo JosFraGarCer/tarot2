@@ -53,6 +53,59 @@ type FeedbackUpdatePayload = Partial<{
   language_code: string | null
 }>
 
+function resolvePage(value: unknown, fallback: number) {
+  const base = Number.isFinite(fallback) && fallback > 0 ? fallback : 1
+  const num = typeof value === 'number' && Number.isFinite(value) ? value : base
+  return Math.max(1, Math.floor(num))
+}
+
+function resolvePageSize(value: unknown, fallback: number) {
+  const base = Number.isFinite(fallback) && fallback > 0 ? fallback : 20
+  const num = typeof value === 'number' && Number.isFinite(value) ? value : base
+  return Math.max(1, Math.floor(num))
+}
+
+function resolveTotalItems(value: unknown, fallback: number) {
+  const base = Number.isFinite(fallback) ? fallback : 0
+  const num = typeof value === 'number' && Number.isFinite(value) ? value : base
+  return Math.max(0, Math.floor(num))
+}
+
+function resolveTotalPages(value: unknown, fallback: number) {
+  const base = Number.isFinite(fallback) && fallback > 0 ? fallback : 1
+  const num = typeof value === 'number' && Number.isFinite(value) ? value : base
+  return Math.max(1, Math.floor(num))
+}
+
+function computeTotalPages(totalItems: number, pageSize: number) {
+  const safeSize = Math.max(1, pageSize)
+  const safeTotal = Math.max(0, totalItems)
+  return Math.max(1, Math.ceil(safeTotal / safeSize))
+}
+
+function normalizeMeta(
+  rawMeta: FeedbackMeta | null | undefined,
+  fallback: { page?: number; pageSize?: number; totalItems?: number } = {},
+): FeedbackMeta {
+  const fallbackPage = Number.isFinite(fallback.page) && (fallback.page as number) > 0 ? (fallback.page as number) : 1
+  const fallbackPageSize = Number.isFinite(fallback.pageSize) && (fallback.pageSize as number) > 0 ? (fallback.pageSize as number) : 20
+  const fallbackTotalItems = Number.isFinite(fallback.totalItems) ? (fallback.totalItems as number) : (rawMeta?.totalItems ?? 0)
+
+  const page = resolvePage(rawMeta?.page, fallbackPage)
+  const pageSize = resolvePageSize(rawMeta?.pageSize, fallbackPageSize)
+  const totalItems = resolveTotalItems(rawMeta?.totalItems, fallbackTotalItems)
+  const computedTotalPages = computeTotalPages(totalItems, pageSize)
+  const totalPages = resolveTotalPages(rawMeta?.totalPages, computedTotalPages)
+
+  return {
+    ...(rawMeta ?? {}),
+    page,
+    pageSize,
+    totalItems,
+    totalPages,
+  }
+}
+
 export function useContentFeedback() {
   const apiFetch = useApiFetch
   const { locale } = useI18n()
@@ -63,7 +116,7 @@ export function useContentFeedback() {
   const items = ref<FeedbackItem[]>([])
   const pending = ref(false)
   const error = ref<string | null>(null)
-  const meta = ref<FeedbackMeta>({ page: 1, pageSize: 20, totalItems: 0 })
+  const meta = ref<FeedbackMeta>(normalizeMeta(undefined, { page: 1, pageSize: 20, totalItems: 0 }))
   const lastQuery = ref<FeedbackQuery>({ page: 1, pageSize: 20 })
 
   function buildParams(query: FeedbackQuery = {}, track = true) {
@@ -158,11 +211,12 @@ export function useContentFeedback() {
       })
       const list = Array.isArray(response?.data) ? response.data : []
       items.value = list
-      meta.value = response?.meta ?? {
+      const normalizedMeta = normalizeMeta(response?.meta, {
         page: params.page,
         pageSize: params.pageSize,
-        totalItems: response?.meta?.totalItems ?? list.length,
-      }
+        totalItems: list.length,
+      })
+      meta.value = normalizedMeta
       return list
     } catch (err: any) {
       const message = err?.data?.message ?? err?.message ?? String(err)
@@ -217,7 +271,7 @@ export function useContentFeedback() {
 
   async function update(id: number, payload: FeedbackUpdatePayload) {
     try {
-      const response = await apiFetch<{ success?: boolean; data: FeedbackItem }>(`/api/content_feedback/${id}`, {
+      const response = await apiFetch<{ success?: boolean; data: FeedbackItem }>(`/content_feedback/${id}`, {
         method: 'PATCH',
         body: payload,
       })

@@ -181,16 +181,16 @@ const apiFetch = useApiFetch
 
 const search = ref('')
 const status = ref<'all' | 'open' | 'resolved'>('all')
-const type = ref<'all' | 'bug' | 'suggestion' | 'balance'>('all')
+const type = ref<'all' | 'bug' | 'suggestion' | 'balance' | 'translation'>('all')
 const mineOnly = ref(false)
 
-const counts = ref<{ bug: number; suggestion: number; balance: number }>({ bug: 0, suggestion: 0, balance: 0 })
+const counts = ref<{ bug: number; suggestion: number; balance: number; translation: number }>({ bug: 0, suggestion: 0, balance: 0, translation: 0 })
 const feedbackTabs = computed(() => [
   { label: tt('admin.feedback.tabs.all', 'All'), value: 'all' },
   { label: `${tt('admin.feedback.tabs.bug', 'Bugs')} (${counts.value.bug})`, value: 'bug' },
   { label: `${tt('admin.feedback.tabs.suggestion', 'Suggestions')} (${counts.value.suggestion})`, value: 'suggestion' },
   { label: `${tt('admin.feedback.tabs.balance', 'Balance')} (${counts.value.balance})`, value: 'balance' },
-  { label: `${tt('admin.feedback.tabs.translation', 'Translation')} (${counts.value.balance})`, value: 'translation' },
+  { label: `${tt('admin.feedback.tabs.translation', 'Translation')} (${counts.value.translation})`, value: 'translation' },
 ])
 
 const statusOptions = [
@@ -322,7 +322,7 @@ function applyInitialQuery() {
   const q = route.query
   if (typeof q.search === 'string') search.value = q.search
   if (q.status === 'open' || q.status === 'resolved') status.value = q.status
-  if (q.type === 'bug' || q.type === 'suggestion' || q.type === 'balance') type.value = q.type
+  if (q.type === 'bug' || q.type === 'suggestion' || q.type === 'balance' || q.type === 'translation') type.value = q.type
   if (q.mineOnly === 'true') mineOnly.value = true
   if (typeof q.page === 'string' && !Number.isNaN(Number(q.page))) pagination.page = Math.max(1, Number(q.page))
   if (typeof q.pageSize === 'string') {
@@ -476,20 +476,21 @@ async function confirmDelete() {
 }
 
 async function fetchCountsByType() {
-  const types = ['bug', 'suggestion', 'balance'] as const
+  const types = ['bug', 'suggestion', 'balance', 'translation'] as const
   try {
     const baseFilters: Record<string, any> = {
       search: filters.value.search,
       status: filters.value.status,
       created_by: filters.value.created_by,
     }
-    const [bug, suggestion, balance] = await Promise.all(
+    const [bug, suggestion, balance, translation] = await Promise.all(
       types.map(t => fetchMeta({ ...baseFilters, category: t, page: 1, pageSize: 1 })),
     )
     counts.value = {
       bug: bug?.totalItems ?? 0,
       suggestion: suggestion?.totalItems ?? 0,
       balance: balance?.totalItems ?? 0,
+      translation: translation?.totalItems ?? 0,
     }
   } catch {
     counts.value = { bug: 0, suggestion: 0, balance: 0 }
