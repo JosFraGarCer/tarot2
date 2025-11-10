@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   // Development server
   devServer: {
     host: '0.0.0.0',
-    port: 3012,
+    port: 3007,
   },
 
   ssr: true,

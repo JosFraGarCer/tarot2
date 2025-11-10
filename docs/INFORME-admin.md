@@ -41,6 +41,11 @@
   - `FeedbackDashboard.vue`, `FeedbackList.vue`, `FeedbackNotesModal.vue`, `JsonModal.vue`, `PaginationControls.vue`.
   - `useContentFeedback.ts`, `useCurrentUser.ts`, `useApiFetch`.
 - Endpoints backend usados: `GET/POST/PATCH/DELETE /api/content_feedback` (presentes). Previsualización usa dinámicamente `GET /api/{base_card|arcana|facet|world}/:id` (presentes); ver errores más abajo.
+- **Flujo completo**: el panel básico (search/estado/categoría/mineOnly) y el colapsible de “Filtros avanzados” construyen un payload unificado en `filters` → `useContentFeedback.buildParams()`.
+  - Los rangos de fechas (`created_from|to`, `resolved_from|to`), idioma (`language_code`), tipo de entidad (`entity_type`), relación (`entity_relation`) y autores (`created_by`, `resolved_by`) se serializan a ISO y se sincronizan con la URL para compartir vistas.
+  - Al aplicar/resetear se invoca `fetchList()` (lista) + `fetchCountsByType()` (dashboard), ambos reutilizan los mismos filtros.
+- **Backend**: `GET /api/content_feedback` valida con `contentFeedbackQuerySchema`, aplica joins a `users` y, si procede, a relaciones (`world -> base_card`). `buildFilters()` añade búsqueda full-text, paginación y ordenación whitelisteada.
+- **Entidades y traducción**: `entity_type` define la tabla principal (`base_card`, `world_card`, `arcana`, etc.) y `language_code` filtra comentarios específicos por idioma. El frontend usa esos mismos campos para resolver previews traducidas (`lang`), garantizando que el editor revisa la versión correcta.
 
 ### /admin/feedback/[id]
 - Vista detalle de feedback con card preview (si aplica) y acciones de resolver/borrar.
@@ -73,19 +78,18 @@
 - `card_type` vs `base_card_type`: la documentación señala la diferencia de nombre entre la ruta y la tabla base; en el backend actual la ruta es `/api/card_type` y mapea a `base_card_type`. Mantener coherencia en nuevas utilidades/consultas.
 - Filtros por tags: documentación (SERVER.md) describe semántica AND; en algunos listados actuales (p.ej. base_card) se aplica OR. Definir semántica objetivo y alinear código + documentación.
 
-## Problemas y bugs detectados (con evidencia)
-- [P0] Endpoint de publicación FALTANTE
-  - UI llama `POST /api/content_versions/publish` desde `/admin/versions/index.vue` (líneas ~161–165). No existe en `server/api` (búsqueda global de "publish").
-  - Impacto: botón "Publish approved revisions" fallará (404/405). Solución: implementar endpoint (ver sugerencias) o retirar acción temporalmente.
-- [P0] Endpoint de revertir revisión FALTANTE
-  - UI llama `POST /api/content_revisions/:id/revert` desde `/admin/versions/entity/[id].vue` (línea ~240). No existe en `server/api` (búsqueda de "revert").
-  - Impacto: botón "Revert to this revision" no funciona. Solución: implementar endpoint.
-- [P1] Ruta errónea con `useApiFetch` (doble `/api`)
-  - `useContentFeedback.update()` usa `apiFetch('/api/content_feedback/:id', ...)` (línea ~220), pero `useApiFetch` ya tiene `baseURL:'/api'` → se invoca `/api/api/content_feedback/...`.
-  - Solución: cambiar a `apiFetch('/content_feedback/:id', ...)`.
-- [P1] Contador de la tab "Translation" en `/admin/feedback`
-  - En `feedbackTabs`, el count de "Translation" usa `counts.balance` (línea ~192) en vez de `counts.translation`. Falta coherencia con el esquema de tipos.
-  - Solución: añadir cómputo de `counts.translation` en `fetchCountsByType()` y usarlo en la tab.
+-## Problemas y bugs detectados (con evidencia)
++ [Resuelto] Endpoint de publicación implementado
+  - `POST /api/content_versions/publish` añadido en `server/api/content_versions/publish.post.ts`.
+  - Botón "Publish approved revisions" ahora crea versión (si no existe), marca revisiones `approved` como `published` y vincula `content_version_id` en entidades.
+- [Resuelto] Endpoint de revertir revisión implementado
+  - `POST /api/content_revisions/:id/revert` añadido en `server/api/content_revisions/[id]/revert.post.ts`.
+  - Aplica `prev_snapshot` de la revisión, actualiza la entidad y crea una nueva revisión publicada que audita el revert.
+- [Resuelto] Ruta errónea con `useApiFetch` (doble `/api`)
+  - `useContentFeedback.update()` ahora usa `apiFetch('/content_feedback/:id', ...)`.
+- [Resuelto] Contador de la tab "Translation" en `/admin/feedback`
+  - Tabs y cómputo de `fetchCountsByType()` contemplan `counts.translation`.
+  - Vista recibe el nuevo contador y sincroniza filtros con valor `translation`.
 - [P2] Previsualización de card en `/admin/feedback/[id]`
   - Intenta `GET /api/base_card/by-translation/:id` (líneas ~109–113). No existe ruta `by-translation`. La vista de lista usa un mapa distinto (funciona).
   - Solución: o implementar endpoint `by-translation`, o reutilizar la misma estrategia de `entityPreviewMap` para detalle.
@@ -104,7 +108,10 @@
 - Selección y acciones masivas
   - Extraer `useSelection(ids)` común (tabla feedback y tablas de entidades repiten patrón de selección y acciones bulk).
 - Previsualización unificada
-  - Unificar carga de snapshot de entidad (lista/detalle de feedback) en `useEntityPreviewFetch(entityType, id, lang)` para evitar divergencias (y el bug del endpoint by-translation).
+  - Unificar carga de snapshot de entidad (lista/detalle de feedback) en `useEntityPreviewFetch(entityType, id, lang)` para evitar divergencias (y el bug del endpoint by-translation). Composable creado, pendiente integrarlo en todas las vistas.
+- Filtros avanzados en feedback
+  - `GET /api/content_feedback` acepta rangos (`created_from|to`, `resolved_from|to`) y `entity_relation` para joins.
+  - UI debe añadir panel de filtros avanzados y guardado de vistas frecuentes.
 
 
 ## Funcionalidades posibles

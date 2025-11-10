@@ -4,11 +4,11 @@ import { sql } from 'kysely'
 import type { DB } from '../database/types'
 import { createError } from 'h3'
 
-export interface FilterOptions {
-  search?: string
-  status?: string
+export interface BuildFiltersOptions {
   page?: number
   pageSize?: number
+  search?: string
+  status?: string
   statusColumn?: string
   // Custom search applier (for COALESCE across translations)
   applySearch?: <TB2 extends keyof DB, O2>(
@@ -23,12 +23,23 @@ export interface FilterOptions {
   sortColumnMap?: Record<string, unknown>
   defaultSort?: { field: string; direction?: 'asc' | 'desc' }
   // Counting
-  countDistinct?: string // e.g. 'a.id'
+  countDistinct?: string
+  createdRange?: { from?: Date; to?: Date }
+  createdColumn?: unknown
+  resolvedRange?: { from?: Date; to?: Date }
+  resolvedColumn?: unknown
+}
+
+function parseDateRangeBounds(bounds: { from?: Date; to?: Date } | undefined): { from?: Date; to?: Date } {
+  if (!bounds) return {}
+  const from = bounds.from ? new Date(bounds.from) : undefined
+  const to = bounds.to ? new Date(bounds.to) : undefined
+  return { from, to }
 }
 
 export async function buildFilters<TB extends keyof DB, O>(
   qb: SelectQueryBuilder<DB, TB, O>,
-  options: FilterOptions,
+  options: BuildFiltersOptions,
 ): Promise<{
   query: SelectQueryBuilder<DB, TB, O>
   page: number
@@ -44,7 +55,7 @@ export async function buildFilters<TB extends keyof DB, O>(
 
   // 🔸 Paginación segura
   const page = Math.max(1, Number(options.page) || 1)
-  const pageSize = Math.min(Math.max(1, Number(options.pageSize) || 20), 100)
+  const pageSize = Math.min(Math.max(options.pageSize ?? 20, 1), 100)
   const status = (options.status ?? '').trim() || undefined
 
   let filtered = qb
@@ -56,6 +67,26 @@ export async function buildFilters<TB extends keyof DB, O>(
       '=',
       status as unknown as never,
     )
+  }
+
+  const createdRange = parseDateRangeBounds(options.createdRange)
+  if (options.createdColumn) {
+    if (createdRange.from) {
+      filtered = filtered.where(options.createdColumn as never, '>=', createdRange.from as never)
+    }
+    if (createdRange.to) {
+      filtered = filtered.where(options.createdColumn as never, '<=', createdRange.to as never)
+    }
+  }
+
+  const resolvedRange = parseDateRangeBounds(options.resolvedRange)
+  if (options.resolvedColumn) {
+    if (resolvedRange.from) {
+      filtered = filtered.where(options.resolvedColumn as never, '>=', resolvedRange.from as never)
+    }
+    if (resolvedRange.to) {
+      filtered = filtered.where(options.resolvedColumn as never, '<=', resolvedRange.to as never)
+    }
   }
 
   // 🔸 Filtro de búsqueda (custom o genérico)

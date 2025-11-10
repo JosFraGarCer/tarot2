@@ -27,6 +27,11 @@ export const contentFeedbackQuerySchema = z.object({
   created_by: z.coerce.number().int().optional(),
   resolved_by: z.coerce.number().int().optional(),
   has_resolution: queryBoolean.optional(),
+  created_from: z.coerce.date().optional(),
+  created_to: z.coerce.date().optional(),
+  resolved_from: z.coerce.date().optional(),
+  resolved_to: z.coerce.date().optional(),
+  entity_relation: z.string().optional(),
   sort: z
     .enum(['created_at', 'resolved_at', 'status', 'entity', 'version_number'])
     .optional(),

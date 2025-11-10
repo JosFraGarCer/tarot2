@@ -24,7 +24,60 @@
         <UInput v-model="search" :placeholder="tt('ui.actions.search', 'Search')" icon="i-heroicons-magnifying-glass" class="w-full sm:w-72" />
         <USelectMenu v-model="status" :items="statusOptions" value-key="value" option-attribute="label" class="w-40" />
         <USwitch v-model="mineOnly" :label="tt('features.admin.feedback.filters.mineOnly','My feedbacks')" size="sm" />
+        <UButton
+          variant="soft"
+          color="neutral"
+          icon="i-heroicons-funnel"
+          :label="tt('features.admin.feedback.advancedFilters', 'Advanced filters')"
+          @click="advancedOpen = !advancedOpen"
+        />
       </div>
+
+      <UCollapse v-model="advancedOpen" class="mb-4">
+        <div class="bg-gray-50 dark:bg-gray-900/40 rounded-md p-4 space-y-4">
+          <div class="flex flex-wrap gap-4">
+            <div class="flex flex-col gap-2 w-full sm:w-60">
+              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.language','Language') }}</span>
+              <USelectMenu v-model="advanced.language" :items="languageOptions" value-key="value" option-attribute="label" />
+            </div>
+            <div class="flex flex-col gap-2 w-full sm:w-60">
+              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.entityType','Entity type') }}</span>
+              <USelectMenu v-model="advanced.entityType" :items="entityTypeOptions" value-key="value" option-attribute="label" />
+            </div>
+            <div class="flex flex-col gap-2 w-full sm:w-60">
+              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.entityRelation','Entity relation') }}</span>
+              <USelectMenu v-model="advanced.entityRelation" :items="entityRelationOptions" value-key="value" option-attribute="label" />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-4">
+            <div class="flex flex-col gap-2 w-full sm:w-72">
+              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.createdRange','Created range') }}</span>
+              <UDatePicker v-model="advanced.createdRange" mode="date" :columns="2" range />
+            </div>
+            <div class="flex flex-col gap-2 w-full sm:w-72">
+              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.resolvedRange','Resolved range') }}</span>
+              <UDatePicker v-model="advanced.resolvedRange" mode="date" :columns="2" range />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-4">
+            <div class="flex flex-col gap-2 w-full sm:w-60">
+              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.createdBy','Created by') }}</span>
+              <USelectMenu v-model="advanced.createdBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
+            </div>
+            <div class="flex flex-col gap-2 w-full sm:w-60">
+              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.resolvedBy','Resolved by') }}</span>
+              <USelectMenu v-model="advanced.resolvedBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 justify-end">
+            <UButton variant="soft" color="neutral" icon="i-heroicons-arrow-path" @click="resetAdvanced">{{ tt('ui.actions.reset','Reset') }}</UButton>
+            <UButton color="primary" icon="i-heroicons-check" @click="applyAdvanced">{{ tt('ui.actions.apply','Apply') }}</UButton>
+          </div>
+        </div>
+      </UCollapse>
 
       <!-- Type tabs -->
       <div class="mb-3">
@@ -219,12 +272,57 @@ const isEditor = computed(() => {
   return roles.includes('admin') || roles.includes('editor')
 })
 
-const filters = computed(() => ({
-  search: search.value || undefined,
-  status: status.value !== 'all' ? status.value : undefined,
-  category: type.value !== 'all' ? type.value : undefined,
-  created_by: mineOnly.value ? currentUserId.value : undefined,
-}))
+const advancedOpen = ref(false)
+const advanced = reactive({
+  language: undefined as string | undefined,
+  entityType: undefined as string | undefined,
+  entityRelation: undefined as string | undefined,
+  createdRange: undefined as [Date | string, Date | string] | undefined,
+  resolvedRange: undefined as [Date | string, Date | string] | undefined,
+  createdBy: undefined as number | undefined,
+  resolvedBy: undefined as number | undefined,
+})
+
+const languageOptions = computed(() => [{ label: tt('ui.filters.all', 'All'), value: undefined }, { label: 'EN', value: 'en' }, { label: 'ES', value: 'es' }])
+const entityTypeOptions = computed(() => [
+  { label: tt('ui.filters.all', 'All'), value: undefined },
+  { label: tt('entities.base_card', 'Base card'), value: 'base_card' },
+  { label: tt('entities.base_card_type', 'Card type'), value: 'base_card_type' },
+  { label: tt('entities.world', 'World'), value: 'world' },
+  { label: tt('entities.world_card', 'World card'), value: 'world_card' },
+  { label: tt('entities.arcana', 'Arcana'), value: 'arcana' },
+  { label: tt('entities.facet', 'Facet'), value: 'facet' },
+  { label: tt('entities.base_skills', 'Skills'), value: 'base_skills' },
+])
+const entityRelationOptions = computed(() => [
+  { label: tt('ui.filters.none', 'None'), value: undefined },
+  { label: 'World → Base card', value: 'world->base_card' },
+])
+
+const userOptions = computed(() => {
+  const users = currentUser.value?.team ?? []
+  const base = users.map((u: any) => ({ label: u.username || u.email, value: u.id }))
+  return [{ label: tt('ui.filters.any', 'Any'), value: undefined }, ...base]
+})
+
+const filters = computed(() => {
+  const payload: Record<string, any> = {
+    search: search.value || undefined,
+    status: status.value !== 'all' ? status.value : undefined,
+    category: type.value !== 'all' ? type.value : undefined,
+    created_by: mineOnly.value ? currentUserId.value : undefined,
+    language_code: advanced.language,
+    entity_type: advanced.entityType,
+    entity_relation: advanced.entityRelation,
+    created_from: advanced.createdRange?.[0],
+    created_to: advanced.createdRange?.[1],
+    resolved_from: advanced.resolvedRange?.[0],
+    resolved_to: advanced.resolvedRange?.[1],
+    resolved_by: advanced.resolvedBy,
+  }
+  if (!mineOnly.value && advanced.createdBy) payload.created_by = advanced.createdBy
+  return payload
+})
 
 const dashboardQuery = computed(() => ({
   status: filters.value.status ?? null,
@@ -274,6 +372,12 @@ const resolveOpen = ref(false)
 const resolving = ref(false)
 
 function pushQuery() {
+  const toIso = (value?: Date | string) => {
+    if (!value) return undefined
+    const date = value instanceof Date ? value : new Date(value)
+    if (Number.isNaN(date.getTime())) return undefined
+    return date.toISOString()
+  }
   router.replace({
     query: {
       ...route.query,
@@ -281,6 +385,15 @@ function pushQuery() {
       status: status.value !== 'all' ? status.value : undefined,
       type: type.value !== 'all' ? type.value : undefined,
       mineOnly: mineOnly.value ? 'true' : undefined,
+      language_code: advanced.language || undefined,
+      entity_type: advanced.entityType || undefined,
+      entity_relation: advanced.entityRelation || undefined,
+      created_by: !mineOnly.value && advanced.createdBy ? String(advanced.createdBy) : mineOnly.value ? String(currentUserId.value ?? '') || undefined : undefined,
+      resolved_by: advanced.resolvedBy ? String(advanced.resolvedBy) : undefined,
+      created_from: toIso(advanced.createdRange?.[0]),
+      created_to: toIso(advanced.createdRange?.[1]),
+      resolved_from: toIso(advanced.resolvedRange?.[0]),
+      resolved_to: toIso(advanced.resolvedRange?.[1]),
       page: pagination.page > 1 ? String(pagination.page) : undefined,
       pageSize: pagination.pageSize !== 20 ? String(pagination.pageSize) : undefined,
     },
@@ -324,11 +437,40 @@ function applyInitialQuery() {
   if (q.status === 'open' || q.status === 'resolved') status.value = q.status
   if (q.type === 'bug' || q.type === 'suggestion' || q.type === 'balance' || q.type === 'translation') type.value = q.type
   if (q.mineOnly === 'true') mineOnly.value = true
+  if (typeof q.language_code === 'string') advanced.language = q.language_code
+  if (typeof q.entity_type === 'string') advanced.entityType = q.entity_type
+  if (typeof q.entity_relation === 'string') advanced.entityRelation = q.entity_relation
+  if (typeof q.created_by === 'string') advanced.createdBy = Number(q.created_by)
+  if (typeof q.resolved_by === 'string') advanced.resolvedBy = Number(q.resolved_by)
+  if (typeof q.created_from === 'string' && typeof q.created_to === 'string') advanced.createdRange = [new Date(q.created_from), new Date(q.created_to)]
+  if (typeof q.resolved_from === 'string' && typeof q.resolved_to === 'string') advanced.resolvedRange = [new Date(q.resolved_from), new Date(q.resolved_to)]
   if (typeof q.page === 'string' && !Number.isNaN(Number(q.page))) pagination.page = Math.max(1, Number(q.page))
   if (typeof q.pageSize === 'string') {
     const size = Number(q.pageSize)
     if ([10, 20, 50].includes(size)) pagination.pageSize = size
   }
+}
+
+function applyAdvanced() {
+  pagination.page = 1
+  loadList({ page: 1 })
+  fetchCountsByType()
+  pushQuery()
+  advancedOpen.value = false
+}
+
+function resetAdvanced() {
+  advanced.language = undefined
+  advanced.entityType = undefined
+  advanced.entityRelation = undefined
+  advanced.createdRange = undefined
+  advanced.resolvedRange = undefined
+  advanced.createdBy = undefined
+  advanced.resolvedBy = undefined
+  pagination.page = 1
+  loadList({ page: 1 })
+  fetchCountsByType()
+  pushQuery()
 }
 
 onMounted(async () => {
@@ -482,6 +624,14 @@ async function fetchCountsByType() {
       search: filters.value.search,
       status: filters.value.status,
       created_by: filters.value.created_by,
+      language_code: filters.value.language_code,
+      entity_type: filters.value.entity_type,
+      entity_relation: filters.value.entity_relation,
+      created_from: filters.value.created_from,
+      created_to: filters.value.created_to,
+      resolved_from: filters.value.resolved_from,
+      resolved_to: filters.value.resolved_to,
+      resolved_by: filters.value.resolved_by,
     }
     const [bug, suggestion, balance, translation] = await Promise.all(
       types.map(t => fetchMeta({ ...baseFilters, category: t, page: 1, pageSize: 1 })),

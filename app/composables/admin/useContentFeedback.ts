@@ -39,6 +39,12 @@ type FeedbackQuery = {
   resolved_by?: number
   language_code?: string
   has_resolution?: boolean
+  created_from?: string | Date
+  created_to?: string | Date
+  resolved_from?: string | Date
+  resolved_to?: string | Date
+  entity_relation?: string
+  version_number?: number | null
   type?: string // legacy compatibility – maps to category
 }
 
@@ -130,6 +136,13 @@ export function useContentFeedback() {
 
     const normalized: FeedbackQuery = { page: nextPage, pageSize: nextPageSize }
 
+    const normalizeDate = (value?: string | Date | null) => {
+      if (!value) return undefined
+      const date = value instanceof Date ? value : new Date(value)
+      if (Number.isNaN(date.getTime())) return undefined
+      return date.toISOString()
+    }
+
     const status = query.status ?? lastQuery.value.status
     if (status && status !== 'all') {
       params.status = status
@@ -182,6 +195,38 @@ export function useContentFeedback() {
     if (typeof hasResolution === 'boolean') {
       params.has_resolution = hasResolution
       normalized.has_resolution = hasResolution
+    }
+
+    const createdFrom = query.created_from ?? lastQuery.value.created_from
+    const createdTo = query.created_to ?? lastQuery.value.created_to
+    const normalizedCreatedFrom = normalizeDate(createdFrom)
+    const normalizedCreatedTo = normalizeDate(createdTo)
+    if (normalizedCreatedFrom) {
+      params.created_from = normalizedCreatedFrom
+      normalized.created_from = normalizedCreatedFrom
+    }
+    if (normalizedCreatedTo) {
+      params.created_to = normalizedCreatedTo
+      normalized.created_to = normalizedCreatedTo
+    }
+
+    const resolvedFrom = query.resolved_from ?? lastQuery.value.resolved_from
+    const resolvedTo = query.resolved_to ?? lastQuery.value.resolved_to
+    const normalizedResolvedFrom = normalizeDate(resolvedFrom)
+    const normalizedResolvedTo = normalizeDate(resolvedTo)
+    if (normalizedResolvedFrom) {
+      params.resolved_from = normalizedResolvedFrom
+      normalized.resolved_from = normalizedResolvedFrom
+    }
+    if (normalizedResolvedTo) {
+      params.resolved_to = normalizedResolvedTo
+      normalized.resolved_to = normalizedResolvedTo
+    }
+
+    const relation = query.entity_relation ?? lastQuery.value.entity_relation
+    if (relation) {
+      params.entity_relation = relation
+      normalized.entity_relation = relation
     }
 
     if (query.version_number !== undefined) {

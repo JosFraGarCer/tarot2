@@ -1,10 +1,29 @@
 // server/api/content_feedback/index.get.ts
 import { defineEventHandler, getQuery } from 'h3'
-import { sql } from 'kysely'
+import { sql, type SelectQueryBuilder } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
 import { contentFeedbackQuerySchema } from '../../schemas/content-feedback'
+
+function applyEntityRelation<QB extends SelectQueryBuilder<any, any, any>>(qb: QB, relationRaw: string | undefined): QB {
+  if (!relationRaw) return qb
+  const key = relationRaw.replace(/\s+/g, '').toLowerCase()
+  switch (key) {
+    case 'world->base_card':
+    case 'world:base_card':
+      return qb
+        .leftJoin('world_card as wc_rel', (join) =>
+          join
+            .onRef('wc_rel.id', '=', 'cf.entity_id')
+            .on('cf.entity_type', '=', sql`'world_card'`),
+        )
+        .leftJoin('world as w_rel', 'w_rel.id', 'wc_rel.world_id')
+        .leftJoin('base_card as bc_rel', 'bc_rel.id', 'wc_rel.base_card_id')
+    default:
+      return qb
+  }
+}
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
@@ -24,6 +43,11 @@ export default defineEventHandler(async (event) => {
       created_by,
       resolved_by,
       has_resolution,
+      created_from,
+      created_to,
+      resolved_from,
+      resolved_to,
+      entity_relation,
       sort,
       direction,
     } = parsed
@@ -63,6 +87,11 @@ export default defineEventHandler(async (event) => {
         : base.where((eb) => eb.and([eb('cf.resolved_at', 'is', null), eb('cf.resolved_by', 'is', null)]))
     }
 
+    base = applyEntityRelation(base, entity_relation)
+
+    const createdRange = created_from || created_to ? { from: created_from, to: created_to } : undefined
+    const resolvedRange = resolved_from || resolved_to ? { from: resolved_from, to: resolved_to } : undefined
+
     const { query, totalItems, page: currentPage, pageSize: currentSize, resolvedSortField, resolvedSortDirection } =
       await buildFilters(base, {
         page,
@@ -87,6 +116,10 @@ export default defineEventHandler(async (event) => {
           version_number: 'cf.version_number',
         },
         countDistinct: 'cf.id',
+        createdRange,
+        createdColumn: sql`cf.created_at`,
+        resolvedRange,
+        resolvedColumn: sql`cf.resolved_at`,
       })
 
     const rows = await query.execute()

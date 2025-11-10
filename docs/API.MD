@@ -675,7 +675,10 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 ## Content Feedback
 
 - `GET /api/content_feedback`
-  - Query: `page, pageSize, search, entity_type, entity_id, version_number, language_code, status, category, created_by, resolved_by, has_resolution (boolean), sort (created_at|resolved_at|status|entity|version_number), direction`.
+  - Query: `page, pageSize, search, entity_type, entity_id, version_number, language_code, status, category, created_by, resolved_by, has_resolution (boolean), created_from, created_to, resolved_from, resolved_to, entity_relation, sort (created_at|resolved_at|status|entity|version_number), direction`.
+  - `created_from|created_to`: ISO dates (UTC) para acotar el rango de creación.
+  - `resolved_from|resolved_to`: ISO dates (UTC) para filtrar el momento de resolución.
+  - `entity_relation`: cadena descriptiva (`world->base_card`, más relaciones se irán añadiendo) que aplica joins predefinidos para navegar entidades vinculadas.
 - `POST /api/content_feedback`
   - Body: `{ entity_type, entity_id, comment, category?, language_code?, version_number?, status? }`. Usa `created_by` del usuario en contexto.
 - `GET /api/content_feedback/:id` — Retorna feedback con `created_by_name` y `resolved_by_name`.
