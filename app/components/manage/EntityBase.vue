@@ -49,17 +49,30 @@
     </div>
 
     <div v-if="viewMode === 'tabla'">
-      <EntityTableWrapper
+      <slot
+        name="table"
         :crud="crud"
         :label="label"
         :columns="displayedColumns"
-        @edit="onEdit"
-        @delete="onDelete"
-        @export="exportSelected"
-        @batch-update="onBatchUpdate"
-        @create="onCreateClickWrapper"
-        @reset-filters="resetFilters"
-      />
+        :on-edit="onEdit"
+        :on-delete="onDelete"
+        :on-export="exportSelected"
+        :on-batch-update="onBatchUpdate"
+        :on-create="onCreateClickWrapper"
+        :on-reset-filters="resetFilters"
+      >
+        <EntityTableWrapper
+          :crud="crud"
+          :label="label"
+          :columns="displayedColumns"
+          @edit="onEdit"
+          @delete="onDelete"
+          @export="exportSelected"
+          @batch-update="onBatchUpdate"
+          @create="onCreateClickWrapper"
+          @reset-filters="resetFilters"
+        />
+      </slot>
     </div>
     <div v-else-if="viewMode === 'tarjeta'">
       <EntityCards

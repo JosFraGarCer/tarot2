@@ -7,7 +7,7 @@
 
 ## /admin
 
-- [ ] Index con acceso visual a las seccions de /admin
+- [x] Index con acceso visual a las seccions de /admin
 - [x] Sincronizar filtros avanzados y URL en `/admin/feedback`
 - [x] Adoptar utilities comunes (`useListMeta`, `JsonModal`) en `/admin/versions`
 - [x] Añadir flags `translatable=false` en componentes compartidos

@@ -147,7 +147,23 @@
 - `/admin/feedback` ahora usa `AdvancedFiltersPanel` compartido, sincroniza filtros con la URL y emplea `UCalendar` (Nuxt UI v4) para rangos de fecha.
 - `/admin/versions` normaliza su paginación con `toListMeta` de `useListMeta`.
 
+### Fase 1 — Aislar Admin sin romper UX existente
+- **/admin/users**
+  - Seguir usando `EntityBase` con `translatable=false`, `no-tags`, `card-type=false` y `columns` personalizados.
+  - Preparar `components/admin/users/UserTable.vue` (wrapper fino) para transición futura, pero sin cambiar aún.
+- **/admin/versions**
+  - Mantener `VersionList`/`VersionModal`.
+  - Adoptar `useListMeta` y `PaginationControls` estandarizados.
+- **/admin/feedback**
+  - Sustituir panel inline por `AdvancedFiltersPanel` (common), conservando lógica de negocio.
+  - Adoptar `useQuerySync` y `useDateRange`.
+
+**Estado actual:**
+- Portada `/admin/index.vue` renovada con tarjetas de acceso directo a Users, Versions, Feedback y Database.
+- `EntityBase` expone slot `#table` para vistas que requieran tablas especializadas.
+- `/admin/users` utiliza `UserTable` (wrapper fino) como override de tabla, manteniendo flags de traducción deshabilitados.
+- Smoke test manual: acciones básicas siguen comportándose como antes; persisten sólo los errores previos al refactor (esperados y fuera de alcance de Fase 1).
+
 ### Próximas fases
 
-- **Fase 1** Aislar vistas admin con mínimos ajustes de UX (pendiente de planificación detallada).
 - **Fase 2** Consolidar tablas comunes y providers cuando se valide la separación.
