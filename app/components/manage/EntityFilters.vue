@@ -107,6 +107,7 @@ const props = withDefaults(defineProps<{
 })
 
 const { t, locale } = useI18n()
+const localeValue = computed(() => (typeof locale === 'string' ? locale : locale.value) as string)
 const statusUtil = useCardStatus()
 
 const activeConfig = computed<EntityFilterConfig>(() => props.config ?? props.crud.filterConfig)
@@ -287,55 +288,55 @@ function unwrapRows(raw: any): any[] {
 }
 
 const { data: tagData, execute: fetchTags } = useLazyAsyncData(
-  () => `manage-filter-tags::${String(locale)}`,
+  () => `manage-filter-tags::${String(localeValue.value)}`,
   () => useApiFetch('/tag', {
     method: 'GET',
-    params: { pageSize: 100, is_active: true, lang: String(locale) },
+    params: { pageSize: 100, is_active: true, lang: String(localeValue.value) },
   }),
   { immediate: false, server: false }
 )
 
 const { data: cardTypeData, execute: fetchCardTypes } = useLazyAsyncData(
-  () => `manage-filter-card-types::${String(locale)}`,
+  () => `manage-filter-card-types::${String(localeValue.value)}`,
   () => useApiFetch('/card_type', {
     method: 'GET',
-    params: { pageSize: 100, is_active: true, lang: String(locale) },
+    params: { pageSize: 100, is_active: true, lang: String(localeValue.value) },
   }),
   { immediate: false, server: false }
 )
 
 const { data: roleData, execute: fetchRoles } = useLazyAsyncData(
-  () => `manage-filter-roles::${String(locale)}`,
+  () => `manage-filter-roles::${String(localeValue.value)}`,
   () => useApiFetch('/role', {
     method: 'GET',
-    params: { pageSize: 100, lang: String(locale) },
+    params: { pageSize: 100, lang: String(localeValue.value) },
   }),
   { immediate: false, server: false }
 )
 
 const { data: arcanaData, execute: fetchArcana } = useLazyAsyncData(
-  () => `manage-filter-arcana::${String(locale)}`,
+  () => `manage-filter-arcana::${String(localeValue.value)}`,
   () => useApiFetch('/arcana', {
     method: 'GET',
-    params: { pageSize: 100, is_active: true, lang: String(locale) },
+    params: { pageSize: 100, is_active: true, lang: String(localeValue.value) },
   }),
   { immediate: false, server: false }
 )
 
 const { data: facetData, execute: fetchFacets } = useLazyAsyncData(
-  () => `manage-filter-facets::${String(locale)}`,
+  () => `manage-filter-facets::${String(localeValue.value)}`,
   () => useApiFetch('/facet', {
     method: 'GET',
-    params: { pageSize: 100, is_active: true, lang: String(locale) },
+    params: { pageSize: 100, is_active: true, lang: String(localeValue.value) },
   }),
   { immediate: false, server: false }
 )
 
 const { data: parentData, execute: fetchParentTags } = useLazyAsyncData(
-  () => `manage-filter-tag-parents::${String(locale)}`,
+  () => `manage-filter-tag-parents::${String(localeValue.value)}`,
   () => useApiFetch('/tag', {
     method: 'GET',
-    params: { pageSize: 100, parent_only: true, lang: String(locale) },
+    params: { pageSize: 100, parent_only: true, lang: String(localeValue.value) },
   }),
   { immediate: false, server: false }
 )

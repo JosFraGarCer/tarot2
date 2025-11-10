@@ -70,13 +70,6 @@
               :loading="rolesPending"
               :placeholder="tt('features.admin.users.roleFilter', 'Filter by role')"
             />
-            <USelectMenu
-              v-model="activeFilter"
-              class="w-full sm:w-44"
-              :items="activeOptions"
-              value-key="value"
-              option-attribute="label"
-            />
           </div>
 
           <UserTable
@@ -127,35 +120,36 @@
       <template #body>
         <UForm class="space-y-4" @submit.prevent="saveUser">
           <UFormField :label="tt('common.username', 'Username')">
-            <UInput v-model="form.username" autocomplete="off" />
+            <UInput class="w-full" v-model="form.username" autocomplete="off" />
           </UFormField>
           <UFormField :label="tt('common.email', 'Email')">
-            <UInput v-model="form.email" type="email" autocomplete="off" />
+            <UInput class="w-full" v-model="form.email" type="email" autocomplete="off" />
           </UFormField>
           <UFormField :label="tt('common.password', 'Password')" :description="passwordDescription">
-            <UInput v-model="form.password" type="password" autocomplete="new-password" />
+            <UInput class="w-full" v-model="form.password" type="password" autocomplete="new-password" />
           </UFormField>
-          <UFormField :label="tt('common.roles', 'Roles')">
-            <USelectMenu
-              v-model="form.role_ids"
-              :items="roleOptions"
-              value-key="value"
-              option-attribute="label"
-              searchable
-              multiple
-              clearable
-            />
-          </UFormField>
-          <div class="flex flex-wrap items-center gap-4">
+          <div class="flex flex-wrap items-start gap-4">
+            <UFormField :label="tt('common.roles', 'Roles')" class="w-full sm:flex-1">
+              <USelectMenu
+                 class="w-full"
+                v-model="form.role_ids"
+                :items="roleOptions"
+                value-key="value"
+                option-attribute="label"
+                searchable
+                multiple
+                clearable
+              />
+            </UFormField>
             <UFormField :label="tt('ui.fields.status', 'Status')" class="w-full sm:w-48">
               <USelectMenu
+               class="w-full"
                 v-model="form.status"
                 :items="statusValueOptions"
                 value-key="value"
                 option-attribute="label"
               />
             </UFormField>
-            <USwitch v-model="form.is_active" :label="tt('ui.states.active', 'Active')" />
           </div>
         </UForm>
       </template>
@@ -212,25 +206,22 @@ const loading = computed(() => crud.loading?.value ?? false)
 const search = ref(filters.search ?? '')
 const status = ref<string>((filters.status as string) ?? 'all')
 const roleId = ref<number | undefined>(filters.role_id)
-const activeFilter = ref<'all' | 'active' | 'inactive'>(filters.is_active === true ? 'active' : filters.is_active === false ? 'inactive' : 'all')
 
 const statusOptions = computed(() => [
   { label: tt('ui.filters.all', 'All'), value: 'all' },
   { label: tt('system.status.active', 'Active'), value: 'active' },
   { label: tt('system.status.inactive', 'Inactive'), value: 'inactive' },
   { label: tt('system.status.suspended', 'Suspended'), value: 'suspended' },
+  { label: tt('system.status.banned', 'Banned'), value: 'banned' },
+  { label: tt('system.status.pending', 'Pending'), value: 'pending' },
 ])
 
 const statusValueOptions = computed(() => [
   { label: tt('system.status.active', 'Active'), value: 'active' },
   { label: tt('system.status.inactive', 'Inactive'), value: 'inactive' },
   { label: tt('system.status.suspended', 'Suspended'), value: 'suspended' },
-])
-
-const activeOptions = computed(() => [
-  { label: tt('ui.filters.all', 'All states'), value: 'all' },
-  { label: tt('ui.states.active', 'Active'), value: 'active' },
-  { label: tt('ui.states.inactive', 'Inactive'), value: 'inactive' },
+  { label: tt('system.status.banned', 'Banned'), value: 'banned' },
+  { label: tt('system.status.pending', 'Pending'), value: 'pending' },
 ])
 
 const { data: rolesData, pending: rolesPending, refresh: refreshRoles } = useLazyAsyncData('admin-roles', () =>
@@ -247,7 +238,9 @@ const roleOptions = computed(() => {
       : Array.isArray(raw?.results)
         ? raw.results
         : []
-  return rows.map((role: any) => ({ label: role?.name ?? `#${role?.id ?? ''}`, value: role?.id }))
+  const allOption = { label: tt('ui.filters.all', 'All'), value: null }
+  const mapped = rows.map((role: any) => ({ label: role?.name ?? `#${role?.id ?? ''}`, value: role?.id }))
+  return [allOption, ...mapped]
 })
 
 const columns = computed(() => [
@@ -334,7 +327,6 @@ const applyFilters = async () => {
   filters.search = search.value || undefined
   filters.status = status.value !== 'all' ? status.value : undefined
   filters.role_id = roleId.value ?? undefined
-  filters.is_active = activeFilter.value === 'all' ? undefined : activeFilter.value === 'active'
   pagination.value.page = 1
   await fetchList()
 }
@@ -344,7 +336,7 @@ const debouncedFilters = useDebounceFn(async () => {
   await applyFilters()
 }, 250)
 
-watch([search, status, roleId, activeFilter], () => {
+watch([search, status, roleId], () => {
   debouncedFilters()
 })
 
@@ -367,7 +359,6 @@ const resetFilters = async () => {
   search.value = ''
   status.value = 'all'
   roleId.value = undefined
-  activeFilter.value = 'all'
   await applyFilters()
 }
 
@@ -389,7 +380,6 @@ const form = reactive({
   password: '',
   role_ids: [] as number[],
   status: 'active',
-  is_active: true,
 })
 
 const modalTitle = computed(() => editingId.value ? tt('features.admin.users.editTitle', 'Edit user') : tt('features.admin.users.createTitle', 'Create user'))
@@ -416,7 +406,7 @@ function resetForm() {
   form.password = ''
   form.role_ids = []
   form.status = 'active'
-  form.is_active = true
+  // no is_active
 }
 
 function openCreate() {
@@ -434,7 +424,7 @@ function openEdit(row: any) {
   form.password = ''
   form.role_ids = Array.isArray(user.roles) ? user.roles.map((role: any) => role?.id).filter((id: any) => typeof id === 'number') : []
   form.status = typeof user.status === 'string' ? user.status : 'active'
-  form.is_active = user.is_active ?? user.status === 'active'
+  // no is_active
   modalOpen.value = true
 }
 
@@ -460,7 +450,6 @@ const saveUser = async () => {
       email: form.email.trim(),
       status: form.status,
       role_ids: [...form.role_ids],
-      is_active: !!form.is_active,
     }
 
     if (editingId.value) {

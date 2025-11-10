@@ -156,9 +156,76 @@ function normalizeEntity(entity: any): EntityRow {
     img: image,
     code: entity?.code ?? null,
     lang: entity?.language_code_resolved ?? entity?.language_code ?? entity?.lang ?? null,
-    card_type: entity?.card_type_name ?? entity?.card_type_code ?? null,
-    arcana: entity?.arcana_name ?? entity?.arcana_code ?? null,
-    facet: entity?.facet_name ?? entity?.facet_code ?? null,
+    card_type: (
+      // snake_case direct fields
+      entity?.card_type_name
+      ?? entity?.card_type_code
+      ?? entity?.card_type_label
+      ?? entity?.card_type_title
+      // snake_case relation
+      ?? entity?.card_type?.name
+      ?? entity?.card_type?.code
+      ?? entity?.card_type?.label
+      ?? entity?.card_type?.title
+      // camelCase direct fields
+      ?? entity?.cardType_name
+      ?? entity?.cardType_code
+      ?? entity?.cardType_label
+      ?? entity?.cardType_title
+      // camelCase relation
+      ?? entity?.cardType?.name
+      ?? entity?.cardType?.code
+      ?? entity?.cardType?.label
+      ?? entity?.cardType?.title
+      // generic 'type' relation sometimes used for base cards
+      ?? entity?.type?.name
+      ?? entity?.type?.code
+      ?? entity?.type?.label
+      ?? entity?.type?.title
+      // direct string field
+      ?? entity?.card_type
+      ?? null
+    ),
+    arcana: (
+      entity?.arcana_name
+      ?? entity?.arcana_code
+      ?? entity?.arcana_label
+      ?? entity?.arcana_title
+      ?? entity?.arcana?.name
+      ?? entity?.arcana?.code
+      ?? entity?.arcana?.label
+      ?? entity?.arcana?.title
+      // alternative keys
+      ?? entity?.Arcana?.name
+      ?? entity?.Arcana?.code
+      ?? entity?.Arcana?.label
+      ?? entity?.Arcana?.title
+      // direct string field
+      ?? entity?.arcana
+      ?? null
+    ),
+    facet: (
+      entity?.facet_name
+      ?? entity?.facet_code
+      ?? entity?.facet_label
+      ?? entity?.facet_title
+      ?? entity?.facet?.name
+      ?? entity?.facet?.code
+      ?? entity?.facet?.label
+      ?? entity?.facet?.title
+      // camelCase variants
+      ?? entity?.Facet?.name
+      ?? entity?.Facet?.code
+      ?? entity?.Facet?.label
+      ?? entity?.Facet?.title
+      ?? entity?.facetRel?.name
+      ?? entity?.facetRel?.code
+      ?? entity?.facetRel?.label
+      ?? entity?.facetRel?.title
+      // direct string field
+      ?? entity?.facet
+      ?? null
+    ),
     parent: entity?.parent_name ?? entity?.parent_code ?? null,
     category: entity?.category ?? null,
     tags,

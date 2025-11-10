@@ -8,19 +8,17 @@ export default defineEventHandler(async (event) => {
   try {
     const id = event.context.params?.id as string
 
-    const updated = await globalThis.db
-      .updateTable('users')
-      .set({ status: 'inactive' })
-      .where('id', '=', id)
-      .returning(['id'])
-      .executeTakeFirst()
-
-    if (!updated) notFound('User not found')
-
-    // Remove roles as part of deactivation (optional per spec)
     await globalThis.db.deleteFrom('user_roles').where('user_id', '=', id).execute()
 
-    globalThis.logger?.warn('User deactivated', { id, timeMs: Date.now() - startedAt })
+    const deleted = await globalThis.db
+      .deleteFrom('users')
+      .where('id', '=', id)
+      .returning('id')
+      .executeTakeFirst()
+
+    if (!deleted) notFound('User not found')
+
+    globalThis.logger?.warn('User deleted', { id, timeMs: Date.now() - startedAt })
     return createResponse({ ok: true }, null)
   } catch (error) {
     globalThis.logger?.error('Failed to deactivate user', {

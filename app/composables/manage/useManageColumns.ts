@@ -27,7 +27,6 @@ export function useManageColumns(options: ManageColumnsOptions): ComputedRef<Tab
     }
 
     add({ accessorKey: 'code', header: t('ui.fields.code') })
-    add({ accessorKey: 'lang', header: t('ui.fields.language') })
 
     switch (entity) {
       case 'baseCard':
@@ -35,7 +34,7 @@ export function useManageColumns(options: ManageColumnsOptions): ComputedRef<Tab
         add({ accessorKey: 'tags', header: t('ui.fields.tags') })
         break
       case 'cardType':
-        add({ accessorKey: 'category', header: t('ui.fields.category') })
+        // Remove category column per requirements
         break
       case 'facet':
         add({ accessorKey: 'arcana', header: t('entities.arcana') })

@@ -2,7 +2,14 @@
 
 ## /manage
 
-- [ ] Organizar columnas de vista Tabla
+- [x] Organizar y arreglar columnas de vista Tabla
+  - [x] Quitar columna lenguage y poner badge del codigo de idioma a continuacion de name
+  - [x] Quitar category de cardtypes
+  - [x] En basecard no parece el valor de la columna cardtype
+  - [x] En facets no aparecen los valores de la columna arcana
+  - [x] En skills no aparecen los valores de la columna facet
+  - [x] los tags deben ir en badge
+
 
 
 ## /admin
@@ -12,7 +19,6 @@
 - [x] Adoptar utilities comunes (`useListMeta`, `JsonModal`) en `/admin/versions`
 - [x] Añadir flags `translatable=false` en componentes compartidos
 - [ ] Modificar index.vue para acceder al resto de áreas de /admin
-- [ ] Organizar columnas de vista tabla
 - [ ] En vistas organizar los campos
 
 ### users

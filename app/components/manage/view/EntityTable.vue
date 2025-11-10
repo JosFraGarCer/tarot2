@@ -32,11 +32,12 @@
       />
     </template>
 
-    <!-- Name with optional avatar -->
+    <!-- Name with optional avatar and language badge -->
     <template #name-cell="{ row, getValue }">
       <div class="flex items-center gap-2">
         <UAvatar v-if="row.original.img" :src="resolveImage(row.original.img)" size="md" icon="i-heroicons-photo" :alt="String(getValue())" />
         <span class="font-medium">{{ getValue() }}</span>
+        <UBadge v-if="row.original.lang" size="xs" color="neutral" variant="outline">{{ row.original.lang }}</UBadge>
       </div>
     </template>
 
@@ -74,7 +75,28 @@
       <span class="truncate block max-w-[18ch]" :title="String(getValue() ?? '')">{{ getValue() }}</span>
     </template>
     <template #tags-cell="{ getValue }">
-      <span class="truncate block max-w-[32ch]" :title="String(getValue() ?? '')">{{ getValue() }}</span>
+      <div class="flex flex-wrap gap-1 max-w-[38ch]">
+        <UBadge
+          v-for="tag in String(getValue() || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean)"
+          :key="tag"
+          size="xs"
+          color="primary"
+          variant="soft"
+          :title="tag"
+        >
+          {{ tag }}
+        </UBadge>
+        <span v-if="!String(getValue() || '').trim()" class="text-xs text-neutral-400">—</span>
+      </div>
+    </template>
+    <template #arcana-cell="{ getValue }">
+      <span class="truncate block max-w-[18ch]" :title="String(getValue() ?? '')">{{ getValue() }}</span>
+    </template>
+    <template #facet-cell="{ getValue }">
+      <span class="truncate block max-w-[18ch]" :title="String(getValue() ?? '')">{{ getValue() }}</span>
     </template>
     <template #updated_at-cell="{ getValue }">
       <span class="text-xs text-neutral-500">{{ formatDate(getValue()) }}</span>

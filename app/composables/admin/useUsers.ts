@@ -28,9 +28,10 @@ export function useAdminUsersCrud(): AdminUserCrud {
     filters: {
       search: '',
       status: true,
-      is_active: true,
       role_id: undefined,
     },
     pagination: true,
+    includeLangParam: false,
+    includeLangInCreateBody: false,
   })
 }

@@ -43,6 +43,9 @@ export interface EntityOptions<TList, TCreate, TUpdate> {
   filterConfig?: EntityFilterConfig
   pagination?: boolean | { page: number; pageSize: number }
   pageSizeOptions?: number[]
+  includeLangParam?: boolean
+  includeLangInCreateBody?: boolean
+  createLangValue?: string | ((currentLang: string) => string)
 }
 
 // Pagination state exposed to consumers
@@ -287,9 +290,21 @@ function normalizeListResponse<TItem>(raw: any): NormalizedListResponse<TItem> {
 export function useEntity<TList, TCreate, TUpdate>(
   options: EntityOptions<TList, TCreate, TUpdate>
 ): EntityCrud<TList, TCreate, TUpdate> {
-  // i18n locale as reactive language code (ref)
+  // i18n locale as reactive language code (always primitive string)
   const { locale } = useI18n()
-  const lang = locale as Ref<string>
+  const lang = computed(() => (typeof locale === 'string' ? locale : locale.value) as string)
+
+  const includeLangParam = options.includeLangParam !== false
+  const includeLangInCreateBody = options.includeLangInCreateBody !== false
+
+  function resolveCreateLang(): string | undefined {
+    if (!includeLangInCreateBody) return undefined
+    const custom = options.createLangValue
+    if (typeof custom === 'function') {
+      return custom(lang.value)
+    }
+    return custom ?? 'en'
+  }
 
   // Reactive filters & pagination setup
   const filters = reactive<Record<string, any>>(sanitizeInitialFilters(options.filters || {}))
@@ -400,7 +415,7 @@ export function useEntity<TList, TCreate, TUpdate>(
         ...normalizeFilters(filters),
         page: paginated.page.value,
         pageSize: paginated.pageSize.value,
-        lang: lang.value,
+        ...(includeLangParam ? { lang: lang.value } : {}),
       })
       const raw = await $fetch<any>(options.resourcePath, {
         method: 'GET',
@@ -475,7 +490,7 @@ export function useEntity<TList, TCreate, TUpdate>(
     try {
       const res = await $fetch<ApiResponse<TList>>(`${options.resourcePath}/${id}`, {
         method: 'GET',
-        params: { lang: lang.value },
+        params: includeLangParam ? { lang: lang.value } : undefined,
       })
       if (res?.success === false) throw new Error('Request failed')
       current.value = res?.data ?? null
@@ -494,10 +509,15 @@ export function useEntity<TList, TCreate, TUpdate>(
     actionPending.value = true
     try {
       const parsed = options.schema?.create ? options.schema.create.parse(payload) : payload
+      const createParams = includeLangParam ? { lang: lang.value } : undefined
+      const createLang = resolveCreateLang()
+      const bodyPayload = includeLangInCreateBody && createLang !== undefined
+        ? { lang: createLang, ...(parsed as any) }
+        : (parsed as any)
       const res = await $fetch<ApiResponse<TList>>(options.resourcePath, {
         method: 'POST',
-        params: { lang: lang.value },
-        body: { lang: 'en', ...(parsed as any) },
+        params: createParams,
+        body: bodyPayload,
       })
       if (res?.success === false) throw new Error('Request failed')
       invalidateDeckCaches()
@@ -520,7 +540,7 @@ export function useEntity<TList, TCreate, TUpdate>(
         : payload
       const res = await $fetch<ApiResponse<TList>>(`${options.resourcePath}/${id}`, {
         method: 'PATCH',
-        params: { lang: lang.value },
+        params: includeLangParam ? { lang: lang.value } : undefined,
         body: parsed as any,
       })
       if (res?.success === false) throw new Error('Request failed')
@@ -541,7 +561,7 @@ export function useEntity<TList, TCreate, TUpdate>(
     try {
       const res = await $fetch<ApiResponse<null>>(`${options.resourcePath}/${id}`, {
         method: 'DELETE',
-        params: { lang: lang.value },
+        params: includeLangParam ? { lang: lang.value } : undefined,
       })
       if (res?.success === false) throw new Error('Request failed')
       invalidateDeckCaches()
@@ -567,7 +587,7 @@ export function useEntity<TList, TCreate, TUpdate>(
     try {
       const res = await $fetch<ApiResponse<TList>>(`${options.resourcePath}/${id}`, {
         method: 'PATCH',
-        params: { lang: lang.value },
+        params: includeLangParam ? { lang: lang.value } : undefined,
         body: { tag_ids: tagIds } as any,
       })
       if (res?.success === false) throw new Error('Request failed')

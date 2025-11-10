@@ -72,11 +72,11 @@
         <div class="flex flex-wrap gap-4">
           <div class="flex flex-col gap-2 w-full sm:w-72">
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.createdRange','Created range') }}</span>
-            <UCalendar v-model="advanced.createdRange" class="border border-gray-200 dark:border-gray-700 rounded-md" :number-of-months="2" range />
+            <UCalendar v-model="advanced.createdRange" class="border border-gray-200 dark:border-gray-700 rounded-md" :number-of-months="1" range />
           </div>
           <div class="flex flex-col gap-2 w-full sm:w-72">
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.resolvedRange','Resolved range') }}</span>
-            <UCalendar v-model="advanced.resolvedRange" class="border border-gray-200 dark:border-gray-700 rounded-md" :number-of-months="2" range />
+            <UCalendar v-model="advanced.resolvedRange" class="border border-gray-200 dark:border-gray-700 rounded-md" :number-of-months="1" range />
           </div>
         </div>
 

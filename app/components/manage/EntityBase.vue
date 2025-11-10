@@ -29,7 +29,7 @@
     />
     <div class="flex gap-2">
       <UButton
-        size="xs"
+        size="sm"
         icon="i-heroicons-arrow-up-tray"
         color="neutral"
         variant="soft"
@@ -38,7 +38,7 @@
         @click="exportAll"
       />
       <UButton
-        size="xs"
+        size="sm"
         icon="i-heroicons-arrow-down-tray"
         color="neutral"
         variant="soft"
@@ -48,20 +48,13 @@
       />
     </div>
 
-    <div v-if="viewMode === 'tabla'">
-      <slot
-        name="table"
-        :crud="crud"
-        :label="label"
-        :columns="displayedColumns"
-        :on-edit="onEdit"
-        :on-delete="onDelete"
-        :on-export="exportSelected"
-        :on-batch-update="onBatchUpdate"
-        :on-create="onCreateClickWrapper"
-        :on-reset-filters="resetFilters"
-      >
+    <ClientOnly>
+      <template #fallback>
+        <div class="h-48 w-full"></div>
+      </template>
+      <div v-if="viewMode === 'tabla'">
         <EntityTableWrapper
+          :key="(crud?.resourcePath || 'entity') + ':tabla'"
           :crud="crud"
           :label="label"
           :columns="displayedColumns"
@@ -72,55 +65,58 @@
           @create="onCreateClickWrapper"
           @reset-filters="resetFilters"
         />
-      </slot>
-    </div>
-    <div v-else-if="viewMode === 'tarjeta'">
-      <EntityCards
-        :crud="crud"
-        :label="label"
-        :entity=entity
-        :no-tags="noTags"
-        :card-type="cardType"
-        @edit="onEdit"
-        @delete="onDelete"
-        @feedback="onFeedback"
-        @tags="onTags"
-        @preview="onPreview"
-        @create="onCreateClickWrapper"
-        @reset-filters="resetFilters"
-      />
-    </div>
-    <div v-else-if="viewMode === 'classic'">
-      <EntityCardsClassic
-        :crud="crud"
-        :label="label"
-        :entity=entity
-        :no-tags="noTags"
-        :card-type="cardType"
-        @edit="onEdit"
-        @delete="onDelete"
-        @feedback="onFeedback"
-        @tags="onTags"
-        @preview="onPreview"
-        @create="onCreateClickWrapper"
-        @reset-filters="resetFilters"
-      />
-    </div>
-    <div v-else class="text-xs text-neutral-500">
-      <ManageEntityCarta
-        :crud="crud"
-        :label="label"
-        :entity=entity
-        :no-tags="noTags"
-        :card-type="cardType"
-        :template-key="templateKey"
-        @edit="onEdit"
-        @delete="onDelete"
-        @feedback="onFeedback"
-        @tags="onTags"
-        @preview="onPreview"
-      />
-    </div>
+      </div>
+      <div v-else-if="viewMode === 'tarjeta'">
+        <EntityCards
+          :key="(crud?.resourcePath || 'entity') + ':tarjeta'"
+          :crud="crud"
+          :label="label"
+          :entity=entity
+          :no-tags="noTags"
+          :card-type="cardType"
+          @edit="onEdit"
+          @delete="onDelete"
+          @feedback="onFeedback"
+          @tags="onTags"
+          @preview="onPreview"
+          @create="onCreateClickWrapper"
+          @reset-filters="resetFilters"
+        />
+      </div>
+      <div v-else-if="viewMode === 'classic'">
+        <EntityCardsClassic
+          :key="(crud?.resourcePath || 'entity') + ':classic'"
+          :crud="crud"
+          :label="label"
+          :entity=entity
+          :no-tags="noTags"
+          :card-type="cardType"
+          @edit="onEdit"
+          @delete="onDelete"
+          @feedback="onFeedback"
+          @tags="onTags"
+          @preview="onPreview"
+          @create="onCreateClickWrapper"
+          @reset-filters="resetFilters"
+        />
+      </div>
+      <div v-else class="text-xs text-neutral-500">
+        <ManageEntityCarta
+          :key="(crud?.resourcePath || 'entity') + ':carta'"
+          :crud="crud"
+          :label="label"
+          :entity=entity
+          :no-tags="noTags"
+          :card-type="cardType"
+          :template-key="templateKey"
+          @edit="onEdit"
+          @delete="onDelete"
+          @feedback="onFeedback"
+          @tags="onTags"
+          @preview="onPreview"
+        />
+      </div>
+    </ClientOnly>
 
     <PaginationControls
       v-if="crud?.pagination"

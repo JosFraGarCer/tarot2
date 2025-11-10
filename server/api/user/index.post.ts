@@ -1,5 +1,6 @@
 // server/api/users/index.post.ts
 import { defineEventHandler, readBody } from 'h3'
+import { sql } from 'kysely'
 import bcrypt from 'bcrypt'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'

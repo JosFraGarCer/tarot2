@@ -77,7 +77,7 @@ const totalUsers = computed(() => {
   return typeof total === 'number' ? total : rows.value.length
 })
 
-const activeUsers = computed(() => rows.value.filter((row: any) => row?.is_active !== false && row?.status !== 'disabled').length)
+const activeUsers = computed(() => rows.value.filter((row: any) => row?.status === 'active').length)
 
 const pendingInvites = computed(() => rows.value.filter((row: any) => row?.status === 'pending' || row?.status === 'invited').length)
 </script>

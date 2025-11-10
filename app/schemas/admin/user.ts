@@ -1,13 +1,12 @@
 import { z } from 'zod'
 
-export const adminUserStatusEnum = z.enum(['active', 'inactive', 'suspended'])
+export const adminUserStatusEnum = z.enum(['active', 'inactive', 'suspended', 'banned', 'pending'])
 
 const adminUserBaseSchema = z.object({
   username: z.string().min(3),
   email: z.string().email(),
   image: z.string().url().optional().nullable(),
   status: adminUserStatusEnum.default('active'),
-  is_active: z.boolean().optional(),
   role_ids: z.array(z.number()).nonempty(),
 })
 

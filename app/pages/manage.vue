@@ -7,13 +7,18 @@
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">
             {{ t('navigation.menu.manage') }}
           </h1>
-          <ViewControls
-            v-model="viewMode"
-            v-model:template-key="templateKey"
-            class="shrink-0"
-            :template-options="templateOptions as any"
-            storage-key="manage"
-          />
+          <ClientOnly>
+            <template #fallback>
+              <div class="h-8 w-[180px] rounded bg-default/40" />
+            </template>
+            <ViewControls
+              v-model="viewMode"
+              v-model:template-key="templateKey"
+              class="shrink-0"
+              :template-options="templateOptions as any"
+              storage-key="manage"
+            />
+          </ClientOnly>
         </div>
       </template>
 

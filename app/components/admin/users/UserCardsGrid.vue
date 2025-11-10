@@ -8,21 +8,24 @@
     >
       <div class="space-y-3">
         <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="flex items-center gap-2">
-              <h3 class="text-base font-semibold text-gray-900 dark:text-white">
-                {{ user.username || user.email || `#${user.id}` }}
-              </h3>
-              <UBadge
-                :color="badgeColor(user.status)"
-                variant="soft"
-              >
-                {{ user.status || 'unknown' }}
-              </UBadge>
+          <div class="flex items-start gap-3">
+            <UAvatar v-if="user.image" :src="resolveAvatar(user.image)" size="3xl" />
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+                  {{ user.username || user.email || `#${user.id}` }}
+                </h3>
+                <UBadge
+                  :color="badgeColor(user.status)"
+                  variant="soft"
+                >
+                  {{ user.status || 'unknown' }}
+                </UBadge>
+              </div>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                {{ user.email || '—' }}
+              </p>
             </div>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-              {{ user.email || '—' }}
-            </p>
           </div>
           <div v-if="user.permissions" class="text-xs text-gray-500 dark:text-gray-400">
             {{ tt('features.admin.users.permissionsCount', '{n} perms').replace('{n}', String(Object.keys(user.permissions).length)) }}
@@ -94,5 +97,12 @@ function formatDate(value?: string | null) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString()
+}
+
+function resolveAvatar(src?: string | null) {
+  if (!src) return undefined
+  if (src.startsWith('http://') || src.startsWith('https://')) return src
+  if (src.startsWith('/')) return src
+  return `/img/${src}`
 }
 </script>
