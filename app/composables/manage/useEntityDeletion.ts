@@ -1,7 +1,13 @@
 import { ref } from 'vue'
 import type { AnyManageCrud } from '@/types/manage'
 
-export function useEntityDeletion(crud: AnyManageCrud, t?: (k: string) => string, toast?: any, localeCode?: () => string) {
+export function useEntityDeletion(
+  crud: AnyManageCrud,
+  t?: (k: string) => string,
+  toast?: any,
+  localeCode?: () => string,
+  opts?: { translatable?: boolean }
+) {
   const deleteModalOpen = ref(false)
   const deleteTranslationModalOpen = ref(false)
   const deleteTranslationLoading = ref(false)
@@ -55,6 +61,12 @@ export function useEntityDeletion(crud: AnyManageCrud, t?: (k: string) => string
 
   function onDelete(entity: any) {
     if (!entity) return
+    // If entity is explicitly non-translatable, always open entity delete modal
+    if (opts?.translatable === false) {
+      deleteTarget.value = { id: entity.id ?? null }
+      deleteModalOpen.value = true
+      return
+    }
     const lc = String(localeCode?.() || '')
     const resolved = String(entity?.language_code_resolved || entity?.language_code || '')
     const isEnglishPage = lc === 'en'

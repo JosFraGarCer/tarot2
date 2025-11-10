@@ -12,7 +12,7 @@
 - Lista de versiones con búsqueda, filtro por estado, paginación.
 - Acciones: crear/editar versión (incluye campo release), ver metadata, ver detalle, borrar, publicar revisiones aprobadas.
 - Componentes y composables:
-  - `components/admin/VersionList.vue`, `components/admin/VersionModal.vue`, `components/admin/RevisionsTable.vue`, `components/admin/JsonModal.vue`, `components/common/PaginationControls.vue`.
+  - `components/admin/VersionList.vue`, `components/admin/VersionModal.vue`, `components/admin/RevisionsTable.vue`, `components/common/JsonModal.vue`, `components/common/PaginationControls.vue`.
   - `composables/admin/useContentVersions.ts` (listado/CRUD), `composables/admin/useRevisions.ts` (tabla de revisiones aprobadas).
 - Endpoints backend usados:
   - `GET/POST/PATCH/DELETE /api/content_versions` (presentes).
@@ -38,12 +38,12 @@
 - Revisión/gestión de feedback con filtros: búsqueda, estado, tipo (bug/suggestion/balance/translation), "mineOnly" y selección múltiple.
 - Acciones: previsualizar carta vinculada, ver JSON de entidad, resolver/reabrir/borrar y anotar notas internas, paginación.
 - Componentes/composables:
-  - `FeedbackDashboard.vue`, `FeedbackList.vue`, `FeedbackNotesModal.vue`, `JsonModal.vue`, `PaginationControls.vue`.
-  - `useContentFeedback.ts`, `useCurrentUser.ts`, `useApiFetch`.
+  - `FeedbackDashboard.vue`, `FeedbackList.vue`, `FeedbackNotesModal.vue`, `components/common/JsonModal.vue`, `components/common/AdvancedFiltersPanel.vue`, `components/common/PaginationControls.vue`.
+  - `useContentFeedback.ts`, `useCurrentUser.ts`, `useApiFetch`, `composables/common/useQuerySync.ts`, `composables/common/useDateRange.ts`.
 - Endpoints backend usados: `GET/POST/PATCH/DELETE /api/content_feedback` (presentes). Previsualización usa dinámicamente `GET /api/{base_card|arcana|facet|world}/:id` (presentes); ver errores más abajo.
 - **Flujo completo**: el panel básico (search/estado/categoría/mineOnly) y el colapsible de “Filtros avanzados” construyen un payload unificado en `filters` → `useContentFeedback.buildParams()`.
-  - Los rangos de fechas (`created_from|to`, `resolved_from|to`), idioma (`language_code`), tipo de entidad (`entity_type`), relación (`entity_relation`) y autores (`created_by`, `resolved_by`) se serializan a ISO y se sincronizan con la URL para compartir vistas.
-  - Al aplicar/resetear se invoca `fetchList()` (lista) + `fetchCountsByType()` (dashboard), ambos reutilizan los mismos filtros.
+  - Los rangos de fechas (`created_from|to`, `resolved_from|to`), idioma (`language_code`), tipo de entidad (`entity_type`), relación (`entity_relation`) y autores (`created_by`, `resolved_by`) se serializan con utilidades comunes y se sincronizan con la URL para compartir vistas.
+  - Al aplicar/resetear se invoca `fetchList()` (lista) + `fetchCountsByType()` (dashboard), ambos reutilizan los mismos filtros, y el estado se refleja en la query mediante `useQuerySync`.
 - **Backend**: `GET /api/content_feedback` valida con `contentFeedbackQuerySchema`, aplica joins a `users` y, si procede, a relaciones (`world -> base_card`). `buildFilters()` añade búsqueda full-text, paginación y ordenación whitelisteada.
 - **Entidades y traducción**: `entity_type` define la tabla principal (`base_card`, `world_card`, `arcana`, etc.) y `language_code` filtra comentarios específicos por idioma. El frontend usa esos mismos campos para resolver previews traducidas (`lang`), garantizando que el editor revisa la versión correcta.
 
@@ -138,7 +138,16 @@
   - Body vacío. Lógica: aplicar `prev_snapshot` (o `next_snapshot` como target) sobre entidad base; crear nueva revisión `published`/`approved` según política; auditar.
 
 ## Plan y prioridades
-- **P0** Implementar `content_versions/publish` y `content_revisions/:id/revert`.
-- **P1** Corregir ruta en `useContentFeedback.update()` y el contador de "Translation" en `/admin/feedback`.
-- **P2** Unificar previsualización de entidad (evitar `by-translation`), adoptar `useApiFetch` en GETs de admin.
-- **P3** Refactors de duplicados: `StatusBadge`, `useSelection`, fetch preview unificado.
+
+### Fase 0 (completada)
+
+- Se añadieron flags de capacidad (`translatable=false`) en `EntityBase`, `useEntityDeletion` y `useEntityModals` para reutilizar componentes sin lógica de traducción.
+- `JsonModal` se movió a `components/common/JsonModal.vue` y se actualizaron las páginas consumidoras.
+- Se crearon los composables comunes `useQuerySync`, `useDateRange`, `useListMeta` y `useEntityPreviewFetch` (esqueleto) para reutilizar lógica entre `/manage` y `/admin`.
+- `/admin/feedback` ahora usa `AdvancedFiltersPanel` compartido, sincroniza filtros con la URL y emplea `UCalendar` (Nuxt UI v4) para rangos de fecha.
+- `/admin/versions` normaliza su paginación con `toListMeta` de `useListMeta`.
+
+### Próximas fases
+
+- **Fase 1** Aislar vistas admin con mínimos ajustes de UX (pendiente de planificación detallada).
+- **Fase 2** Consolidar tablas comunes y providers cuando se valide la separación.

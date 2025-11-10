@@ -9,6 +9,7 @@ export function useEntityModals(
     t?: (k: string) => string
     toast?: any
     imagePreview?: { value: string | null }
+    translatable?: boolean
   }
 ) {
   const { localeCode, t, toast, imagePreview } = opts
@@ -41,7 +42,8 @@ export function useEntityModals(
     isEditing.value = true
     form.replace(entity as Record<string, any>, { markDirty: false, updateInitial: true })
     if (imagePreview) imagePreview.value = (entity.image || entity.thumbnail_url || null) as any
-    if (localeCode() !== 'en') {
+    const isTranslatable = opts?.translatable !== false
+    if (isTranslatable && localeCode() !== 'en') {
       preloadEnglishItem(entity.id).catch(() => {})
       const resolved = String(entity?.language_code_resolved || entity?.language_code || '')
       if (resolved && resolved !== String(localeCode())) {

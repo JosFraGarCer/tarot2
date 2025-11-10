@@ -33,51 +33,64 @@
         />
       </div>
 
-      <UCollapse v-model="advancedOpen" class="mb-4">
-        <div class="bg-gray-50 dark:bg-gray-900/40 rounded-md p-4 space-y-4">
-          <div class="flex flex-wrap gap-4">
-            <div class="flex flex-col gap-2 w-full sm:w-60">
-              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.language','Language') }}</span>
-              <USelectMenu v-model="advanced.language" :items="languageOptions" value-key="value" option-attribute="label" />
-            </div>
-            <div class="flex flex-col gap-2 w-full sm:w-60">
-              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.entityType','Entity type') }}</span>
-              <USelectMenu v-model="advanced.entityType" :items="entityTypeOptions" value-key="value" option-attribute="label" />
-            </div>
-            <div class="flex flex-col gap-2 w-full sm:w-60">
-              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.entityRelation','Entity relation') }}</span>
-              <USelectMenu v-model="advanced.entityRelation" :items="entityRelationOptions" value-key="value" option-attribute="label" />
-            </div>
-          </div>
+      <AdvancedFiltersPanel
+        class="mb-4"
+        :open="advancedOpen"
+        :apply-label="tt('ui.actions.apply','Apply')"
+        :reset-label="tt('ui.actions.reset','Reset')"
+        @apply="applyAdvanced"
+        @reset="resetAdvanced"
+        @update:open="v => (advancedOpen = v)"
+      >
+        <template #trigger>
+          <slot name="advanced-trigger">
+            <UButton
+              variant="soft"
+              color="neutral"
+              icon="i-heroicons-funnel"
+              :label="tt('features.admin.feedback.advancedFilters', 'Advanced filters')"
+              @click="advancedOpen = !advancedOpen"
+            />
+          </slot>
+        </template>
 
-          <div class="flex flex-wrap gap-4">
-            <div class="flex flex-col gap-2 w-full sm:w-72">
-              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.createdRange','Created range') }}</span>
-              <UDatePicker v-model="advanced.createdRange" mode="date" :columns="2" range />
-            </div>
-            <div class="flex flex-col gap-2 w-full sm:w-72">
-              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.resolvedRange','Resolved range') }}</span>
-              <UDatePicker v-model="advanced.resolvedRange" mode="date" :columns="2" range />
-            </div>
+        <div class="flex flex-wrap gap-4">
+          <div class="flex flex-col gap-2 w-full sm:w-60">
+            <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.language','Language') }}</span>
+            <USelectMenu v-model="advanced.language" :items="languageOptions" value-key="value" option-attribute="label" />
           </div>
-
-          <div class="flex flex-wrap gap-4">
-            <div class="flex flex-col gap-2 w-full sm:w-60">
-              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.createdBy','Created by') }}</span>
-              <USelectMenu v-model="advanced.createdBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
-            </div>
-            <div class="flex flex-col gap-2 w-full sm:w-60">
-              <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.resolvedBy','Resolved by') }}</span>
-              <USelectMenu v-model="advanced.resolvedBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
-            </div>
+          <div class="flex flex-col gap-2 w-full sm:w-60">
+            <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.entityType','Entity type') }}</span>
+            <USelectMenu v-model="advanced.entityType" :items="entityTypeOptions" value-key="value" option-attribute="label" />
           </div>
-
-          <div class="flex flex-wrap items-center gap-2 justify-end">
-            <UButton variant="soft" color="neutral" icon="i-heroicons-arrow-path" @click="resetAdvanced">{{ tt('ui.actions.reset','Reset') }}</UButton>
-            <UButton color="primary" icon="i-heroicons-check" @click="applyAdvanced">{{ tt('ui.actions.apply','Apply') }}</UButton>
+          <div class="flex flex-col gap-2 w-full sm:w-60">
+            <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.entityRelation','Entity relation') }}</span>
+            <USelectMenu v-model="advanced.entityRelation" :items="entityRelationOptions" value-key="value" option-attribute="label" />
           </div>
         </div>
-      </UCollapse>
+
+        <div class="flex flex-wrap gap-4">
+          <div class="flex flex-col gap-2 w-full sm:w-72">
+            <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.createdRange','Created range') }}</span>
+            <UCalendar v-model="advanced.createdRange" class="border border-gray-200 dark:border-gray-700 rounded-md" :number-of-months="2" range />
+          </div>
+          <div class="flex flex-col gap-2 w-full sm:w-72">
+            <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.resolvedRange','Resolved range') }}</span>
+            <UCalendar v-model="advanced.resolvedRange" class="border border-gray-200 dark:border-gray-700 rounded-md" :number-of-months="2" range />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-4">
+          <div class="flex flex-col gap-2 w-full sm:w-60">
+            <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.createdBy','Created by') }}</span>
+            <USelectMenu v-model="advanced.createdBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
+          </div>
+          <div class="flex flex-col gap-2 w-full sm:w-60">
+            <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.resolvedBy','Resolved by') }}</span>
+            <USelectMenu v-model="advanced.resolvedBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
+          </div>
+        </div>
+      </AdvancedFiltersPanel>
 
       <!-- Type tabs -->
       <div class="mb-3">
@@ -211,14 +224,17 @@
 import FeedbackList from '@/components/admin/FeedbackList.vue'
 import CartaRow from '@/components/manage/CartaRow.vue'
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue'
-import JsonModal from '@/components/admin/JsonModal.vue'
+import JsonModal from '@/components/common/JsonModal.vue'
 import FeedbackNotesModal from '@/components/admin/FeedbackNotesModal.vue'
 import FeedbackDashboard from '@/components/admin/FeedbackDashboard.vue'
 import PaginationControls from '@/components/common/PaginationControls.vue'
+import AdvancedFiltersPanel from '@/components/common/AdvancedFiltersPanel.vue'
 import { useContentFeedback } from '@/composables/admin/useContentFeedback'
 import { useCurrentUser } from '@/composables/users/useCurrentUser'
 import { useApiFetch } from '@/utils/fetcher'
 import { useDebounceFn } from '@vueuse/core'
+import { useQuerySync } from '@/composables/common/useQuerySync'
+import { normalizeRange } from '@/composables/common/useDateRange'
 
 const { t, te } = useI18n()
 function tt(key: string, fallback: string) {
@@ -227,15 +243,115 @@ function tt(key: string, fallback: string) {
 
 useSeoMeta({ title: `${t('navigation.menu.admin') || 'Admin'} · ${tt('features.admin.feedbackTitle', 'Feedback')}` })
 
-const route = useRoute()
-const router = useRouter()
 const toast = useToast()
 const apiFetch = useApiFetch
+const router = useRouter()
+const route = useRoute()
 
-const search = ref('')
-const status = ref<'all' | 'open' | 'resolved'>('all')
-const type = ref<'all' | 'bug' | 'suggestion' | 'balance' | 'translation'>('all')
-const mineOnly = ref(false)
+type FeedbackRouteState = {
+  search: string
+  status: 'all' | 'open' | 'resolved'
+  type: 'all' | 'bug' | 'suggestion' | 'balance' | 'translation'
+  mineOnly: boolean
+  language?: string
+  entityType?: string
+  entityRelation?: string
+  createdBy?: number
+  resolvedBy?: number
+  createdRange?: [Date | string, Date | string] | undefined
+  resolvedRange?: [Date | string, Date | string] | undefined
+  page: number
+  pageSize: number
+}
+
+const initialState: FeedbackRouteState = {
+  search: '',
+  status: 'all',
+  type: 'all',
+  mineOnly: false,
+  language: undefined,
+  entityType: undefined,
+  entityRelation: undefined,
+  createdBy: undefined,
+  resolvedBy: undefined,
+  createdRange: undefined,
+  resolvedRange: undefined,
+  page: 1,
+  pageSize: 20,
+}
+
+const { read: readQueryState, write: writeQueryState } = useQuerySync<FeedbackRouteState>(initialState, {
+  parse(raw) {
+    const statusParam = raw.status === 'open' || raw.status === 'resolved' ? raw.status : 'all'
+    const typeParam = raw.type === 'bug' || raw.type === 'suggestion' || raw.type === 'balance' || raw.type === 'translation'
+      ? raw.type
+      : 'all'
+    const mineOnlyParam = raw.mineOnly === 'true'
+    const createdByParam = typeof raw.created_by === 'string' ? Number(raw.created_by) : undefined
+    const resolvedByParam = typeof raw.resolved_by === 'string' ? Number(raw.resolved_by) : undefined
+
+    const createdRange = normalizeRange({ from: raw.created_from as any, to: raw.created_to as any })
+    const resolvedRange = normalizeRange({ from: raw.resolved_from as any, to: raw.resolved_to as any })
+
+    const parseRange = (range: { from?: string; to?: string }) => {
+      if (!range.from || !range.to) return undefined
+      const fromDate = new Date(range.from)
+      const toDate = new Date(range.to)
+      if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return undefined
+      return [fromDate, toDate] as [Date, Date]
+    }
+
+    const pageParam = typeof raw.page === 'string' ? Math.max(1, Number(raw.page) || 1) : 1
+    const pageSizeParam = typeof raw.pageSize === 'string' && [10, 20, 50].includes(Number(raw.pageSize))
+      ? Number(raw.pageSize)
+      : 20
+
+    return {
+      search: typeof raw.search === 'string' ? raw.search : '',
+      status: statusParam,
+      type: typeParam,
+      mineOnly: mineOnlyParam,
+      language: typeof raw.language_code === 'string' ? raw.language_code : undefined,
+      entityType: typeof raw.entity_type === 'string' ? raw.entity_type : undefined,
+      entityRelation: typeof raw.entity_relation === 'string' ? raw.entity_relation : undefined,
+      createdBy: createdByParam,
+      resolvedBy: resolvedByParam,
+      createdRange: parseRange(createdRange),
+      resolvedRange: parseRange(resolvedRange),
+      page: pageParam,
+      pageSize: pageSizeParam,
+    }
+  },
+  serialize(state) {
+    const createdRange = normalizeRange(state.createdRange)
+    const resolvedRange = normalizeRange(state.resolvedRange)
+
+    return {
+      search: state.search || undefined,
+      status: state.status !== 'all' ? state.status : undefined,
+      type: state.type !== 'all' ? state.type : undefined,
+      mineOnly: state.mineOnly ? 'true' : undefined,
+      language_code: state.language || undefined,
+      entity_type: state.entityType || undefined,
+      entity_relation: state.entityRelation || undefined,
+      created_by: state.createdBy != null ? String(state.createdBy) : undefined,
+      resolved_by: state.resolvedBy != null ? String(state.resolvedBy) : undefined,
+      created_from: createdRange.from,
+      created_to: createdRange.to,
+      resolved_from: resolvedRange.from,
+      resolved_to: resolvedRange.to,
+      page: state.page > 1 ? String(state.page) : undefined,
+      pageSize: state.pageSize !== 20 ? String(state.pageSize) : undefined,
+    }
+  },
+})
+
+const queryState = readQueryState()
+
+const search = ref(queryState.search ?? '')
+const status = ref<'all' | 'open' | 'resolved'>(queryState.status ?? 'all')
+const type = ref<'all' | 'bug' | 'suggestion' | 'balance' | 'translation'>(queryState.type ?? 'all')
+const mineOnly = ref(!!queryState.mineOnly)
 
 const counts = ref<{ bug: number; suggestion: number; balance: number; translation: number }>({ bug: 0, suggestion: 0, balance: 0, translation: 0 })
 const feedbackTabs = computed(() => [
@@ -245,6 +361,8 @@ const feedbackTabs = computed(() => [
   { label: `${tt('admin.feedback.tabs.balance', 'Balance')} (${counts.value.balance})`, value: 'balance' },
   { label: `${tt('admin.feedback.tabs.translation', 'Translation')} (${counts.value.translation})`, value: 'translation' },
 ])
+
+const initialized = ref(false)
 
 const statusOptions = [
   { label: tt('ui.filters.all', 'All'), value: 'all' },
@@ -274,13 +392,13 @@ const isEditor = computed(() => {
 
 const advancedOpen = ref(false)
 const advanced = reactive({
-  language: undefined as string | undefined,
-  entityType: undefined as string | undefined,
-  entityRelation: undefined as string | undefined,
-  createdRange: undefined as [Date | string, Date | string] | undefined,
-  resolvedRange: undefined as [Date | string, Date | string] | undefined,
-  createdBy: undefined as number | undefined,
-  resolvedBy: undefined as number | undefined,
+  language: queryState.language as string | undefined,
+  entityType: queryState.entityType as string | undefined,
+  entityRelation: queryState.entityRelation as string | undefined,
+  createdRange: queryState.createdRange as [Date | string, Date | string] | undefined,
+  resolvedRange: queryState.resolvedRange as [Date | string, Date | string] | undefined,
+  createdBy: queryState.createdBy as number | undefined,
+  resolvedBy: queryState.resolvedBy as number | undefined,
 })
 
 const languageOptions = computed(() => [{ label: tt('ui.filters.all', 'All'), value: undefined }, { label: 'EN', value: 'en' }, { label: 'ES', value: 'es' }])
@@ -329,7 +447,7 @@ const dashboardQuery = computed(() => ({
   type: filters.value.category ?? null,
 }))
 
-const pagination = reactive({ page: 1, pageSize: 20 })
+const pagination = reactive({ page: queryState.page ?? 1, pageSize: queryState.pageSize ?? 20 })
 const pageSizeItems = [
   { label: '10', value: 10 },
   { label: '20', value: 20 },
@@ -425,37 +543,10 @@ const debouncedFilters = useDebounceFn(async () => {
   pushQuery()
 }, 200)
 
-const initialized = ref(false)
-watch(filters, () => {
-  if (!initialized.value) return
-  debouncedFilters()
-}, { deep: true })
-
-function applyInitialQuery() {
-  const q = route.query
-  if (typeof q.search === 'string') search.value = q.search
-  if (q.status === 'open' || q.status === 'resolved') status.value = q.status
-  if (q.type === 'bug' || q.type === 'suggestion' || q.type === 'balance' || q.type === 'translation') type.value = q.type
-  if (q.mineOnly === 'true') mineOnly.value = true
-  if (typeof q.language_code === 'string') advanced.language = q.language_code
-  if (typeof q.entity_type === 'string') advanced.entityType = q.entity_type
-  if (typeof q.entity_relation === 'string') advanced.entityRelation = q.entity_relation
-  if (typeof q.created_by === 'string') advanced.createdBy = Number(q.created_by)
-  if (typeof q.resolved_by === 'string') advanced.resolvedBy = Number(q.resolved_by)
-  if (typeof q.created_from === 'string' && typeof q.created_to === 'string') advanced.createdRange = [new Date(q.created_from), new Date(q.created_to)]
-  if (typeof q.resolved_from === 'string' && typeof q.resolved_to === 'string') advanced.resolvedRange = [new Date(q.resolved_from), new Date(q.resolved_to)]
-  if (typeof q.page === 'string' && !Number.isNaN(Number(q.page))) pagination.page = Math.max(1, Number(q.page))
-  if (typeof q.pageSize === 'string') {
-    const size = Number(q.pageSize)
-    if ([10, 20, 50].includes(size)) pagination.pageSize = size
-  }
-}
-
 function applyAdvanced() {
   pagination.page = 1
   loadList({ page: 1 })
   fetchCountsByType()
-  pushQuery()
   advancedOpen.value = false
 }
 
@@ -474,7 +565,6 @@ function resetAdvanced() {
 }
 
 onMounted(async () => {
-  applyInitialQuery()
   await loadList()
   await fetchCountsByType()
   pushQuery()

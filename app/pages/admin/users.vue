@@ -27,6 +27,7 @@
         :columns="columns"
         :no-tags="true"
         :card-type="false"
+        :translatable="false"
       />
     </UCard>
   </div>

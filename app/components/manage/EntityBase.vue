@@ -52,7 +52,7 @@
       <EntityTableWrapper
         :crud="crud"
         :label="label"
-        :columns="resolvedColumns"
+        :columns="displayedColumns"
         @edit="onEdit"
         @delete="onDelete"
         @export="exportSelected"
@@ -251,12 +251,14 @@ const props = withDefaults(defineProps<{
   noTags?: boolean
   pageSizeItems?: Array<{ label: string; value: number }>
   onCreate?: () => void
+  translatable?: boolean
 }>(), {
   columns: () => [],
   cardType: false,
   noTags: false,
   pageSizeItems: undefined,
-  onCreate: undefined
+  onCreate: undefined,
+  translatable: true
 })
 
 const emit = defineEmits<{ (e: 'create'): void }>()
@@ -280,6 +282,7 @@ void crud.fetchList()
 const { previewOpen, previewData, setPreviewOpen, openPreviewFromEntity } = useEntityPreview()
 
 const resolvedColumns = useManageColumns({ entity: props.entity, crud })
+const displayedColumns = computed(() => (Array.isArray(props.columns) && props.columns.length ? props.columns : resolvedColumns.value))
 
 // Expose a refresh helper compatible with legacy template usage
 async function refresh() {
@@ -340,7 +343,7 @@ const {
   confirmDeleteEntity,
   confirmDeleteTranslation,
   onDelete,
-} = useEntityDeletion(crud as any, t, toast, () => localeCode.value)
+} = useEntityDeletion(crud as any, t, toast, () => localeCode.value, { translatable: props.translatable })
 
 // Locale
 const { locale } = useI18n()
@@ -363,7 +366,7 @@ const {
   onCreateClick,
   handleSubmit,
   handleCancel,
-} = useEntityModals(crud as any, { localeCode: () => localeCode.value, t, toast, imagePreview })
+} = useEntityModals(crud as any, { localeCode: () => localeCode.value, t, toast, imagePreview, translatable: props.translatable })
 
 // map saving for delete dialogs
 const savingDelete = computed(() => deletingSaving.value)

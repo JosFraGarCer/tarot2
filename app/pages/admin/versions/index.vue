@@ -67,7 +67,7 @@
 import VersionList from '~/components/admin/VersionList.vue'
 import PaginationControls from '~/components/common/PaginationControls.vue'
 import VersionModal from '~/components/admin/VersionModal.vue'
-import JsonModal from '~/components/admin/JsonModal.vue'
+import JsonModal from '~/components/common/JsonModal.vue'
 import RevisionsTable from '~/components/admin/RevisionsTable.vue'
 import { useContentVersions } from '~/composables/admin/useContentVersions'
 import { useDebounceFn } from '@vueuse/core'

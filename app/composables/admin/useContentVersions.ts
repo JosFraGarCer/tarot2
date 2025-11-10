@@ -1,6 +1,7 @@
 // app/composables/admin/useContentVersions.ts
 import { defu } from 'defu'
 import { useApiFetch } from '@/utils/fetcher'
+import { toListMeta } from '@/composables/common/useListMeta'
 
 export interface ContentVersion {
   id: number
@@ -88,13 +89,15 @@ export function useContentVersions() {
       const list = Array.isArray(payload?.data) ? payload!.data : []
 
       items.value = list
-      if (payload?.meta) meta.value = payload.meta
-      else meta.value = {
-        page: normalized.page ?? 1,
-        pageSize: normalized.pageSize ?? 20,
+      const normalizedMeta = toListMeta(payload?.meta, {
+        page: normalized.page,
+        pageSize: normalized.pageSize,
         totalItems: list.length,
-        totalPages: 1,
-        search: normalized.search ?? null,
+      })
+      meta.value = {
+        ...payload?.meta,
+        ...normalizedMeta,
+        search: payload?.meta?.search ?? normalized.search ?? null,
       }
       return list
     } catch (err) {
