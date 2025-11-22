@@ -2,7 +2,7 @@
 Tarot es el nombre en clave para sistema universal de juego de rol mediante cartas
 
 Nuestro proyecto es la gestion y desarrollo de una app para la creación gestion de cartas.
-Estamos en las fases temprana de desarrollo donde aun estamos estableciendo las bases tanto de la aplicación como del sistema de juego Tarot
+Estamos en las fases temprana de desarrollo donde aun estamos estableciendo las bases tanto de la aplicación como del sistema de juego Tarot. Para alinearnos en principios y metodología consulte también `docs/ARCHITECTURE_GUIDE.md`.
 
 ## La aplicación
 La aplicación usa Nuxt 4 en su ultima version, NuxtUI 4 (en su ultima version), Pinia y pinia colada, TailwindCSS, i18n, zod y kysely con Postgres.

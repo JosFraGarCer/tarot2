@@ -34,6 +34,7 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
+  const logger = event.context.logger ?? globalThis.logger
   try {
     const q = getQuery(event)
     const { page, pageSize, q: search, status, is_active, created_by } = safeParseOrThrow(querySchema, q)
@@ -102,10 +103,9 @@ export default defineEventHandler(async (event) => {
       },
     })
 
-    const rows = await query.execute()
-    const data = rows
+    const data = await query.execute()
 
-    globalThis.logger?.info('Card types listed', {
+    logger?.info('Card types listed', {
       page: p,
       pageSize: ps,
       count: data.length,
@@ -119,9 +119,12 @@ export default defineEventHandler(async (event) => {
       timeMs: Date.now() - startedAt,
     })
 
-    return createPaginatedResponse(data, totalItems, p, ps, ((q as any).search ?? search) ?? null)
+    return createPaginatedResponse(data, totalItems, p, ps, {
+      search: ((q as any).search ?? search) ?? null,
+      lang,
+    })
   } catch (error) {
-    globalThis.logger?.error('Failed to fetch card types', {
+    logger?.error('Failed to fetch card types', {
       error: error instanceof Error ? error.message : String(error),
     })
     throw error

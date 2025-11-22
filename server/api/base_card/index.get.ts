@@ -38,6 +38,7 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
+  const logger = event.context.logger ?? globalThis.logger
   try {
     const q = getQuery(event)
     const { page, pageSize, q: search, status, is_active, created_by, card_type_id } = safeParseOrThrow(querySchema, q)
@@ -185,12 +186,12 @@ export default defineEventHandler(async (event) => {
     })
 
     const rows = await query.execute()
-    const data = rows
+    const data = markLanguageFallback(rows, lang)
     const count_tags = Array.isArray(data)
       ? data.reduce((acc: number, r: any) => acc + (Array.isArray(r?.tags) ? r.tags.length : 0), 0)
       : 0
 
-    globalThis.logger?.info('Base cards listed', {
+    logger?.info('Base cards listed', {
       page: p,
       pageSize: ps,
       count: data.length,
@@ -208,9 +209,9 @@ export default defineEventHandler(async (event) => {
       timeMs: Date.now() - startedAt,
     })
 
-    return createPaginatedResponse(data, totalItems, p, ps, ((q as any).search ?? search) ?? null)
+    return createPaginatedResponse(data, totalItems, p, ps, ((q as any).search ?? search) ?? null, { lang })
   } catch (error) {
-    globalThis.logger?.error('Failed to fetch base cards', {
+    logger?.error('Failed to fetch base cards', {
       error: error instanceof Error ? error.message : String(error),
     })
     throw error

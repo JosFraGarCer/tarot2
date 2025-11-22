@@ -1,4 +1,6 @@
 import { $fetch as ofetch, type FetchContext, type FetchRequest, type FetchOptions } from 'ofetch'
+import { useNuxtApp } from '#app'
+import type { H3Event } from 'h3'
 
 interface CacheEntry<T = any> {
   data: T
@@ -6,8 +8,15 @@ interface CacheEntry<T = any> {
   ttl: number
 }
 
-const etagStore = new Map<string, string>()
-const responseCache = new Map<string, CacheEntry>()
+const globalStores = {
+  etags: new Map<string, string>(),
+  responses: new Map<string, CacheEntry>(),
+}
+
+const serverStores = new WeakMap<H3Event, {
+  etags: Map<string, string>
+  responses: Map<string, CacheEntry>
+}>()
 
 const DEFAULT_TTL = 1000 * 60 * 5 // 5 minutes
 
@@ -15,23 +24,38 @@ function now() {
   return Date.now()
 }
 
-function purgeExpired(entries: Map<string, CacheEntry>) {
+function getStores(event?: H3Event | null) {
+  if (event) {
+    let store = serverStores.get(event)
+    if (!store) {
+      store = {
+        etags: new Map<string, string>(),
+        responses: new Map<string, CacheEntry>(),
+      }
+      serverStores.set(event, store)
+    }
+    return store
+  }
+  return globalStores
+}
+
+function purgeExpired(entries: Map<string, CacheEntry>, etags: Map<string, string>) {
   const current = now()
   for (const [key, entry] of entries.entries()) {
     const ttl = entry.ttl ?? DEFAULT_TTL
     if (current - entry.storedAt > ttl) {
       entries.delete(key)
-      etagStore.delete(key)
+      etags.delete(key)
     }
   }
 }
 
 export function clearApiFetchCache(options: { pattern?: RegExp } = {}) {
   const { pattern } = options
-  for (const key of responseCache.keys()) {
+  for (const key of globalStores.responses.keys()) {
     if (!pattern || pattern.test(key)) {
-      responseCache.delete(key)
-      etagStore.delete(key)
+      globalStores.responses.delete(key)
+      globalStores.etags.delete(key)
     }
   }
 }
@@ -44,14 +68,14 @@ function resolveTTL(options: FetchOptions): number {
   return DEFAULT_TTL
 }
 
-function getCachedData<T = any>(key: string): T | undefined {
-  const entry = responseCache.get(key)
+function getCachedData<T = any>(key: string, store: Map<string, CacheEntry>, etags: Map<string, string>): T | undefined {
+  const entry = store.get(key)
   if (!entry) return undefined
   const current = now()
   const ttl = entry.ttl ?? DEFAULT_TTL
   if (current - entry.storedAt > ttl) {
-    responseCache.delete(key)
-    etagStore.delete(key)
+    store.delete(key)
+    etags.delete(key)
     return undefined
   }
   return entry.data as T
@@ -89,17 +113,29 @@ export const useApiFetch = ofetch.create({
   credentials: 'include',
   retry: false,
   onRequest({ request, options }: FetchContext) {
+    const nuxtApp = useNuxtApp?.()
+    const event = nuxtApp?.ssrContext?.event as H3Event | undefined
+    const { etags, responses } = getStores(event)
+    const logger = (nuxtApp?.$logger || event?.context.logger)
+    const requestId = (options.context as any)?.requestId ?? event?.context.requestId
+
     const method = (options.method ?? 'GET').toString().toUpperCase()
     const cacheKey = buildCacheKey(request, options)
-    options.context = { ...(options.context || {}), __cacheKey: cacheKey }
+    options.context = {
+      ...(options.context || {}),
+      __cacheKey: cacheKey,
+      __requestEvent: event,
+      __fetchStartedAt: Date.now(),
+      requestId,
+    }
 
     if (method === 'GET') {
-      purgeExpired(responseCache)
+      purgeExpired(responses, etags)
       options.retry = options.retry ?? 2
       options.retryDelay = options.retryDelay ?? 200
       options.retryStatusCodes = options.retryStatusCodes ?? [408, 425, 429, 500, 502, 503, 504]
       const headers = new Headers(ensureHeaders(options))
-      const etag = etagStore.get(cacheKey)
+      const etag = etags.get(cacheKey)
       if (etag && !headers.has('If-None-Match')) {
         headers.set('If-None-Match', etag)
       }
@@ -108,35 +144,65 @@ export const useApiFetch = ofetch.create({
       options.retry = options.retry ?? 0
       options.headers = ensureHeaders(options)
     }
+
+    logger?.debug('api.fetch.request', {
+      method,
+      url: typeof request === 'string' ? request : ('url' in request ? request.url : String(request)),
+      cacheKey,
+      requestId,
+      ssr: process.server,
+    })
   },
   onResponse({ request, response, options }: FetchContext) {
     const method = (options.method ?? 'GET').toString().toUpperCase()
     const cacheKey = (options.context as any)?.__cacheKey ?? buildCacheKey(request, options)
+    const event = (options.context as any)?.__requestEvent as H3Event | undefined
+    const { etags, responses } = getStores(event)
+    const nuxtApp = useNuxtApp?.()
+    const logger = (nuxtApp?.$logger || event?.context.logger)
+    const startedAt = (options.context as any)?.__fetchStartedAt as number | undefined
+    const duration = startedAt ? Date.now() - startedAt : undefined
+    const requestId = (options.context as any)?.requestId ?? event?.context.requestId
     if (method !== 'GET') return
 
     if (response.status === 304) {
-      const cached = getCachedData(cacheKey)
+      const cached = getCachedData(cacheKey, responses, etags)
       if (cached !== undefined) {
         response._data = cached
       }
+      logger?.debug('api.fetch.cache-hit', {
+        cacheKey,
+        status: response.status,
+        durationMs: duration,
+        requestId,
+      })
       return
     }
 
     const etag = response.headers.get('etag')
     if (etag) {
-      etagStore.set(cacheKey, etag)
+      etags.set(cacheKey, etag)
     }
-    responseCache.set(cacheKey, {
+    responses.set(cacheKey, {
       data: response._data,
       storedAt: now(),
       ttl: resolveTTL(options),
+    })
+
+    logger?.debug('api.fetch.response', {
+      cacheKey,
+      status: response.status,
+      durationMs: duration,
+      requestId,
     })
   },
   onResponseError({ request, response, options }: FetchContext) {
     if (!response) return
     if (response.status !== 304) return
     const cacheKey = (options.context as any)?.__cacheKey ?? buildCacheKey(request, options)
-    const cached = getCachedData(cacheKey)
+    const event = (options.context as any)?.__requestEvent as H3Event | undefined
+    const { etags, responses } = getStores(event)
+    const cached = getCachedData(cacheKey, responses, etags)
     if (cached !== undefined) {
       response._data = cached
     }

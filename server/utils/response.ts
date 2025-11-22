@@ -1,4 +1,6 @@
 // server/utils/response.ts
+import { markLanguageFallback } from './language'
+
 export type ApiSuccess<T> = { success: true; data: T }
 export type ApiFail = { success: false; message: string }
 
@@ -54,20 +56,41 @@ export function createErrorResponse(message: string, statusCode = 400) {
   }
 }
 
+interface PaginatedResponseOptions {
+  search?: string | null
+  lang?: string | null
+  extraMeta?: Record<string, unknown>
+}
+
 export function createPaginatedResponse<T>(
   data: T[],
   totalItems: number,
   page: number,
   pageSize: number,
-  search?: string | null,
+  options: PaginatedResponseOptions | string | null = null,
 ) {
+  let search: string | null | undefined = null
+  let lang: string | null | undefined
+  let extraMeta: Record<string, unknown> | undefined
+
+  if (typeof options === 'string' || options === null) {
+    search = options ?? null
+  } else if (options && typeof options === 'object') {
+    search = options.search ?? null
+    lang = options.lang ?? null
+    extraMeta = options.extraMeta
+  }
+
+  const normalizedData = lang ? markLanguageFallback(data, lang) : data
   const totalPages = Math.ceil(totalItems / pageSize)
-  return createResponse(data, {
+  return createResponse(normalizedData, {
     page,
     pageSize,
     totalItems,
     totalPages,
-    count: data.length,
+    count: normalizedData.length,
     search: search ?? null,
+    ...(lang ? { lang } : {}),
+    ...(extraMeta ?? {}),
   })
 }
