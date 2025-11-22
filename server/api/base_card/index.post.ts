@@ -16,6 +16,8 @@ export default defineEventHandler(async (event) => {
         code: body.code,
         card_type_id: body.card_type_id,
         image: body.image ?? null,
+        legacy_effects: body.legacy_effects ?? false,
+        effects: body.effects ?? null,
         ...(body.status !== undefined ? { status: body.status as CardStatus } : {}),
       })
       .returningAll()
@@ -42,6 +44,8 @@ export default defineEventHandler(async (event) => {
         'c.code',
         'c.card_type_id',
         'c.status',
+        'c.legacy_effects',
+        'c.effects',
         'c.created_at',
         'c.modified_at',
         't.name as name',

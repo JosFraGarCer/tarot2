@@ -46,7 +46,7 @@ export interface WithEffects {
 // 🧠 Entidad base con idioma
 //
 export type CoreCard = BaseEntity & WithTranslation
-export type CoreCardList = BaseEntity & Partial<WithTranslation>
+export type CoreCardList = BaseEntity & Partial<WithTranslation> & Partial<WithEffects>
 
 //
 // 🏗️ Utilitarios CRUD
@@ -127,17 +127,13 @@ export interface SkillList extends Skill {
   facet_language_code?: string | null
 }
 
-export interface WorldCard {
+export interface WorldCard extends Partial<WithTranslation>, WithEffects {
   id: number
   world_id: number
   base_card_id: number | null
   code: string
   is_override: boolean | null
   image: string | null
-  // translations (optional)
-  name?: string | null
-  short_text?: string | null
-  description?: string | null
 }
 
 // Tag minimal types

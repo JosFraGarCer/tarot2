@@ -12,16 +12,20 @@
           :short-text="shortText"
           :description="description"
           :img="resolvedImage"
+          :legacy-effects="legacyEffects"
+          :effects-markdown="effectsMarkdown"
         />
         <component
           :is="resolvedTemplate"
           v-else
           class="shadow-lg shadow-gray-800"
+          :card-info="cardInfo"
           :title="name"
           :short-text="shortText"
           :description="description"
           :img="resolvedImage"
-          :card-info="cardInfo || typeLabel"
+          :legacy-effects="legacyEffects"
+          :effects-markdown="effectsMarkdown"
         />
       </div>
 
@@ -82,6 +86,9 @@ const props = withDefaults(defineProps<{
   status?: string | null
   active?: boolean
   tags?: Array<any>
+  legacyEffects?: boolean
+  effectsMarkdown?: string | null
+  effects?: Record<string, unknown> | null
 }>(), {
   templateKey: 'Class',
   entity: '',
@@ -93,6 +100,9 @@ const props = withDefaults(defineProps<{
   status: null,
   active: undefined,
   tags: () => [],
+  legacyEffects: false,
+  effectsMarkdown: null,
+  effects: null,
 })
 
 const { t } = useI18n()
@@ -111,14 +121,20 @@ const {
 const templateKeyResolved = computed<CardTemplateKey>(() => props.templateKey ?? 'Class')
 const resolvedTemplate = computed(() => resolveTemplate(templateKeyResolved.value))
 
-const typeLabel = computed(() => props.typeLabel || '')
+const typeLabel = computed(() => props.typeLabel || props.cardInfo || '')
 const name = computed(() => props.name)
 const shortText = computed(() => props.shortText || '')
 const description = computed(() => props.description || '')
 const img = computed(() => props.img)
 const resolvedImage = computed(() => resolveImage(img.value))
-const cardInfo = computed(() => props.cardInfo || '')
+const cardInfo = computed(() => props.cardInfo || props.typeLabel || '')
 const active = computed(() => props.active)
+const legacyEffects = computed(() => props.legacyEffects ?? false)
+const effects = computed(() => props.effects)
+const effectsMarkdown = computed(() => {
+  if (props.effectsMarkdown) return props.effectsMarkdown
+  return resolveEffectsMarkdown(effects.value)
+})
 
 const statusMeta = computed(() => {
   if (!props.status) return null

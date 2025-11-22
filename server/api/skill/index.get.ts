@@ -99,6 +99,8 @@ export default defineEventHandler(async (event) => {
         's.image',
         's.created_at',
         's.modified_at',
+        's.legacy_effects',
+        sql`coalesce(s.effects, '{}'::jsonb)`.as('effects'),
         sql`coalesce(t_req.name, t_en.name)`.as('name'),
         sql`coalesce(t_req.short_text, t_en.short_text)`.as('short_text'),
         sql`coalesce(t_req.description, t_en.description)`.as('description'),

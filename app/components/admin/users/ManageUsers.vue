@@ -245,20 +245,13 @@ const roleOptions = computed(() => {
 
 const columns = computed(() => [
   {
-    accessorKey: 'email',
-    header: tt('common.email', 'Email'),
-  },
-  {
     accessorKey: 'roles',
     header: tt('common.roles', 'Roles'),
     cell: ({ row }: any) => {
       const roles = Array.isArray(row.raw?.roles) ? row.raw.roles : []
+      if (!roles.length) return tt('domains.user.noRoles', 'No roles')
       return roles.map((role: any) => role?.name).filter(Boolean).join(', ')
     },
-  },
-  {
-    accessorKey: 'status',
-    header: tt('ui.fields.status', 'Status'),
   },
   {
     accessorKey: 'created_at',

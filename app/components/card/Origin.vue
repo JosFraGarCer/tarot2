@@ -1,18 +1,25 @@
 <!-- app/components/card/Origin.vue -->
 <!-- /app/components/card/Origin.vue -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import MarkdownPreview from '~/components/common/MarkdownPreview.vue'
 
 type OriginProps = {
   title: string
   img?: string
   description?: string
   shortText?: string
+  typeLabel?: string
   cardInfo?: string
+  legacyEffects?: boolean
+  effectsMarkdown?: string | null
 }
 
 const props = withDefaults(defineProps<OriginProps>(), {
-  cardInfo: ''
+  typeLabel: '',
+  cardInfo: '',
+  legacyEffects: false,
+  effectsMarkdown: null,
 })
 
 const cardRef = ref<HTMLElement>()
@@ -23,6 +30,8 @@ const onImgError = (e: Event) => {
     el.src = fallbackSrc
   }
 }
+
+const typeLabel = computed(() => props.typeLabel || props.cardInfo || '')
 </script>
 
 <template>
@@ -53,7 +62,7 @@ const onImgError = (e: Event) => {
           class="absolute bottom-[4px] z-50 font-normal w-24 right-[46px]"
         >
           <p class="flex text-[12px] uppercase text-black justify-center tracking-[2px] font-bold">
-            {{ props.cardInfo }}
+            {{ typeLabel }}
           </p>
         </div>
         <div class="absolute -bottom-[32px] left-4 z-50 font-semibold">
@@ -77,6 +86,12 @@ const onImgError = (e: Event) => {
             <p class="italic text-[14.5px] font-medium font-aller tracking-[-0.015em] leading-[17px]">
               {{ props.description }}
             </p>
+          </div>
+          <div
+            v-if=" props.effectsMarkdown"
+            class="w-full px-1.5 pt-2 pb-3 space-y-2"
+          >
+            <MarkdownPreview :content="props.effectsMarkdown" />
           </div>
         </div>
 

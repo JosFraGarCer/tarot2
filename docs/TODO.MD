@@ -9,6 +9,7 @@
   - [x] En facets no aparecen los valores de la columna arcana
   - [x] En skills no aparecen los valores de la columna facet
   - [x] los tags deben ir en badge
+  - [ ] effects y effects_legacy
 
 
 
@@ -18,7 +19,7 @@
 - [x] Sincronizar filtros avanzados y URL en `/admin/feedback`
 - [x] Adoptar utilities comunes (`useListMeta`, `JsonModal`) en `/admin/versions`
 - [x] Añadir flags `translatable=false` en componentes compartidos
-- [ ] Modificar index.vue para acceder al resto de áreas de /admin
+- [x] Modificar index.vue para acceder al resto de áreas de /admin
 - [ ] En vistas organizar los campos
 
 ### users

@@ -23,6 +23,8 @@ export default defineEventHandler(async (event) => {
     if (body.is_override !== undefined) baseUpdate.is_override = body.is_override ?? null
     if (body.image !== undefined) baseUpdate.image = body.image ?? null
     if (body.status !== undefined) baseUpdate.status = body.status as CardStatus
+    if (body.legacy_effects !== undefined) baseUpdate.legacy_effects = body.legacy_effects
+    if (body.effects !== undefined) baseUpdate.effects = body.effects ?? null
 
     if (Object.keys(baseUpdate).length) {
       const res = await globalThis.db
@@ -87,6 +89,8 @@ export default defineEventHandler(async (event) => {
         'wc.image',
         'wc.created_at',
         'wc.modified_at',
+        'wc.legacy_effects',
+        sql`coalesce(wc.effects, '{}'::jsonb)`.as('effects'),
         sql`coalesce(t_req.name, t_en.name)`.as('name'),
         sql`coalesce(t_req.short_text, t_en.short_text)`.as('short_text'),
         sql`coalesce(t_req.description, t_en.description)`.as('description'),

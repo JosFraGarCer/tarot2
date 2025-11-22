@@ -4,6 +4,7 @@ import { createResponse } from '../../utils/response'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createWorldCardSchema } from '../../schemas/world-card'
 import type { CardStatus } from '../../database/types'
+import { sql } from 'kysely'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
@@ -18,6 +19,8 @@ export default defineEventHandler(async (event) => {
         base_card_id: body.base_card_id ?? null,
         is_override: body.is_override ?? null,
         image: body.image ?? null,
+        legacy_effects: body.legacy_effects ?? false,
+        effects: body.effects ?? null,
         ...(body.status !== undefined ? { status: body.status as CardStatus } : {}),
       })
       .returningAll()
@@ -46,6 +49,8 @@ export default defineEventHandler(async (event) => {
         'wc.base_card_id',
         'wc.is_override',
         'wc.status',
+        'wc.legacy_effects',
+        sql`coalesce(wc.effects, '{}'::jsonb)`.as('effects'),
         'wc.created_at',
         'wc.modified_at',
         't.name as name',

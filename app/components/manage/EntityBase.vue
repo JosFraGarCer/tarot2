@@ -58,8 +58,12 @@
           :crud="crud"
           :label="label"
           :columns="displayedColumns"
+          :no-tags="noTags"
+          :entity="entity"
           @edit="onEdit"
           @delete="onDelete"
+          @feedback="onFeedback"
+          @tags="onTags"
           @export="exportSelected"
           @batch-update="onBatchUpdate"
           @create="onCreateClickWrapper"
@@ -137,6 +141,8 @@
       :short-text="previewData.shortText"
       :description="previewData.description"
       :card-info="entityLabel"
+      :legacy-effects="previewData.legacyEffects"
+      :effects-markdown="previewData.effectsMarkdown"
       @update:open="setPreviewOpen"
     />
 
@@ -450,7 +456,7 @@ async function onFeedback(entity: any) {
 }
 
 function onPreview(entity: any) {
-  openPreviewFromEntity(entity, t)
+  openPreviewFromEntity(entity, { t, locale: localeCode.value })
 }
 function onCreateClickWrapper() {
   onCreateClick((e: 'create') => emit(e))

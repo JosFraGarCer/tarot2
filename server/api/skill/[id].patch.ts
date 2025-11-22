@@ -21,6 +21,8 @@ export default defineEventHandler(async (event) => {
     if (body.facet_id !== undefined) baseUpdate.facet_id = body.facet_id
     if (body.image !== undefined) baseUpdate.image = body.image ?? null
     if (body.status !== undefined) baseUpdate.status = body.status as CardStatus
+    if (body.legacy_effects !== undefined) baseUpdate.legacy_effects = body.legacy_effects
+    if (body.effects !== undefined) baseUpdate.effects = body.effects ?? null
 
     if (Object.keys(baseUpdate).length) {
       const res = await globalThis.db
@@ -79,6 +81,8 @@ export default defineEventHandler(async (event) => {
         's.status',
         's.created_at',
         's.modified_at',
+        's.legacy_effects',
+        sql`coalesce(s.effects, '{}'::jsonb)`.as('effects'),
         sql`coalesce(t_req.name, t_en.name)`.as('name'),
         sql`coalesce(t_req.short_text, t_en.short_text)`.as('short_text'),
         sql`coalesce(t_req.description, t_en.description)`.as('description'),

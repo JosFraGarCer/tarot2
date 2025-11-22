@@ -1,6 +1,8 @@
 // server/schemas/world-card.ts
 import { z } from 'zod'
 
+const effectsSchema = z.record(z.string(), z.array(z.string())).nullable()
+
 export const createWorldCardSchema = z.object({
   code: z.string().min(1),
   world_id: z.coerce.number().int().positive(),
@@ -8,6 +10,8 @@ export const createWorldCardSchema = z.object({
   image: z.string().nullable().optional(),
   status: z.string().optional(),
   is_override: z.coerce.boolean().optional(),
+  legacy_effects: z.coerce.boolean().optional(),
+  effects: effectsSchema.optional(),
   name: z.string().min(2),
   short_text: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
@@ -20,6 +24,8 @@ export const updateWorldCardSchema = z.object({
   image: z.string().nullable().optional(),
   status: z.string().optional(),
   is_override: z.coerce.boolean().optional(),
+  legacy_effects: z.coerce.boolean().optional(),
+  effects: effectsSchema.optional(),
   name: z.string().min(2).optional(),
   short_text: z.string().nullable().optional(),
   description: z.string().nullable().optional(),

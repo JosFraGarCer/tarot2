@@ -97,17 +97,17 @@
         </div>
 
         <!-- ACCIONES -->
-          <EntityActions
-            :entity="item"
-            :entity-label="label"
-            :entity-type="label"
-            :no-tags="noTags"
-            vertical
-            @edit="onEditClick(item)"
-            @feedback="onFeedbackClick(item)"
-            @tags="onTagsClick(item)"
-            @delete="onDeleteClick(item)"
-          />
+        <EntityActions
+          :entity="item"
+          :entity-label="label"
+          :entity-type="label"
+          :no-tags="noTags || isTagEntity"
+          vertical
+          @edit="onEditClick(item)"
+          @feedback="onFeedbackClick(item)"
+          @tags="onTagsClick(item)"
+          @delete="onDeleteClick(item)"
+        />
       </div>
       <!-- DESCRIPCIÓN -->
       <div class="mt-2 space-y-2 text-sm text-gray-700 dark:text-gray-300">
@@ -120,7 +120,7 @@
       </div>
 
       <!-- TAGS -->
-      <div v-if="!noTags && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap gap-1 mt-2">
+      <div v-if="!noTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap gap-1 mt-2">
         <UBadge
             v-for="(tag, idx) in item.tags"
             :key="tag.id ?? tag.code ?? idx"
@@ -165,6 +165,7 @@ const { t, locale } = useI18n()
 
 const {
   resolveImage,
+  imageFallback,
   titleOf,
   isActive,
   langBadge
@@ -172,6 +173,8 @@ const {
   entity: computed(() => props.entity),
   locale
 })
+
+const isTagEntity = computed(() => props.entity === 'tag')
 
 function onPreviewClick(item: any) { emit('preview', item) }
 function onEditClick(item: any) { emit('edit', item) }

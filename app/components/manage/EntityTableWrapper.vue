@@ -48,6 +48,24 @@
           @click="emit('edit', row.raw ?? row)"
         />
         <UButton
+          v-if="row.raw && canFeedback(row.raw)"
+          icon="i-heroicons-exclamation-triangle"
+          color="warning"
+          variant="soft"
+          size="xs"
+          aria-label="Feedback"
+          @click="emit('feedback', row.raw ?? row)"
+        />
+        <UButton
+          v-if="row.raw && canTags(row.raw)"
+          icon="i-heroicons-tag"
+          color="neutral"
+          variant="soft"
+          size="xs"
+          aria-label="Tags"
+          @click="emit('tags', row.raw ?? row)"
+        />
+        <UButton
           icon="i-heroicons-trash"
           color="error"
           variant="soft"
@@ -71,6 +89,8 @@ const props = defineProps<{
   crud: ManageCrud
   label: string
   columns?: any[]
+  noTags?: boolean
+  entity?: string
 }>()
 
 const emit = defineEmits<{
@@ -80,11 +100,14 @@ const emit = defineEmits<{
   (e: 'batchUpdate', ids: number[]): void
   (e: 'create'): void
   (e: 'reset-filters'): void
+  (e: 'feedback', entity: any): void
+  (e: 'tags', entity: any): void
 }>()
 
 const selectedIds = ref<number[]>([])
 
-const crudResource = computed(() => ({ resourcePath: props.crud?.resourcePath || '' }))
+const resourcePath = computed(() => props.crud?.resourcePath || '')
+const crudResource = computed(() => ({ resourcePath: resourcePath.value }))
 
 const { t } = useI18n()
 
@@ -98,8 +121,8 @@ const tableLoading = computed<boolean>(() => {
 })
 
 function normalizeEntity(entity: any): EntityRow {
-  const resourcePath = props.crud.resourcePath || ''
-  const isUserEntity = resourcePath.includes('/user')
+  const resourcePathValue = resourcePath.value
+  const isUserEntity = resourcePathValue.includes('/user')
   if (isUserEntity) {
     const rolesArray = Array.isArray(entity?.roles) ? entity.roles : []
     const roleNames = rolesArray
@@ -119,7 +142,7 @@ function normalizeEntity(entity: any): EntityRow {
       short_text: entity?.email ?? '',
       description: null,
       status: typeof entity?.status === 'string' ? entity.status : null,
-      is_active: typeof entity?.status === 'string' ? entity.status === 'active' : null,
+      statusKind: 'user',
       img: image,
       email: entity?.email ?? null,
       username: entity?.username ?? null,
@@ -240,8 +263,8 @@ function resolveImage(entity: any): string | null {
   if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/') || src.startsWith('data:') || src.startsWith('blob:'))
     return src
 
-  const resourcePath = props.crud.resourcePath || ''
-  if (resourcePath.includes('/user')) {
+  const resourcePathValue = resourcePath.value
+  if (resourcePathValue.includes('/user')) {
     return src.startsWith('img/') ? `/${src}` : `/img/${src}`
   }
 
@@ -261,6 +284,15 @@ function resolveImage(entity: any): string | null {
 function onUpdateSelected(ids: number[]) {
   selectedIds.value = ids
 }
+
+const isTagEntity = computed(() => {
+  const key = (props.entity || '').toLowerCase()
+  if (key === 'tag') return true
+  return resourcePath.value.includes('/tag')
+})
+
+const canFeedback = (_entity: any) => true
+const canTags = (_entity: any) => props.noTags !== true && !isTagEntity.value
 
 const emptyTitle = computed(() => t('common.noResults'))
 const emptySubtitle = computed(() => t('common.tryAdjustFilters'))

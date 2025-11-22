@@ -1,7 +1,7 @@
 <!-- app/components/card/Class.vue -->
-<!-- /app/components/card/Class.vue -->
 <script setup lang="ts">
 import { ref } from 'vue'
+import MarkdownPreview from '~/components/common/MarkdownPreview.vue'
 
 type Props = {
   typeLabel: string        // Tipo de carta / entidad
@@ -9,9 +9,14 @@ type Props = {
   shortText?: string       // Texto corto / subtítulo
   description?: string     // Descripción larga
   img?: string             // Imagen de cabecera
+  legacyEffects?: boolean
+  effectsMarkdown?: string | null
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  legacyEffects: false,
+  effectsMarkdown: null,
+})
 
 const cardRef = ref<HTMLElement>()
 const fallbackSrc = '/img/default.avif'
@@ -87,7 +92,14 @@ const onImgError = (e: Event) => {
           {{ props.description }}
         </p>
       </div>
-
+      <div class="flex flex-col items-start">
+          <div
+            v-if=" props.effectsMarkdown"
+            class="w-full px-1.5 pt-2 pb-3 space-y-2"
+          >
+            <MarkdownPreview :content="props.effectsMarkdown" />
+          </div>
+        </div>
     </div>
   </article>
 </template>

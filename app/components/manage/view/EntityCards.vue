@@ -79,7 +79,7 @@
             :entity="item"
             :entity-label="label"
             :entity-type="label"
-            :no-tags="noTags"
+            :no-tags="noTags || isTagEntity"
             @edit="onEditClick(item)"
             @feedback="onFeedbackClick(item)"
             @tags="onTagsClick(item)"
@@ -89,14 +89,22 @@
       </template>
 
       <template #default>
-        <img
-          v-if="item.image"
-          :src="resolveImage(item.image || item.thumbnail_url)"
-          alt=""
-          class="w-full h-36 object-cover rounded-md mb-3"
-          loading="lazy"
-          @error="imageFallback"
-        >
+        <CartaRow
+          :template-key="entity === 'class' ? 'Class' : 'Origin'"
+          :entity="entity"
+          :type-label="item.card_type_name || item.card_type_code || ''"
+          :name="item.name || item.code || ''"
+          :short-text="item.short_text || ''"
+          :description="item.description || ''"
+          :img="resolveImage(item.image || item.thumbnail_url)"
+          :card-info="item.card_type_name || item.card_type_code || ''"
+          :status="item.status"
+          :active="item.is_active"
+          :tags="item.tags"
+          :legacy-effects="item.legacy_effects"
+          :effects-markdown="resolveEffectsMarkdown(item)"
+          @create="onCreateClick"
+        />
         <div class="flex items-center gap-2 mb-2">
           <StatusBadge
             :status="item.status"
@@ -119,7 +127,7 @@
         <p v-if="isUserEntity && item.created_at" class="text-xs text-neutral-500 dark:text-neutral-400">
           {{ t('ui.misc.createdAt') }}: {{ formatDate(item.created_at) }}
         </p>
-        <div v-if="!noTags && Array.isArray(item.tags) && item.tags.length" class="mt-3 flex flex-wrap gap-1.5">
+        <div v-if="!noTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="mt-3 flex flex-wrap gap-1.5">
           <UBadge
             v-for="(tag, idx) in item.tags"
             :key="tag.id ?? tag.code ?? idx"
@@ -175,6 +183,7 @@ const {
 })
 
 const isUserEntity = computed(() => props.entity === 'user')
+const isTagEntity = computed(() => props.entity === 'tag')
 
 function userRoles(item: any): string[] {
   const roles = Array.isArray(item?.roles) ? item.roles : []
@@ -202,4 +211,43 @@ function onFeedbackClick(item: any) { emit('feedback', item) }
 function onTagsClick(item: any) { emit('tags', item) }
 function onCreateFromEmpty() { emit('create') }
 function onResetFiltersFromEmpty() { emit('reset-filters') }
+function onCreateClick() { emit('create') }
+
+function resolveEffectsMarkdown(item: any): string | null {
+  const effects = item?.effects
+  if (!effects || typeof effects !== 'object') return null
+  const localeCode = typeof locale === 'string' ? locale : locale.value
+  const normalizedLocale = String(localeCode || 'en').toLowerCase()
+  const localesToTry = [normalizedLocale]
+  if (!localesToTry.includes('en')) localesToTry.push('en')
+
+  if (!localesToTry.includes(item?.language_code_resolved)) {
+    const resolved = String(item?.language_code_resolved || '').toLowerCase()
+    if (resolved && !localesToTry.includes(resolved)) localesToTry.unshift(resolved)
+  }
+
+  const values = Object.values(effects as Record<string, unknown>)
+  for (const value of localesToTry
+    .map((code) => (effects as Record<string, unknown>)[code])
+    .concat(values)) {
+    const lines = toLines(value)
+    if (lines && lines.length) {
+      return lines
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .join('\n\n')
+    }
+  }
+  return null
+}
+
+function toLines(value: unknown): string[] | null {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string')
+  }
+  if (typeof value === 'string') {
+    return value ? [value] : null
+  }
+  return null
+}
 </script>

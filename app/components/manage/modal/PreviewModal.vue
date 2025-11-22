@@ -10,6 +10,8 @@ const props = defineProps<{
   shortText?: string
   description?: string
   cardInfo?: string
+  legacyEffects?: boolean
+  effectsMarkdown?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -35,6 +37,8 @@ const close = () => emit('update:open', false)
           :short-text="shortText"
           :description="description"
           :card-info="cardInfo || ''"
+          :legacy-effects="legacyEffects"
+          :effects-markdown="effectsMarkdown"
         />
       </div>
     </template>

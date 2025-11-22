@@ -55,7 +55,7 @@
         </template>
 
         <div class="flex flex-wrap gap-4">
-          <div class="flex flex-col gap-2 w-full sm:w-60">
+          <div class="flex flex-col gap-2 w-full sm:w-40">
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.language','Language') }}</span>
             <USelectMenu v-model="advanced.language" :items="languageOptions" value-key="value" option-attribute="label" />
           </div>
@@ -63,20 +63,46 @@
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.entityType','Entity type') }}</span>
             <USelectMenu v-model="advanced.entityType" :items="entityTypeOptions" value-key="value" option-attribute="label" />
           </div>
-          <div class="flex flex-col gap-2 w-full sm:w-60">
-            <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.entityRelation','Entity relation') }}</span>
-            <USelectMenu v-model="advanced.entityRelation" :items="entityRelationOptions" value-key="value" option-attribute="label" />
-          </div>
         </div>
 
         <div class="flex flex-wrap gap-4">
           <div class="flex flex-col gap-2 w-full sm:w-72">
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.createdRange','Created range') }}</span>
-            <UCalendar v-model="advanced.createdRange" class="border border-gray-200 dark:border-gray-700 rounded-md" :number-of-months="1" range />
+            <UPopover :popper="{ placement: 'bottom-start' }">
+              <UButton
+                block
+                color="neutral"
+                variant="outline"
+                icon="i-heroicons-calendar-days-20-solid"
+                class="justify-between"
+              >
+                <span class="truncate">{{ createdRangeLabel }}</span>
+              </UButton>
+              <template #panel>
+                <div class="p-2">
+                  <UCalendar v-model="advanced.createdRange" :number-of-months="1" range close-on-select />
+                </div>
+              </template>
+            </UPopover>
           </div>
           <div class="flex flex-col gap-2 w-full sm:w-72">
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.resolvedRange','Resolved range') }}</span>
-            <UCalendar v-model="advanced.resolvedRange" class="border border-gray-200 dark:border-gray-700 rounded-md" :number-of-months="1" range />
+            <UPopover :popper="{ placement: 'bottom-start' }">
+              <UButton
+                block
+                color="neutral"
+                variant="outline"
+                icon="i-heroicons-calendar-days-20-solid"
+                class="justify-between"
+              >
+                <span class="truncate">{{ resolvedRangeLabel }}</span>
+              </UButton>
+              <template #panel>
+                <div class="p-2">
+                  <UCalendar v-model="advanced.resolvedRange" :number-of-months="1" range close-on-select />
+                </div>
+              </template>
+            </UPopover>
           </div>
         </div>
 
@@ -255,7 +281,6 @@ type FeedbackRouteState = {
   mineOnly: boolean
   language?: string
   entityType?: string
-  entityRelation?: string
   createdBy?: number
   resolvedBy?: number
   createdRange?: [Date | string, Date | string] | undefined
@@ -271,7 +296,6 @@ const initialState: FeedbackRouteState = {
   mineOnly: false,
   language: undefined,
   entityType: undefined,
-  entityRelation: undefined,
   createdBy: undefined,
   resolvedBy: undefined,
   createdRange: undefined,
@@ -313,7 +337,6 @@ const { read: readQueryState, write: writeQueryState } = useQuerySync<FeedbackRo
       mineOnly: mineOnlyParam,
       language: typeof raw.language_code === 'string' ? raw.language_code : undefined,
       entityType: typeof raw.entity_type === 'string' ? raw.entity_type : undefined,
-      entityRelation: typeof raw.entity_relation === 'string' ? raw.entity_relation : undefined,
       createdBy: createdByParam,
       resolvedBy: resolvedByParam,
       createdRange: parseRange(createdRange),
@@ -333,7 +356,6 @@ const { read: readQueryState, write: writeQueryState } = useQuerySync<FeedbackRo
       mineOnly: state.mineOnly ? 'true' : undefined,
       language_code: state.language || undefined,
       entity_type: state.entityType || undefined,
-      entity_relation: state.entityRelation || undefined,
       created_by: state.createdBy != null ? String(state.createdBy) : undefined,
       resolved_by: state.resolvedBy != null ? String(state.resolvedBy) : undefined,
       created_from: createdRange.from,
@@ -394,7 +416,6 @@ const advancedOpen = ref(false)
 const advanced = reactive({
   language: queryState.language as string | undefined,
   entityType: queryState.entityType as string | undefined,
-  entityRelation: queryState.entityRelation as string | undefined,
   createdRange: queryState.createdRange as [Date | string, Date | string] | undefined,
   resolvedRange: queryState.resolvedRange as [Date | string, Date | string] | undefined,
   createdBy: queryState.createdBy as number | undefined,
@@ -412,11 +433,6 @@ const entityTypeOptions = computed(() => [
   { label: tt('entities.facet', 'Facet'), value: 'facet' },
   { label: tt('entities.base_skills', 'Skills'), value: 'base_skills' },
 ])
-const entityRelationOptions = computed(() => [
-  { label: tt('ui.filters.none', 'None'), value: undefined },
-  { label: 'World → Base card', value: 'world->base_card' },
-])
-
 const userOptions = computed(() => {
   const users = currentUser.value?.team ?? []
   const base = users.map((u: any) => ({ label: u.username || u.email, value: u.id }))
@@ -431,7 +447,6 @@ const filters = computed(() => {
     created_by: mineOnly.value ? currentUserId.value : undefined,
     language_code: advanced.language,
     entity_type: advanced.entityType,
-    entity_relation: advanced.entityRelation,
     created_from: advanced.createdRange?.[0],
     created_to: advanced.createdRange?.[1],
     resolved_from: advanced.resolvedRange?.[0],
@@ -475,6 +490,18 @@ const filtered = computed(() => {
 
 const openCount = computed(() => (items.value || []).filter(item => item.status !== 'resolved').length)
 
+function formatRangeLabel(range: [Date | string, Date | string] | undefined, fallback: string) {
+  if (!range || !range[0] || !range[1]) return fallback
+  const formatter = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  const start = new Date(range[0])
+  const end = new Date(range[1])
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return fallback
+  return `${formatter.format(start)} – ${formatter.format(end)}`
+}
+
+const createdRangeLabel = computed(() => formatRangeLabel(advanced.createdRange, tt('features.admin.feedback.filters.anyDate','Any date')))
+const resolvedRangeLabel = computed(() => formatRangeLabel(advanced.resolvedRange, tt('features.admin.feedback.filters.anyDate','Any date')))
+
 const selectedIds = ref<number[]>([])
 const previewOpen = ref(false)
 const previewLoading = ref(false)
@@ -505,7 +532,6 @@ function pushQuery() {
       mineOnly: mineOnly.value ? 'true' : undefined,
       language_code: advanced.language || undefined,
       entity_type: advanced.entityType || undefined,
-      entity_relation: advanced.entityRelation || undefined,
       created_by: !mineOnly.value && advanced.createdBy ? String(advanced.createdBy) : mineOnly.value ? String(currentUserId.value ?? '') || undefined : undefined,
       resolved_by: advanced.resolvedBy ? String(advanced.resolvedBy) : undefined,
       created_from: toIso(advanced.createdRange?.[0]),
@@ -553,7 +579,6 @@ function applyAdvanced() {
 function resetAdvanced() {
   advanced.language = undefined
   advanced.entityType = undefined
-  advanced.entityRelation = undefined
   advanced.createdRange = undefined
   advanced.resolvedRange = undefined
   advanced.createdBy = undefined
@@ -572,16 +597,25 @@ onMounted(async () => {
 })
 
 const entityPreviewMap: Record<string, string> = {
-  base_card_translations: '/base_card',
+  base_card: '/base_card',
   base_card_translation: '/base_card',
+  base_card_translations: '/base_card',
+  base_card_type: '/card_type',
+  base_card_type_translation: '/card_type',
+  base_card_type_translations: '/card_type',
+  world: '/world',
+  world_translation: '/world',
+  world_translations: '/world',
+  world_card: '/world_card',
+  arcana: '/arcana',
   arcana_translation: '/arcana',
   arcana_translations: '/arcana',
+  facet: '/facet',
   facet_translation: '/facet',
   facet_translations: '/facet',
-  world_translations: '/world',
-  world_translation: '/world',
+  base_skills: '/skills',
+  base_skills_translation: '/skills',
   base_skills_translations: '/skills',
-  base_card_type_translations: '/card_type',
 }
 
 async function fetchEntitySnapshot(entityType: string, entityId: number, lang?: string | null) {
@@ -716,7 +750,6 @@ async function fetchCountsByType() {
       created_by: filters.value.created_by,
       language_code: filters.value.language_code,
       entity_type: filters.value.entity_type,
-      entity_relation: filters.value.entity_relation,
       created_from: filters.value.created_from,
       created_to: filters.value.created_to,
       resolved_from: filters.value.resolved_from,

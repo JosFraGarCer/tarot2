@@ -25,17 +25,17 @@
       <UTabs v-model="selectedTab" :items="tabs" :unmount-on-hide="false">
         <template #content="{ item }">
           <ManageEntity
-            v-if="currentConfig"
-            :key="selectedTab" 
-            :label="currentConfig.label"
-            :use-crud="currentConfig.useCrud"
+            v-if="entityConfigs[item.value as EntityKey]"
+            :key="item.value"
+            :label="entityConfigs[item.value as EntityKey].label"
+            :use-crud="entityConfigs[item.value as EntityKey].useCrud"
             :view-mode="viewMode"
             :template-key="templateKey"
             :entity="item.value"
-            :filters-config="currentConfig.filters"
-            :card-type="currentConfig.cardType"
-            :no-tags="currentConfig.noTags"
-            @create="() => onCreateEntity(item.value)"
+            :filters-config="entityConfigs[item.value as EntityKey].filters"
+            :card-type="entityConfigs[item.value as EntityKey].cardType"
+            :no-tags="entityConfigs[item.value as EntityKey].noTags"
+            @create="() => onCreateEntity(item.value as EntityKey)"
           />
         </template>
       </UTabs>
@@ -77,8 +77,16 @@ const tabs = computed(() => [
   { label: t('navigation.menu.tags'), value: 'tag', icon: 'i-heroicons-tag' }
 ])
 
+type EntityKey = 'cardType' | 'baseCard' | 'world' | 'arcana' | 'facet' | 'skill' | 'tag'
+
 // Configuración por entidad
-const entityConfigs = {
+const entityConfigs: Record<EntityKey, {
+  label: string
+  useCrud: () => any
+  filters: Record<string, string>
+  cardType: boolean
+  noTags: boolean
+}> = {
   cardType: {
     label: t('navigation.menu.cardTypes'),
     useCrud: useCardTypeCrud,
@@ -164,13 +172,10 @@ const entityConfigs = {
     cardType: false,
     noTags: true
   }
-} as const
-
-// Config actual según pestaña
-const currentConfig = computed(() => entityConfigs[selectedTab.value])
+}
 
 // Acción crear
-function onCreateEntity(type: string) {
+function onCreateEntity(type: EntityKey) {
   console.log('Create new entity:', type)
 }
 </script>

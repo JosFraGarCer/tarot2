@@ -194,10 +194,14 @@ const tableColumns = computed<TableColumn<EntityRow>[]>(() => {
 
   const selectColumn = base.find(col => col.id === 'select')
   const actionColumn = base.find(col => col.id === 'actions')
-  const baseCore = base.filter(col => col.id !== 'actions' && col.id !== 'select')
+  let baseCore = base.filter(col => col.id !== 'actions' && col.id !== 'select')
   const resourcePath = props.crud?.resourcePath || ''
   const isUserEntity = resourcePath.includes('/user')
   const extras = props.columns.filter(col => col.id !== 'select' && col.id !== 'actions')
+
+  if (isUserEntity) {
+    baseCore = baseCore.filter(col => col.accessorKey !== 'is_active')
+  }
 
   return [
     ...(selectColumn ? [selectColumn] : []),

@@ -26,15 +26,15 @@
             ]"
           >
             <td class="py-2 pr-2"><UCheckbox :model-value="isSelected(f.id)" @update:model-value="v => toggleOne(f.id, v)" /></td>
-            <td class="py-2 pr-4 font-mono">{{ f.card_code }}</td>
+            <td class="py-2 pr-4 font-mono">{{ renderEntity(f) }}</td>
             <td class="py-2 pr-4">
               <div class="flex items-center gap-2">
-                <UTooltip :text="$t('features.admin.feedback.createdBy','Created by') + ': ' + (f.created_by_name || 'Unknown')">
-                  <UAvatar size="xs" :text="(f.created_by_name?.[0] || '?').toUpperCase()" />
+                <UTooltip :text="$t('features.admin.feedback.createdBy','Created by') + ': ' + renderCreatedByName(f)">
+                  <UAvatar size="xs" :text="renderAvatarInitial(f)" />
                 </UTooltip>
                 <div class="font-medium flex items-center gap-2">
                   <span class="flex items-center">
-                    {{ f.title }}
+                    {{ renderTitle(f) }}
                     <UIcon
                       v-if="Date.now() - new Date(f.created_at).getTime() < 24 * 60 * 60 * 1000"
                       name="i-heroicons-sparkles"
@@ -52,9 +52,10 @@
                 </div>
               </div>
               <div v-if="f.detail" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[60ch]">{{ f.detail }}</div>
+              <div v-else class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[60ch]">{{ renderCommentSnippet(f) }}</div>
             </td>
             <td class="py-2 pr-4">
-              <UBadge variant="soft">{{ f.type }}</UBadge>
+              <UBadge variant="soft">{{ renderCategory(f) }}</UBadge>
             </td>
             <td class="py-2 pr-4">
               <UBadge :color="f.status === 'resolved' ? 'green' : 'primary'" variant="soft">{{ f.status }}</UBadge>
@@ -104,10 +105,27 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { formatDate } from '@/utils/date'
 import { navigateTo } from '#app'
 
-const props = defineProps<{ items: Array<{ id:number; card_code:string; title:string; detail?:string|null; type:'bug'|'suggestion'|'balance'; status:'open'|'resolved'; created_at:string; entity_type?: string; entity_id?: number; language_code?: string|null; created_by_name?: string|null }>; isEditor?: boolean }>()
+type FeedbackListItem = {
+  id: number
+  entity_type?: string | null
+  entity_id?: number | null
+  comment?: string | null
+  detail?: string | null
+  title?: string | null
+  category?: string | null
+  type?: string | null
+  status: string
+  created_at: string
+  language_code?: string | null
+  created_by_name?: string | null
+  card_code?: string | null
+}
+
+const props = defineProps<{ items: FeedbackListItem[]; isEditor?: boolean }>()
 const selected = defineModel<number[]>('selected', { default: [] })
 
 function isSelected(id:number) { return selected.value.includes(id) }
@@ -121,6 +139,42 @@ const indeterminate = computed(() => selected.value.length>0 && !allChecked.valu
 function toggleAll(v:boolean) {
   if (v) selected.value = props.items.map(i => i.id)
   else selected.value = []
+}
+
+function renderEntity(item: FeedbackListItem) {
+  if (item.card_code && item.card_code.trim().length) return item.card_code
+  const type = item.entity_type ? item.entity_type.replace(/_/g, ' ') : '—'
+  if (item.entity_id != null) return `${type} #${item.entity_id}`
+  return type
+}
+
+function renderCreatedByName(item: FeedbackListItem) {
+  return item.created_by_name || 'Unknown'
+}
+
+function renderAvatarInitial(item: FeedbackListItem) {
+  const name = renderCreatedByName(item)
+  return (name?.trim()?.[0] || '?').toUpperCase()
+}
+
+function renderTitle(item: FeedbackListItem) {
+  if (item.title && item.title.trim().length) return item.title
+  if (item.comment && item.comment.trim().length) {
+    const trimmed = item.comment.trim()
+    return trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed
+  }
+  return '—'
+}
+
+function renderCategory(item: FeedbackListItem) {
+  return item.type || item.category || '—'
+}
+
+function renderCommentSnippet(item: FeedbackListItem) {
+  if (!item.comment) return ''
+  const trimmed = item.comment.trim()
+  if (!trimmed.length) return ''
+  return trimmed.length > 160 ? `${trimmed.slice(0, 160)}…` : trimmed
 }
 
 function openEntity(f: any) {

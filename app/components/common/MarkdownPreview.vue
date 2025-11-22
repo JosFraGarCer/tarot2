@@ -1,5 +1,4 @@
 <!-- app/components/common/MarkdownPreview.vue -->
-<!-- /app/components/commons/MarkdownPreview.vue -->
 <script setup lang="ts">
 import MarkdownIt from 'markdown-it'
 import { computed } from 'vue'

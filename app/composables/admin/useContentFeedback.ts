@@ -43,7 +43,6 @@ type FeedbackQuery = {
   created_to?: string | Date
   resolved_from?: string | Date
   resolved_to?: string | Date
-  entity_relation?: string
   version_number?: number | null
   type?: string // legacy compatibility – maps to category
 }
@@ -221,12 +220,6 @@ export function useContentFeedback() {
     if (normalizedResolvedTo) {
       params.resolved_to = normalizedResolvedTo
       normalized.resolved_to = normalizedResolvedTo
-    }
-
-    const relation = query.entity_relation ?? lastQuery.value.entity_relation
-    if (relation) {
-      params.entity_relation = relation
-      normalized.entity_relation = relation
     }
 
     if (query.version_number !== undefined) {

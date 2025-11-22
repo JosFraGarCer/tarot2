@@ -9,11 +9,13 @@
           :is="Resolved"
           v-if="templateKey === 'Class'"
           class="shadow-lg shadow-gray-800"
-          :type-label="entity"
+          :type-label="resolveTypeLabel(item)"
           :name="item.name"
           :short-text="item.short_text"
           :description="item.description"
           :img="resolveImage(item.image)"
+          :legacy-effects="item.legacy_effects"
+          :effects-markdown="resolveEffectsMarkdown(item)"
         />
         <component
           :is="Resolved"
@@ -23,7 +25,9 @@
           :short-text="item.short_text"
           :description="item.description"
           :img="resolveImage(item.image)"
-          :card-info="item.typeLabel"
+          :card-info="resolveTypeLabel(item)"
+          :legacy-effects="item.legacy_effects"
+          :effects-markdown="resolveEffectsMarkdown(item)"
         />
       </div>
 
@@ -33,12 +37,12 @@
           :entity="item"
           :entity-label="label"
           :entity-type="label"
-          :no-tags="noTags"
+          :no-tags="noTags || isTagEntity"
           vertical
           @edit="() => emit('edit', item)"
           @feedback="() => emit('feedback', item)"
-          @tags="() => emit('tags', item)"
-          @delete="() => emit('delete', item)"
+          @tags="onTags(item)"
+          @delete="onDelete(item)"
         />
       </div>
     </div>
@@ -57,7 +61,7 @@
         />
       </div>
 
-      <div v-if="!noTags && Array.isArray(item.tags) && item.tags.length"  class="flex flex-wrap justify-center gap-1">
+      <div v-if="!noTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap justify-center gap-1">
         <UBadge
             v-for="(tag, idx) in item.tags"
             :key="tag.id ?? tag.code ?? idx"
@@ -114,4 +118,72 @@ const {
   locale
 })
 
+const isTagEntity = computed(() => props.entity === 'tag')
+
+function onTags(entity: any) {
+  emit('tags', entity)
+}
+
+function onDelete(entity: any) {
+  emit('delete', entity)
+}
+
+function resolveEffectsMarkdown(item: any): string | null {
+  if (!item?.legacy_effects) return null
+  const raw = item?.effects
+  if (!raw) return null
+  const record = typeof raw === 'string' ? parseJsonSafe(raw) : raw
+  if (!record || typeof record !== 'object') return null
+
+  const localeCode = typeof locale === 'string' ? locale : locale.value
+  const normalizedLocale = String(localeCode || 'en').toLowerCase()
+  const localesToTry = [normalizedLocale]
+
+  const resolvedLang = String(item?.language_code_resolved || item?.language_code || '').toLowerCase()
+  if (resolvedLang && !localesToTry.includes(resolvedLang)) localesToTry.unshift(resolvedLang)
+  if (!localesToTry.includes('en')) localesToTry.push('en')
+
+  const values = Object.values(record as Record<string, unknown>)
+  for (const value of localesToTry
+    .map(code => (record as Record<string, unknown>)[code])
+    .concat(values)) {
+    const lines = toLines(value)
+    if (lines && lines.length) {
+      return lines
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .join('\n\n')
+    }
+  }
+
+  return null
+}
+
+function toLines(value: unknown): string[] | null {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string')
+  }
+  if (typeof value === 'string') {
+    return value ? [value] : null
+  }
+  return null
+}
+
+function parseJsonSafe(value: string): unknown {
+  try {
+    return JSON.parse(value)
+  } catch {
+    return null
+  }
+}
+
+function resolveTypeLabel(item: any): string {
+  return (
+    item?.card_type_name
+    ?? item?.card_type_code
+    ?? item?.typeLabel
+    ?? props.entity
+    ?? ''
+  )
+}
 </script>

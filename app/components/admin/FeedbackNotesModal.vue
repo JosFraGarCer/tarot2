@@ -10,7 +10,7 @@
           </div>
         </div>
         <div v-if="isEditor" class="space-y-2">
-          <UTextarea v-model="newNote" :rows="5" :placeholder="$t('features.admin.feedback.notes.addNote','Add note')" />
+          <UTextarea class="w-full" v-model="newNote" :rows="5" :placeholder="$t('features.admin.feedback.notes.addNote','Add note')" />
         </div>
       </div>
     </template>

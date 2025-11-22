@@ -18,6 +18,47 @@ import { useI18n } from '#imports'
 import { useCardStatus } from '~/utils/status'
 import { userStatusColor, userStatusVariant, userStatusLabelKey } from '~/utils/userStatus'
 
+const STATUS_KINDS = {
+  default: {
+    active: { label: 'Active', color: 'success' },
+    inactive: { label: 'Inactive', color: 'neutral' },
+    pending: { label: 'Pending', color: 'warning' },
+    suspended: { label: 'Suspended', color: 'warning' },
+    blocked: { label: 'Blocked', color: 'error' },
+    banned: { label: 'Banned', color: 'error' },
+    archived: { label: 'Archived', color: 'neutral' },
+    draft: { label: 'Draft', color: 'neutral' },
+    published: { label: 'Published', color: 'success' },
+    private: { label: 'Private', color: 'neutral' },
+  },
+  card: {
+    published: { label: 'Published', color: 'success' },
+    draft: { label: 'Draft', color: 'warning' },
+    review: { label: 'In review', color: 'warning' },
+    rejected: { label: 'Rejected', color: 'error' },
+    archived: { label: 'Archived', color: 'neutral' },
+  },
+  feedback: {
+    open: { label: 'Open', color: 'warning' },
+    resolved: { label: 'Resolved', color: 'success' },
+    dismissed: { label: 'Dismissed', color: 'neutral' },
+  },
+  revision: {
+    draft: { label: 'Draft', color: 'neutral' },
+    review: { label: 'In review', color: 'warning' },
+    published: { label: 'Published', color: 'success' },
+    archived: { label: 'Archived', color: 'neutral' },
+  },
+  user: {
+    active: { label: 'Active', color: 'success' },
+    inactive: { label: 'Inactive', color: 'neutral' },
+    banned: { label: 'Banned', color: 'error' },
+    suspended: { label: 'Suspended', color: 'warning' },
+    pending: { label: 'Pending', color: 'warning' },
+    invited: { label: 'Invited', color: 'info' },
+  },
+} as const
+
 type BadgeColor = 'neutral' | 'primary' | 'warning' | 'success' | 'error'
 type BadgeVariant = 'subtle' | 'soft' | 'outline'
 type BadgeSize = 'xs' | 'sm' | 'md' | 'lg'
@@ -51,9 +92,16 @@ const cardMeta = computed(() => {
   return cardStatusOptions.find(option => option.value === props.status) ?? null
 })
 
+const variant = computed(() => {
+  const kind = props.kind ?? (props.statusKind === 'user' ? 'user' : 'default')
+  const kindMap = STATUS_KINDS[kind as keyof typeof STATUS_KINDS] ?? STATUS_KINDS.default
+  return kindMap[(props.status ?? '').toLowerCase() as keyof typeof kindMap]
+})
+
 const resolvedLabelKey = computed(() => {
   if (props.labelKey) return props.labelKey
   if (props.kind === 'user') return userStatusLabelKey(props.status)
+  if (variant.value) return variant.value.label
   return cardMeta.value?.labelKey ?? cardFallbackLabelKey
 })
 

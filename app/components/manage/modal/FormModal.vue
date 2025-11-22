@@ -20,21 +20,33 @@
               v-else-if="field.type === 'toggle'"
               v-model="form[key]"
               :disabled="field.disabled"
-              size="xs"
+              size="md"
             />
-            <div v-else-if="field.type === 'effects'">
-              <USwitch v-model="form.legacy_effects" label="Legacy effects" size="xs" />
+            <template v-else-if="field.type === 'effects'">
+              <USwitch
+                v-model="form.legacy_effects"
+                :label="trLabel('legacy_effects', 'Legacy effects')"
+                :disabled="field.disabled"
+                size="md"
+              />
+              <p
+                v-if="showFallbackHint(key)"
+                class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
+              >
+                EN: {{ formatEffectsFallback() }}
+              </p>
               <MarkdownEditor
                 v-if="form.legacy_effects"
                 v-model="effectsText"
-                label="Effects"
-                placeholder="Write markdown content..."
+                :label="field.label || trLabel(key as string, field.label)"
+                :placeholder="field.placeholder || 'Write markdown content...'"
+                :disabled="field.disabled"
               />
-            </div>
+            </template>
             <ImageUploadField
               v-else-if="field.type === 'upload'"
               :model-value="imageFile"
-              :preview="imagePreview"
+              :preview="resolvedImagePreview"
               :field="imageFieldConfig"
               :enabled="true"
               @update:model-value="(v) => emit('update:image-file', v)"
@@ -167,11 +179,26 @@ watch(
 
 const { arcanaOptions, cardTypeOptions, facetOptions, loadAll } = useEntityRelations()
 
-function resolveImage(src?: string) {
+const resolvedImagePreview = computed(() => {
+  const preview = props.imagePreview
+  if (typeof preview === 'string' && preview) return resolveImage(preview)
+  const imageValue = (form as any)?.image
+  if (typeof imageValue === 'string' && imageValue) return resolveImage(imageValue)
+  return null
+})
+
+function resolveImage(src?: string | null) {
   if (!src) return ''
-  if (src.startsWith('http') || src.startsWith('/')) return src
-  
-  return `/img/${props.entity}/${src}`
+  const value = String(src)
+  if (value.startsWith('http://') || value.startsWith('https://')) return value
+  if (value.startsWith('/')) return value
+
+  if (value.includes('/')) {
+    return `/img/${value}`
+  }
+
+  const entityKey = props.entity?.toString().trim()
+  return entityKey ? `/img/${entityKey}/${value}` : `/img/${value}`
 }
 function showFallbackHint(key: string) {
   // solo mostrar si NO estamos en inglés y sí hay englishItem
@@ -179,6 +206,21 @@ function showFallbackHint(key: string) {
 
   const translatableKeys = ['name', 'short_text', 'description', 'effects']
   return translatableKeys.includes(key) && !!props.englishItem[key]
+}
+
+function formatEffectsFallback(): string {
+  const effects = props.englishItem?.effects as Record<string, string[] | string | undefined> | undefined
+  if (!effects) return '—'
+  const candidate =
+    effects[localeCode.value] ??
+    effects.en ??
+    Object.values(effects).find((value) => {
+      if (Array.isArray(value)) return value.length > 0
+      return typeof value === 'string' && value.length > 0
+    })
+  if (Array.isArray(candidate)) return candidate.join(' / ')
+  if (typeof candidate === 'string') return candidate
+  return '—'
 }
 
 const normalizedLabel = computed(() =>
@@ -239,6 +281,8 @@ const schemaResolvedFields = computed<Record<string, any>>(() => {
       // Ajustes por clave conocida
       if (key === 'description') field.rows = 5
       if (key === 'short_text') field.rows = 3
+      if (key === 'legacy_effects') field = { ...field, type: 'toggle', hidden: true }
+      if (key === 'effects') field = { ...field, type: 'effects' }
 
       // Ocultar/ignorar campos que no se editan desde el formulario
       if (['id', 'created_by', 'content_version_id', 'sort', 'language_code'].includes(key)) {

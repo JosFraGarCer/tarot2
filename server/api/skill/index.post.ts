@@ -16,6 +16,8 @@ export default defineEventHandler(async (event) => {
         code: body.code,
         facet_id: body.facet_id,
         image: body.image ?? null,
+        legacy_effects: body.legacy_effects ?? false,
+        effects: body.effects ?? null,
         ...(body.status !== undefined ? { status: body.status as CardStatus } : {}),
       })
       .returningAll()
@@ -42,6 +44,8 @@ export default defineEventHandler(async (event) => {
         's.code',
         's.facet_id',
         's.status',
+        's.legacy_effects',
+        sql`coalesce(s.effects, '{}'::jsonb)`.as('effects'),
         's.created_at',
         's.modified_at',
         't.name as name',
