@@ -1,22 +1,27 @@
 // server/api/tag/[id].patch.ts
 // PATCH: update partial fields for Tag entity
-import { defineEventHandler, getQuery, readBody } from 'h3'
+import { defineEventHandler, readBody } from 'h3'
 import { sql } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
+import { parseQuery } from '../../utils/parseQuery'
 import { createResponse } from '../../utils/response'
-import { tagUpdateSchema } from '../../schemas/tag'
+import { markLanguageFallback } from '../../utils/language'
+import { tagUpdateSchema, tagLangQuerySchema } from '../../schemas/tag'
 import { getRequestedLanguage } from '../../utils/i18n'
 import { createError } from 'h3'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
+  const logger = event.context.logger ?? globalThis.logger
   try {
     const idParam = event.context.params?.id
     const id = Number(idParam)
     if (!Number.isFinite(id)) throw createError({ statusCode: 400, statusMessage: 'Invalid id' })
 
-    const q = getQuery(event)
-    const lang = getRequestedLanguage(q)
+    logger?.info?.({ scope: 'tag.update.start', id, time: new Date().toISOString() })
+
+    const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.update.query' })
+    const lang = getRequestedLanguage(query)
 
     const raw = await readBody(event)
     const body = safeParseOrThrow(tagUpdateSchema, raw)
@@ -120,12 +125,16 @@ export default defineEventHandler(async (event) => {
 
     if (!result) throw createError({ statusCode: 404, statusMessage: 'Tag not found' })
 
-    globalThis.logger?.info('Tag updated', { id, lang, timeMs: Date.now() - startedAt })
-    return createResponse(result, null)
+    logger?.info?.({ scope: 'tag.update', id, lang, timeMs: Date.now() - startedAt }, 'Tag updated')
+    return createResponse(markLanguageFallback(result, lang), { lang })
   } catch (error) {
-    globalThis.logger?.error('Failed to update tag', {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    logger?.error?.(
+      {
+        scope: 'tag.update',
+        error: error instanceof Error ? error.message : String(error),
+      },
+      'Failed to update tag',
+    )
     throw error
   }
 })

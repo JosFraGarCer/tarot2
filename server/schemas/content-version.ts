@@ -34,6 +34,19 @@ export const contentVersionCreateSchema = z.object({
   release: releaseStageEnum.default('alfa'),
 })
 
+export const contentVersionPublishSchema = z
+  .object({
+    version_id: z.coerce.number().int().positive().optional(),
+    version_semver: z.string().min(1).optional(),
+    description: z.string().nullable().optional(),
+    metadata: metadataInput.optional().default({}),
+    release: releaseStageEnum.optional(),
+  })
+  .refine((value) => value.version_id || value.version_semver, {
+    message: 'version_id or version_semver is required',
+    path: ['version_id'],
+  })
+
 export const contentVersionUpdateSchema = z.object({
   version_semver: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
@@ -44,3 +57,4 @@ export const contentVersionUpdateSchema = z.object({
 export type ContentVersionQuery = z.infer<typeof contentVersionQuerySchema>
 export type ContentVersionCreate = z.infer<typeof contentVersionCreateSchema>
 export type ContentVersionUpdate = z.infer<typeof contentVersionUpdateSchema>
+export type ContentVersionPublish = z.infer<typeof contentVersionPublishSchema>

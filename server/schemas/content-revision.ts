@@ -90,6 +90,11 @@ export const contentRevisionUpdateSchema = z.object({
   next_snapshot: jsonObject('next_snapshot'),
 })
 
+export const contentRevisionRevertSchema = z.object({
+  notes: z.string().nullable().optional(),
+})
+
 export type ContentRevisionQuery = z.infer<typeof contentRevisionQuerySchema>
 export type ContentRevisionCreate = z.infer<typeof contentRevisionCreateSchema>
 export type ContentRevisionUpdate = z.infer<typeof contentRevisionUpdateSchema>
+export type ContentRevisionRevert = z.infer<typeof contentRevisionRevertSchema>

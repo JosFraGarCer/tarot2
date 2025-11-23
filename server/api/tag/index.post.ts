@@ -2,12 +2,19 @@
 import { defineEventHandler, readBody } from 'h3'
 import { sql } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
+import { parseQuery } from '../../utils/parseQuery'
 import { createResponse } from '../../utils/response'
-import { tagCreateSchema } from '../../schemas/tag'
+import { markLanguageFallback } from '../../utils/language'
+import { getRequestedLanguage } from '../../utils/i18n'
+import { tagCreateSchema, tagLangQuerySchema } from '../../schemas/tag'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
+  const logger = event.context.logger ?? globalThis.logger
   try {
+    logger?.info?.({ scope: 'tag.create.start', time: new Date().toISOString() })
+    const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.create.query' })
+    const lang = getRequestedLanguage(query)
     const raw = await readBody(event)
     const body = safeParseOrThrow(tagCreateSchema, raw)
 
@@ -69,12 +76,22 @@ export default defineEventHandler(async (event) => {
       return row!
     })
 
-    globalThis.logger?.info('Tag created', { id: (created as any).id, code: (created as any).code, timeMs: Date.now() - startedAt })
-    return createResponse(created, null)
+    logger?.info?.(
+      {
+        scope: 'tag.create',
+        id: (created as any).id,
+        code: (created as any).code,
+        lang,
+        timeMs: Date.now() - startedAt,
+      },
+      'Tag created',
+    )
+    return createResponse(markLanguageFallback(created, lang), { lang })
   } catch (error) {
-    globalThis.logger?.error('Failed to create tag', {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    logger?.error?.(
+      { scope: 'tag.create', error: error instanceof Error ? error.message : String(error) },
+      'Failed to create tag',
+    )
     throw error
   }
 })

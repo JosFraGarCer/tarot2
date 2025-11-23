@@ -1,21 +1,23 @@
 // server/api/tag/index.get.ts
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler } from 'h3'
 import { sql } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
-import { createPaginatedResponse } from '../../utils/response'
+import { parseQuery } from '../../utils/parseQuery'
 import { buildFilters } from '../../utils/filters'
+import { createPaginatedResponse } from '../../utils/response'
 import { getRequestedLanguage } from '../../utils/i18n'
 import { tagQuerySchema } from '../../schemas/tag'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
+  const logger = event.context.logger ?? globalThis.logger
   try {
-    const q = getQuery(event)
-    const { page, pageSize, q: search, search: search2, is_active, category, parent_id } = safeParseOrThrow(
-      tagQuerySchema,
-      q,
-    )
-    const lang = getRequestedLanguage(q)
+    logger?.info?.({
+      scope: 'tag.list.start',
+      time: new Date().toISOString(),
+    })
+    const query = parseQuery(event, tagQuerySchema, { scope: 'tag.list.query' })
+    const lang = getRequestedLanguage(query)
+    const searchTerm = query.search ?? query.q ?? null
 
     let base = globalThis.db
       .selectFrom('tags as t')
@@ -49,60 +51,77 @@ export default defineEventHandler(async (event) => {
         sql`coalesce(tp_req.name, tp_en.name)`.as('parent_name'),
       ])
 
-    // Filters
-    if (is_active !== undefined) base = base.where('t.is_active', '=', is_active)
-    if (category !== undefined) base = base.where('t.category', '=', category)
-    if (parent_id !== undefined) base = base.where('t.parent_id', '=', parent_id)
+    if (query.is_active !== undefined) base = base.where('t.is_active', '=', query.is_active)
+    if (query.category !== undefined) base = base.where('t.category', '=', query.category)
+    if (query.parent_id !== undefined) base = base.where('t.parent_id', '=', query.parent_id)
 
-    const { query, totalItems, page: p, pageSize: ps, resolvedSortField, resolvedSortDirection } = await buildFilters(
-      base,
+    const {
+      query: filtered,
+      totalItems,
+      page,
+      pageSize,
+      resolvedSortField,
+      resolvedSortDirection,
+    } = await buildFilters(base, {
+      page: query.page,
+      pageSize: query.pageSize,
+      search: searchTerm ?? undefined,
+      status: undefined,
+      applySearch: (qb, term) =>
+        qb.where((eb) =>
+          eb.or([
+            sql`coalesce(t_req.name, t_en.name) ilike ${'%' + term + '%'}`,
+            sql`coalesce(t_req.short_text, t_en.short_text) ilike ${'%' + term + '%'}`,
+            sql`coalesce(t_req.description, t_en.description) ilike ${'%' + term + '%'}`,
+            sql`t.code ilike ${'%' + term + '%'}`,
+          ]),
+        ),
+      countDistinct: 't.id',
+      sort: { field: query.sort, direction: query.direction },
+      defaultSort: { field: 'created_at', direction: 'desc' },
+      sortColumnMap: {
+        created_at: 't.created_at',
+        modified_at: 't.modified_at',
+        code: 't.code',
+        category: 't.category',
+        name: sql`lower(coalesce(t_req.name, t_en.name))`,
+        is_active: 't.is_active',
+        created_by: 't.created_by',
+      },
+    })
+
+    const rows = await filtered.execute()
+
+    logger?.info?.(
       {
+        scope: 'tag.list',
+        lang,
         page,
         pageSize,
-        search: (q as any).search ?? search ?? search2,
-        applySearch: (qb, s) =>
-          qb.where((eb) =>
-            eb.or([
-              sql`coalesce(t_req.name, t_en.name) ilike ${'%' + s + '%'}`,
-              sql`coalesce(t_req.short_text, t_en.short_text) ilike ${'%' + s + '%'}`,
-              sql`coalesce(t_req.description, t_en.description) ilike ${'%' + s + '%'}`,
-              sql`t.code ilike ${'%' + s + '%'}`,
-            ]),
-          ),
-        countDistinct: 't.id',
-        sort: { field: (q as any).sort ?? 'created_at', direction: (q as any).direction ?? 'desc' },
-        defaultSort: { field: 'created_at', direction: 'desc' },
-        sortColumnMap: {
-          created_at: 't.created_at',
-          modified_at: 't.modified_at',
-          code: 't.code',
-          category: 't.category',
-          name: sql`lower(coalesce(t_req.name, t_en.name))`,
-          is_active: 't.is_active',
-          created_by: 't.created_by',
-        },
+        count: rows.length,
+        totalItems,
+        search: searchTerm,
+        sort: resolvedSortField ?? 'created_at',
+        direction: resolvedSortDirection ?? 'desc',
+        category: query.category ?? null,
+        parent_id: query.parent_id ?? null,
+        is_active: query.is_active ?? null,
+        timeMs: Date.now() - startedAt,
       },
+      'Tags list completed',
     )
 
-    const rows = await query.execute()
-    const data = rows
-
-    globalThis.logger?.info('Tags listed', {
+    return createPaginatedResponse(rows, totalItems, page, pageSize, {
+      search: searchTerm,
       lang,
-      page: p,
-      pageSize: ps,
-      count: data.length,
-      search: ((q as any).search ?? search ?? search2) ?? null,
-      sort: resolvedSortField ?? 'created_at',
-      direction: resolvedSortDirection ?? 'desc',
-      timeMs: Date.now() - startedAt,
+      extraMeta: {
+        category: query.category ?? null,
+        parent_id: query.parent_id ?? null,
+        is_active: query.is_active ?? null,
+      },
     })
-
-    return createPaginatedResponse(data as any[], totalItems, p, ps, ((q as any).search ?? search ?? search2) ?? null)
   } catch (error) {
-    globalThis.logger?.error('Failed to fetch tags', {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    logger?.error?.({ scope: 'tag.list', error: error instanceof Error ? error.message : String(error) }, 'Failed to list tags')
     throw error
   }
 })

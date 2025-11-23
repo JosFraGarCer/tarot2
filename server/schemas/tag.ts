@@ -1,6 +1,7 @@
 // server/schemas/tag.ts
 import { z } from 'zod'
 import { queryBoolean } from '../utils/zod'
+import { optionalLanguageCodeSchema, sortDirectionSchema } from './common'
 
 export const tagQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -10,11 +11,19 @@ export const tagQuerySchema = z.object({
   is_active: queryBoolean.optional(),
   category: z.string().optional(),
   parent_id: z.coerce.number().int().optional(),
-  lang: z.string().optional(),
+  lang: optionalLanguageCodeSchema,
+  language: optionalLanguageCodeSchema,
+  locale: optionalLanguageCodeSchema,
   sort: z
     .enum(['created_at', 'modified_at', 'code', 'category', 'name', 'is_active', 'created_by'])
     .optional(),
-  direction: z.enum(['asc', 'desc']).optional(),
+  direction: sortDirectionSchema,
+})
+
+export const tagLangQuerySchema = z.object({
+  lang: optionalLanguageCodeSchema,
+  language: optionalLanguageCodeSchema,
+  locale: optionalLanguageCodeSchema,
 })
 
 export const tagCreateSchema = z.object({

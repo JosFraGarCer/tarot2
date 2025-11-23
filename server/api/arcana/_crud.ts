@@ -1,0 +1,183 @@
+import { sql } from 'kysely'
+import { createCrudHandlers } from '../../utils/createCrudHandlers'
+import { arcanaQuerySchema, arcanaCreateSchema, arcanaUpdateSchema } from '../../schemas/arcana'
+import type { DB } from '../../database/types'
+
+function sanitizeBaseData(input: Record<string, any>) {
+  const output: Record<string, any> = {}
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined) {
+      output[key] = value
+    }
+  }
+  return output
+}
+
+function buildSelect(db: any, lang: string) {
+  return db
+    .selectFrom('arcana as a')
+    .leftJoin('users as u', 'u.id', 'a.created_by')
+    .leftJoin('arcana_translations as t_req', (join: any) =>
+      join.onRef('t_req.arcana_id', '=', 'a.id').on('t_req.language_code', '=', lang),
+    )
+    .leftJoin('arcana_translations as t_en', (join: any) =>
+      join.onRef('t_en.arcana_id', '=', 'a.id').on('t_en.language_code', '=', sql`'en'`),
+    )
+    .select([
+      'a.id',
+      'a.code',
+      'a.status',
+      'a.is_active',
+      'a.created_by',
+      'a.image',
+      'a.created_at',
+      'a.modified_at',
+      sql`coalesce(t_req.name, t_en.name)`.as('name'),
+      sql`coalesce(t_req.short_text, t_en.short_text)`.as('short_text'),
+      sql`coalesce(t_req.description, t_en.description)`.as('description'),
+      sql`coalesce(t_req.language_code, 'en')`.as('language_code_resolved'),
+      sql`u.username`.as('create_user'),
+      sql`
+        (
+          select coalesce(json_agg(
+            json_build_object(
+              'id', tg.id,
+              'name', coalesce(tt_req.name, tt_en.name),
+              'language_code_resolved', coalesce(tt_req.language_code, 'en')
+            )
+          ), '[]'::json)
+          from tag_links as tl
+          join tags as tg on tg.id = tl.tag_id
+          left join tags_translations as tt_req
+            on tt_req.tag_id = tg.id and tt_req.language_code = ${lang}
+          left join tags_translations as tt_en
+            on tt_en.tag_id = tg.id and tt_en.language_code = 'en'
+          where tl.entity_type = ${'arcana'} and tl.entity_id = a.id
+        )
+      `.as('tags'),
+    ])
+}
+
+export const arcanaCrud = createCrudHandlers({
+  entity: 'arcana',
+  baseTable: 'arcana',
+  schema: {
+    query: arcanaQuerySchema,
+    create: arcanaCreateSchema,
+    update: arcanaUpdateSchema,
+  },
+  translation: {
+    table: 'arcana_translations',
+    foreignKey: 'arcana_id',
+    languageKey: 'language_code',
+    defaultLang: 'en',
+  },
+  buildListQuery: ({ db, lang, query }) => {
+    const tagsLower = query.tags?.map((tag: string) => tag.toLowerCase())
+    const tagIds = query.tag_ids
+    let base = buildSelect(db, lang)
+
+    if (query.is_active !== undefined) {
+      base = base.where('a.is_active', '=', query.is_active)
+    }
+    if (query.created_by !== undefined) {
+      base = base.where('a.created_by', '=', query.created_by)
+    }
+
+    if (tagIds && tagIds.length > 0) {
+      base = base.where(sql`exists (
+        select 1
+        from tag_links tl
+        where tl.entity_type = ${'arcana'}
+          and tl.entity_id = a.id
+          and tl.tag_id = any(${tagIds})
+      )`)
+    }
+    if (tagsLower && tagsLower.length > 0) {
+      base = base.where(sql`exists (
+        select 1
+        from tag_links tl
+        join tags t on t.id = tl.tag_id
+        left join tags_translations tt_req on tt_req.tag_id = t.id and tt_req.language_code = ${lang}
+        left join tags_translations tt_en on tt_en.tag_id = t.id and tt_en.language_code = 'en'
+        where tl.entity_type = ${'arcana'}
+          and tl.entity_id = a.id
+          and lower(coalesce(tt_req.name, tt_en.name)) = any(${tagsLower})
+      )`)
+    }
+
+    return {
+      baseQuery: base,
+      filters: {
+        search: query.search ?? query.q,
+        status: query.status,
+        statusColumn: 'a.status',
+        countDistinct: 'a.id',
+        sort: { field: query.sort, direction: query.direction },
+        defaultSort: { field: 'created_at', direction: 'desc' },
+        sortColumnMap: {
+          created_at: 'a.created_at',
+          modified_at: 'a.modified_at',
+          code: 'a.code',
+          status: 'a.status',
+          name: sql`lower(coalesce(t_req.name, t_en.name))`,
+          is_active: 'a.is_active',
+          created_by: 'a.created_by',
+        },
+      },
+      logMeta: ({ rows }) => ({
+        tag_ids: tagIds ?? null,
+        tags: tagsLower ?? null,
+        count_tags: rows.reduce((acc, row: any) => acc + (Array.isArray(row?.tags) ? row.tags.length : 0), 0),
+      }),
+    }
+  },
+  selectOne: ({ db, lang }, id) =>
+    buildSelect(db, lang)
+      .where('a.id', '=', id)
+      .executeTakeFirst(),
+  mutations: {
+    buildCreatePayload: (input, ctx) => {
+      const userId = (ctx.event.context.user as any)?.id ?? null
+      const baseData = sanitizeBaseData({
+        code: input.code,
+        image: input.image ?? null,
+        status: input.status,
+        is_active: input.is_active,
+        created_by: userId,
+        updated_by: userId,
+      })
+      const translationData = sanitizeBaseData({
+        name: input.name,
+        short_text: input.short_text ?? null,
+        description: input.description ?? null,
+      })
+      return {
+        baseData,
+        translationData,
+        lang: input.lang,
+      }
+    },
+    buildUpdatePayload: (input, ctx) => {
+      const userId = (ctx.event.context.user as any)?.id ?? null
+      const baseData = sanitizeBaseData({
+        code: input.code,
+        image: input.image ?? null,
+        status: input.status,
+        is_active: input.is_active,
+        updated_by: userId,
+      })
+      const translationData = sanitizeBaseData({
+        name: input.name,
+        short_text: input.short_text ?? null,
+        description: input.description ?? null,
+      })
+      return {
+        baseData,
+        translationData,
+        lang: input.lang,
+      }
+    },
+  },
+  logScope: 'arcana',
+})

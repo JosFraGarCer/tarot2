@@ -270,7 +270,7 @@ function tt(key: string, fallback: string) {
 useSeoMeta({ title: `${t('navigation.menu.admin') || 'Admin'} · ${tt('features.admin.feedbackTitle', 'Feedback')}` })
 
 const toast = useToast()
-const apiFetch = useApiFetch
+const apiFetch = useApiFetch()
 const router = useRouter()
 const route = useRoute()
 
@@ -304,7 +304,8 @@ const initialState: FeedbackRouteState = {
   pageSize: 20,
 }
 
-const { read: readQueryState, write: writeQueryState } = useQuerySync<FeedbackRouteState>(initialState, {
+const { state: queryState, update: updateQueryState, reset: resetQueryState } = useQuerySync<FeedbackRouteState>({
+  defaults: initialState,
   parse(raw) {
     const statusParam = raw.status === 'open' || raw.status === 'resolved' ? raw.status : 'all'
     const typeParam = raw.type === 'bug' || raw.type === 'suggestion' || raw.type === 'balance' || raw.type === 'translation'
@@ -367,8 +368,6 @@ const { read: readQueryState, write: writeQueryState } = useQuerySync<FeedbackRo
     }
   },
 })
-
-const queryState = readQueryState()
 
 const search = ref(queryState.search ?? '')
 const status = ref<'all' | 'open' | 'resolved'>(queryState.status ?? 'all')
@@ -478,6 +477,27 @@ const totalPagesForUi = computed(() => {
   return Math.max(1, Math.ceil((totalItemsForUi.value || 0) / size))
 })
 
+watch(
+  () => ({ ...queryState }),
+  (next) => {
+    if (search.value !== next.search) search.value = next.search ?? ''
+    if (status.value !== next.status) status.value = next.status ?? 'all'
+    if (type.value !== next.type) type.value = next.type ?? 'all'
+    if (mineOnly.value !== !!next.mineOnly) mineOnly.value = !!next.mineOnly
+
+    advanced.language = next.language
+    advanced.entityType = next.entityType
+    advanced.createdRange = next.createdRange as any
+    advanced.resolvedRange = next.resolvedRange as any
+    advanced.createdBy = next.createdBy
+    advanced.resolvedBy = next.resolvedBy
+
+    if (pagination.page !== next.page) pagination.page = next.page ?? 1
+    if (pagination.pageSize !== next.pageSize) pagination.pageSize = next.pageSize ?? 20
+  },
+  { deep: true },
+)
+
 const filtered = computed(() => {
   const term = search.value.trim().toLowerCase()
   if (!term) return items.value || []
@@ -516,31 +536,26 @@ const deleting = ref(false)
 const resolveOpen = ref(false)
 const resolving = ref(false)
 
-function pushQuery() {
+async function pushQuery() {
   const toIso = (value?: Date | string) => {
     if (!value) return undefined
     const date = value instanceof Date ? value : new Date(value)
     if (Number.isNaN(date.getTime())) return undefined
     return date.toISOString()
   }
-  router.replace({
-    query: {
-      ...route.query,
-      search: search.value || undefined,
-      status: status.value !== 'all' ? status.value : undefined,
-      type: type.value !== 'all' ? type.value : undefined,
-      mineOnly: mineOnly.value ? 'true' : undefined,
-      language_code: advanced.language || undefined,
-      entity_type: advanced.entityType || undefined,
-      created_by: !mineOnly.value && advanced.createdBy ? String(advanced.createdBy) : mineOnly.value ? String(currentUserId.value ?? '') || undefined : undefined,
-      resolved_by: advanced.resolvedBy ? String(advanced.resolvedBy) : undefined,
-      created_from: toIso(advanced.createdRange?.[0]),
-      created_to: toIso(advanced.createdRange?.[1]),
-      resolved_from: toIso(advanced.resolvedRange?.[0]),
-      resolved_to: toIso(advanced.resolvedRange?.[1]),
-      page: pagination.page > 1 ? String(pagination.page) : undefined,
-      pageSize: pagination.pageSize !== 20 ? String(pagination.pageSize) : undefined,
-    },
+  await updateQueryState({
+    search: search.value,
+    status: status.value,
+    type: type.value,
+    mineOnly: mineOnly.value,
+    language: advanced.language,
+    entityType: advanced.entityType,
+    createdBy: !mineOnly.value ? advanced.createdBy : currentUserId.value ?? undefined,
+    resolvedBy: advanced.resolvedBy,
+    createdRange: advanced.createdRange ? [toIso(advanced.createdRange[0]) ?? advanced.createdRange[0], toIso(advanced.createdRange[1]) ?? advanced.createdRange[1]] : undefined,
+    resolvedRange: advanced.resolvedRange ? [toIso(advanced.resolvedRange[0]) ?? advanced.resolvedRange[0], toIso(advanced.resolvedRange[1]) ?? advanced.resolvedRange[1]] : undefined,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
   })
 }
 

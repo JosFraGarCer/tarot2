@@ -1,15 +1,19 @@
 // server/api/tag/[id].get.ts
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler } from 'h3'
 import { sql } from 'kysely'
+import { parseQuery } from '../../utils/parseQuery'
 import { createResponse } from '../../utils/response'
 import { getRequestedLanguage } from '../../utils/i18n'
+import { markLanguageFallback } from '../../utils/language'
+import { tagLangQuerySchema } from '../../schemas/tag'
 import { createError } from 'h3'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
+  const logger = event.context.logger ?? globalThis.logger
   try {
-    const q = getQuery(event)
-    const lang = getRequestedLanguage(q)
+    const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.detail.query' })
+    const lang = getRequestedLanguage(query)
     const idParam = event.context.params?.id
     const id = Number(idParam)
     if (!Number.isFinite(id)) throw createError({ statusCode: 400, statusMessage: 'Invalid id' })
@@ -50,12 +54,16 @@ export default defineEventHandler(async (event) => {
 
     if (!row) throw createError({ statusCode: 404, statusMessage: 'Tag not found' })
 
-    globalThis.logger?.info('Tag fetched', { id, lang, timeMs: Date.now() - startedAt })
-    return createResponse(row, null)
+    logger?.info?.({ scope: 'tag.detail', id, lang, timeMs: Date.now() - startedAt }, 'Tag fetched')
+    return createResponse(markLanguageFallback(row, lang), { lang })
   } catch (error) {
-    globalThis.logger?.error('Failed to fetch tag', {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    logger?.error?.(
+      {
+        scope: 'tag.detail',
+        error: error instanceof Error ? error.message : String(error),
+      },
+      'Failed to fetch tag',
+    )
     throw error
   }
 })

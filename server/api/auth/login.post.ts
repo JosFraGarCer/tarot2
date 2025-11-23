@@ -7,6 +7,7 @@ import { createResponse } from '../../utils/response'
 import { createToken } from '../../plugins/auth'
 import { mergePermissions } from '../../utils/users'
 import { sql } from 'kysely'
+import { enforceRateLimit } from '../../utils/rateLimit'
 
 const loginSchema = z.object({
   identifier: z.string().min(1), // acepta username o email
@@ -18,6 +19,14 @@ export default defineEventHandler(async (event) => {
   let attemptedIdentifier: string | undefined
 
   try {
+    // Fallback limiter in case middleware chain is bypassed (e.g. unit tests)
+    enforceRateLimit(event, {
+      scope: 'auth.login.rate_limit',
+      identifier: `${event.node.req.method}:auth.login`,
+      max: 10,
+      windowMs: 60_000,
+    })
+
     const raw = await readBody(event)
     const body = safeParseOrThrow(loginSchema, raw)
     const { identifier, password } = body

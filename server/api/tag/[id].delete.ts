@@ -1,18 +1,23 @@
 // server/api/tag/[id].delete.ts
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler } from 'h3'
 import { createResponse } from '../../utils/response'
+import { parseQuery } from '../../utils/parseQuery'
 import { getRequestedLanguage } from '../../utils/i18n'
+import { tagLangQuerySchema } from '../../schemas/tag'
 import { createError } from 'h3'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
+  const logger = event.context.logger ?? globalThis.logger
   try {
     const idParam = event.context.params?.id
     const id = Number(idParam)
     if (!Number.isFinite(id)) throw createError({ statusCode: 400, statusMessage: 'Invalid id' })
 
-    const q = getQuery(event)
-    const lang = getRequestedLanguage(q)
+    logger?.info?.({ scope: 'tag.delete.start', id, time: new Date().toISOString() })
+
+    const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.delete.query' })
+    const lang = getRequestedLanguage(query)
 
     const result = await globalThis.db.transaction().execute(async (trx) => {
       if (lang === 'en') {
@@ -33,12 +38,16 @@ export default defineEventHandler(async (event) => {
 
     if (!result) throw createError({ statusCode: 404, statusMessage: 'Tag or translation not found' })
 
-    globalThis.logger?.info('Tag deleted', { id, lang, timeMs: Date.now() - startedAt })
-    return createResponse({ ok: true }, null)
+    logger?.info?.({ scope: 'tag.delete', id, lang, timeMs: Date.now() - startedAt }, 'Tag deleted')
+    return createResponse({ ok: true }, { lang })
   } catch (error) {
-    globalThis.logger?.error('Failed to delete tag', {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    logger?.error?.(
+      {
+        scope: 'tag.delete',
+        error: error instanceof Error ? error.message : String(error),
+      },
+      'Failed to delete tag',
+    )
     throw error
   }
 })
