@@ -89,22 +89,13 @@
       </template>
 
       <template #default>
-        <CartaRow
-          :template-key="entity === 'class' ? 'Class' : 'Origin'"
-          :entity="entity"
-          :type-label="item.card_type_name || item.card_type_code || ''"
-          :name="item.name || item.code || ''"
-          :short-text="item.short_text || ''"
-          :description="item.description || ''"
-          :img="resolveImage(item.image || item.thumbnail_url)"
-          :card-info="item.card_type_name || item.card_type_code || ''"
-          :status="item.status"
-          :active="item.is_active"
-          :tags="item.tags"
-          :legacy-effects="item.legacy_effects"
-          :effects-markdown="resolveEffectsMarkdown(item)"
-          @create="onCreateClick"
-        />
+        <img
+          v-if="item.image"
+          :src="resolveImage(item.image || item.thumbnail_url)"
+          alt=""
+          class="w-full h-36 object-cover rounded-md mb-3"
+          loading="lazy"
+        >
         <div class="flex items-center gap-2 mb-2">
           <StatusBadge
             :status="item.status"
@@ -148,6 +139,7 @@ import { computed } from 'vue'
 import { useI18n } from '#imports'
 import EntityActions from '~/components/manage/EntityActions.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
+import CartaRow from '~/components/manage/CartaRow.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 import type { ManageCrud } from '@/types/manage'
 

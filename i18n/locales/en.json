@@ -77,6 +77,13 @@
       "loading": "Loading...",
       "new": "New"
     },
+    "status": {
+      "draft": "Draft",
+      "review": "In review",
+      "approved": "Approved",
+      "archived": "Archived",
+      "unknown": "Unknown"
+    },
     "fields": {
       "card": "Card",
       "category": "Category",

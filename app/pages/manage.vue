@@ -39,6 +39,10 @@
           />
         </template>
       </UTabs>
+
+      <div class="mt-6">
+        <NuxtPage />
+      </div>
     </UCard>
   </div>
 </template>

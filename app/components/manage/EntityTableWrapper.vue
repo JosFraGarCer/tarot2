@@ -44,8 +44,16 @@
           color="primary"
           variant="soft"
           size="xs"
-          aria-label="Edit"
+          :aria-label="t('ui.actions.quickEdit', 'Edición rápida')"
           @click="emit('edit', row.raw ?? row)"
+        />
+        <UButton
+          icon="i-heroicons-arrows-pointing-out"
+          color="primary"
+          variant="ghost"
+          size="xs"
+          :aria-label="t('ui.actions.fullEdit', 'Edición completa')"
+          @click="handleFullEdit(row)"
         />
         <UButton
           v-if="row.raw && canFeedback(row.raw)"
@@ -95,6 +103,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'edit', entity: any): void
+  (e: 'full-edit', id: number): void
   (e: 'delete', entity: any): void
   (e: 'export', ids: number[]): void
   (e: 'batchUpdate', ids: number[]): void
@@ -293,6 +302,13 @@ const isTagEntity = computed(() => {
 
 const canFeedback = (_entity: any) => true
 const canTags = (_entity: any) => props.noTags !== true && !isTagEntity.value
+
+function handleFullEdit(row: EntityRow) {
+  const raw = row.raw ?? row
+  const id = Number(row.id ?? raw?.id)
+  if (!Number.isFinite(id) || id <= 0) return
+  emit('full-edit', id)
+}
 
 const emptyTitle = computed(() => t('common.noResults'))
 const emptySubtitle = computed(() => t('common.tryAdjustFilters'))

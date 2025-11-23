@@ -16,52 +16,61 @@
     "db:codegen": "kysely-codegen"
   },
   "dependencies": {
+    "@iconify-json/heroicons": "^1.2.3",
+    "@iconify-json/lucide": "^1.2.74",
     "@nuxt/image": "1.11.0",
-    "@nuxt/ui": "4.1.0",
-    "@nuxtjs/i18n": "^10.2.0",
+    "@nuxt/ui": "4.2.1",
+    "@nuxtjs/i18n": "^10.2.1",
+    "pinia": "^3.0.4",
+    "@pinia/nuxt": "^0.11.3",
     "@pinia/colada-nuxt": "^0.2.4",
-    "@pinia/nuxt": "^0.11.2",
     "bcrypt": "^5.1.1",
-    "jose": "^5.9.3",
+    "jose": "^5.10.0",
     "kysely": "^0.28.8",
     "markdown-it": "^14.1.0",
-    "nuxt": "^4.2.0",
+    "nuxt": "^4.2.1",
     "pg": "^8.16.3",
     "pinia-plugin-persistedstate": "^4.7.1",
     "pino": "^10.1.0",
     "pino-pretty": "^13.1.2",
-    "sharp": "^0.34.4",
-    "vue": "^3.5.22",
+    "sharp": "0.34.4",
+    "vue": "^3.5.24",
     "vue-router": "^4.6.3",
-    "zod": "^4.1.12",
-    "@iconify-json/heroicons": "^1.2.3",
-    "@iconify-json/lucide": "^1.2.72"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@nuxt/devtools": "^3.0.1",
+    "@nuxt/devtools": "^3.1.0",
     "@nuxt/eslint": "1.10.0",
     "@tailwindcss/typography": "^0.5.19",
     "@types/bcrypt": "^5.0.2",
     "@types/markdown-it": "^14.1.2",
-    "@types/node": "^24.10.0",
+    "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
-    "@vueuse/core": "^13.0.0",
-    "autoprefixer": "^10.4.21",
+    "@vueuse/core": "^13.9.0",
+    "autoprefixer": "^10.4.22",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
-    "knip": "^5.67.1",
+    "knip": "^5.70.1",
     "kysely-codegen": "^0.19.0",
     "kysely-migration-cli": "^0.4.2",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
-    "tailwindcss": "^4.1.16",
+    "tailwindcss": "^4.1.17",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },
   "pnpm": {
     "overrides": {
       "sharp": "0.34.4"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "vue-demi"
+    ],
+    "onlyBuiltDependencies": [
+      "bcrypt",
+      "esbuild",
+      "sharp"
+    ]
   }
 }

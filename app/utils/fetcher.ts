@@ -1,5 +1,5 @@
 import { $fetch as ofetch, type FetchContext, type FetchRequest, type FetchOptions } from 'ofetch'
-import { useNuxtApp } from '#app'
+import { tryUseNuxtApp } from '#app'
 import type { H3Event } from 'h3'
 
 interface CacheEntry<T = any> {
@@ -113,8 +113,8 @@ export const useApiFetch = ofetch.create({
   credentials: 'include',
   retry: false,
   onRequest({ request, options }: FetchContext) {
-    const nuxtApp = useNuxtApp?.()
-    const event = nuxtApp?.ssrContext?.event as H3Event | undefined
+    const nuxtApp = tryUseNuxtApp()
+    const event = (options.context as any)?.__requestEvent as H3Event | undefined ?? nuxtApp?.ssrContext?.event
     const { etags, responses } = getStores(event)
     const logger = (nuxtApp?.$logger || event?.context.logger)
     const requestId = (options.context as any)?.requestId ?? event?.context.requestId
@@ -129,21 +129,29 @@ export const useApiFetch = ofetch.create({
       requestId,
     }
 
+    const headers = new Headers(ensureHeaders(options))
+
+    if (event?.node?.req?.headers?.cookie && !headers.has('cookie')) {
+      headers.set('cookie', event.node.req.headers.cookie)
+    }
+    if (event?.node?.req?.headers?.authorization && !headers.has('authorization')) {
+      headers.set('authorization', event.node.req.headers.authorization)
+    }
+
     if (method === 'GET') {
       purgeExpired(responses, etags)
       options.retry = options.retry ?? 2
       options.retryDelay = options.retryDelay ?? 200
       options.retryStatusCodes = options.retryStatusCodes ?? [408, 425, 429, 500, 502, 503, 504]
-      const headers = new Headers(ensureHeaders(options))
       const etag = etags.get(cacheKey)
       if (etag && !headers.has('If-None-Match')) {
         headers.set('If-None-Match', etag)
       }
-      options.headers = Object.fromEntries(headers.entries())
     } else {
       options.retry = options.retry ?? 0
-      options.headers = ensureHeaders(options)
     }
+
+    options.headers = Object.fromEntries(headers.entries())
 
     logger?.debug('api.fetch.request', {
       method,
@@ -158,7 +166,7 @@ export const useApiFetch = ofetch.create({
     const cacheKey = (options.context as any)?.__cacheKey ?? buildCacheKey(request, options)
     const event = (options.context as any)?.__requestEvent as H3Event | undefined
     const { etags, responses } = getStores(event)
-    const nuxtApp = useNuxtApp?.()
+    const nuxtApp = tryUseNuxtApp()
     const logger = (nuxtApp?.$logger || event?.context.logger)
     const startedAt = (options.context as any)?.__fetchStartedAt as number | undefined
     const duration = startedAt ? Date.now() - startedAt : undefined

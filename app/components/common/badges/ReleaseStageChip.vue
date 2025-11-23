@@ -98,6 +98,8 @@ function translate(key: string, fallback: string): string {
 
 <style scoped>
 .release-stage-chip {
-  @apply uppercase tracking-wide font-medium;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 </style>

@@ -105,7 +105,7 @@ const props = withDefaults(defineProps<{
   effects: null,
 })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { resolveTemplate } = useCardTemplates()
 const cardStatus = useCardStatus()
 const {
@@ -131,9 +131,14 @@ const cardInfo = computed(() => props.cardInfo || props.typeLabel || '')
 const active = computed(() => props.active)
 const legacyEffects = computed(() => props.legacyEffects ?? false)
 const effects = computed(() => props.effects)
+const currentLocale = computed(() => (typeof locale === 'string' ? locale : locale.value) || 'en')
+
 const effectsMarkdown = computed(() => {
+  if (!legacyEffects.value) return null
   if (props.effectsMarkdown) return props.effectsMarkdown
-  return resolveEffectsMarkdown(effects.value)
+  const normalized = normalizeEffects(effects.value)
+  if (!normalized) return null
+  return resolveEffectsMarkdown(normalized, currentLocale.value)
 })
 
 const statusMeta = computed(() => {
@@ -162,5 +167,54 @@ function tagLabel(tag: any) {
     return tag.name ?? tag.label ?? tag.code ?? String(tag.id ?? '')
   }
   return String(tag)
+}
+
+function normalizeEffects(raw: unknown): Record<string, unknown> | null {
+  if (!raw) return null
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null
+    } catch {
+      return null
+    }
+  }
+  if (typeof raw === 'object') {
+    return raw as Record<string, unknown>
+  }
+  return null
+}
+
+function resolveEffectsMarkdown(effects: Record<string, unknown>, localeCode: string): string | null {
+  const normalizedLocale = String(localeCode || 'en').toLowerCase()
+  const localesToTry = [normalizedLocale]
+  if (!localesToTry.includes('en')) localesToTry.push('en')
+
+  const values = Object.values(effects)
+  for (const value of localesToTry
+    .map(code => effects[code])
+    .concat(values)) {
+    const lines = toLines(value)
+    if (lines && lines.length) {
+      const markdown = lines
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+        .join('\n\n')
+      if (markdown) {
+        return markdown
+      }
+    }
+  }
+  return null
+}
+
+function toLines(value: unknown): string[] | null {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string')
+  }
+  if (typeof value === 'string') {
+    return value ? [value] : null
+  }
+  return null
 }
 </script>

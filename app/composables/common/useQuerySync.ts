@@ -1,5 +1,5 @@
 // app/composables/common/useQuerySync.ts
-import { reactive, watch, watchEffect, toValue, type MaybeRefOrGetter } from 'vue'
+import { reactive, watch, watchEffect, toValue, isReactive, isRef, toRaw, unref, type MaybeRefOrGetter } from 'vue'
 import { useRoute, useRouter } from '#imports'
 
 type RouteQueryValue = string | string[] | null | undefined
@@ -213,11 +213,46 @@ function defaultSerialize(value: any, fallback: any): RouteQueryValue {
   return value as RouteQueryValue
 }
 
-function deepClone<T>(value: T): T {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(value)
+function unwrapClonable<T>(value: T): T {
+  if (isRef(value)) {
+    return unwrapClonable(unref(value))
   }
-  return JSON.parse(JSON.stringify(value))
+
+  if (isReactive(value)) {
+    return unwrapClonable(toRaw(value))
+  }
+
+  if (value instanceof Date) {
+    return new Date(value.getTime()) as unknown as T
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => unwrapClonable(item)) as unknown as T
+  }
+
+  if (value && typeof value === 'object') {
+    const out: Record<string, any> = {}
+    for (const [key, entry] of Object.entries(value as Record<string, any>)) {
+      out[key] = unwrapClonable(entry)
+    }
+    return out as T
+  }
+
+  return value
+}
+
+function deepClone<T>(value: T): T {
+  const plain = unwrapClonable(value)
+
+  if (typeof structuredClone === 'function') {
+    try {
+      return structuredClone(plain)
+    } catch {
+      // Fallback below
+    }
+  }
+
+  return JSON.parse(JSON.stringify(plain))
 }
 
 function isEqual(a: any, b: any): boolean {

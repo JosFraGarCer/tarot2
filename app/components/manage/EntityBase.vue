@@ -61,6 +61,7 @@
           :no-tags="noTags"
           :entity="entity"
           @edit="onEdit"
+          @full-edit="openFullEditor"
           @delete="onDelete"
           @feedback="onFeedback"
           @tags="onTags"
@@ -217,6 +218,17 @@
       @update:open="handleFeedbackOpenChange"
       @submit="handleFeedbackSubmit"
     />
+
+    <EntitySlideover
+      v-if="slideoverOpen"
+      v-model:open="slideoverOpen"
+      :id="slideoverEntityId"
+      :kind="resolvedSlideoverKind"
+      :neighbors="slideoverNeighbors"
+      @close="slideoverOpen = false"
+      @saved="handleEntitySaved"
+      @navigate="handleSlideoverNavigate"
+    />
   </div>
 </template>
 
@@ -251,6 +263,7 @@ import EntityTagsModal from '~/components/manage/modal/EntityTagsModal.vue'
 import { useEntityTags } from '~/composables/manage/useEntityTags'
 import FeedbackModal from '~/components/manage/modal/FeedbackModal.vue'
 import { useFeedback } from '~/composables/manage/useFeedback'
+import EntitySlideover from '~/components/manage/EntitySlideover.vue'
 
 type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
@@ -295,6 +308,84 @@ void crud.fetchList()
 
 // Preview composable
 const { previewOpen, previewData, setPreviewOpen, openPreviewFromEntity } = useEntityPreview()
+
+const allowedSlideoverKinds = ['arcana', 'card_type', 'base_card', 'skill', 'world', 'world_card'] as const
+type SlideoverKind = typeof allowedSlideoverKinds[number]
+
+function normalizeSlideoverKind(kind: string | null | undefined): SlideoverKind {
+  const candidate = toSlideoverKind(kind)
+  return (allowedSlideoverKinds as readonly string[]).includes((candidate ?? '') as SlideoverKind)
+    ? (candidate as SlideoverKind)
+    : 'arcana'
+}
+
+function toSlideoverKind(kind: string | null | undefined): string | null {
+  if (!kind) return null
+  const normalized = kind
+    .toString()
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[-]+/g, '_')
+    .toLowerCase()
+
+  switch (normalized) {
+    case 'cardtype':
+    case 'card_type':
+    case 'card-type':
+      return 'card_type'
+    case 'basecard':
+    case 'base_card':
+    case 'base-card':
+      return 'base_card'
+    case 'worldcard':
+    case 'world_card':
+    case 'world-card':
+      return 'world_card'
+    default:
+      return normalized
+  }
+}
+
+const slideoverEntityId = ref<number | null>(null)
+const slideoverKind = ref<SlideoverKind | null>(null)
+const crudResourceKind = computed(() => {
+  const path = crud?.resourcePath
+  if (typeof path !== 'string' || !path.length) return null
+  return path.replace(/^\/+/, '').replace(/^api\//, '').split('/')[0] || null
+})
+
+const defaultSlideoverKind = computed<SlideoverKind>(() => normalizeSlideoverKind(crudResourceKind.value ?? props.entity))
+
+const slideoverOpen = computed({
+  get: () => slideoverEntityId.value !== null,
+  set: (value: boolean) => {
+    if (!value) {
+      slideoverEntityId.value = null
+      slideoverKind.value = null
+    }
+  },
+})
+
+const resolvedSlideoverKind = computed<SlideoverKind>(() => normalizeSlideoverKind(slideoverKind.value ?? defaultSlideoverKind.value))
+
+const slideoverNeighbors = computed(() => {
+  const currentId = slideoverEntityId.value
+  if (currentId === null) return { prev: null as number | null, next: null as number | null }
+
+  const items = Array.isArray(crud?.items?.value) ? crud.items.value : []
+  const ids = items
+    .map((item: any) => Number(item?.id ?? item?.raw?.id))
+    .filter((value) => Number.isFinite(value) && value > 0)
+
+  if (!ids.length) return { prev: null as number | null, next: null as number | null }
+
+  const index = ids.findIndex((value) => value === currentId)
+  if (index === -1) return { prev: null as number | null, next: null as number | null }
+
+  const prev = index > 0 ? ids[index - 1] : null
+  const next = index < ids.length - 1 ? ids[index + 1] : null
+  return { prev, next }
+})
 
 const resolvedColumns = useManageColumns({ entity: props.entity, crud })
 const displayedColumns = computed(() => (Array.isArray(props.columns) && props.columns.length ? props.columns : resolvedColumns.value))
@@ -460,6 +551,37 @@ function onPreview(entity: any) {
 }
 function onCreateClickWrapper() {
   onCreateClick((e: 'create') => emit(e))
+}
+
+function openFullEditor(payload: any) {
+  const raw = typeof payload === 'object' ? payload?.raw ?? payload : null
+  const id = typeof payload === 'number'
+    ? payload
+    : Number(raw?.id ?? raw?.entity_id ?? raw?.uuid)
+
+  if (!Number.isFinite(id) || id <= 0) {
+    return
+  }
+
+  slideoverEntityId.value = id
+  const inferredKind = raw?.kind ?? raw?.entity_type ?? crudResourceKind.value ?? props.entity
+  slideoverKind.value = normalizeSlideoverKind(inferredKind ?? props.entity)
+}
+
+async function handleEntitySaved() {
+  await crud.fetchList?.()
+}
+
+function handleSlideoverNavigate(id: number) {
+  if (!Number.isFinite(id) || id <= 0) return
+  const target = Array.isArray(crud?.items?.value)
+    ? crud.items.value.find((item: any) => Number(item?.id ?? item?.raw?.id) === Number(id))
+    : null
+  if (target) {
+    openFullEditor(target)
+  } else {
+    openFullEditor(id)
+  }
 }
 
 // Optimistic status update
