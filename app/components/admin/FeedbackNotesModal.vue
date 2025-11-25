@@ -1,26 +1,54 @@
 <!-- app/components/admin/FeedbackNotesModal.vue -->
 <template>
-  <UModal :open="open" :title="$t('features.admin.feedback.notes.title','Internal notes')" @update:open="v => emit('update:open', v)">
+  <UModal
+    :open="open"
+    :title="modalTitle"
+    :description="modalDescription"
+    role="dialog"
+    aria-modal="true"
+    :aria-labelledby="titleId"
+    :aria-describedby="descriptionId"
+    @update:open="handleOpenUpdate"
+  >
+    <template #header="{ title, description }">
+      <div>
+        <h2 :id="titleId" class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h2>
+        <p :id="descriptionId" class="text-sm text-gray-600 dark:text-gray-300">{{ description }}</p>
+      </div>
+    </template>
+
     <template #body>
-      <div class="space-y-3">
-        <div v-if="notesList.length === 0" class="text-sm text-gray-500">{{ $t('features.admin.feedback.notes.empty','No internal notes yet') }}</div>
-        <div v-else class="max-h-64 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-800 rounded border border-gray-200 dark:border-gray-800">
-          <div v-for="(n, idx) in notesList" :key="idx" class="p-2 text-sm">
-            <pre class="whitespace-pre-wrap font-sans text-xs leading-5">{{ n }}</pre>
+      <UFocusTrap v-if="open">
+        <div class="space-y-3" :aria-labelledby="titleId" :aria-describedby="descriptionId">
+          <div v-if="notesList.length === 0" class="text-sm text-gray-500">{{ $t('features.admin.feedback.notes.empty','No internal notes yet') }}</div>
+          <div v-else class="max-h-64 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-800 rounded border border-gray-200 dark:border-gray-800" role="log" aria-live="polite">
+            <div v-for="(n, idx) in notesList" :key="idx" class="p-2 text-sm">
+              <pre class="whitespace-pre-wrap font-sans text-xs leading-5">{{ n }}</pre>
+            </div>
+          </div>
+          <div v-if="isEditor" class="space-y-2">
+            <UTextarea
+              :id="noteFieldId"
+              ref="noteFieldRef"
+              class="w-full"
+              v-model="newNote"
+              :rows="5"
+              :placeholder="$t('features.admin.feedback.notes.addNote','Add note')"
+              aria-describedby="noteHelpId"
+            />
+            <p :id="noteHelpId" class="sr-only">{{ $t('features.admin.feedback.notes.addNote','Add note') }}</p>
           </div>
         </div>
-        <div v-if="isEditor" class="space-y-2">
-          <UTextarea class="w-full" v-model="newNote" :rows="5" :placeholder="$t('features.admin.feedback.notes.addNote','Add note')" />
-        </div>
-      </div>
+      </UFocusTrap>
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton variant="soft" @click="emit('update:open', false)">{{ $t('ui.actions.cancel','Cancel') }}</UButton>
+        <UButton ref="cancelButtonRef" variant="soft" @click="emit('update:open', false)">{{ $t('ui.actions.cancel','Cancel') }}</UButton>
         <UButton v-if="isEditor" color="primary" :disabled="saving || newNote.trim().length===0" @click="onSave">{{ $t('features.admin.feedback.notes.save','Save note') }}</UButton>
       </div>
     </template>
   </UModal>
+  <div v-if="saveError" class="sr-only" aria-live="assertive">{{ saveError }}</div>
 </template>
 
 <script setup lang="ts">
@@ -29,6 +57,19 @@ const emit = defineEmits<{(e:'update:open', v:boolean):void; (e:'save', nextDeta
 
 const newNote = ref('')
 const saving = ref(false)
+const saveError = ref<string | null>(null)
+
+const titleId = 'feedback-notes-modal-title'
+const descriptionId = 'feedback-notes-modal-description'
+const noteFieldId = 'feedback-notes-modal-field'
+const noteHelpId = 'feedback-notes-help'
+
+const modalTitle = computed(() => $t('features.admin.feedback.notes.title','Internal notes'))
+const modalDescription = computed(() => $t('features.admin.feedback.notes.description','Review existing notes and add a new internal note'))
+
+const noteFieldRef = ref<HTMLElement | null>(null)
+const triggerButton = ref<HTMLElement | null>(null)
+const cancelButtonRef = ref<InstanceType<typeof UButton> | null>(null)
 
 const notesList = computed(() => {
   const d = props.detail || ''
@@ -55,9 +96,31 @@ async function onSave() {
     const base = props.detail || ''
     const next = base ? `${base}\n${block}` : block
     emit('save', next)
+    saveError.value = null
   } finally {
     saving.value = false
     newNote.value = ''
   }
 }
+
+watch(() => props.open, (value) => {
+  if (value) {
+    triggerButton.value = document.activeElement as HTMLElement | null
+    nextTick(() => {
+      const textarea = document.getElementById(noteFieldId) as HTMLTextAreaElement | null
+      textarea?.focus()
+    })
+  } else {
+    nextTick(() => {
+      triggerButton.value?.focus?.()
+      triggerButton.value = null
+    })
+  }
+})
+
+function handleOpenUpdate(value: boolean) {
+  emit('update:open', value)
+}
+
+const UButton = resolveComponent('UButton') as any
 </script>

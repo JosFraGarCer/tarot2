@@ -1,10 +1,12 @@
 // app/composables/admin/useDatabaseManager.ts
 import { ref } from 'vue'
 import { useToast, useI18n } from '#imports'
+import { useApiFetch } from '@/utils/fetcher'
 
 export function useDatabaseManager() {
   const toast = useToast()
   const { t } = useI18n()
+  const apiFetch = useApiFetch
 
   // 🔸 Estados generales
   const logs = ref<Array<{ type: string; ok: boolean; message: string; time: number }>>([])
@@ -38,7 +40,7 @@ export function useDatabaseManager() {
   async function exportJson() {
     jsonExporting.value = true
     try {
-      const res = await $fetch('/api/database/export.json')
+      const res = await apiFetch('/database/export.json')
       const payload = res?.data ?? res
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
       downloadFile(`database-${new Date().toISOString().slice(0, 10)}.json`, blob, 'JSON')
@@ -59,7 +61,7 @@ export function useDatabaseManager() {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
-      await $fetch('/api/database/import.json', { method: 'POST', body: data })
+      await apiFetch('/database/import.json', { method: 'POST', body: data })
       toast.add({ title: t('common.importSuccess'), color: 'success' })
       log('JSON Import', true, file.name)
     } catch (e: any) {
@@ -75,7 +77,7 @@ export function useDatabaseManager() {
   async function exportSql() {
     sqlExporting.value = true
     try {
-      const res = await $fetch('/api/database/export.sql', { responseType: 'blob' as any })
+      const res = await apiFetch('/database/export.sql', { responseType: 'blob' as any })
       const blob = res instanceof Blob ? res : new Blob([res], { type: 'application/sql' })
       downloadFile(`database-${new Date().toISOString().slice(0, 10)}.sql`, blob, 'SQL')
       toast.add({ title: t('common.exportSuccess'), color: 'success' })
@@ -94,7 +96,7 @@ export function useDatabaseManager() {
     sqlImportError.value = null
     try {
       const text = await file.text()
-      await $fetch('/api/database/import.sql', {
+      await apiFetch('/database/import.sql', {
         method: 'POST',
         body: text,
         headers: { 'Content-Type': 'text/plain' }

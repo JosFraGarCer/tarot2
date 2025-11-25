@@ -1,149 +1,86 @@
-# Guía de composables
+# Informe técnico de composables Tarot2
 
-## Arquitectura y estructura
+## Panorama general
+El ecosistema de composables en Tarot2 se divide en tres familias principales:
+1. **Common** (`app/composables/common`) – utilidades agnósticas de dominio (`useListMeta`, `useQuerySync`, `useEntityCapabilities`).
+2. **Manage** (`app/composables/manage`) – orquestan CRUD genéricos para entidades traducibles, incluyendo filtros, paginación, tags, previews y modales.
+3. **Admin** (`app/composables/admin`) – focalizados en operaciones editoriales (`useContentVersions`, `useRevisions`, `useContentFeedback`, `useAdminUsersCrud`).
 
-1. **Carpetas por dominio con índice público**  
-   - **Descripción:** Organizar `composables/` en subdirectorios por dominio (`arcana`, `versions`, `feedback`) exponiendo un `index.ts` que reexporte entradas de alto nivel.  
-   - **Objetivo:** Mantener cohesión con el árbol de API y facilitar la búsqueda de hooks relacionados.  
-   - **Beneficios:** Onboarding más rápido, rutas de import consistentes y reducción de imports absolutos confusos.  
-   - **Referencia:** @docs/PROJECT_INFO.md#110-130
+Todos siguen el patrón de exponer refs reactivas (`items`, `pending`, `error`, `meta`) además de acciones (`fetchList`, `create`, `update`, `remove`) y, cuando aplica, estados derivados (selección, filtros sincronizados con la URL).
 
-2. **Capas comunes en `composables/common`**  
-   - **Descripción:** Centralizar hooks reutilizables (`useQuerySync`, `useListMeta`, `useEntityCapabilities`) para compartir lógica entre `/admin` y `/manage`.  
-   - **Objetivo:** Evitar duplicación y mantener patrones uniformes.  
-   - **Beneficios:** Facilita evoluciones globales y minimiza regresiones.  
-   - **Referencia:** @docs/COMPONENTES manage y admin.MD#223-305
+## Composables comunes clave
+| Composable | Propósito | Notas |
+| --- | --- | --- |
+| `useListMeta` | Normaliza `meta` de paginación en `{ page, pageSize, totalItems, totalPages, hasNext, hasPrev }` con fallback reactivo.[@app/composables/common/useListMeta.ts#1-46] | Útil para tablas con datos cliente/servidor, se usa en `CommonDataTable`, `useContentVersions` y otros. |
+| `useQuerySync` | Sincroniza filtros con la ruta (querystring), soportando parse/serialize personalizado y reemplazo vs push. | Base para `AdvancedFiltersPanel` en admin feedback, permite compartir vistas. |
+| `useEntityCapabilities` | Provider/consumer de capacidades por entidad (translatable, tags, preview, etc.).[@app/composables/common/useEntityCapabilities.ts#1-158] | Aísla opciones y permite overrides por proveedor, favoreciendo modularidad Admin/Manage. |
+| `useDateRange` | Gestiona rangos de fechas normalizados (ISO) con utilidades de parse, display y sincronización. | Permite filtros complejos en feedback, versiones y futuros reports. |
+| `useEntityPreviewFetch` | Resuelve previews de entidades (cards, worlds, etc.) reutilizando `useApiFetch`. | Evita duplicar lógica de endpoints preview entre feedback y manage. |
 
-## División por responsabilidades
+### Buenas prácticas
+- Mantener firmas genéricas (MaybeRefOrGetter, InjectionKey) para facilitar DI.
+- Aceptar `fallback` y `overrides` en composables reutilizables (`useListMeta`, `useEntityCapabilities`).
+- Integrar watchers con `watchEffect` o debounced states para evitar fetch excesivo (`useEntity`).
 
-1. **Hooks de datos vs hooks de UI**  
-   - **Descripción:** Separar composables que hablan con la API (`useArcanaApi`) de los que gestionan estado de formulario (`useArcanaForm`).  
-   - **Objetivo:** Simplificar pruebas y reutilizar lógica de negocio en múltiples componentes.  
-   - **Beneficios:** Código más testeable y menor acoplamiento entre datos y presentación.  
-   - **Referencia:** @docs/API.MD#69-118
+## Composables Manage
+### `useEntity`
+Composable genérico SSR-safe que provee CRUD con filtros reactivamente sincronizados y paginación configurable.[@app/composables/manage/useEntity.ts#1-392]
+- Usa `useAsyncData` para SSR y caché SWR (`listCache`) evitando refetch innecesario.
+- Recibe esquemas Zod opcionales para validar create/update.
+- Gestiona idioma (`lang`) automáticamente con `includeLangParam` y `includeLangInCreateBody` (default true).
+- Expone `pagination` + `pageSizeOptions`, integrándose con `usePaginatedList`.
+- Soporta invalidación manual y control de aborts para requests concurrentes.
 
-2. **Servicios por entidad**  
-   - **Descripción:** Mantener un patrón `use<Entity>()` que retorne { list, detail, create, update, remove, meta } encapsulando `useApiFetch`.  
-   - **Objetivo:** Homogeneizar interacción con CRUD y permitir reemplazar backend sin tocar UI.  
-   - **Beneficios:** Mayor coherencia y menos boilerplate en páginas.  
-   - **Referencia:** @docs/SERVER.md#285-332
+### Complementos Manage
+| Composable | Rol |
+| --- | --- |
+| `useManageFilters` | Inicializa filtros por entidad con defaults y provee `resetFilters` opcionalmente re-fetching. |
+| `useManageColumns` | Determina columnas por entidad para tablas (status, tags, arcana, etc.), centralizando configuración. |
+| `useEntityModals` | Orquesta estado de modales (formulario, import, tags) y la carga de datos base/EN para traducciones. |
+| `useEntityDeletion` | Controla flujos de borrado entidad/traducción, aceptando bandera `translatable`. |
+| `useEntityPreview` | Maneja la apertura de previsualizaciones con fallback a slideover o modal. |
+| `useEntityTags`, `useFeedback`, `useEntityTransfer` | Acciones específicas (tags, feedback, traslado) encapsuladas. |
 
-## Uso de `useFetch` / `useAsyncData`
+### Fortalezas / pendientes
+- Fortalezas: reutilización masiva, SSR-ready, integración multi-idioma automática.
+- Pendientes: extraer `useTableSelection` (selección replicada en tablas) y consolidar `useManageActions` en un provider de capabilities.
 
-1. **`useApiFetch` con ETag por defecto**  
-   - **Descripción:** Envolver `useFetch` con cabeceras ETag/If-None-Match y control de `server: true` para SSR.  
-   - **Objetivo:** Reducir cargas innecesarias y mantener sincronía SSR/cliente.  
-   - **Beneficios:** Performance optimizada y coherencia de datos en multisesión.  
-   - **Referencia:** @docs/PROJECT_INFO.md#126-165
+## Composables Admin
+| Composable | Propósito | Detalles |
+| --- | --- | --- |
+| `useContentVersions` | CRUD para versiones + publish, normaliza `meta` con `toListMeta` y recuerda última query.[@app/composables/admin/useContentVersions.ts#76-159] | Debe migrar todos los consumidores a `useApiFetch` (ya lo usa) y añadir logging para publish. |
+| `useRevisions` | Maneja listado/aprobación/bulk operations sobre revisiones; integra notificaciones y watchers debounced. | Ideal para `RevisionsTable` con selección y meta compartidos. |
+| `useContentFeedback` | Gestiona feedback con filtros complejos (rango fechas, entidad, idioma), sincroniza `lastQuery` y optimiza actualizaciones in-place. | Usa `buildParams` que normaliza entradas y toasts de error. |
+| `useAdminUsersCrud` | Adapta `useEntity` a la semántica de usuarios (sin i18n, con roles/permissions). | Garantiza que `translatable=false` se respete en la UI. |
+| `useDatabaseExport`, `useDatabaseImport` | Reutilizan endpoints de backup (JSON/SQL). | Deben incorporar manejo de progreso/errores para archivos grandes. |
 
-2. **Cargando inicial con `useAsyncData` en SSR crítico**  
-   - **Descripción:** Reservar `useAsyncData` para listados grandes (arcana, versiones) ejecutándolo en servidor y rehidratando meta.  
-   - **Objetivo:** Garantizar TTFB bajo y evitar flashes de contenido vacío.  
-   - **Beneficios:** Mejora Core Web Vitals y reduce trabajo en cliente.  
-   - **Referencia:** @docs/PROJECT_INFO.md#124-168
+## Integración con NuxtUI y SSR
+- Los composables actúan como fuente de verdad para componentes (tablas, modales, paneles). La documentación recomienda usar `useApiFetch` (ETag) y watchers debounced para entradas (`useDebounceFn` en Revisions, Manage Users).
+- `useQuerySync` + `AdvancedFiltersPanel` y `useListMeta` permiten vistas compartibles y UX consistente.
+- SSR: `useAsyncData` en `useEntity` y `useLazyAsyncData` en algunos admin (p.ej. Manage Users) aseguran que los listados se hidraten con la misma cache, evitando flickers.
 
-3. **Revalidación selectiva**  
-   - **Descripción:** Usar `watch` con `refreshNuxtData` para refrescar caches cuando cambien filtros/paginación, evitando refetch global.  
-   - **Objetivo:** Controlar invalidación y minimizar llamadas.  
-   - **Beneficios:** Experiencia fluida y ahorro de recursos.  
-   - **Referencia:** @docs/API.MD#15-33
+## Oportunidades de optimización
+1. **Provider de capabilities unificado**: aprovechar `useEntityCapabilities` (ya creado) para que `useEntity`, `useEntityDeletion`, `useEntityModals` y `EntityBase` lean capacidades dinámicas en vez de props repetidas.
+2. **`useServerPagination`**: crear wrapper para endpoints con `buildFilters` y normalización meta, reduciendo duplicación en composables admin.
+3. **Composables de selección**: `useSelection(ids)` central (mapa `selectedMap`, `toggleOne`, `toggleAll`) para feedback, revisiones, tablas Manage.
+4. **Cache managers**: extender `clearApiFetchCache` en `useEntity` a granularidad por entidad/idioma para invalidaciones específicas (publish/revert).
+5. **Telemetry hooks**: `useRequestMetrics` que capture `timeMs` del header/log y exponga latencia a la UI para dashboards internos.
+6. **Form presets**: composable `useEntityFormPreset(entity)` que devuelva presets de campos (Zod schema, default values) sincronizado con backend.
 
-## Estado y manejo de errores
+## Buenas prácticas de uso
+- **Mantener contrato meta**: siempre mapear `meta` a `toListMeta` o `useListMeta` antes de exponerlo a componentes.
+- **Evitar `$fetch` directo**: usar `useApiFetch` para beneficiarse de ETag y logging consistente.
+- **Error handling uniforme**: replicar patrón de `toErrorMessage` (`useEntity`) y toasts centralizados para UX consistente.
+- **Debounce**: aplicar `useDebounceFn` o watchers con `setTimeout` (como `useEntity`) para reducir requests en filtros.
+- **Type inference**: exportar tipos `EntityCrud` y `ListMeta` para reuso en componentes (TS).
 
-1. **Núcleo reactivo con `ref` y `shallowRef`**  
-   - **Descripción:** Usar `shallowRef` para colecciones grandes y `ref` para ids/filtros, limitando reactividad innecesaria.  
-   - **Objetivo:** Optimizar renderizados y mantener claridad en dependencias.  
-   - **Beneficios:** Mejor rendimiento y menos watchers.  
-   - **Referencia:** @docs/PROJECT_INFO.md#8-10
+## Roadmap composables
+| Prioridad | Acción | Impacto |
+| --- | --- | --- |
+| Alta | `useTableSelection` + `useServerPagination` | Menos duplicación en tablas y handlers |
+| Media | Integrar `useEntityCapabilities` en todos los composables Manage/Admin | Configuración declarativa, menos props |
+| Media | Hooks de telemetría (`useRequestMetrics`) | Observabilidad desde UI |
+| Baja | `useEntityFormPreset` compartido | Formularios consistentes, menos duplicación |
 
-2. **Errores estandarizados**  
-   - **Descripción:** Normalizar errores de API en hooks (`{ message, statusCode }`) tomando datos de `{ success:false }` cuando exista.  
-   - **Objetivo:** Mostrar mensajes coherentes y facilitar tracing.  
-   - **Beneficios:** UX consistente y logging simplificado.  
-   - **Referencia:** @docs/API.MD#26-33
-
-3. **Retry y fallback controlado**  
-   - **Descripción:** Ofrecer opciones `{ retry?: number, retryDelay?: number }` en hooks de fetch, con fallback a datos cacheados cuando falle.  
-   - **Objetivo:** Robustecer la app ante fallos intermitentes de red.  
-   - **Beneficios:** Menor frustración del usuario y resiliencia operacional.  
-   - **Referencia:** @docs/PROJECT_INFO.md#124-166
-
-## Caching y sincronización
-
-1. **Cache local con `Map` por key**  
-   - **Descripción:** Implementar cache in-memory por entidad (id → payload) sincronizado con actualizaciones.  
-   - **Objetivo:** Reducir llamadas repetidas a detalle cuando se navega entre tabs.  
-   - **Beneficios:** Respuesta instantánea y menos carga sobre el servidor.  
-   - **Referencia:** @docs/SERVER.md#318-340
-
-2. **Sincronización con URL (query-state)**  
-   - **Descripción:** `useQuerySync` para leer/escribir filtros en `route.query`, aplicando parseo seguro (`parseInt`, `toISO`).  
-   - **Objetivo:** Permitir compartir URLs y mantener estado entre recargas.  
-   - **Beneficios:** Mejor colaboración y depuración.  
-   - **Referencia:** @docs/COMPONENTES manage y admin.MD#232-305
-
-3. **Persistencia temporal en Pinia**  
-   - **Descripción:** Guardar filtros y draft de formularios en Pinia con expiración (`setTimeout`/TTL).  
-   - **Objetivo:** Evitar pérdida de trabajo en wizard de cartas.  
-   - **Beneficios:** Incrementa satisfacción del usuario y reduce reprocesos.  
-   - **Referencia:** @docs/PROJECT_INFO.md#27-41
-
-## Interacción con API
-
-1. **Factories de endpoints**  
-   - **Descripción:** Crear `createCrudEndpoints(basePath)` que devuelva métodos tipados (`list`, `get`, `post`, `patch`, `delete`) usando Kysely types.  
-   - **Objetivo:** Evitar hardcodeo de rutas y mantener tipado común.  
-   - **Beneficios:** Cambios rápidos si se versiona API y reducción de errores de string.  
-   - **Referencia:** @docs/SERVER.md#285-334
-
-2. **Soporte para import/export**  
-   - **Descripción:** Incluir helpers `useEntityExport` y `useEntityImport` que llamen a endpoints dedicados y manejen descargas/subidas con feedback de progreso.  
-   - **Objetivo:** Simplificar operaciones masivas desde UI.  
-   - **Beneficios:** Mayor productividad editorial y menor riesgo de errores manuales.  
-   - **Referencia:** @docs/API.MD#223-312
-
-3. **Batch actions con confirmación**  
-   - **Descripción:** Implementar `useBatchMutation` que reciba `{ ids, payload }` y maneje confirmaciones, loaders y toasts homogéneos.  
-   - **Objetivo:** Establecer patrón para `batch.patch` (tags, estados).  
-   - **Beneficios:** UX coherente y menor duplicación de lógica en tablas.  
-   - **Referencia:** @docs/API.MD#348-417
-
-## i18n en composables
-
-1. **Idioma derivado del runtime**  
-   - **Descripción:** Resolver `const lang = useI18n().locale.value` y pasarlo a `useApiFetch` como query `lang`, centralizando fallback.  
-   - **Objetivo:** Sincronizar capa cliente con reglas del servidor.  
-   - **Beneficios:** Traducciones coherentes y reducción de bugs por idioma.  
-   - **Referencia:** @docs/SERVER.md#315-332
-
-2. **Indicadores de fallback**  
-   - **Descripción:** Retornar `isFallback` cuando `language_code_resolved !== lang`, para mostrar badges en UI.  
-   - **Objetivo:** Alertar al usuario de traducciones incompletas.  
-   - **Beneficios:** Priorización más rápida de localización.  
-   - **Referencia:** @docs/SERVER.md#315-332
-
-3. **Helpers de traducción para formularios**  
-   - **Descripción:** Crear `useTranslationFields({ entity, lang })` que prepare modelo con campos traducibles y fallback a EN.  
-   - **Objetivo:** Reducir boilerplate en formularios multilenguaje.  
-   - **Beneficios:** Menos errores y formularios auto poblados correctamente.  
-   - **Referencia:** @docs/PROJECT_INFO.md#14-21
-
-## Patrones recomendados
-
-1. **Composable de capacidades**  
-   - **Descripción:** `useEntityCapabilities(kind)` que concentre banderas (`translatable`, `hasTags`, `hasPreview`) y se consuma en componentes.  
-   - **Objetivo:** Evitar props booleanas múltiples y habilitar configuración central.  
-   - **Beneficios:** Escalabilidad y coherencia entre admin/manage.  
-   - **Referencia:** @docs/COMPONENTES manage y admin.MD#75-94
-
-2. **Composición funcional**  
-   - **Descripción:** Combinar hooks especializados (`useFilters`, `usePagination`, `useSorting`) dentro de `useEntity`.  
-   - **Objetivo:** Mantener SRP y permitir reutilizar piezas pequeñas según contexto.  
-   - **Beneficios:** Mayor flexibilidad y tests unitarios más granulares.  
-   - **Referencia:** @docs/SERVER.md#506-549
-
-3. **Testing con escenarios mock**  
-   - **Descripción:** Proveer factories `createMockEntityComposable` que usen datos de fixtures para storybook/tests.  
-   - **Objetivo:** Validar UX y lógica sin depender del backend.  
-   - **Beneficios:** Desarrollo paralelo frontend/backend y detección temprana de regressions.  
-   - **Referencia:** @docs/PROJECT_INFO.md#27-41
+## Conclusiones
+El set de composables de Tarot2 ya ofrece una base robusta para SSR, multi-idioma y administración. Las mejoras deben enfocarse en centralizar capacidades, reducir duplicación (selección, paginación) y añadir telemetría ligera, manteniendo el patrón de contratos tipados y caché coherente que caracteriza al proyecto.

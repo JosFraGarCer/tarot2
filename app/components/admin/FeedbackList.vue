@@ -105,9 +105,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { watch } from 'vue'
 import { formatDate } from '@/utils/date'
 import { navigateTo } from '#app'
+import { useTableSelection } from '@/composables/common/useTableSelection'
 
 type FeedbackListItem = {
   id: number
@@ -128,17 +129,34 @@ type FeedbackListItem = {
 const props = defineProps<{ items: FeedbackListItem[]; isEditor?: boolean }>()
 const selected = defineModel<number[]>('selected', { default: [] })
 
-function isSelected(id:number) { return selected.value.includes(id) }
-function toggleOne(id:number, v:boolean) {
-  const set = new Set(selected.value)
-  if (v) set.add(id); else set.delete(id)
-  selected.value = Array.from(set)
+const selection = useTableSelection(() => props.items.map(item => item.id))
+
+function arraysEqual(a: number[], b: number[]): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false
+  }
+  return true
 }
-const allChecked = computed(() => props.items?.length>0 && selected.value.length === props.items.length)
-const indeterminate = computed(() => selected.value.length>0 && !allChecked.value)
-function toggleAll(v:boolean) {
-  if (v) selected.value = props.items.map(i => i.id)
-  else selected.value = []
+
+watch(selected, (ids) => {
+  if (!arraysEqual(ids, selection.selectedList.value)) {
+    selection.setSelected(ids)
+  }
+}, { immediate: true })
+
+watch(selection.selectedList, (ids) => {
+  if (!arraysEqual(ids, selected.value)) {
+    selected.value = ids
+  }
+})
+
+const isSelected = selection.isSelected
+const toggleOne = selection.toggleOne
+const allChecked = selection.isAllSelected
+const indeterminate = selection.isIndeterminate
+function toggleAll(value: boolean) {
+  selection.toggleAll(value)
 }
 
 function renderEntity(item: FeedbackListItem) {

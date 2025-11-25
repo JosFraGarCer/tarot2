@@ -1,131 +1,72 @@
-# Server – Plan de optimización
+# Informe técnico: Server + API Tarot2
 
-## Estructura óptima
+## Visión general
+El backend de Tarot2 corre sobre Nuxt 4/H3, estructurado por dominio bajo `server/api/<entidad>`. Cada módulo aplica Zod para validar entradas, Kysely para consultas tipadas y helpers transversales (`buildFilters`, `createPaginatedResponse`). El middleware `00.auth.hydrate` hidrata el usuario desde cookie JWT y `01.auth.guard` protege el resto de rutas, garantizando políticas de roles centralizadas.[@docs/SERVER.md#1-140][@docs/API.MD#5-40]
 
-1. **Arbolado modular por dominio con utilidades comunes**  
-   - **Descripción:** Consolidar `/server/api/<entidad>` manteniendo handlers livianos y moviendo lógica repetida a `server/utils` (filtros, tags, i18n, seguridad contextual).  
-   - **Objetivo:** Simplificar la navegación del repositorio y reforzar la separación de responsabilidades dominio/utilidades.  
-   - **Beneficios:** Refactors predecibles, incorporación de nuevas entidades más rápida y reducción de líneas duplicadas.  
-   - **Referencia:** @docs/SERVER.md#20-112
+## Arquitectura y middleware
+- **Plugins globales**: `server/plugins/db.ts` (Kysely PostgresDialect), `server/plugins/logger.ts` (Pino), `server/plugins/auth.ts` (helpers JWT).[@docs/SERVER.md#49-110]
+- **Middleware**:
+  - `00.auth.hydrate`: verifica `auth_token`, carga usuario/roles, fusiona permisos.[@docs/SERVER.md#128-140]
+  - `01.auth.guard`: bloquea `/api/*` salvo login/logout; niega usuarios suspendidos y usa permisos agregados.[@docs/API.MD#31-42]
+- **Rate limiting pendiente**: docs y memorias indican necesidad de middleware `02.rate-limit` para login/logout/publish/revert; aún no implementado.
 
-2. **Capas de plugin explícitas**  
-   - **Descripción:** Mantener `db`, `logger` y `auth` como plugins inicializados en Nitro, documentando su inicialización y dependencia en un README interno.  
-   - **Objetivo:** Evitar inicializaciones circulares y facilitar pruebas unitarias mockeando estos servicios.  
-   - **Beneficios:** Mayor testabilidad, load order claro y soporte para ejecución serverless.  
-   - **Referencia:** @docs/SERVER.md#7-18
+## Organización de rutas
+Cada entidad dispone de CRUD completo y utilidades de export/import:
+- `server/api/<entity>/index.get|post.ts`
+- `server/api/<entity>/[id].get|patch|delete.ts`
+- `server/api/<entity>/batch.patch.ts`
+- `server/api/<entity>/export.get.ts`
+- `server/api/<entity>/import.post.ts`
+Esto aplica a `world`, `world_card`, `arcana`, `base_card`, `card_type`, `skill`, `facet`, `tag`, `user`, `role` y recursos editoriales (`content_versions`, `content_revisions`, `content_feedback`).[@docs/SERVER.md#285-335]
 
-## Refactor de CRUD repetido
+### Casos destacados
+- **Auth**: `POST /api/auth/login` y `POST /api/auth/logout` (debe limpiar cookie).[ @docs/API.MD#31-40 ]
+- **Users**: rutas singular `/api/user/*` con agregación de roles y JSONB `permissions`.
+- **Content versions**: `GET/POST/PATCH/DELETE /api/content_versions`, `POST /api/content_versions/publish` (endpoint presente en UI; verificar estado en server).[@docs/SERVER.md#67-144]
+- **Content revisions**: `GET/PATCH/DELETE /api/content_revisions`, `POST /api/content_revisions/:id/revert`.
+- **Content feedback**: filtros avanzados con joins condicionados por `entity_relation`; logging registra página, filtros y `timeMs`.[@server/api/content_feedback/index.get.ts#28-136]
+- **Uploads**: conversión a AVIF con Sharp, validaciones de peso/mimetype.[@docs/API.MD#313-332]
+- **Database import/export**: endpoints JSON/SQL para respaldos (`server/api/database`).
 
-1. **Generar helpers `createCrudHandlers`**  
-   - **Descripción:** Construir un generador que reciba tabla base, traducciones y metadatos para devolver `index/list`, `get`, `create`, `update`, `delete`, reutilizando `entityCrudHelpers` y `buildFilters`.  
-   - **Objetivo:** Eliminar repetición en entidades similares (world, arcana, facet, base_card).  
-   - **Beneficios:** Ciclo de desarrollo más rápido y menor riesgo de divergencias en validaciones o logs.  
-   - **Referencia:** @docs/API.MD#334-673
+## Conexión con PostgreSQL
+- **Tipado**: `server/database/types.ts` define la interfaz `DB`, generada vía Kysely.
+- **Esquema**: ver `docs/SCHEMA POSTGRES..TXT`, que incluye tipos enumerados (`card_status`, `release_stage`, `user_status`, `feedback_status`) y tablas con triggers de timestamps.[@docs/SCHEMA POSTGRES..TXT#7-884]
+- **Internacionalización**: tablas `_translations` con FK `language_code` (dominio ISO 639-1 + ISO 3166 opcional). Borrado condicional por idioma (si `lang === 'en'` se elimina entidad completa).[@docs/SCHEMA POSTGRES..TXT#32-708]
+- **Versionado**: `content_versions` y `content_revisions` permiten auditar cambios editoriales; `release` (enum) gobierna etapas `dev|alfa|beta|candidate|release|revision`.[@docs/SCHEMA POSTGRES..TXT#417-437]
 
-2. **Zod schemas compartidos por dominio**  
-   - **Descripción:** Extraer validaciones de queries/cuerpos a `server/schemas/<entidad>.ts` para consumo por generador CRUD.  
-   - **Objetivo:** Centralizar reglas de negocio y habilitar reuso en pruebas contractuales.  
-   - **Beneficios:** Menos bugs por validaciones omitidas y documentación autogenerable.  
-   - **Referencia:** @docs/SERVER.md#573-588
+## Estándares de API
+- **Formato respuesta**: `{ success: true, data, meta? }` para éxito; helpers `createResponse` y `createPaginatedResponse` en `server/utils/response.ts`.[@docs/API.MD#26-33]
+- **Validación**: `safeParseOrThrow` (Zod) lanza `createError` con detalles 400/422.
+- **Filtros/paginación**: `buildFilters` gestiona `page`, `pageSize`, `search`, `sort`, `direction`, rangos `created/resolved`, semántica de tags y conteos totales.[@docs/SERVER.md#95-137][@docs/API.MD#15-27]
+- **Idiomas**: `server/utils/i18n.ts` resuelve `lang|language|locale`, generando fallback `language_code_resolved` en consultas SQL.[@docs/SERVER.md#215-332]
 
-## Patrones para handlers
+## Observabilidad y seguridad
+- **Logging**: Pino registra filtros, idioma y tiempos. Centros críticos: monitorear `timeMs`, `resolvedSort` y contadores de filas, sumado a errores con contexto.[@server/api/content_feedback/index.get.ts#95-137]
+- **Seguridad pendiente**: añadir rate limiting, limpiar cookie en logout, reforzar validación de permisos en endpoints publish/revert, auditar import/export (tamaño, formato).
+- **Métricas**: sugerido introducir `X-Request-Id`, logging de `user_id` (cuando aplique) y contadores de cambios (p.ej. revisiones aprobadas por publicación).
 
-1. **Pipeline estándar**  
-   - **Descripción:** Aplicar secuencia `auth -> parse query -> lang -> filtros -> payload` con early returns, incorporando logs con contexto.  
-   - **Objetivo:** Hacer handlers predecibles y fáciles de leer.  
-   - **Beneficios:** Depuración acelerada y tiempos de desarrollo reducidos.  
-   - **Referencia:** @docs/SERVER.md#307-332
+## Integración con frontend
+- **useApiFetch**: wrapper con ETag y caché 304; conviene usarlo en todas las llamadas para evitar `$fetch` directo.[@docs/API.MD#24][@docs/SERVER.md#164]
+- **Composables**: `useEntity`, `useContentVersions`, `useContentFeedback` consumen la semántica de meta y filtros, mapeando `meta` estándar a estado local.[@app/composables/manage/useEntity.ts#19-392][@app/composables/admin/useContentVersions.ts#76-159][@app/composables/admin/useContentFeedback.ts#114-360]
+- **Permisos**: `useCurrentUser` expone roles/permissions merged; la UI habilita acciones según flags (resoluciones, aprobación, publicación).
 
-2. **Middleware por capacidad**  
-   - **Descripción:** Extender `01.auth.guard` para aceptar capacidades (ej. `requiresPermission('canManageUsers')`) en metadatos de ruta.  
-   - **Objetivo:** Alinear la autorización de forma declarativa en cada handler.  
-   - **Beneficios:** Seguridad reforzada y menor duplicación en checks manuales.  
-   - **Referencia:** @docs/API.MD#31-42
+## Checklist de mejora
+1. Implementar middleware `02.rate-limit` con stores en Redis/PG (login/logout/publish/revert) y actualizar docs.[Memoria]
+2. Garantizar que `POST /api/auth/logout` limpie cookie `auth_token` (`setCookie(name, '', { maxAge: 0 })`).
+3. Consolidar helper SQL para agregación de tags repetido en distintos modules.
+4. Introducir `useServerPagination` (wrapper `buildFilters`) para reducir boilerplate en handlers con lógica similar.
+5. Uniformar logging de publish/revert con conteos (`totalEntities`, `totalRevisionsPublished`).
+6. Validar semántica AND de tags vs OR en endpoints que aún usan ANY (alineación doc/código).
+7. Ampliar tests E2E (Playwright) cubriendo flujos editoriales (publish, revert), feedback con filtros avanzados y SSR de listados.
+8. Documentar alias de rutas legacy (`/api/users` vs `/api/user`) para compatibilidad, o exponer alias temporal.
 
-## Limpieza de rutas
+## Roadmap backend
+| Prioridad | Acción | Impacto |
+| --- | --- | --- |
+| Alta | Rate limiting, logout correcto, logging publish/revert | Seguridad, compliance |
+| Media | Helper agregación tags + `useServerPagination` | Menos duplicación y bugs |
+| Media | Pruebas integrales SSR/ETag | Rendimiento y coherencia |
+| Baja | Telemetría avanzada (OpenTelemetry light) | Observabilidad |
 
-1. **Unificar convenciones singulares**  
-   - **Descripción:** Mantener `/api/user/*` como estándar e introducir alias opcional `/api/users` con redirección/documentación clara hasta migrar clientes.  
-   - **Objetivo:** Evitar confusiones entre singular/plural y reducir incidencias de documentación.  
-   - **Beneficios:** Soporte más simple y menor carga cognitiva para nuevos devs.  
-   - **Referencia:** @docs/PROJECT_INFO.md#154-164
-
-2. **Endpoints de publicación claramente versionados**  
-   - **Descripción:** Completar `POST /api/content_versions/publish` y `/api/content_revisions/:id/revert` usando patrones existentes de helpers y autorización.  
-   - **Objetivo:** Cerrar discrepancias entre UI/documentación y API.  
-   - **Beneficios:** Flujo editorial completo y disminución de errores manuales.  
-   - **Referencia:** @docs/PROJECT_INFO.md#161-168
-
-## Optimización de queries Kysely
-
-1. **Subconsultas para tags reutilizables**  
-   - **Descripción:** Extraer la subquery JSON de tags a helper `selectTagsAggregation({ entityType, alias, lang })` para aplicar en list/detalle.  
-   - **Objetivo:** Evitar copiar SQL y asegurar semántica AND consistente.  
-   - **Beneficios:** Mantenibilidad elevada y performance estable al permitir tuning centralizado.  
-   - **Referencia:** @docs/SERVER.md#318-340
-
-2. **Indices y hints explícitos**  
-   - **Descripción:** Validar que los índices definidos (ej. `idx_content_feedback_entity_status`) se utilicen y añadir `explainAnalyze` durante tuning; documentar recomendaciones en migraciones.  
-   - **Objetivo:** Mantener tiempos de respuesta bajos al crecer el dataset.  
-   - **Beneficios:** Latencia estable y previsibilidad bajo carga.  
-   - **Referencia:** @docs/SCHEMA POSTGRES..TXT#384-408
-
-3. **Caching fino con ETag/If-None-Match**  
-   - **Descripción:** Propagar cabeceras ETag desde handlers list/detalle aprovechando `createPaginatedResponse`, combinando `hash({ items, meta })`.  
-   - **Objetivo:** Reducir consumo de CPU/DB en consultas repetitivas.  
-   - **Beneficios:** Mejor TTFB e integración óptima con SSR y `useApiFetch`.  
-   - **Referencia:** @docs/PROJECT_INFO.md#126-165
-
-## Seguridad y autenticación
-
-1. **Logout efectivo**  
-   - **Descripción:** Actualizar `POST /api/auth/logout` para limpiar cookie (`setCookie('auth_token', '', { maxAge: 0, ... })`) y registrar evento.  
-   - **Objetivo:** Evitar sesiones persistentes tras logout.  
-   - **Beneficios:** Cumplimiento de buenas prácticas y reducción de riesgo de secuestro de sesión.  
-   - **Referencia:** @docs/PROJECT_INFO.md#131-135
-
-2. **Rate limiting y auditoría**  
-   - **Descripción:** Incorporar middleware de `event.context.logger` para registrar intentos fallidos y añadir rate limiting básico (ej. `h3-rate-limit`) a rutas sensibles.  
-   - **Objetivo:** Mitigar ataques de fuerza bruta y abusos de API.  
-   - **Beneficios:** Seguridad fortalecida y cumplimiento de requisitos de producción.  
-   - **Referencia:** @docs/PROJECT_INFO.md#168-170
-
-3. **Permisos derivados en contexto**  
-   - **Descripción:** Extender `event.context.user` con `scopes` calculados (p.ej. `canPublish`, `canTranslate`) para consumo directo en handlers.  
-   - **Objetivo:** Simplificar autorizaciones y reflejar cambios de roles en caliente.  
-   - **Beneficios:** Lógica menos duplicada y menor riesgo de desincronización con frontend.  
-   - **Referencia:** @docs/API.MD#31-118
-
-## i18n back-end consistente
-
-1. **Fallback explícito en responses**  
-   - **Descripción:** Añadir campo `isFallback: boolean` junto a `language_code_resolved` para informar a la UI cuando usa traducción EN.  
-   - **Objetivo:** Permitir a UI marcar contenidos sin traducción local.  
-   - **Beneficios:** Mejor workflow de traducción y priorización de pendientes.  
-   - **Referencia:** @docs/SERVER.md#315-332
-
-2. **Operaciones CRUD multilenguaje transaccionales**  
-   - **Descripción:** En create/update, envolver inserciones de base + traducción en transacción Kysely (`db.transaction().execute(...)`).  
-   - **Objetivo:** Prevenir estados intermedios sin traducción inicial.  
-   - **Beneficios:** Integridad de datos y rollback confiable ante errores.  
-   - **Referencia:** @docs/API.MD#205-227
-
-3. **Helpers para eliminación condicionada por idioma**  
-   - **Descripción:** Generalizar lógica de borrado (si `lang==='en'` eliminar entidad; de lo contrario solo traducción) en helper `deleteLocalizedEntity`.  
-   - **Objetivo:** Evitar errores cuando se añadan nuevas entidades traducibles.  
-   - **Beneficios:** Comportamiento uniforme y menor duplicación.  
-   - **Referencia:** @docs/PROJECT_INFO.md#18-21
-
-## Uso de helpers transversales
-
-1. **Respuesta unificada para import/export**  
-   - **Descripción:** Encapsular `exportEntities` y `importEntities` en servicio `entityTransferService` con logging y validación previa.  
-   - **Objetivo:** Normalizar la experiencia de import/export y preparar métricas.  
-   - **Beneficios:** Observabilidad mejorada y facilidad para extender a nuevas tablas.  
-   - **Referencia:** @docs/API.MD#223-312
-
-2. **Validador de queries reusable**  
-   - **Descripción:** Crear helper `parseQuery(event, schema)` que centralice lectura de query, validación Zod y logs de parámetros.  
-   - **Objetivo:** Reducir boilerplate y asegurar logs consistentes.  
-   - **Beneficios:** Código más limpio y auditoría fiable de filtros usados.  
-   - **Referencia:** @docs/SERVER.md#506-549
+## Conclusión
+El backend ya cuenta con estructura modular sólida, contratos normalizados y soporte multi-idioma. El foco inmediato debe estar en seguridad (rate limits, logout), convergencia de helpers y observabilidad, asegurando que la UI y los composables sigan beneficiándose de metadatos coherentes y caché eficiente.

@@ -10,8 +10,8 @@
       </div>
       <div class="ml-auto flex gap-2">
         <UButton size="xs" variant="soft" color="neutral" :disabled="pending" @click="reload">{{ $t('ui.actions.refresh','Refresh') }}</UButton>
-        <UButton size="xs" color="primary" :disabled="!isEditor || selectedIds.length===0" :title="!isEditor ? $t('ui.messages.noPermission') : ''" @click="bulkApprove">{{ $t('features.admin.revisions.approveSelected','Approve selected') }}</UButton>
-        <UButton size="xs" color="error" variant="soft" :disabled="!isEditor || selectedIds.length===0" :title="!isEditor ? $t('ui.messages.noPermission') : ''" @click="bulkReject">{{ $t('features.admin.revisions.rejectSelected','Reject selected') }}</UButton>
+        <UButton size="xs" :disabled="!isEditor || !hasSelectedItems" :title="!isEditor ? $t('ui.messages.noPermission') : ''" @click="bulkApprove">{{ $t('features.admin.revisions.approveSelected','Approve selected') }}</UButton>
+        <UButton size="xs" color="error" variant="soft" :disabled="!isEditor || !hasSelectedItems" :title="!isEditor ? $t('ui.messages.noPermission') : ''" @click="bulkReject">{{ $t('features.admin.revisions.rejectSelected','Reject selected') }}</UButton>
       </div>
     </div>
 
@@ -19,7 +19,7 @@
       <table class="min-w-full text-sm">
         <thead>
           <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-            <th class="py-2 pr-2"><UCheckbox v-model="allChecked" :indeterminate="indeterminate" @change="toggleAll" /></th>
+            <th class="py-2 pr-2"><UCheckbox :model-value="allChecked" :indeterminate="indeterminate" @update:model-value="val => toggleAll(val)" /></th>
             <th class="py-2 pr-4">{{ $t('ui.fields.entity','Entity') }}</th>
             <th class="py-2 pr-4">{{ $t('ui.fields.language','Language') }}</th>
             <th class="py-2 pr-4">{{ $t('ui.fields.status','Status') }}</th>
@@ -29,7 +29,7 @@
         </thead>
         <tbody>
           <tr v-for="r in items" :key="r.id" class="border-b border-gray-100 dark:border-gray-800">
-            <td class="py-2 pr-2"><UCheckbox :model-value="selectedMap[r.id] || false" @update:model-value="v => toggleOne(r.id, v)" /></td>
+            <td class="py-2 pr-2"><UCheckbox :model-value="isSelected(r.id)" @update:model-value="v => toggleOne(r.id, v)" /></td>
             <td class="py-2 pr-4 text-xs">{{ r.entity_type }}#{{ r.entity_id }}</td>
             <td class="py-2 pr-4">{{ r.language_code || '—' }}</td>
             <td class="py-2 pr-4"><UBadge variant="soft">{{ r.status }}</UBadge></td>
@@ -72,6 +72,7 @@ import { formatDate } from '@/utils/date'
 import { useCurrentUser } from '@/composables/users/useCurrentUser'
 import PaginationControls from '@/components/common/PaginationControls.vue'
 import { useDebounceFn } from '@vueuse/core'
+import { useTableSelection } from '@/composables/common/useTableSelection'
 
 const { t } = useI18n()
 
@@ -105,15 +106,18 @@ const isEditor = computed(() => {
   return roles.includes('admin') || roles.includes('editor')
 })
 
-const selectedMap = reactive<Record<number, boolean>>({})
-const selectedIds = computed(() => Object.entries(selectedMap).filter(([,v]) => v).map(([k]) => Number(k)))
-const allChecked = computed(() => items.value.length>0 && selectedIds.value.length === items.value.length)
-const indeterminate = computed(() => selectedIds.value.length>0 && !allChecked.value)
+const selection = useTableSelection(() => items.value.map(r => r.id))
+const selectedIds = selection.selectedList
+const hasSelectedItems = computed(() => selectedIds.value.length > 0)
+const allChecked = selection.isAllSelected
+const indeterminate = selection.isIndeterminate
 
-function toggleOne(id:number, v:boolean) { selectedMap[id] = v }
-function toggleAll() {
-  const target = !allChecked.value
-  for (const r of items.value) selectedMap[r.id] = target
+const isSelected = selection.isSelected
+function toggleOne(id:number, value:boolean) {
+  selection.toggleOne(id, value)
+}
+function toggleAll(value?: boolean) {
+  selection.toggleAll(value)
 }
 
 const pagination = reactive({ page: 1, pageSize: 20 })
@@ -159,13 +163,13 @@ async function setOne(id:number, status:'approved'|'rejected'|'draft'|'published
 async function bulkApprove() {
   if (!isEditor.value || selectedIds.value.length===0) return
   await bulkSetStatus(selectedIds.value, 'approved')
-  for (const id of selectedIds.value) selectedMap[id] = false
+  selection.clear()
   await reload()
 }
 async function bulkReject() {
   if (!isEditor.value || selectedIds.value.length===0) return
   await bulkSetStatus(selectedIds.value, 'rejected')
-  for (const id of selectedIds.value) selectedMap[id] = false
+  selection.clear()
   await reload()
 }
 

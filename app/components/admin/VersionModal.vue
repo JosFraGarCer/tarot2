@@ -2,45 +2,79 @@
 <template>
   <UModal
     v-model:open="open"
-    :title="isEdit ? tt('versions.editTitle', 'Edit version') : tt('versions.createTitle', 'Create version')"
-    :description="tt('domains.version.modalDescription', 'Provide version information and optional metadata')"
+    :title="modalTitle"
+    :description="modalDescription"
+    role="dialog"
+    aria-modal="true"
+    :aria-labelledby="titleId"
+    :aria-describedby="descriptionId"
+    @update:open="handleOpenUpdate"
   >
+    <template #header="{ title, description }">
+      <div>
+        <h2 :id="titleId" class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h2>
+        <p :id="descriptionId" class="text-sm text-gray-600 dark:text-gray-300">{{ description }}</p>
+      </div>
+    </template>
+
     <template #body>
-      <form class="space-y-4" @submit.prevent="submit">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.version', 'Version (semver)') }}</label>
-          <UInput v-model="form.version_semver" placeholder="1.0.0" @input="validateSemver" />
-          <p v-if="semverError" class="text-xs mt-1 text-error">{{ semverError }}</p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.description', 'Description') }}</label>
-          <UTextarea v-model="form.description" :rows="3" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.release.label', 'Release type') }}</label>
-          <USelectMenu
-            v-model="form.release"
-            :items="releaseItems"
-            value-key="value"
-            option-attribute="label"
-            class="w-full"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.metadata', 'Metadata (JSON)') }}</label>
-          <UTextarea v-model="form.metadataText" :rows="6" placeholder='{"key":"value"}' />
-          <p v-if="metaError" class="text-xs text-error mt-1">{{ metaError }}</p>
-        </div>
-      </form>
+      <UFocusTrap v-if="open">
+        <form
+          class="space-y-4"
+          :aria-labelledby="titleId"
+          :aria-describedby="formDescriptionId"
+          @submit.prevent="submit"
+        >
+          <p :id="formDescriptionId" class="sr-only">{{ modalDescription }}</p>
+          <div>
+            <label :for="semverId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.version', 'Version (semver)') }}</label>
+            <UInput
+              :id="semverId"
+              ref="firstFieldRef"
+              v-model="form.version_semver"
+              placeholder="1.0.0"
+              autocomplete="off"
+              @input="validateSemver"
+            />
+            <p v-if="semverError" :id="semverErrorId" class="text-xs mt-1 text-error">{{ semverError }}</p>
+          </div>
+          <div>
+            <label :for="descriptionFieldId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.description', 'Description') }}</label>
+            <UTextarea :id="descriptionFieldId" v-model="form.description" :rows="3" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.release.label', 'Release type') }}</label>
+            <USelectMenu
+              v-model="form.release"
+              :items="releaseItems"
+              value-key="value"
+              option-attribute="label"
+              class="w-full"
+            />
+          </div>
+          <div>
+            <label :for="metadataFieldId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.metadata', 'Metadata (JSON)') }}</label>
+            <UTextarea :id="metadataFieldId" v-model="form.metadataText" :rows="6" placeholder='{"key":"value"}' />
+            <p v-if="metaError" :id="metaErrorId" class="text-xs text-error mt-1">{{ metaError }}</p>
+          </div>
+        </form>
+      </UFocusTrap>
     </template>
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton variant="soft" color="neutral" :label="tt('ui.actions.cancel', 'Cancel')" @click="close" />
-        <UButton color="primary" :label="tt('ui.actions.save', 'Save')" :loading="saving" :disabled="Boolean(semverError)" @click="submit" />
+        <UButton ref="cancelButtonRef" variant="soft" color="neutral" :label="tt('ui.actions.cancel', 'Cancel')" @click="close" />
+        <UButton
+          color="primary"
+          :label="tt('ui.actions.save', 'Save')"
+          :loading="saving"
+          :disabled="Boolean(semverError)"
+          @click="submit"
+        />
       </div>
     </template>
   </UModal>
+  <div v-if="semverError || metaError" class="sr-only" aria-live="assertive">{{ semverError || metaError }}</div>
 </template>
 
 <script setup lang="ts">
@@ -70,6 +104,21 @@ const form = reactive<{ id?: number; version_semver: string; description?: strin
   metadataText: JSON.stringify(props.value?.metadata ?? {}, null, 2),
   release: props.value?.release || 'alfa'
 })
+
+const titleId = `version-modal-title`
+const descriptionId = `version-modal-description`
+const formDescriptionId = `version-modal-form-desc`
+const semverId = `version-modal-semver`
+const semverErrorId = `version-modal-semver-error`
+const metadataFieldId = `version-modal-metadata`
+const metaErrorId = `version-modal-meta-error`
+const descriptionFieldId = `version-modal-description-field`
+
+const modalTitle = computed(() => isEdit.value ? tt('versions.editTitle', 'Edit version') : tt('versions.createTitle', 'Create version'))
+const modalDescription = computed(() => tt('domains.version.modalDescription', 'Provide version information and optional metadata'))
+
+const firstFieldRef = ref<HTMLElement | null>(null)
+const triggerButton = ref<HTMLElement | null>(null)
 
 watch(() => props.value, (v) => {
   form.id = v?.id
@@ -120,5 +169,24 @@ function validateSemver() {
   } else {
     semverError.value = null
   }
+}
+
+watch(open, (value) => {
+  if (value) {
+    triggerButton.value = document.activeElement as HTMLElement | null
+    nextTick(() => {
+      const inputEl = document.getElementById(semverId) as HTMLInputElement | null
+      inputEl?.focus()
+    })
+  } else {
+    nextTick(() => {
+      triggerButton.value?.focus?.()
+      triggerButton.value = null
+    })
+  }
+})
+
+function handleOpenUpdate(value: boolean) {
+  open.value = value
 }
 </script>

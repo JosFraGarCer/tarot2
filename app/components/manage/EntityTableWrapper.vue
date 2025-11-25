@@ -87,11 +87,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from '#imports'
 import EntityTable from '~/components/manage/view/EntityTable.vue'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 import type { ManageCrud } from '@/types/manage'
+import { useTableSelection } from '@/composables/common/useTableSelection'
 
 const props = defineProps<{
   crud: ManageCrud
@@ -113,7 +114,8 @@ const emit = defineEmits<{
   (e: 'tags', entity: any): void
 }>()
 
-const selectedIds = ref<number[]>([])
+const selection = useTableSelection(() => props.crud.items.value.map(item => item?.id ?? item?.uuid ?? item?.code))
+const selectedIds = selection.selectedList
 
 const resourcePath = computed(() => props.crud?.resourcePath || '')
 const crudResource = computed(() => ({ resourcePath: resourcePath.value }))
@@ -291,7 +293,7 @@ function resolveImage(entity: any): string | null {
 }
 
 function onUpdateSelected(ids: number[]) {
-  selectedIds.value = ids
+  selection.setSelected(ids)
 }
 
 const isTagEntity = computed(() => {

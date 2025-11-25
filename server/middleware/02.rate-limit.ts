@@ -14,8 +14,8 @@ const SENSITIVE_LIMIT = {
 const SENSITIVE_PATTERNS: Array<{ regex: RegExp; identifier: string }> = [
   { regex: /^\/?api\/auth\/login(?:\/?|$)/i, identifier: 'auth.login' },
   { regex: /^\/?api\/auth\/logout(?:\/?|$)/i, identifier: 'auth.logout' },
-  { regex: /^\/?api\/content_versions\/publish(?:\/?|$)/i, identifier: 'content_versions.publish' },
-  { regex: /^\/?api\/content_revisions\//i, identifier: 'content_revisions' },
+  { regex: /^\/??api\/content_versions\/publish(?:\/??|$)/i, identifier: 'content_versions.publish' },
+  { regex: /^\/??api\/content_revisions\/(?:[^/]+)\/revert(?:\/??|$)/i, identifier: 'content_revisions.revert' },
 ]
 
 export default defineEventHandler((event) => {
