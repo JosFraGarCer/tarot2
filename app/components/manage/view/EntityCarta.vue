@@ -9,7 +9,7 @@
           :is="Resolved"
           v-if="templateKey === 'Class'"
           class="shadow-lg shadow-gray-800"
-          :type-label="resolveTypeLabel(item)"
+          :type-label="showCardType ? resolveTypeLabel(item) : ''"
           :name="item.name"
           :short-text="item.short_text"
           :description="item.description"
@@ -25,7 +25,7 @@
           :short-text="item.short_text"
           :description="item.description"
           :img="resolveImage(item.image)"
-          :card-info="resolveTypeLabel(item)"
+          :card-info="showCardType ? resolveTypeLabel(item) : null"
           :legacy-effects="item.legacy_effects"
           :effects-markdown="resolveEffectsMarkdown(item)"
         />
@@ -37,7 +37,7 @@
           :entity="item"
           :entity-label="label"
           :entity-type="label"
-          :no-tags="noTags || isTagEntity"
+          :no-tags="!allowTags || isTagEntity"
           vertical
           @edit="() => emit('edit', item)"
           @feedback="() => emit('feedback', item)"
@@ -56,12 +56,13 @@
           size="sm"
         />
         <StatusBadge
-          :status="item.status"
-          kind="card"
+          v-if="allowPreview"
+          type="status"
+          :value="typeof item.status === 'string' ? item.status : null"
         />
       </div>
 
-      <div v-if="!noTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap justify-center gap-1">
+      <div v-if="allowTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap justify-center gap-1">
         <UBadge
             v-for="(tag, idx) in item.tags"
             :key="tag.id ?? tag.code ?? idx"
@@ -84,6 +85,7 @@ import { useCardTemplates } from '~/composables/common/useCardTemplates'
 import EntityActions from '~/components/manage/EntityActions.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
+import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
 const props = defineProps<{
   crud: any
@@ -118,14 +120,39 @@ const {
   locale
 })
 
+const capabilities = useEntityCapabilities({
+  kind: () => props.entity ?? null,
+})
+
+const allowPreview = computed(() => capabilities.value.hasPreview !== false)
+
+const allowTags = computed(() => {
+  if (props.noTags === true) return false
+  if (props.noTags === false) return true
+  return capabilities.value.hasTags !== false
+})
+
+const showCardType = computed(() => {
+  const cap = capabilities.value.cardType
+  if (cap !== undefined) return Boolean(cap)
+  if (props.cardType !== undefined) return Boolean(props.cardType)
+  return false
+})
+
 const isTagEntity = computed(() => props.entity === 'tag')
 
 function onTags(entity: any) {
+  if (!allowTags.value) return
   emit('tags', entity)
 }
 
 function onDelete(entity: any) {
   emit('delete', entity)
+}
+
+function onPreview(entity: any) {
+  if (!allowPreview.value) return
+  emit('preview', entity)
 }
 
 function resolveEffectsMarkdown(item: any): string | null {

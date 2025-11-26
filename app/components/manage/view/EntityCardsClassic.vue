@@ -53,6 +53,7 @@
             <p class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1">
                <span class="truncate" :title="titleOf(item)">{{ titleOf(item) }}</span>
               <UButton
+                v-if="allowPreview"
                 icon="i-heroicons-eye"
                 size="xs"
                 color="neutral"
@@ -70,7 +71,7 @@
             </p>
 
             <p
-              v-if="cardType"
+              v-if="showCardType"
               class="text-xs text-neutral-500 dark:text-neutral-400"
             >
               {{ item.card_type_name || item.card_type_code }}
@@ -83,10 +84,7 @@
               </UBadge>
             </p>
             <div class="flex-1 space-x-2">
-              <StatusBadge
-                :status="item.status"
-                kind="card"
-              />
+              <StatusBadge type="status" :value="typeof item.status === 'string' ? item.status : null" />
               <UBadge
                 :label="(item.is_active ? t('ui.states.active') : t('ui.states.inactive')) || '-'"
                 :color="item.is_active ? 'primary' : 'neutral'"
@@ -101,7 +99,7 @@
           :entity="item"
           :entity-label="label"
           :entity-type="label"
-          :no-tags="noTags || isTagEntity"
+          :no-tags="!allowTags || isTagEntity"
           vertical
           @edit="onEditClick(item)"
           @feedback="onFeedbackClick(item)"
@@ -120,7 +118,7 @@
       </div>
 
       <!-- TAGS -->
-      <div v-if="!noTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap gap-1 mt-2">
+      <div v-if="allowTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap gap-1 mt-2">
         <UBadge
             v-for="(tag, idx) in item.tags"
             :key="tag.id ?? tag.code ?? idx"
@@ -142,6 +140,7 @@ import EntityActions from '~/components/manage/EntityActions.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 import type { ManageCrud } from '@/types/manage'
+import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
 const props = defineProps<{
   crud: ManageCrud
@@ -174,9 +173,31 @@ const {
   locale
 })
 
+const capabilities = useEntityCapabilities({
+  kind: () => props.entity ?? null,
+})
+
+const allowPreview = computed(() => capabilities.value.hasPreview !== false)
+
+const allowTags = computed(() => {
+  if (props.noTags === true) return false
+  if (props.noTags === false) return true
+  return capabilities.value.hasTags !== false
+})
+
+const showCardType = computed(() => {
+  const cap = capabilities.value.cardType
+  if (cap !== undefined) return Boolean(cap)
+  if (props.cardType !== undefined) return Boolean(props.cardType)
+  return false
+})
+
 const isTagEntity = computed(() => props.entity === 'tag')
 
-function onPreviewClick(item: any) { emit('preview', item) }
+function onPreviewClick(item: any) {
+  if (!allowPreview.value) return
+  emit('preview', item)
+}
 function onEditClick(item: any) { emit('edit', item) }
 function onDeleteClick(item: any) { emit('delete', item) }
 function onFeedbackClick(item: any) { emit('feedback', item) }

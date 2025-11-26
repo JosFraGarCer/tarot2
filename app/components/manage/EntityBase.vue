@@ -53,7 +53,175 @@
         <div class="h-48 w-full"></div>
       </template>
       <div v-if="viewMode === 'tabla'">
+        <ManageTableBridge
+          v-if="!useLegacyTable"
+          :key="(crud?.resourcePath || 'entity') + ':tabla:bridge'"
+          :items="crud.items.value"
+          :columns="displayedColumns"
+          :meta="crud.pagination.value"
+          :loading="crud.loading.value"
+          :selection="tableSelectionSource"
+          :selectable="true"
+          :entity-kind="resolvedEntityKind"
+          :capabilities="capabilities.value"
+          :title="label"
+          :resource-path="crud.resourcePath"
+          :entity-label="label"
+          :entity-key="entity"
+          :page-size-items="pageSizeItems || defaultPageSizes"
+          density="regular"
+          @update:page="onPageChange"
+          @update:pageSize="onPageSizeChange"
+          @row:click="handleRowClick"
+          @row:dblclick="handleRowDblClick"
+        >
+          <template #toolbar="{ selected }">
+            <div class="flex flex-wrap items-center gap-2">
+              <UButton
+                size="sm"
+                color="primary"
+                variant="soft"
+                icon="i-heroicons-plus"
+                @click="onCreateClickWrapper"
+              >
+                {{ $t('ui.actions.create') }}
+              </UButton>
+              <UBadge v-if="selected?.length" size="xs" variant="soft" color="primary">
+                {{ selected.length }}
+              </UBadge>
+            </div>
+          </template>
+
+          <template #bulk-actions="{ selected }">
+            <div class="flex flex-wrap items-center gap-2">
+              <UButton
+                size="sm"
+                variant="soft"
+                color="neutral"
+                icon="i-heroicons-arrow-up-tray"
+                :disabled="!selected?.length"
+                @click="() => exportSelected(selected as number[])"
+              >
+                {{ $t('ui.actions.export') }}
+              </UButton>
+              <UButton
+                size="sm"
+                variant="soft"
+                color="neutral"
+                icon="i-heroicons-arrow-path"
+                :disabled="!selected?.length"
+                @click="() => handleBulkUpdate(selected)"
+              >
+                {{ $t('ui.actions.update') }}
+              </UButton>
+            </div>
+          </template>
+
+          <template #selection="{ selected }">
+            <div class="flex flex-wrap items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+              <UBadge size="xs" color="primary" variant="soft">
+                {{ selected.length }} {{ $t('ui.table.selected') }}
+              </UBadge>
+              <UButton
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                @click="tableSelectionSource.clear()"
+              >
+                {{ $t('ui.actions.clear') }}
+              </UButton>
+            </div>
+          </template>
+
+          <template #empty>
+            <div class="flex flex-col items-center justify-center gap-4 py-10 text-center">
+              <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" />
+              <div class="space-y-2">
+                <p class="text-lg font-semibold text-neutral-700 dark:text-neutral-200">{{ emptyTitle }}</p>
+                <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ emptySubtitle }}</p>
+              </div>
+              <div class="flex flex-wrap items-center justify-center gap-2">
+                <UButton color="primary" icon="i-heroicons-plus" @click="onCreateClickWrapper">
+                  {{ emptyCreateLabel }}
+                </UButton>
+                <UButton
+                  variant="ghost"
+                  color="neutral"
+                  icon="i-heroicons-arrow-path"
+                  @click="resetFilters"
+                >
+                  {{ emptyResetLabel }}
+                </UButton>
+              </div>
+            </div>
+          </template>
+
+          <template #loading>
+            <div class="space-y-2 py-6">
+              <USkeleton v-for="n in 6" :key="`row-skeleton-${n}`" class="h-10 w-full rounded" />
+            </div>
+          </template>
+
+          <template #cell-actions="{ row }">
+            <div class="flex items-center gap-1">
+              <UButton
+                icon="i-heroicons-pencil"
+                color="primary"
+                variant="soft"
+                size="xs"
+                :aria-label="$t('ui.actions.quickEdit')"
+                @click="onEdit(row.raw ?? row)"
+              />
+              <UButton
+                icon="i-heroicons-arrows-pointing-out"
+                color="primary"
+                variant="ghost"
+                size="xs"
+                :aria-label="$t('ui.actions.fullEdit')"
+                @click="openFullEditor(row.raw ?? row)"
+              />
+              <UButton
+                v-if="row.raw && allowPreview"
+                icon="i-heroicons-eye"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :aria-label="$t('ui.actions.preview')"
+                @click="onPreview(row.raw ?? row)
+                "
+              />
+              <UButton
+                v-if="row.raw"
+                icon="i-heroicons-exclamation-triangle"
+                color="warning"
+                variant="soft"
+                size="xs"
+                aria-label="Feedback"
+                @click="onFeedback(row.raw ?? row)"
+              />
+              <UButton
+                v-if="row.raw && allowTags"
+                icon="i-heroicons-tag"
+                color="neutral"
+                variant="soft"
+                size="xs"
+                aria-label="Tags"
+                @click="onTags(row.raw ?? row)"
+              />
+              <UButton
+                icon="i-heroicons-trash"
+                color="error"
+                variant="soft"
+                size="xs"
+                aria-label="Delete"
+                @click="onDelete(row.raw ?? row)"
+              />
+            </div>
+          </template>
+        </ManageTableBridge>
+
         <EntityTableWrapper
+          v-else
           :key="(crud?.resourcePath || 'entity') + ':tabla'"
           :crud="crud"
           :label="label"
@@ -123,29 +291,52 @@
       </div>
     </ClientOnly>
 
-    <PaginationControls
-      v-if="crud?.pagination"
-      :page="page"
-      :page-size="pageSize"
-      :total-items="totalItems"
-      :total-pages="totalPages"
-      :page-size-items="pageSizeItems || defaultPageSizes"
-      @update:page="onPageChange"
-      @update:page-size="onPageSizeChange"
-    />
-<!-- MODALES -->
-    <PreviewModal
-      v-if="previewData"
-      :open="previewOpen"
-      :title="previewData.title"
-      :img="previewData.img"
-      :short-text="previewData.shortText"
-      :description="previewData.description"
-      :card-info="entityLabel"
-      :legacy-effects="previewData.legacyEffects"
-      :effects-markdown="previewData.effectsMarkdown"
-      @update:open="setPreviewOpen"
-    />
+    <ClientOnly>
+      <template #fallback>
+        <div class="h-10" />
+      </template>
+      <PaginationControls
+        v-if="crud?.pagination && (viewMode !== 'tabla' || useLegacyTable)"
+        :page="page"
+        :page-size="pageSize"
+        :total-items="totalItems"
+        :total-pages="totalPages"
+        :page-size-items="pageSizeItems || defaultPageSizes"
+        @update:page="onPageChange"
+        @update:page-size="onPageSizeChange"
+      />
+    </ClientOnly>
+<!-- DRAWERS Y MODALES -->
+    <EntityInspectorDrawer
+      v-if="previewOpen"
+      v-model:open="previewOpen"
+      :entity="previewEntityRow"
+      :raw-entity="previewRawEntity"
+      :kind="resolvedEntityKind"
+      :capabilities="capabilities.value"
+      :lang="localeCode"
+    >
+      <template #actions="{ entity: inspectedEntity }">
+        <div class="flex flex-wrap items-center gap-2">
+          <UButton
+            size="xs"
+            color="primary"
+            variant="soft"
+            icon="i-heroicons-pencil"
+            :aria-label="$t('ui.actions.quickEdit')"
+            @click="inspectedEntity && onEdit(inspectedEntity.raw ?? inspectedEntity)"
+          />
+          <UButton
+            size="xs"
+            color="primary"
+            variant="ghost"
+            icon="i-heroicons-arrows-pointing-out"
+            :aria-label="$t('ui.actions.fullEdit')"
+            @click="inspectedEntity && openFullEditor(inspectedEntity.raw ?? inspectedEntity)"
+          />
+        </div>
+      </template>
+    </EntityInspectorDrawer>
 
     <FormModal
       :open="isModalOpen"
@@ -238,14 +429,14 @@ import { useI18n, useToast } from '#imports'
 import PaginationControls from '~/components/common/PaginationControls.vue'
 import ManageEntityFilters from '~/components/manage/EntityFilters.vue'
 import EntityTableWrapper from '~/components/manage/EntityTableWrapper.vue'
+import ManageTableBridge from '~/components/manage/ManageTableBridge.vue'
 import EntityCards from '~/components/manage/view/EntityCards.vue'
 import EntityCardsClassic from '~/components/manage/view/EntityCardsClassic.vue'
 import ManageEntityCarta from '~/components/manage/view/EntityCarta.vue'
 import DeleteDialogs from '~/components/manage/common/DeleteDialogs.vue'
-import PreviewModal from '~/components/manage/modal/PreviewModal.vue'
+import EntityInspectorDrawer from '~/components/manage/EntityInspectorDrawer.vue'
 import FormModal from '~/components/manage/modal/FormModal.vue'
 import { useTranslationActions } from '~/composables/manage/useTranslationActions'
-import { useEntityPreview } from '~/composables/manage/useEntityPreview'
 import { useEntityPagination } from '~/composables/manage/useEntityPagination'
 import { useImageUpload } from '~/composables/manage/useImageUpload'
 import { useEntityDeletion } from '~/composables/manage/useEntityDeletion'
@@ -264,6 +455,8 @@ import { useEntityTags } from '~/composables/manage/useEntityTags'
 import FeedbackModal from '~/components/manage/modal/FeedbackModal.vue'
 import { useFeedback } from '~/composables/manage/useFeedback'
 import EntitySlideover from '~/components/manage/EntitySlideover.vue'
+import { provideEntityCapabilities, provideEntityCapabilitiesDefaults, resolveEntityCapabilities, useEntityCapabilities, type EntityCapabilities } from '~/composables/common/useEntityCapabilities'
+import { useTableSelection } from '@/composables/common/useTableSelection'
 
 type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
@@ -306,8 +499,29 @@ const { initializeDefaults, resetFilters } = useManageFilters(crud as any, {
 initializeDefaults()
 void crud.fetchList()
 
-// Preview composable
-const { previewOpen, previewData, setPreviewOpen, openPreviewFromEntity } = useEntityPreview()
+const previewOpen = ref(false)
+const previewEntityRow = ref<EntityRow | null>(null)
+const previewRawEntity = ref<any | null>(null)
+
+function openPreviewFromEntity(entity: any) {
+  if (!entity) return
+  const row = mapEntityToRow(entity, {
+    resourcePath: crud.resourcePath || '',
+    label: props.label,
+    entity: props.entity,
+  })
+  previewEntityRow.value = row
+  previewRawEntity.value = entity
+  previewOpen.value = true
+}
+
+function setPreviewOpen(value: boolean) {
+  previewOpen.value = value
+  if (!value) {
+    previewEntityRow.value = null
+    previewRawEntity.value = null
+  }
+}
 
 const allowedSlideoverKinds = ['arcana', 'card_type', 'base_card', 'skill', 'world', 'world_card'] as const
 type SlideoverKind = typeof allowedSlideoverKinds[number]
@@ -355,6 +569,40 @@ const crudResourceKind = computed(() => {
 })
 
 const defaultSlideoverKind = computed<SlideoverKind>(() => normalizeSlideoverKind(crudResourceKind.value ?? props.entity))
+
+const resolvedEntityKind = computed(() => crudResourceKind.value ?? props.entity ?? null)
+
+const capabilityDefaults = computed(() => resolveEntityCapabilities(resolvedEntityKind.value ?? undefined))
+
+const capabilityOverrides = computed<Partial<EntityCapabilities>>(() => {
+  const overrides: Partial<EntityCapabilities> = {}
+
+  if (props.translatable !== undefined) {
+    overrides.translatable = props.translatable
+    overrides.hasTranslations = props.translatable
+  }
+
+  if (props.noTags === true) {
+    overrides.hasTags = false
+  }
+
+  if (props.cardType !== undefined) {
+    overrides.cardType = props.cardType as EntityCapabilities['cardType']
+  }
+
+  return overrides
+})
+
+provideEntityCapabilitiesDefaults(capabilityDefaults)
+provideEntityCapabilities(capabilityOverrides)
+const capabilities = useEntityCapabilities({ kind: resolvedEntityKind })
+
+const tableSelectionSource = useTableSelection(() => crud.items.value.map(item => item?.id ?? item?.uuid ?? item?.code))
+
+const allowTags = computed(() => capabilities.value.hasTags !== false)
+const allowPreview = computed(() => capabilities.value.hasPreview !== false)
+
+const useLegacyTable = computed(() => false)
 
 const slideoverOpen = computed({
   get: () => slideoverEntityId.value !== null,
@@ -551,6 +799,22 @@ function onPreview(entity: any) {
 }
 function onCreateClickWrapper() {
   onCreateClick((e: 'create') => emit(e))
+}
+
+function handleRowClick(row: any) {
+  onEdit(row?.raw ?? row)
+}
+
+function handleRowDblClick(row: any) {
+  openFullEditor(row?.raw ?? row)
+}
+
+function handleBulkUpdate(selected: unknown) {
+  const ids = Array.isArray(selected)
+    ? selected.map(value => Number(value)).filter(value => Number.isFinite(value))
+    : tableSelectionSource.selectedList.value
+  if (!ids.length) return
+  onBatchUpdate(ids as number[])
 }
 
 function openFullEditor(payload: any) {

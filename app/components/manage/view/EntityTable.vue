@@ -51,8 +51,8 @@
     <!-- Status badge -->
     <template #status-cell="{ row }">
       <StatusBadge
-        :status="typeof row.original.status === 'string' ? row.original.status : null"
-        :kind="row.original.statusKind"
+        :type="row.original.statusKind === 'user' ? 'user' : 'status'"
+        :value="typeof row.original.status === 'string' ? row.original.status : null"
       />
     </template>
 

@@ -37,8 +37,8 @@
     <!-- JSON Import Modal -->
     <ImportJsonModal
       :open="jsonModalOpen"
-      :title="$t('ui.actions.import') + ' JSON'"
-      :description="$t('importExport.import.instructions.descriptionMultiLang')"
+      :title="jsonModalTitle"
+      :description="jsonModalDescription"
       :confirm-label="$t('importExport.import.actions.confirm')"
       :cancel-label="$t('ui.actions.cancel')"
       :file-label="$t('importExport.import.instructions.fileLabel')"
@@ -50,7 +50,19 @@
     />
 
     <!-- SQL Import Modal -->
-    <UModal v-model:open="sqlModalOpen" title="Import SQL">
+    <UModal
+      v-model:open="sqlModalOpen"
+      :title="sqlModalTitle"
+      :description="sqlModalDescription"
+    >
+      <template #title>
+        <span class="text-lg font-semibold text-gray-900 dark:text-white">{{ sqlModalTitle }}</span>
+      </template>
+
+      <template #description>
+        <span class="text-sm text-gray-600 dark:text-gray-300">{{ sqlModalDescription }}</span>
+      </template>
+
       <template #body>
         <div class="space-y-3">
           <UFormField :label="'SQL file (.sql)'">
@@ -70,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import ImportJsonModal from '~/components/manage/modal/ImportJson.vue'
 import { useApiFetch } from '@/utils/fetcher'
 
@@ -82,6 +94,8 @@ const apiFetch = useApiFetch
 const jsonModalOpen = ref(false)
 const jsonImportLoading = ref(false)
 const jsonImportError = ref<string | null>(null)
+const jsonModalTitle = computed(() => t('importExport.import.jsonTitle'))
+const jsonModalDescription = computed(() => t('importExport.import.jsonDescription'))
 
 const openJsonImport = () => { jsonModalOpen.value = true; jsonImportError.value = null }
 
@@ -131,6 +145,9 @@ const sqlModalOpen = ref(false)
 const sqlImportLoading = ref(false)
 const sqlImportError = ref<string | null>(null)
 const sqlFileInput = ref<HTMLInputElement | null>(null)
+
+const sqlModalTitle = computed(() => t('importExport.import.sqlTitle'))
+const sqlModalDescription = computed(() => t('importExport.import.sqlDescription'))
 
 const openSqlImport = () => { sqlModalOpen.value = true; sqlImportError.value = null }
 const closeSqlImport = () => { sqlModalOpen.value = false; sqlImportError.value = null; if (sqlFileInput.value) sqlFileInput.value.value = '' }

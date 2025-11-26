@@ -131,10 +131,11 @@
                       />
                     </UFormField>
 
-                    <TranslationStatusBadge
-                      v-if="currentTranslationMeta"
-                      :has-translation="currentTranslationMeta.hasTranslation"
-                      :is-fallback="currentTranslationMeta.isFallback"
+                    <StatusBadge
+                      v-if="currentTranslationMeta?.status"
+                      type="translation"
+                      :value="currentTranslationMeta.status"
+                      size="xs"
                     />
                   </div>
 
@@ -275,7 +276,7 @@ import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { useI18n, useRoute, useAsyncData, useToast, useRequestURL } from '#imports'
 import EntitySummary from '~/components/common/EntitySummary.vue'
 import JsonModal from '~/components/common/JsonModal.vue'
-import TranslationStatusBadge from '~/components/common/badges/TranslationStatusBadge.vue'
+import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useQuerySync } from '~/composables/common/useQuerySync'
 import { useFormSection } from '~/composables/common/useFormSection'
 import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
@@ -305,9 +306,12 @@ interface MetadataFormState {
   metadata: Record<string, any> | null
 }
 
+type TranslationStatusValue = 'complete' | 'partial' | 'missing'
+
 interface TranslationMetaState {
   hasTranslation: boolean
   isFallback: boolean
+  status: TranslationStatusValue
 }
 
 type TabKey = 'basic' | 'translations' | 'metadata' | 'rules'
@@ -542,6 +546,14 @@ const translationLoading = ref(false)
 const defaultTranslationLoading = ref(false)
 
 const translationSchema = arcanaUpdateSchema.pick({ name: true, short_text: true, description: true })
+
+function buildTranslationMeta(hasTranslation: boolean, isFallback: boolean): TranslationMetaState {
+  let status: TranslationStatusValue
+  if (!hasTranslation) status = 'missing'
+  else if (isFallback) status = 'partial'
+  else status = 'complete'
+  return { hasTranslation, isFallback, status }
+}
 const translationSection = useFormSection<TranslationFormState>(
   computed(() => translationBaseline.value),
   {
@@ -573,10 +585,7 @@ const translationSection = useFormSection<TranslationFormState>(
           ...diff,
         }
         translationBaseline.value = { ...baseline, ...diff }
-        translationMeta[state.lang] = {
-          hasTranslation: Boolean(state.name?.trim()),
-          isFallback: false,
-        }
+        translationMeta[state.lang] = buildTranslationMeta(Boolean(state.name?.trim()), false)
         toast.add({ title: tt('ui.notifications.saved', 'Changes saved'), color: 'success' })
         await refresh()
         return { success: true }
@@ -661,10 +670,7 @@ watchEffect(() => {
 
     const defaultTranslation = buildTranslationState(entity.value, DEFAULT_LANG)
     translationCache[DEFAULT_LANG] = clone(defaultTranslation)
-    translationMeta[DEFAULT_LANG] = {
-      hasTranslation: Boolean(defaultTranslation.name?.trim()),
-      isFallback,
-    }
+    translationMeta[DEFAULT_LANG] = buildTranslationMeta(Boolean(defaultTranslation.name?.trim()), isFallback)
 
     if (!translationSection.dirty.value && translationBaseline.value.lang === DEFAULT_LANG) {
       translationBaseline.value = clone(defaultTranslation)
@@ -682,10 +688,7 @@ watchEffect(() => {
 
     const currentTranslation = buildTranslationState(entity.value, resolvedLang)
     translationCache[resolvedLang] = clone(currentTranslation)
-    translationMeta[resolvedLang] = {
-      hasTranslation: Boolean(currentTranslation.name?.trim()),
-      isFallback,
-    }
+    translationMeta[resolvedLang] = buildTranslationMeta(Boolean(currentTranslation.name?.trim()), isFallback)
 
     if (!translationSection.dirty.value && translationBaseline.value.lang === resolvedLang) {
       translationBaseline.value = clone(currentTranslation)
@@ -726,10 +729,7 @@ watch(
       const data = response?.data ?? response ?? {}
       const state = buildTranslationState(data, lang)
       translationCache[lang] = clone(state)
-      translationMeta[lang] = {
-        hasTranslation: Boolean(state.name?.trim()),
-        isFallback: Boolean(data?.language_is_fallback),
-      }
+      translationMeta[lang] = buildTranslationMeta(Boolean(state.name?.trim()), Boolean(data?.language_is_fallback))
       if (!translationSection.dirty.value || translationBaseline.value.lang !== lang) {
         translationBaseline.value = clone(state)
       }
@@ -741,10 +741,7 @@ watch(
       }
       const emptyState = { ...createEmptyTranslationState(), lang }
       translationCache[lang] = emptyState
-      translationMeta[lang] = {
-        hasTranslation: false,
-        isFallback: false,
-      }
+      translationMeta[lang] = buildTranslationMeta(false, false)
       if (!translationSection.dirty.value || translationBaseline.value.lang !== lang) {
         translationBaseline.value = clone(emptyState)
       }
@@ -787,10 +784,7 @@ async function fetchTranslationForLang(lang: string) {
     const data = response?.data ?? {}
     const state = buildTranslationState(data, lang)
     translationCache[lang] = clone(state)
-    translationMeta[lang] = {
-      hasTranslation: Boolean(state.name?.trim()),
-      isFallback: Boolean(data?.language_is_fallback),
-    }
+    translationMeta[lang] = buildTranslationMeta(Boolean(state.name?.trim()), Boolean(data?.language_is_fallback))
     translationBaseline.value = clone(state)
   } catch (err: any) {
     const notFound = isNotFoundError(err)
@@ -800,10 +794,7 @@ async function fetchTranslationForLang(lang: string) {
     }
     const emptyState = { ...createEmptyTranslationState(), lang }
     translationCache[lang] = emptyState
-    translationMeta[lang] = {
-      hasTranslation: false,
-      isFallback: false,
-    }
+    translationMeta[lang] = buildTranslationMeta(false, false)
     translationBaseline.value = clone(emptyState)
   } finally {
     translationLoading.value = false
@@ -833,10 +824,7 @@ async function ensureDefaultTranslation() {
     const data = response?.data ?? response ?? {}
     const state = buildTranslationState(data, DEFAULT_LANG)
     translationCache[DEFAULT_LANG] = clone(state)
-    translationMeta[DEFAULT_LANG] = {
-      hasTranslation: Boolean(state.name?.trim()),
-      isFallback: Boolean(data?.language_is_fallback),
-    }
+    translationMeta[DEFAULT_LANG] = buildTranslationMeta(Boolean(state.name?.trim()), Boolean(data?.language_is_fallback))
     if (!basicSection.dirty.value) {
       const nextBasic = buildBasicState(entity.value ?? data, state)
       basicSection.patch(nextBasic)
@@ -847,10 +835,7 @@ async function ensureDefaultTranslation() {
     }
   } catch {
     translationCache[DEFAULT_LANG] = createEmptyTranslationState()
-    translationMeta[DEFAULT_LANG] = {
-      hasTranslation: false,
-      isFallback: false,
-    }
+    translationMeta[DEFAULT_LANG] = buildTranslationMeta(false, false)
   } finally {
     defaultTranslationLoading.value = false
   }
@@ -864,10 +849,9 @@ const currentTranslationMeta = computed(() => {
 
 const summaryTranslationStatus = computed(() => {
   if (!entity.value) return null
-  return {
-    hasTranslation: Boolean(entity.value.language_code_resolved ?? entity.value.language_code),
-    isFallback: Boolean(entity.value.language_is_fallback),
-  }
+  const hasTranslation = Boolean(entity.value.language_code_resolved ?? entity.value.language_code)
+  const isFallback = Boolean(entity.value.language_is_fallback)
+  return buildTranslationMeta(hasTranslation, isFallback)
 })
 
 const summaryMetadata = computed<EntityMetadataItem[]>(() => {

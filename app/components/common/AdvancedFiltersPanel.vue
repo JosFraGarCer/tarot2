@@ -52,7 +52,7 @@
             />
 
             <div v-else-if="field.type === 'toggle'" class="flex items-center gap-2">
-              <UToggle v-model="state[field.key]" size="sm" />
+              <USwitch v-model="state[field.key]" size="sm" />
               <span class="text-neutral-600 dark:text-neutral-300">{{ field.placeholder || field.label }}</span>
             </div>
 
@@ -71,11 +71,43 @@
                 :placeholder="field.maxLabel ?? 'Max'"
               />
             </div>
+
+            <div v-else-if="field.type === 'date-range'" class="flex flex-col gap-2">
+              <ClientOnly>
+                <UPopover :popper="{ placement: 'bottom-start' }">
+                  <UButton
+                    block
+                    size="sm"
+                    variant="outline"
+                    color="neutral"
+                    icon="i-heroicons-calendar-days-20-solid"
+                    class="justify-between"
+                  >
+                    <span class="truncate">{{ dateRangeLabel(field) }}</span>
+                  </UButton>
+                  <template #panel="{ close }">
+                    <div class="p-3 space-y-2">
+                      <UCalendar
+                        v-model="state[field.key]"
+                        range
+                        :columns="field.numberOfMonths ?? 1"
+                        @update:model-value="value => onDateRangeUpdate(field.key, value, close)"
+                      />
+                      <div class="flex justify-end">
+                        <UButton size="xs" variant="ghost" color="neutral" @click="() => { state[field.key] = null; close?.() }">
+                          {{ tt('ui.actions.clear', 'Clear') }}
+                        </UButton>
+                      </div>
+                    </div>
+                  </template>
+                </UPopover>
+              </ClientOnly>
+            </div>
           </div>
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2 border-t border-neutral-200 pt-3 dark:border-neutral-700">
-          <UToggle
+          <USwitch
             v-if="showAutoApply"
             v-model="autoApplyEnabled"
             size="sm"
@@ -110,7 +142,7 @@ import { useI18n } from '#imports'
 import { useQuerySync } from '~/composables/common/useQuerySync'
 
 type Scalar = string | number | boolean | null | undefined
-type FilterType = 'text' | 'select' | 'multi-select' | 'range' | 'tags' | 'toggle'
+type FilterType = 'text' | 'select' | 'multi-select' | 'range' | 'tags' | 'toggle' | 'date-range'
 
 interface BaseFilterDefinition<TType extends FilterType = FilterType, TValue = any> {
   key: string
@@ -136,6 +168,10 @@ interface RangeFilterDefinition
   extends BaseFilterDefinition<'range', { min: Scalar; max: Scalar }>
 { type: 'range'; minLabel?: string; maxLabel?: string }
 
+interface DateRangeFilterDefinition
+  extends BaseFilterDefinition<'date-range', [Date | string | null, Date | string | null] | null>
+{ type: 'date-range'; placeholder?: string; numberOfMonths?: number }
+
 export type FilterDefinition =
   | TextFilterDefinition
   | ToggleFilterDefinition
@@ -143,6 +179,7 @@ export type FilterDefinition =
   | MultiSelectFilterDefinition
   | TagsFilterDefinition
   | RangeFilterDefinition
+  | DateRangeFilterDefinition
 
 const props = withDefaults(
   defineProps<{
@@ -186,6 +223,8 @@ function defaultValue(field: FilterDefinition) {
       return []
     case 'range':
       return { min: null, max: null }
+    case 'date-range':
+      return null
     case 'toggle':
       return false
     default:
@@ -235,6 +274,13 @@ const parseMap = computed<Partial<Record<string, (value: Scalar | Scalar[] | nul
           return Array.isArray(fallback) ? fallback : []
         }
         break
+      case 'date-range':
+        map[field.key] = (value) => {
+          if (Array.isArray(value) && value.length === 2) return normalizeDateTuple(value)
+          if (value && typeof value === 'string' && value.includes(',')) return normalizeDateTuple(value.split(',').slice(0, 2))
+          return fallback ?? null
+        }
+        break
       default:
         break
     }
@@ -246,6 +292,9 @@ const serializeMap = computed<Partial<Record<string, (value: any) => Scalar | Sc
   const map: Partial<Record<string, (value: any) => Scalar | Scalar[] | null | undefined>> = {}
   for (const field of props.schema) {
     if (field.type === 'range') {
+      map[field.key] = () => undefined
+    }
+    if (field.type === 'date-range') {
       map[field.key] = () => undefined
     }
   }
@@ -312,6 +361,17 @@ watch(() => props.autoApply, (value) => {
 })
 
 const exposedState = computed(() => ({ ...state }))
+
+const dateRangeLabel = (field: DateRangeFilterDefinition) => {
+  const value = state[field.key] as [Date | string | null, Date | string | null] | null
+  const placeholder = field.placeholder ?? tt('ui.filters.anyDate', 'Any date')
+  return formatDateRangeLabel(value, placeholder)
+}
+
+const onDateRangeUpdate = (key: string, value: [Date | string | null, Date | string | null] | null, close?: () => void) => {
+  state[key] = value
+  if (value && value[0] && value[1]) close?.()
+}
 
 watch(state, (next) => {
   if (syncing.value) return
@@ -411,6 +471,22 @@ function formatRouteValue(value: any) {
   if (value instanceof Date) return value.toISOString()
   if (typeof value === 'number') return Number.isFinite(value) ? String(value) : undefined
   return value
+}
+
+function normalizeDateTuple(value: Array<Date | string | null>): [Date | string | null, Date | string | null] | null {
+  if (!value || value.length < 2) return null
+  const [start, end] = value
+  if (!start && !end) return null
+  return [start ?? null, end ?? null]
+}
+
+function formatDateRangeLabel(value: [Date | string | null, Date | string | null] | null, placeholder: string) {
+  if (!value || !value[0] || !value[1]) return placeholder
+  const formatter = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  const start = new Date(value[0] as any)
+  const end = new Date(value[1] as any)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return placeholder
+  return `${formatter.format(start)} – ${formatter.format(end)}`
 }
 </script>
 

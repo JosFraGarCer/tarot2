@@ -93,6 +93,7 @@ import EntityTable from '~/components/manage/view/EntityTable.vue'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 import type { ManageCrud } from '@/types/manage'
 import { useTableSelection } from '@/composables/common/useTableSelection'
+import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
 const props = defineProps<{
   crud: ManageCrud
@@ -121,6 +122,13 @@ const resourcePath = computed(() => props.crud?.resourcePath || '')
 const crudResource = computed(() => ({ resourcePath: resourcePath.value }))
 
 const { t } = useI18n()
+const capabilities = useEntityCapabilities()
+
+const allowTags = computed(() => {
+  if (props.noTags === true) return false
+  if (props.noTags === false) return true
+  return capabilities.value.hasTags !== false
+})
 
 const tableRows = computed<EntityRow[]>(() => {
   const raw = props.crud.items.value
@@ -303,7 +311,7 @@ const isTagEntity = computed(() => {
 })
 
 const canFeedback = (_entity: any) => true
-const canTags = (_entity: any) => props.noTags !== true && !isTagEntity.value
+const canTags = (_entity: any) => allowTags.value && !isTagEntity.value
 
 function handleFullEdit(row: EntityRow) {
   const raw = row.raw ?? row

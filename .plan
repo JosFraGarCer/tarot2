@@ -1,0 +1,4 @@
+- Añadir provider de capacidades en EntityBase derivando overrides desde sus props existentes (done)
+- Verificar componentes Admin para defaults específicos y aplicar providers si son necesarios
+- Adaptar composables seleccionados (useEntityDeletion, useEntityModals, useManageFilters) para leer capabilities con fallback
+- Documentar en useEntityCapabilities que EntityBase provee capacidades por defecto

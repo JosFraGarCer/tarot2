@@ -72,34 +72,173 @@
             />
           </div>
 
-          <UserTable
-            v-if="viewMode === 'table'"
-            :crud="crud"
-            :label="tt('features.admin.usersTitle', 'Users')"
+          <AdminTableBridge
+            ref="bridgeRef"
+            :items="rows"
             :columns="columns"
-            @edit="openEdit"
-            @delete="openDelete"
-            @create="openCreate"
-            @reset-filters="resetFilters"
-          />
-          <UserListClassic
-            v-else-if="viewMode === 'classic'"
-            :users="users"
-            @edit="openEdit"
-            @delete="openDelete"
-          />
-          <UserCardsGrid
-            v-else-if="viewMode === 'card'"
-            :users="users"
-            @edit="openEdit"
-            @delete="openDelete"
-          />
-          <UserCartaView
-            v-else
-            :users="users"
-            @edit="openEdit"
-            @delete="openDelete"
-          />
+            :meta="metaState"
+            :loading="loading"
+            :selection="selectionAdapter"
+            :capabilities="capabilitiesOverrides"
+            entity-kind="user"
+            :density-toggle="false"
+            :show-toolbar="false"
+            @update:selected="onSelectedUpdate"
+            @update:page="handlePageChange"
+            @update:page-size="handlePageSizeChange"
+            @row:click="handleRowClick"
+          >
+            <template #toolbar>
+              <div class="flex flex-wrap items-center gap-2">
+                <UButton
+                  size="xs"
+                  color="neutral"
+                  variant="soft"
+                  icon="i-heroicons-funnel"
+                  @click="resetFilters"
+                >
+                  {{ tt('ui.actions.reset', 'Reset filters') }}
+                </UButton>
+                <UButton
+                  size="xs"
+                  color="primary"
+                  icon="i-heroicons-plus"
+                  @click="openCreate"
+                >
+                  {{ tt('ui.actions.new', 'New user') }}
+                </UButton>
+              </div>
+            </template>
+
+            <template #bulk-actions="{ selected }">
+              <div class="flex flex-wrap items-center gap-2">
+                <UButton
+                  size="xs"
+                  color="warning"
+                  :disabled="!selected.length"
+                  @click="bulkSuspend"
+                >
+                  {{ tt('features.admin.users.suspendSelected', 'Suspend selected') }}
+                </UButton>
+                <UButton
+                  size="xs"
+                  color="success"
+                  variant="soft"
+                  :disabled="!selected.length"
+                  @click="bulkActivate"
+                >
+                  {{ tt('features.admin.users.activateSelected', 'Activate selected') }}
+                </UButton>
+                <UButton
+                  size="xs"
+                  color="primary"
+                  variant="soft"
+                  :disabled="!selected.length"
+                  @click="bulkResetPasswords"
+                >
+                  {{ tt('features.admin.users.resetPasswordSelected', 'Reset password for selected') }}
+                </UButton>
+                <UButton
+                  size="xs"
+                  color="error"
+                  variant="soft"
+                  :disabled="!selected.length"
+                  @click="bulkRemove"
+                >
+                  {{ tt('features.admin.users.deleteSelected', 'Delete selected') }}
+                </UButton>
+              </div>
+            </template>
+
+            <template #cell-name="{ row }">
+              <div class="flex items-center gap-2">
+                <UAvatar v-if="row.img" :src="row.img" size="md" />
+                <div class="flex flex-col">
+                  <span class="font-medium text-neutral-900 dark:text-neutral-50">
+                    {{ row.name }}
+                  </span>
+                  <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                    {{ row.email || '—' }}
+                  </span>
+                </div>
+              </div>
+            </template>
+
+            <template #cell-roles="{ row }">
+              <div class="flex flex-wrap gap-1">
+                <UBadge
+                  v-for="role in row.raw?.roles || []"
+                  :key="role.id ?? role.name"
+                  size="xs"
+                  variant="soft"
+                >
+                  {{ role.name || role.code || `#${role.id}` }}
+                </UBadge>
+                <span v-if="!(row.raw?.roles || []).length" class="text-xs text-neutral-400">
+                  {{ tt('domains.user.noRoles', 'No roles') }}
+                </span>
+              </div>
+            </template>
+
+            <template #cell-status="{ row }">
+              <StatusBadge type="user" :value="row.status" />
+            </template>
+
+            <template #cell-created_at="{ row }">
+              <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                {{ formatDate(row.created_at) }}
+              </span>
+            </template>
+
+            <template #cell-updated_at="{ row }">
+              <span class="text-xs text-neutral-500 dark:text-neutral-400">
+                {{ formatDate(row.updated_at) }}
+              </span>
+            </template>
+
+            <template #cell-actions="{ row }">
+              <div class="flex justify-end gap-2">
+                <UButton
+                  size="xs"
+                  icon="i-heroicons-pencil"
+                  variant="soft"
+                  @click="openEdit(row.raw)"
+                />
+                <UButton
+                  size="xs"
+                  icon="i-heroicons-pause-circle"
+                  color="warning"
+                  variant="soft"
+                  :disabled="row.status === 'suspended'"
+                  @click="handleSetStatus(row.id, 'suspended')"
+                />
+                <UButton
+                  size="xs"
+                  icon="i-heroicons-play-circle"
+                  color="success"
+                  variant="soft"
+                  :disabled="row.status === 'active'"
+                  @click="handleSetStatus(row.id, 'active')"
+                />
+                <UButton
+                  size="xs"
+                  icon="i-heroicons-arrow-path"
+                  color="primary"
+                  variant="soft"
+                  @click="handleResetPassword(row.raw)"
+                >
+                  {{ tt('ui.actions.reset', 'Reset') }}
+                </UButton>
+                <UButton
+                  size="xs"
+                  icon="i-heroicons-trash"
+                  color="error"
+                  variant="soft"
+                  @click="openDelete(row.raw)"
+                />
+              </div>
+            </template>
+          </AdminTableBridge>
 
           <PaginationControls
             class="mt-6"
@@ -116,7 +255,19 @@
       </template>
     </ClientOnly>
 
-    <UModal v-model:open="modalOpen" :title="modalTitle">
+    <UModal
+      v-model:open="modalOpen"
+      :title="modalTitle"
+      :description="modalDescription"
+    >
+      <template #title>
+        <span class="text-lg font-semibold text-gray-900 dark:text-white">{{ modalTitle }}</span>
+      </template>
+
+      <template #description>
+        <span class="text-sm text-gray-600 dark:text-gray-300">{{ modalDescription }}</span>
+      </template>
+
       <template #body>
         <UForm class="space-y-4" @submit.prevent="saveUser">
           <UFormField :label="tt('common.username', 'Username')">
@@ -180,14 +331,17 @@ import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { useDebounceFn, useStorage } from '@vueuse/core'
 import { useI18n, useLazyAsyncData, useSeoMeta, useToast } from '#imports'
 import { useAdminUsersCrud } from '@/composables/admin/useUsers'
-import UserTable from '@/components/admin/users/UserTable.vue'
-import UserListClassic from '@/components/admin/users/UserListClassic.vue'
-import UserCardsGrid from '@/components/admin/users/UserCardsGrid.vue'
-import UserCartaView from '@/components/admin/users/UserCartaView.vue'
 import ViewControls from '@/components/manage/ViewControls.vue'
 import PaginationControls from '@/components/common/PaginationControls.vue'
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue'
 import { useApiFetch } from '@/utils/fetcher'
+import AdminTableBridge from '@/components/admin/AdminTableBridge.vue'
+import type { ColumnDefinition } from '@/components/common/CommonDataTable.vue'
+import type { EntityRow } from '@/components/manage/view/EntityTable.vue'
+import { mapUsersToRows } from '@/utils/manage/entityRows'
+import { useTableSelection } from '@/composables/common/useTableSelection'
+import { formatDate } from '@/utils/date'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 
 const { t, te } = useI18n()
 const toast = useToast()
@@ -243,20 +397,14 @@ const roleOptions = computed(() => {
   return [allOption, ...mapped]
 })
 
-const columns = computed(() => [
-  {
-    accessorKey: 'roles',
-    header: tt('common.roles', 'Roles'),
-    cell: ({ row }: any) => {
-      const roles = Array.isArray(row.raw?.roles) ? row.raw.roles : []
-      if (!roles.length) return tt('domains.user.noRoles', 'No roles')
-      return roles.map((role: any) => role?.name).filter(Boolean).join(', ')
-    },
-  },
-  {
-    accessorKey: 'created_at',
-    header: tt('ui.misc.createdAt', 'Created at'),
-  },
+const columns = computed<ColumnDefinition[]>(() => [
+  { key: 'name', label: tt('ui.fields.name', 'Name'), sortable: false, width: '20rem' },
+  { key: 'email', label: tt('common.email', 'Email'), sortable: false, width: '16rem' },
+  { key: 'roles', label: tt('common.roles', 'Roles'), sortable: false, width: '20%' },
+  { key: 'status', label: tt('ui.fields.status', 'Status'), sortable: false, width: '8rem' },
+  { key: 'created_at', label: tt('ui.misc.createdAt', 'Created at'), sortable: true, width: '10rem' },
+  { key: 'updated_at', label: tt('ui.misc.updatedAt', 'Updated at'), sortable: true, width: '10rem' },
+  { key: 'actions', label: tt('ui.table.actions', 'Actions'), sortable: false, width: '1%' },
 ])
 
 const pageForUi = computed(() => pagination.value?.page ?? 1)
@@ -356,6 +504,23 @@ const resetFilters = async () => {
 }
 
 const users = computed(() => crud.items?.value ?? [])
+const rows = computed<EntityRow[]>(() => mapUsersToRows(users.value))
+
+const selection = useTableSelection(() => users.value.map(user => user.id))
+const selectedIds = selection.selectedList
+const selectionAdapter = {
+  selectedList: selection.selectedList,
+  setSelected: (ids: Iterable<string | number>) => selection.setSelected(ids),
+}
+
+const bridgeRef = ref<InstanceType<typeof AdminTableBridge> | null>(null)
+
+const capabilitiesOverrides = computed(() => ({
+  hasStatus: true,
+  actionsBatch: true,
+}))
+
+const metaState = computed(() => pagination.value ?? null)
 
 onMounted(async () => {
   await refreshRoles()
@@ -376,6 +541,9 @@ const form = reactive({
 })
 
 const modalTitle = computed(() => editingId.value ? tt('features.admin.users.editTitle', 'Edit user') : tt('features.admin.users.createTitle', 'Create user'))
+const modalDescription = computed(() => editingId.value
+  ? tt('features.admin.users.editDescription', 'Update account details and role assignments for this user.')
+  : tt('features.admin.users.createDescription', 'Invite a new staff member by setting their credentials and roles.'))
 
 const passwordDescription = computed(() => editingId.value
   ? tt('features.admin.users.passwordOptional', 'Leave blank to keep current password.')
@@ -472,6 +640,10 @@ function openDelete(row: any) {
   deleteOpen.value = true
 }
 
+function handleRowClick(row: any) {
+  openEdit(row)
+}
+
 const confirmDelete = async () => {
   if (!userToDelete.value) return
   deleting.value = true
@@ -485,6 +657,87 @@ const confirmDelete = async () => {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   } finally {
     deleting.value = false
+  }
+}
+
+function onSelectedUpdate(ids: Array<string | number>) {
+  selection.setSelected(ids)
+}
+
+function clearSelection() {
+  selection.clear()
+}
+
+async function handleSetStatus(id: number, status: string) {
+  try {
+    await update(id, { status })
+    toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.statusUpdated', 'User status updated'), color: 'success' })
+    await fetchList()
+  } catch (err: any) {
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
+  }
+}
+
+async function handleResetPassword(user: any) {
+  const target = user?.raw ?? user
+  if (!target?.id) return
+  try {
+    await useApiFetch(`/user/${target.id}/reset-password`, { method: 'POST' })
+    toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.passwordReset', 'Password reset email sent'), color: 'success' })
+  } catch (err: any) {
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
+  }
+}
+
+async function bulkSuspend() {
+  const ids = selectedIds.value
+  if (!ids.length) return
+  try {
+    await Promise.all(ids.map(id => update(id, { status: 'suspended' })))
+    toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.bulkSuspended', 'Selected users suspended'), color: 'success' })
+    clearSelection()
+    await fetchList()
+  } catch (err: any) {
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
+  }
+}
+
+async function bulkActivate() {
+  const ids = selectedIds.value
+  if (!ids.length) return
+  try {
+    await Promise.all(ids.map(id => update(id, { status: 'active' })))
+    toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.bulkActivated', 'Selected users activated'), color: 'success' })
+    clearSelection()
+    await fetchList()
+  } catch (err: any) {
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
+  }
+}
+
+async function bulkResetPasswords() {
+  const ids = selectedIds.value
+  if (!ids.length) return
+  try {
+    await Promise.all(ids.map(id => useApiFetch(`/user/${id}/reset-password`, { method: 'POST' })))
+    toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.bulkPasswordReset', 'Password reset emails sent'), color: 'success' })
+    clearSelection()
+    await fetchList()
+  } catch (err: any) {
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
+  }
+}
+
+async function bulkRemove() {
+  const ids = selectedIds.value
+  if (!ids.length) return
+  try {
+    await Promise.all(ids.map(id => remove(id)))
+    toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.bulkDeleted', 'Selected users removed'), color: 'success' })
+    clearSelection()
+    await fetchList()
+  } catch (err: any) {
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   }
 }
 </script>

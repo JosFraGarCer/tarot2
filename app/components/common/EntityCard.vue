@@ -21,14 +21,24 @@
 
             <div class="flex flex-wrap items-center justify-end gap-2">
               <div class="flex flex-wrap justify-end gap-1.5">
-                <TranslationStatusBadge
+                <StatusBadge
                   v-if="showTranslationBadge"
-                  :has-translation="translationMeta?.hasTranslation"
-                  :is-fallback="translationMeta?.isFallback"
+                  type="translation"
+                  :value="translationMeta?.status ?? null"
                   size="xs"
                 />
-                <StatusChip v-if="showStatusChip" :status="status" size="xs" />
-                <ReleaseStageChip v-if="showReleaseChip" :stage="releaseStage as ReleaseStage" size="xs" />
+                <StatusBadge
+                  v-if="showStatusBadge"
+                  type="status"
+                  :value="typeof status === 'string' ? status : null"
+                  size="xs"
+                />
+                <StatusBadge
+                  v-if="showReleaseBadge"
+                  type="release"
+                  :value="typeof releaseStage === 'string' ? releaseStage : null"
+                  size="xs"
+                />
                 <UBadge
                   v-if="showLanguageBadge"
                   size="xs"
@@ -108,10 +118,8 @@
 <script setup lang="ts">
 import { computed, useSlots } from 'vue'
 import { useI18n } from '#imports'
-import ReleaseStageChip from '~/components/common/badges/ReleaseStageChip.vue'
-import StatusChip from '~/components/common/badges/StatusChip.vue'
+import StatusBadge from '~/components/common/StatusBadge.vue'
 import TagChip from '~/components/common/badges/TagChip.vue'
-import TranslationStatusBadge from '~/components/common/badges/TranslationStatusBadge.vue'
 import {
   type ReleaseStage,
   type StatusCode,
@@ -205,9 +213,9 @@ const translationMeta = computed<EntityTranslationStatus | null>(() => {
   }
 })
 
-const showTranslationBadge = computed(() => allowTranslation.value && Boolean(translationMeta.value))
-const showStatusChip = computed(() => allowStatus.value && !!props.status)
-const showReleaseChip = computed(() => allowRelease.value && !!props.releaseStage)
+const showTranslationBadge = computed(() => allowTranslation.value && Boolean(translationMeta.value?.status))
+const showStatusBadge = computed(() => allowStatus.value && !!props.status)
+const showReleaseBadge = computed(() => allowRelease.value && !!props.releaseStage)
 
 const languageDisplay = computed(() => {
   const resolved = props.resolvedLang || ''

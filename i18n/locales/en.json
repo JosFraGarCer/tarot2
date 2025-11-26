@@ -132,6 +132,7 @@
     "filters": {
       "active": "Active",
       "all": "All",
+      "autoApply": "Auto apply",
       "inactive": "Inactive",
       "status": "Status"
     },
@@ -158,6 +159,7 @@
       "feedback": {
         "actions": {
           "confirmResolve": "Confirm resolve",
+          "confirmResolveDescription": "Confirm resolving the selected feedback items",
           "openEntity": "Open related entity",
           "reopen": "Reopen",
           "viewContent": "View content",
@@ -179,6 +181,7 @@
           "save": "Save note",
           "title": "Internal notes"
         },
+        "previewDescription": "Preview the linked entity for this feedback entry",
         "resolvedErr": "Error resolving feedback",
         "resolvedOk": "Resolved successfully",
         "resolvedPartial": "Some items failed",
@@ -546,6 +549,8 @@
         "descriptionMultiLang": "Upload a JSON file with all translations. Existing codes will be skipped.",
         "fileLabel": "JSON file"
       },
+      "sqlTitle": "Import SQL dump",
+      "sqlDescription": "Upload a .sql file to restore data.",
       "errors": {
         "invalidStructure": "Invalid JSON structure.",
         "parseError": "The file is not valid JSON."

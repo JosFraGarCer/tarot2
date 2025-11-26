@@ -42,6 +42,7 @@
             <div class="flex items-center gap-2">
               <p class="font-medium truncate" :title="titleOf(item)">{{ titleOf(item) }}</p>
               <UButton
+                v-if="allowPreview"
                 icon="i-heroicons-eye"
                 size="xs"
                 color="neutral"
@@ -69,7 +70,7 @@
             </template>
             <template v-else>
               <p v-if="item.code" class="text-xs text-neutral-500 truncate">#{{ item.code }}</p>
-              <p v-if="cardType && (item.card_type_name || item.card_type_code)" class="text-xs text-neutral-600 truncate">
+              <p v-if="showCardType && (item.card_type_name || item.card_type_code)" class="text-xs text-neutral-600 truncate">
                 {{ item.card_type_name || item.card_type_code }}
                 <UBadge v-if="item.card_type_lang" color="neutral" variant="soft" size="sm" class="ml-1">{{ item.card_type_lang }}</UBadge>
               </p>
@@ -79,7 +80,7 @@
             :entity="item"
             :entity-label="label"
             :entity-type="label"
-            :no-tags="noTags || isTagEntity"
+            :no-tags="!allowTags || isTagEntity"
             @edit="onEditClick(item)"
             @feedback="onFeedbackClick(item)"
             @tags="onTagsClick(item)"
@@ -98,8 +99,8 @@
         >
         <div class="flex items-center gap-2 mb-2">
           <StatusBadge
-            :status="item.status"
-            :kind="isUserEntity ? 'user' : 'card'"
+            :type="isUserEntity ? 'user' : 'status'"
+            :value="typeof item.status === 'string' ? item.status : null"
           />
           <UBadge
             :color="isActive(item) ? 'primary' : 'neutral'"
@@ -118,7 +119,7 @@
         <p v-if="isUserEntity && item.created_at" class="text-xs text-neutral-500 dark:text-neutral-400">
           {{ t('ui.misc.createdAt') }}: {{ formatDate(item.created_at) }}
         </p>
-        <div v-if="!noTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="mt-3 flex flex-wrap gap-1.5">
+        <div v-if="allowTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="mt-3 flex flex-wrap gap-1.5">
           <UBadge
             v-for="(tag, idx) in item.tags"
             :key="tag.id ?? tag.code ?? idx"
@@ -142,6 +143,7 @@ import StatusBadge from '~/components/common/StatusBadge.vue'
 import CartaRow from '~/components/manage/CartaRow.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 import type { ManageCrud } from '@/types/manage'
+import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
 const props = defineProps<{
   crud: ManageCrud
@@ -174,6 +176,25 @@ const {
   locale
 })
 
+const capabilities = useEntityCapabilities({
+  kind: () => props.entity ?? null,
+})
+
+const allowPreview = computed(() => capabilities.value.hasPreview !== false)
+
+const allowTags = computed(() => {
+  if (props.noTags === true) return false
+  if (props.noTags === false) return true
+  return capabilities.value.hasTags !== false
+})
+
+const showCardType = computed(() => {
+  const cap = capabilities.value.cardType
+  if (cap !== undefined) return Boolean(cap)
+  if (props.cardType !== undefined) return Boolean(props.cardType)
+  return false
+})
+
 const isUserEntity = computed(() => props.entity === 'user')
 const isTagEntity = computed(() => props.entity === 'tag')
 
@@ -196,7 +217,10 @@ function formatDate(value: unknown) {
   }
 }
 
-function onPreviewClick(item: any) { emit('preview', item) }
+function onPreviewClick(item: any) {
+  if (!allowPreview.value) return
+  emit('preview', item)
+}
 function onEditClick(item: any) { emit('edit', item) }
 function onDeleteClick(item: any) { emit('delete', item) }
 function onFeedbackClick(item: any) { emit('feedback', item) }

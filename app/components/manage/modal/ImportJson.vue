@@ -1,11 +1,20 @@
 <!-- app/components/manage/Modal/ImportJson.vue -->
 <template>
-  <UModal v-model:open="internalOpen" :title="title">
+  <UModal
+    v-model:open="internalOpen"
+    :title="title"
+    :description="description"
+  >
+    <template #title>
+      <span class="text-lg font-semibold text-neutral-900 dark:text-neutral-50">{{ title }}</span>
+    </template>
+
+    <template #description>
+      <span v-if="description" class="text-sm text-neutral-600 dark:text-neutral-300">{{ description }}</span>
+    </template>
+
     <template #body>
       <div class="space-y-4">
-        <p v-if="description" class="text-sm text-neutral-600 dark:text-neutral-300">
-          {{ description }}
-        </p>
         <div class="space-y-2">
           <label :for="inputId" class="block text-sm font-medium text-neutral-700 dark:text-neutral-200">
             {{ fileLabel }}

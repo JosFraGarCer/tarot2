@@ -90,6 +90,7 @@ import { useApiFetch } from '~/utils/fetcher'
 import { useCardStatus } from '~/utils/status'
 import type { ManageCrud } from '@/types/manage'
 import type { EntityFilterConfig } from '~/composables/manage/useEntity'
+import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
 type FilterKey = 'search' | 'tags' | 'facet' | 'type' | 'status' | 'is_active' | 'parent'
 
@@ -109,18 +110,21 @@ const props = withDefaults(defineProps<{
 const { t, locale } = useI18n()
 const localeValue = computed(() => (typeof locale === 'string' ? locale : locale.value) as string)
 const statusUtil = useCardStatus()
+const capabilities = useEntityCapabilities()
 
 const activeConfig = computed<EntityFilterConfig>(() => props.config ?? props.crud.filterConfig)
 
-const show = computed(() => ({
-  search: Boolean(activeConfig.value?.search),
-  tags: Boolean(activeConfig.value?.tags),
-  facet: Boolean(activeConfig.value?.facet),
-  type: Boolean(activeConfig.value?.type),
-  status: Boolean(activeConfig.value?.status),
-  is_active: Boolean(activeConfig.value?.is_active ?? (activeConfig.value as any)?.isActive),
-  parent: Boolean(activeConfig.value?.parent ?? activeConfig.value?.parent_id)
-}))
+const allowTags = computed(() => {
+  if (props.noTags === true) return false
+  if (props.noTags === false) return true
+  return capabilities.value.hasTags !== false
+})
+
+const allowCardType = computed(() => {
+  if (props.cardType !== undefined) return Boolean(props.cardType)
+  const cap = capabilities.value.cardType
+  return cap === undefined ? true : Boolean(cap)
+})
 
 function resolveKey(name: FilterKey): string {
   const raw = activeConfig.value?.[name]
@@ -139,6 +143,21 @@ const typeKey = computed(() => resolveKey('type'))
 const statusKey = computed(() => resolveKey('status'))
 const isActiveKey = computed(() => resolveKey('is_active'))
 const parentKey = computed(() => resolveKey('parent'))
+
+const show = computed(() => {
+  const typeEnabled = Boolean(activeConfig.value?.type)
+  const typeKeyValue = typeKey.value
+
+  return {
+    search: Boolean(activeConfig.value?.search),
+    tags: allowTags.value && Boolean(activeConfig.value?.tags),
+    facet: Boolean(activeConfig.value?.facet),
+    type: typeEnabled && (typeKeyValue?.includes?.('card_type') ? allowCardType.value : true),
+    status: Boolean(activeConfig.value?.status),
+    is_active: Boolean(activeConfig.value?.is_active ?? (activeConfig.value as any)?.isActive),
+    parent: Boolean(activeConfig.value?.parent ?? activeConfig.value?.parent_id),
+  }
+})
 
 interface FilterBindingOptions {
   multi?: boolean

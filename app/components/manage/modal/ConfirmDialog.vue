@@ -1,10 +1,21 @@
 <!-- app/components/manage/Modal/ConfirmDialog.vue -->
 <template>
-  <UModal v-model:open="internalOpen" :title="title" :ui="ui">
+  <UModal
+    v-model:open="internalOpen"
+    :title="title"
+    :description="description"
+    :ui="ui"
+  >
+    <template #title>
+      <span class="text-lg font-semibold text-neutral-900 dark:text-neutral-50">{{ title }}</span>
+    </template>
+
+    <template #description>
+      <span v-if="description" class="text-sm text-neutral-600 dark:text-neutral-300">{{ description }}</span>
+    </template>
+
     <template #body>
-      <p v-if="description" class="text-sm text-neutral-600 dark:text-neutral-300">
-        {{ description }}
-      </p>
+      <slot name="body" />
     </template>
 
     <template #footer>

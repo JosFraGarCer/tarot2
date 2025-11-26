@@ -1,5 +1,6 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { AnyManageCrud } from '@/types/manage'
+import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
 export function useEntityDeletion(
   crud: AnyManageCrud,
@@ -14,6 +15,14 @@ export function useEntityDeletion(
   const deleteTarget = ref<{ id: number | null }>({ id: null })
   const pendingDeleteTranslationItem = ref<any | null>(null)
   const saving = ref(false)
+
+  const capabilities = useEntityCapabilities()
+  const isTranslatable = computed(() => {
+    if (opts?.translatable !== undefined && opts.translatable !== null) {
+      return Boolean(opts.translatable)
+    }
+    return capabilities.value.translatable !== false
+  })
 
   function cancelDeleteDialogs() {
     deleteModalOpen.value = false
@@ -62,7 +71,7 @@ export function useEntityDeletion(
   function onDelete(entity: any) {
     if (!entity) return
     // If entity is explicitly non-translatable, always open entity delete modal
-    if (opts?.translatable === false) {
+    if (!isTranslatable.value) {
       deleteTarget.value = { id: entity.id ?? null }
       deleteModalOpen.value = true
       return
@@ -72,7 +81,7 @@ export function useEntityDeletion(
     const isEnglishPage = lc === 'en'
     const isFallback = resolved && resolved !== lc
 
-    if (isEnglishPage || isFallback) {
+    if (isEnglishPage || isFallback || !isTranslatable.value) {
       deleteTarget.value = { id: entity.id }
       deleteModalOpen.value = true
     } else {

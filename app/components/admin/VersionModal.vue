@@ -10,55 +10,53 @@
     :aria-describedby="descriptionId"
     @update:open="handleOpenUpdate"
   >
-    <template #header="{ title, description }">
-      <div>
-        <h2 :id="titleId" class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h2>
-        <p :id="descriptionId" class="text-sm text-gray-600 dark:text-gray-300">{{ description }}</p>
-      </div>
+    <template #title>
+      <span :id="titleId" class="text-lg font-semibold text-gray-900 dark:text-white">{{ modalTitle }}</span>
+    </template>
+
+    <template #description>
+      <span :id="descriptionId" class="text-sm text-gray-600 dark:text-gray-300">{{ modalDescription }}</span>
     </template>
 
     <template #body>
-      <UFocusTrap v-if="open">
-        <form
-          class="space-y-4"
-          :aria-labelledby="titleId"
-          :aria-describedby="formDescriptionId"
-          @submit.prevent="submit"
-        >
-          <p :id="formDescriptionId" class="sr-only">{{ modalDescription }}</p>
-          <div>
-            <label :for="semverId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.version', 'Version (semver)') }}</label>
-            <UInput
-              :id="semverId"
-              ref="firstFieldRef"
-              v-model="form.version_semver"
-              placeholder="1.0.0"
-              autocomplete="off"
-              @input="validateSemver"
-            />
-            <p v-if="semverError" :id="semverErrorId" class="text-xs mt-1 text-error">{{ semverError }}</p>
-          </div>
-          <div>
-            <label :for="descriptionFieldId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.description', 'Description') }}</label>
-            <UTextarea :id="descriptionFieldId" v-model="form.description" :rows="3" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.release.label', 'Release type') }}</label>
-            <USelectMenu
-              v-model="form.release"
-              :items="releaseItems"
-              value-key="value"
-              option-attribute="label"
-              class="w-full"
-            />
-          </div>
-          <div>
-            <label :for="metadataFieldId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.metadata', 'Metadata (JSON)') }}</label>
-            <UTextarea :id="metadataFieldId" v-model="form.metadataText" :rows="6" placeholder='{"key":"value"}' />
-            <p v-if="metaError" :id="metaErrorId" class="text-xs text-error mt-1">{{ metaError }}</p>
-          </div>
-        </form>
-      </UFocusTrap>
+      <form
+        class="space-y-4"
+        :aria-labelledby="titleId"
+        :aria-describedby="formDescriptionId"
+        @submit.prevent="submit"
+      >
+        <p :id="formDescriptionId" class="sr-only">{{ modalDescription }}</p>
+        <div>
+          <label :for="semverId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.version', 'Version (semver)') }}</label>
+          <UInput
+            :id="semverId"
+            v-model="form.version_semver"
+            placeholder="1.0.0"
+            autocomplete="off"
+            @input="validateSemver"
+          />
+          <p v-if="semverError" :id="semverErrorId" class="text-xs mt-1 text-error">{{ semverError }}</p>
+        </div>
+        <div>
+          <label :for="descriptionFieldId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.description', 'Description') }}</label>
+          <UTextarea :id="descriptionFieldId" v-model="form.description" :rows="3" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('domains.version.release.label', 'Release type') }}</label>
+          <USelectMenu
+            v-model="form.release"
+            :items="releaseItems"
+            value-key="value"
+            option-attribute="label"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label :for="metadataFieldId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ tt('ui.fields.metadata', 'Metadata (JSON)') }}</label>
+          <UTextarea :id="metadataFieldId" v-model="form.metadataText" :rows="6" placeholder='{"key":"value"}' />
+          <p v-if="metaError" :id="metaErrorId" class="text-xs text-error mt-1">{{ metaError }}</p>
+        </div>
+      </form>
     </template>
 
     <template #footer>
@@ -117,7 +115,6 @@ const descriptionFieldId = `version-modal-description-field`
 const modalTitle = computed(() => isEdit.value ? tt('versions.editTitle', 'Edit version') : tt('versions.createTitle', 'Create version'))
 const modalDescription = computed(() => tt('domains.version.modalDescription', 'Provide version information and optional metadata'))
 
-const firstFieldRef = ref<HTMLElement | null>(null)
 const triggerButton = ref<HTMLElement | null>(null)
 
 watch(() => props.value, (v) => {

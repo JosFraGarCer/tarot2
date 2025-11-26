@@ -36,6 +36,8 @@
       <AdvancedFiltersPanel
         class="mb-4"
         :open="advancedOpen"
+        :schema="advancedSchema"
+        v-model="advancedState"
         :apply-label="tt('ui.actions.apply','Apply')"
         :reset-label="tt('ui.actions.reset','Reset')"
         @apply="applyAdvanced"
@@ -57,11 +59,11 @@
         <div class="flex flex-wrap gap-4">
           <div class="flex flex-col gap-2 w-full sm:w-40">
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.language','Language') }}</span>
-            <USelectMenu v-model="advanced.language" :items="languageOptions" value-key="value" option-attribute="label" />
+            <USelectMenu v-model="advancedState.language" :items="languageOptions" value-key="value" option-attribute="label" />
           </div>
           <div class="flex flex-col gap-2 w-full sm:w-60">
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.entityType','Entity type') }}</span>
-            <USelectMenu v-model="advanced.entityType" :items="entityTypeOptions" value-key="value" option-attribute="label" />
+            <USelectMenu v-model="advancedState.entityType" :items="entityTypeOptions" value-key="value" option-attribute="label" />
           </div>
         </div>
 
@@ -78,9 +80,9 @@
               >
                 <span class="truncate">{{ createdRangeLabel }}</span>
               </UButton>
-              <template #panel>
+              <template #content>
                 <div class="p-2">
-                  <UCalendar v-model="advanced.createdRange" :number-of-months="1" range close-on-select />
+                  <UCalendar v-model="advancedState.createdRange" :number-of-months="1" range close-on-select />
                 </div>
               </template>
             </UPopover>
@@ -97,9 +99,9 @@
               >
                 <span class="truncate">{{ resolvedRangeLabel }}</span>
               </UButton>
-              <template #panel>
+              <template #content>
                 <div class="p-2">
-                  <UCalendar v-model="advanced.resolvedRange" :number-of-months="1" range close-on-select />
+                  <UCalendar v-model="advancedState.resolvedRange" :number-of-months="1" range close-on-select />
                 </div>
               </template>
             </UPopover>
@@ -109,11 +111,11 @@
         <div class="flex flex-wrap gap-4">
           <div class="flex flex-col gap-2 w-full sm:w-60">
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.createdBy','Created by') }}</span>
-            <USelectMenu v-model="advanced.createdBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
+            <USelectMenu v-model="advancedState.createdBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
           </div>
           <div class="flex flex-col gap-2 w-full sm:w-60">
             <span class="text-xs uppercase tracking-wide text-gray-500">{{ tt('features.admin.feedback.filters.resolvedBy','Resolved by') }}</span>
-            <USelectMenu v-model="advanced.resolvedBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
+            <USelectMenu v-model="advancedState.resolvedBy" :items="userOptions" value-key="value" option-attribute="label" searchable />
           </div>
         </div>
       </AdvancedFiltersPanel>
@@ -132,67 +134,21 @@
         <USkeleton class="h-8 w-full" />
       </div>
       <div v-else>
-        <div class="flex items-center justify-between mb-2">
-          <div class="text-sm text-gray-500">{{ tt('ui.table.selectedCount','{n} selected').replace('{n}', String(selectedIds.length)) }}</div>
-          <div class="flex gap-2">
-            <UButton
-              size="sm"
-              color="primary"
-              :disabled="!isEditor || selectedIds.length===0"
-              :title="!isEditor ? tt('ui.messages.noPermission','No permission') : tt('feedback.resolveSelected','Resolve selected')"
-              @click="openResolveConfirm"
-            >{{ tt('feedback.resolveSelected','Resolve selected') }}</UButton>
-            <UButton
-              size="sm"
-              color="primary"
-              variant="soft"
-              icon="i-heroicons-arrow-path"
-              :disabled="selectedIds.length===0"
-              @click="bulkReopen"
-            >{{ tt('admin.feedback.actions.reopenSelected', 'Reopen selected') }}</UButton>
-            <UButton
-              size="sm"
-              color="error"
-              variant="soft"
-              icon="i-heroicons-trash"
-              :disabled="selectedIds.length===0"
-              @click="bulkDelete"
-            >{{ tt('admin.feedback.actions.deleteSelected', 'Delete selected') }}</UButton>
-          </div>
-        </div>
         <FeedbackList
           v-model:selected="selectedIds"
           :items="filtered"
           :is-editor="isEditor"
-          @view="onView"
+          :loading="pending"
           @view-json="onViewJson"
           @resolve="onResolve"
           @reopen="onReopen"
           @delete="onDelete"
           @notes="onNotes"
+          @bulk-resolve="openResolveConfirm"
+          @bulk-reopen="bulkReopen"
+          @bulk-delete="bulkDelete"
         />
       </div>
-
-      <!-- Preview Modal -->
-      <UModal v-model:open="previewOpen" :title="tt('ui.actions.preview', 'Preview')">
-        <template #body>
-          <div class="min-h-20">
-            <div v-if="previewLoading" class="py-8 text-center text-gray-500">{{ tt('ui.states.loading', 'Loading...') }}</div>
-            <div v-else-if="previewCard">
-              <CartaRow
-                :template-key="'Class'"
-                :entity="previewCard.entity_type || ''"
-                :type-label="previewCard.card_type_name || previewCard.card_type_code || ''"
-                :name="previewCard.name || previewCard.code"
-                :short-text="previewCard.short_text || ''"
-                :description="previewCard.description || ''"
-                :img="previewCard.image || previewCard.thumbnail_url || null"
-              />
-            </div>
-            <div v-else class="py-8 text-center text-gray-500">{{ tt('features.feedback.noLinkedCard', 'No linked card preview') }}</div>
-          </div>
-        </template>
-      </UModal>
 
       <PaginationControls
         class="mt-4"
@@ -219,7 +175,11 @@
     />
 
     <!-- Resolve Confirm Modal -->
-    <UModal v-model:open="resolveOpen" :title="tt('features.admin.feedback.actions.confirmResolve','Confirm resolve')">
+    <UModal
+      v-model:open="resolveOpen"
+      :title="tt('features.admin.feedback.actions.confirmResolve','Confirm resolve')"
+      :description="tt('features.admin.feedback.actions.confirmResolveDescription', 'Confirm resolving the selected feedback items')"
+    >
       <template #body>
         <p class="text-sm text-gray-600 dark:text-gray-300">{{ tt('features.admin.feedback.actions.confirmResolve','Confirm resolve') }} — {{ tt('ui.table.selectedCount','{n} selected').replace('{n}', String(selectedIds.length)) }}</p>
       </template>
@@ -248,7 +208,6 @@
 
 <script setup lang="ts">
 import FeedbackList from '@/components/admin/FeedbackList.vue'
-import CartaRow from '@/components/manage/CartaRow.vue'
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue'
 import JsonModal from '@/components/common/JsonModal.vue'
 import FeedbackNotesModal from '@/components/admin/FeedbackNotesModal.vue'
@@ -261,6 +220,7 @@ import { useApiFetch } from '@/utils/fetcher'
 import { useDebounceFn } from '@vueuse/core'
 import { useQuerySync } from '@/composables/common/useQuerySync'
 import { normalizeRange } from '@/composables/common/useDateRange'
+import type { FilterDefinition } from '@/components/common/AdvancedFiltersPanel.vue'
 
 const { t, te } = useI18n()
 function tt(key: string, fallback: string) {
@@ -270,7 +230,7 @@ function tt(key: string, fallback: string) {
 useSeoMeta({ title: `${t('navigation.menu.admin') || 'Admin'} · ${tt('features.admin.feedbackTitle', 'Feedback')}` })
 
 const toast = useToast()
-const apiFetch = useApiFetch()
+const apiFetch = useApiFetch
 const router = useRouter()
 const route = useRoute()
 
@@ -411,16 +371,6 @@ const isEditor = computed(() => {
   return roles.includes('admin') || roles.includes('editor')
 })
 
-const advancedOpen = ref(false)
-const advanced = reactive({
-  language: queryState.language as string | undefined,
-  entityType: queryState.entityType as string | undefined,
-  createdRange: queryState.createdRange as [Date | string, Date | string] | undefined,
-  resolvedRange: queryState.resolvedRange as [Date | string, Date | string] | undefined,
-  createdBy: queryState.createdBy as number | undefined,
-  resolvedBy: queryState.resolvedBy as number | undefined,
-})
-
 const languageOptions = computed(() => [{ label: tt('ui.filters.all', 'All'), value: undefined }, { label: 'EN', value: 'en' }, { label: 'ES', value: 'es' }])
 const entityTypeOptions = computed(() => [
   { label: tt('ui.filters.all', 'All'), value: undefined },
@@ -438,21 +388,91 @@ const userOptions = computed(() => {
   return [{ label: tt('ui.filters.any', 'Any'), value: undefined }, ...base]
 })
 
+const advancedOpen = ref(false)
+const advancedSchema = computed<FilterDefinition[]>(() => [
+  {
+    key: 'language',
+    label: tt('features.admin.feedback.filters.language','Language'),
+    type: 'select',
+    options: languageOptions.value,
+    default: undefined,
+    queryKey: 'language_code',
+  },
+  {
+    key: 'entityType',
+    label: tt('features.admin.feedback.filters.entityType','Entity type'),
+    type: 'select',
+    options: entityTypeOptions.value,
+    default: undefined,
+    queryKey: 'entity_type',
+  },
+  {
+    key: 'createdRange',
+    label: tt('features.admin.feedback.filters.createdRange','Created range'),
+    type: 'date-range',
+    queryKey: 'created_range',
+    placeholder: tt('features.admin.feedback.filters.anyDate','Any date'),
+    numberOfMonths: 1,
+  },
+  {
+    key: 'resolvedRange',
+    label: tt('features.admin.feedback.filters.resolvedRange','Resolved range'),
+    type: 'date-range',
+    queryKey: 'resolved_range',
+    placeholder: tt('features.admin.feedback.filters.anyDate','Any date'),
+    numberOfMonths: 1,
+  },
+  {
+    key: 'createdBy',
+    label: tt('features.admin.feedback.filters.createdBy','Created by'),
+    type: 'select',
+    options: userOptions.value,
+    default: undefined,
+    queryKey: 'created_by',
+  },
+  {
+    key: 'resolvedBy',
+    label: tt('features.admin.feedback.filters.resolvedBy','Resolved by'),
+    type: 'select',
+    options: userOptions.value,
+    default: undefined,
+    queryKey: 'resolved_by',
+  },
+  {
+    key: 'autoApply',
+    label: tt('ui.filters.autoApply','Auto apply'),
+    type: 'toggle',
+    placeholder: tt('ui.filters.autoApply','Auto apply'),
+    queryKey: 'auto_apply',
+    default: false,
+  },
+])
+
+const advancedState = reactive({
+  language: queryState.language as string | undefined,
+  entityType: queryState.entityType as string | undefined,
+  createdRange: queryState.createdRange as [Date | string, Date | string] | undefined,
+  resolvedRange: queryState.resolvedRange as [Date | string, Date | string] | undefined,
+  createdBy: queryState.createdBy as number | undefined,
+  resolvedBy: queryState.resolvedBy as number | undefined,
+  autoApply: false,
+})
+
 const filters = computed(() => {
   const payload: Record<string, any> = {
     search: search.value || undefined,
     status: status.value !== 'all' ? status.value : undefined,
     category: type.value !== 'all' ? type.value : undefined,
     created_by: mineOnly.value ? currentUserId.value : undefined,
-    language_code: advanced.language,
-    entity_type: advanced.entityType,
-    created_from: advanced.createdRange?.[0],
-    created_to: advanced.createdRange?.[1],
-    resolved_from: advanced.resolvedRange?.[0],
-    resolved_to: advanced.resolvedRange?.[1],
-    resolved_by: advanced.resolvedBy,
+    language_code: advancedState.language,
+    entity_type: advancedState.entityType,
+    created_from: advancedState.createdRange?.[0],
+    created_to: advancedState.createdRange?.[1],
+    resolved_from: advancedState.resolvedRange?.[0],
+    resolved_to: advancedState.resolvedRange?.[1],
+    resolved_by: advancedState.resolvedBy,
   }
-  if (!mineOnly.value && advanced.createdBy) payload.created_by = advanced.createdBy
+  if (!mineOnly.value && advancedState.createdBy) payload.created_by = advancedState.createdBy
   return payload
 })
 
@@ -485,12 +505,12 @@ watch(
     if (type.value !== next.type) type.value = next.type ?? 'all'
     if (mineOnly.value !== !!next.mineOnly) mineOnly.value = !!next.mineOnly
 
-    advanced.language = next.language
-    advanced.entityType = next.entityType
-    advanced.createdRange = next.createdRange as any
-    advanced.resolvedRange = next.resolvedRange as any
-    advanced.createdBy = next.createdBy
-    advanced.resolvedBy = next.resolvedBy
+    advancedState.language = next.language
+    advancedState.entityType = next.entityType
+    advancedState.createdRange = next.createdRange as any
+    advancedState.resolvedRange = next.resolvedRange as any
+    advancedState.createdBy = next.createdBy
+    advancedState.resolvedBy = next.resolvedBy
 
     if (pagination.page !== next.page) pagination.page = next.page ?? 1
     if (pagination.pageSize !== next.pageSize) pagination.pageSize = next.pageSize ?? 20
@@ -519,13 +539,10 @@ function formatRangeLabel(range: [Date | string, Date | string] | undefined, fal
   return `${formatter.format(start)} – ${formatter.format(end)}`
 }
 
-const createdRangeLabel = computed(() => formatRangeLabel(advanced.createdRange, tt('features.admin.feedback.filters.anyDate','Any date')))
-const resolvedRangeLabel = computed(() => formatRangeLabel(advanced.resolvedRange, tt('features.admin.feedback.filters.anyDate','Any date')))
+const createdRangeLabel = computed(() => formatRangeLabel(advancedState.createdRange, tt('features.admin.feedback.filters.anyDate','Any date')))
+const resolvedRangeLabel = computed(() => formatRangeLabel(advancedState.resolvedRange, tt('features.admin.feedback.filters.anyDate','Any date')))
 
 const selectedIds = ref<number[]>([])
-const previewOpen = ref(false)
-const previewLoading = ref(false)
-const previewCard = ref<any>(null)
 const jsonOpen = ref(false)
 const jsonData = ref<any>(null)
 const notesOpen = ref(false)
@@ -548,12 +565,12 @@ async function pushQuery() {
     status: status.value,
     type: type.value,
     mineOnly: mineOnly.value,
-    language: advanced.language,
-    entityType: advanced.entityType,
-    createdBy: !mineOnly.value ? advanced.createdBy : currentUserId.value ?? undefined,
-    resolvedBy: advanced.resolvedBy,
-    createdRange: advanced.createdRange ? [toIso(advanced.createdRange[0]) ?? advanced.createdRange[0], toIso(advanced.createdRange[1]) ?? advanced.createdRange[1]] : undefined,
-    resolvedRange: advanced.resolvedRange ? [toIso(advanced.resolvedRange[0]) ?? advanced.resolvedRange[0], toIso(advanced.resolvedRange[1]) ?? advanced.resolvedRange[1]] : undefined,
+    language: advancedState.language,
+    entityType: advancedState.entityType,
+    createdBy: !mineOnly.value ? advancedState.createdBy : currentUserId.value ?? undefined,
+    resolvedBy: advancedState.resolvedBy,
+    createdRange: advancedState.createdRange ? [toIso(advancedState.createdRange[0]) ?? advancedState.createdRange[0], toIso(advancedState.createdRange[1]) ?? advancedState.createdRange[1]] : undefined,
+    resolvedRange: advancedState.resolvedRange ? [toIso(advancedState.resolvedRange[0]) ?? advancedState.resolvedRange[0], toIso(advancedState.resolvedRange[1]) ?? advancedState.resolvedRange[1]] : undefined,
     page: pagination.page,
     pageSize: pagination.pageSize,
   })
@@ -584,6 +601,25 @@ const debouncedFilters = useDebounceFn(async () => {
   pushQuery()
 }, 200)
 
+watch([search, status, type, mineOnly], () => {
+  debouncedFilters()
+})
+
+watch(
+  () => ({
+    language: advancedState.language,
+    entityType: advancedState.entityType,
+    createdRange: advancedState.createdRange,
+    resolvedRange: advancedState.resolvedRange,
+    createdBy: advancedState.createdBy,
+    resolvedBy: advancedState.resolvedBy,
+  }),
+  () => {
+    debouncedFilters()
+  },
+  { deep: true },
+)
+
 function applyAdvanced() {
   pagination.page = 1
   loadList({ page: 1 })
@@ -592,12 +628,12 @@ function applyAdvanced() {
 }
 
 function resetAdvanced() {
-  advanced.language = undefined
-  advanced.entityType = undefined
-  advanced.createdRange = undefined
-  advanced.resolvedRange = undefined
-  advanced.createdBy = undefined
-  advanced.resolvedBy = undefined
+  advancedState.language = undefined
+  advancedState.entityType = undefined
+  advancedState.createdRange = undefined
+  advancedState.resolvedRange = undefined
+  advancedState.createdBy = undefined
+  advancedState.resolvedBy = undefined
   pagination.page = 1
   loadList({ page: 1 })
   fetchCountsByType()
@@ -644,21 +680,6 @@ async function fetchEntitySnapshot(entityType: string, entityId: number, lang?: 
     return response?.data ?? response ?? null
   } catch {
     return null
-  }
-}
-
-async function onView(f: any) {
-  previewOpen.value = true
-  previewLoading.value = true
-  previewCard.value = null
-  try {
-    const id = Number(f.entity_id)
-    const entityType = String(f.entity_type || '')
-    const lang = f.language_code || undefined
-    if (!Number.isFinite(id)) return
-    previewCard.value = await fetchEntitySnapshot(entityType, id, lang)
-  } finally {
-    previewLoading.value = false
   }
 }
 

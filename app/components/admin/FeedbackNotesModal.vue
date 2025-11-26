@@ -4,42 +4,37 @@
     :open="open"
     :title="modalTitle"
     :description="modalDescription"
-    role="dialog"
-    aria-modal="true"
-    :aria-labelledby="titleId"
-    :aria-describedby="descriptionId"
     @update:open="handleOpenUpdate"
   >
-    <template #header="{ title, description }">
-      <div>
-        <h2 :id="titleId" class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h2>
-        <p :id="descriptionId" class="text-sm text-gray-600 dark:text-gray-300">{{ description }}</p>
-      </div>
+    <template #title>
+      <span class="text-lg font-semibold text-gray-900 dark:text-white">{{ modalTitle }}</span>
+    </template>
+
+    <template #description>
+      <span class="text-sm text-gray-600 dark:text-gray-300">{{ modalDescription }}</span>
     </template>
 
     <template #body>
-      <UFocusTrap v-if="open">
-        <div class="space-y-3" :aria-labelledby="titleId" :aria-describedby="descriptionId">
-          <div v-if="notesList.length === 0" class="text-sm text-gray-500">{{ $t('features.admin.feedback.notes.empty','No internal notes yet') }}</div>
-          <div v-else class="max-h-64 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-800 rounded border border-gray-200 dark:border-gray-800" role="log" aria-live="polite">
-            <div v-for="(n, idx) in notesList" :key="idx" class="p-2 text-sm">
-              <pre class="whitespace-pre-wrap font-sans text-xs leading-5">{{ n }}</pre>
-            </div>
-          </div>
-          <div v-if="isEditor" class="space-y-2">
-            <UTextarea
-              :id="noteFieldId"
-              ref="noteFieldRef"
-              class="w-full"
-              v-model="newNote"
-              :rows="5"
-              :placeholder="$t('features.admin.feedback.notes.addNote','Add note')"
-              aria-describedby="noteHelpId"
-            />
-            <p :id="noteHelpId" class="sr-only">{{ $t('features.admin.feedback.notes.addNote','Add note') }}</p>
+      <div class="space-y-3">
+        <div v-if="notesList.length === 0" class="text-sm text-gray-500">{{ $t('features.admin.feedback.notes.empty','No internal notes yet') }}</div>
+        <div v-else class="max-h-64 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-800 rounded border border-gray-200 dark:border-gray-800" role="log" aria-live="polite">
+          <div v-for="(n, idx) in notesList" :key="idx" class="p-2 text-sm">
+            <pre class="whitespace-pre-wrap font-sans text-xs leading-5">{{ n }}</pre>
           </div>
         </div>
-      </UFocusTrap>
+        <div v-if="isEditor" class="space-y-2">
+          <UTextarea
+            :id="noteFieldId"
+            ref="noteFieldRef"
+            class="w-full"
+            v-model="newNote"
+            :rows="5"
+            :placeholder="$t('features.admin.feedback.notes.addNote','Add note')"
+            aria-describedby="noteHelpId"
+          />
+          <p :id="noteHelpId" class="sr-only">{{ $t('features.admin.feedback.notes.addNote','Add note') }}</p>
+        </div>
+      </div>
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
@@ -59,8 +54,6 @@ const newNote = ref('')
 const saving = ref(false)
 const saveError = ref<string | null>(null)
 
-const titleId = 'feedback-notes-modal-title'
-const descriptionId = 'feedback-notes-modal-description'
 const noteFieldId = 'feedback-notes-modal-field'
 const noteHelpId = 'feedback-notes-help'
 

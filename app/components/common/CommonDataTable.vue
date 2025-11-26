@@ -12,13 +12,33 @@
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <slot name="toolbar" :selected="selectedInternal" :meta="metaState" />
-        <USegmentedControl
-          v-if="showDensityToggle"
-          v-model="densityInternal"
-          size="xs"
-          :items="densityOptions"
-          :ui="{ root: 'border border-neutral-200 dark:border-neutral-700 bg-transparent' }"
-        />
+        <ClientOnly v-if="showDensityToggle">
+          <UFieldGroup
+            size="xs"
+            orientation="horizontal"
+            class="density-toggle"
+            :ui="{
+              base: 'flex items-center gap-2',
+              label: 'text-xs font-medium text-neutral-500 dark:text-neutral-400',
+            }"
+          >
+            <template #label>
+              {{ tt('ui.table.densityLabel', 'Density') }}
+            </template>
+            <div class="flex items-center gap-1">
+              <UButton
+                v-for="option in densityOptions"
+                :key="option.value"
+                :label="option.label"
+                size="xs"
+                :color="densityInternal === option.value ? 'primary' : 'neutral'"
+                variant="soft"
+                :aria-pressed="densityInternal === option.value"
+                @click="setDensity(option.value)"
+              />
+            </div>
+          </UFieldGroup>
+        </ClientOnly>
       </div>
     </header>
 
@@ -67,7 +87,7 @@
           <component
             v-if="column.component"
             :is="column.component"
-            v-bind="ctx"
+            v-bind="buildComponentProps(column, ctx)"
           />
           <span v-else class="block truncate">
             {{ ctx.getValue?.() ?? ctx.row.original?.[column.key] ?? '' }}
@@ -111,9 +131,7 @@ import { computed, ref, watch, readonly } from 'vue'
 import { useSlots, useI18n } from '#imports'
 import type { TableColumn, TableSort } from '@nuxt/ui'
 import PaginationControls from '~/components/common/PaginationControls.vue'
-import TranslationStatusBadge from '~/components/common/badges/TranslationStatusBadge.vue'
-import ReleaseStageChip from '~/components/common/badges/ReleaseStageChip.vue'
-import StatusChip from '~/components/common/badges/StatusChip.vue'
+import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useListMeta, type ListMeta } from '~/composables/common/useListMeta'
 import { useEntityCapabilities, type EntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
@@ -188,6 +206,11 @@ const densityOptions = computed(() => ([
   { label: tt('ui.table.densityRegular', 'Regular'), value: 'regular' },
   { label: tt('ui.table.densityCompact', 'Compact'), value: 'compact' },
 ]))
+
+function setDensity(value: 'comfortable' | 'regular' | 'compact') {
+  if (densityInternal.value === value) return
+  densityInternal.value = value
+}
 
 const items = computed(() => props.items ?? [])
 
@@ -288,12 +311,15 @@ const resolvedColumns = computed<TableColumn[]>(() => {
 function builtinComponentFor(key: string | undefined) {
   switch (key) {
     case 'translationStatus':
-      return TranslationStatusBadge
+      return { component: StatusBadge, badgeType: 'translation' as const }
     case 'release':
     case 'release_stage':
-      return ReleaseStageChip
+    case 'releaseStage':
+      return { component: StatusBadge, badgeType: 'release' as const }
+    case 'userStatus':
+      return { component: StatusBadge, badgeType: 'user' as const }
     case 'status':
-      return StatusChip
+      return { component: StatusBadge, badgeType: 'status' as const }
     default:
       return null
   }
@@ -303,12 +329,42 @@ const slotColumns = computed(() => resolvedColumns.value
   .filter(column => column.id !== 'select')
   .map((column) => {
     const key = String(column.id || column.accessorKey || '')
+    const config = builtinComponentFor(key)
     return {
       key,
       slotName: `${key}-cell`,
-      component: builtinComponentFor(key),
+      component: config?.component ?? null,
+      badgeType: config?.badgeType,
     }
   }))
+
+function buildComponentProps(column: { key: string; component: any; badgeType?: 'status' | 'release' | 'translation' | 'user' }, ctx: any) {
+  const value = ctx?.getValue ? ctx.getValue() : ctx?.row?.original?.[column.key]
+
+  if (column.component === StatusBadge) {
+    const row = ctx?.row?.original ?? {}
+    let badgeType = column.badgeType ?? 'status'
+
+    if (badgeType === 'status' && (row?.statusKind === 'user' || column.key === 'userStatus')) {
+      badgeType = 'user'
+    }
+
+    const resolvedValue = (() => {
+      if (value != null) return value
+      if (badgeType === 'release') return row?.releaseStage ?? row?.release_stage ?? null
+      if (badgeType === 'translation') return row?.translationStatus ?? null
+      if (badgeType === 'user') return row?.userStatus ?? row?.status ?? null
+      return row?.status ?? null
+    })()
+
+    return {
+      type: badgeType,
+      value: typeof resolvedValue === 'string' ? resolvedValue : (resolvedValue ?? null),
+    }
+  }
+
+  return { ...ctx }
+}
 
 /**
  * Exposes selection helpers so parents can trigger batch mutations.

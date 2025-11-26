@@ -1,53 +1,172 @@
 <!-- app/components/admin/RevisionsTable.vue -->
 <template>
-  <div class="space-y-3">
+  <div class="space-y-4">
     <div class="flex flex-wrap items-center gap-2">
-      <UInput v-model="search" :placeholder="$t('ui.actions.search','Search')" icon="i-heroicons-magnifying-glass" class="w-full sm:w-72" />
-      <USelectMenu v-model="entityType" :items="entityTypeItems" value-key="value" option-attribute="label" class="w-64" />
+      <UInput
+        v-model="search"
+        :placeholder="$t('ui.actions.search','Search')"
+        icon="i-heroicons-magnifying-glass"
+        class="w-full sm:w-72"
+      />
+      <USelectMenu
+        v-model="entityType"
+        :items="entityTypeItems"
+        value-key="value"
+        option-attribute="label"
+        class="w-64"
+      />
       <div class="flex items-center gap-2">
         <span class="text-sm text-gray-600 dark:text-gray-300">{{ $t('ui.fields.status','Status') }}</span>
-        <USelectMenu v-model="status" :items="statusItems" value-key="value" option-attribute="label" class="w-40" />
+        <USelectMenu
+          v-model="status"
+          :items="statusItems"
+          value-key="value"
+          option-attribute="label"
+          class="w-40"
+        />
       </div>
       <div class="ml-auto flex gap-2">
-        <UButton size="xs" variant="soft" color="neutral" :disabled="pending" @click="reload">{{ $t('ui.actions.refresh','Refresh') }}</UButton>
-        <UButton size="xs" :disabled="!isEditor || !hasSelectedItems" :title="!isEditor ? $t('ui.messages.noPermission') : ''" @click="bulkApprove">{{ $t('features.admin.revisions.approveSelected','Approve selected') }}</UButton>
-        <UButton size="xs" color="error" variant="soft" :disabled="!isEditor || !hasSelectedItems" :title="!isEditor ? $t('ui.messages.noPermission') : ''" @click="bulkReject">{{ $t('features.admin.revisions.rejectSelected','Reject selected') }}</UButton>
+        <UButton
+          size="xs"
+          variant="soft"
+          color="neutral"
+          :disabled="pending"
+          @click="reload"
+        >
+          {{ $t('ui.actions.refresh','Refresh') }}
+        </UButton>
+        <UButton
+          size="xs"
+          :disabled="!isEditor || selectedIds.value.length === 0"
+          :title="!isEditor ? $t('ui.messages.noPermission') : ''"
+          @click="bulkApprove"
+        >
+          {{ $t('features.admin.revisions.approveSelected','Approve selected') }}
+        </UButton>
+        <UButton
+          size="xs"
+          color="error"
+          variant="soft"
+          :disabled="!isEditor || selectedIds.value.length === 0"
+          :title="!isEditor ? $t('ui.messages.noPermission') : ''"
+          @click="bulkReject"
+        >
+          {{ $t('features.admin.revisions.rejectSelected','Reject selected') }}
+        </UButton>
       </div>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead>
-          <tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
-            <th class="py-2 pr-2"><UCheckbox :model-value="allChecked" :indeterminate="indeterminate" @update:model-value="val => toggleAll(val)" /></th>
-            <th class="py-2 pr-4">{{ $t('ui.fields.entity','Entity') }}</th>
-            <th class="py-2 pr-4">{{ $t('ui.fields.language','Language') }}</th>
-            <th class="py-2 pr-4">{{ $t('ui.fields.status','Status') }}</th>
-            <th class="py-2 pr-4">{{ $t('ui.misc.createdAt','Created') }}</th>
-            <th class="py-2 pr-4 text-right">{{ $t('ui.table.actions','Actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in items" :key="r.id" class="border-b border-gray-100 dark:border-gray-800">
-            <td class="py-2 pr-2"><UCheckbox :model-value="isSelected(r.id)" @update:model-value="v => toggleOne(r.id, v)" /></td>
-            <td class="py-2 pr-4 text-xs">{{ r.entity_type }}#{{ r.entity_id }}</td>
-            <td class="py-2 pr-4">{{ r.language_code || '—' }}</td>
-            <td class="py-2 pr-4"><UBadge variant="soft">{{ r.status }}</UBadge></td>
-            <td class="py-2 pr-4">{{ formatDate(r.created_at) }}</td>
-            <td class="py-2 pr-0">
-              <div class="flex justify-end gap-2">
-                <UButton size="xs" icon="i-heroicons-document-magnifying-glass" variant="soft" :title="$t('features.admin.revisions.viewDiff','View diff')" @click="onViewDiff(r)" />
-                <UButton size="xs" icon="i-heroicons-check-circle" color="primary" variant="soft" :disabled="!isEditor" :title="!isEditor ? $t('ui.messages.noPermission') : $t('system.status.approved','Approve')" @click="setOne(r.id, 'approved')" />
-                <UButton size="xs" icon="i-heroicons-x-circle" color="error" variant="soft" :disabled="!isEditor" :title="!isEditor ? $t('ui.messages.noPermission') : $t('system.status.draft','Reject')" @click="setOne(r.id, 'rejected')" />
-              </div>
-            </td>
-          </tr>
-          <tr v-if="!items || items.length===0">
-            <td colspan="6" class="py-6 text-center text-gray-400">{{ $t('ui.empty.noData','No data') }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <AdminTableBridge
+      ref="bridgeRef"
+      :items="rows"
+      :columns="columns"
+      :meta="meta"
+      :loading="pending"
+      :selection="selectionAdapter"
+      entity-kind="revision"
+      :density-toggle="false"
+      :show-toolbar="false"
+      @update:selected="onSelectedUpdate"
+      @update:page="handlePageChange"
+      @update:page-size="handlePageSizeChange"
+    >
+      <template #bulk-actions="{ selected }">
+        <div class="flex flex-wrap items-center gap-2">
+          <UButton
+            size="xs"
+            :disabled="!isEditor || !selected.length"
+            @click="bulkApprove"
+          >
+            {{ $t('features.admin.revisions.approveSelected','Approve selected') }}
+          </UButton>
+          <UButton
+            size="xs"
+            color="error"
+            variant="soft"
+            :disabled="!isEditor || !selected.length"
+            @click="bulkReject"
+          >
+            {{ $t('features.admin.revisions.rejectSelected','Reject selected') }}
+          </UButton>
+        </div>
+      </template>
+
+      <template #cell-code="{ row }">
+        <span class="font-mono text-xs text-neutral-600 dark:text-neutral-300">
+          {{ renderEntityIdentifier(row) }}
+        </span>
+      </template>
+
+      <template #cell-name="{ row }">
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-neutral-50">
+            <span class="truncate">{{ row.name }}</span>
+            <UBadge v-if="row.lang" size="xs" color="primary" variant="soft">
+              {{ String(row.lang).toUpperCase() }}
+            </UBadge>
+          </div>
+          <p v-if="row.short_text" class="text-xs text-neutral-500 dark:text-neutral-400 line-clamp-2">
+            {{ row.short_text }}
+          </p>
+        </div>
+      </template>
+
+      <template #cell-status="{ row }">
+        <UBadge variant="soft">
+          {{ row.status || $t('ui.states.unknown','Unknown') }}
+        </UBadge>
+      </template>
+
+      <template #cell-version="{ row }">
+        <span class="text-xs text-neutral-500 dark:text-neutral-400">
+          {{ row.version != null ? `v${row.version}` : '—' }}
+        </span>
+      </template>
+
+      <template #cell-created_at="{ row }">
+        <span class="text-xs text-neutral-500 dark:text-neutral-400">
+          {{ formatDate(row.created_at) }}
+        </span>
+      </template>
+
+      <template #cell-actions="{ row }">
+        <div class="flex justify-end gap-2">
+          <UButton
+            size="xs"
+            icon="i-heroicons-document-magnifying-glass"
+            variant="soft"
+            :title="$t('features.admin.revisions.viewDiff','View diff')"
+            @click="onViewDiff(row.raw)
+            "
+          />
+          <UButton
+            size="xs"
+            icon="i-heroicons-eye"
+            variant="soft"
+            :title="$t('ui.actions.preview','Preview')"
+            @click="openPreview(row)"
+          />
+          <UButton
+            size="xs"
+            icon="i-heroicons-check-circle"
+            color="primary"
+            variant="soft"
+            :disabled="!isEditor"
+            :title="!isEditor ? $t('ui.messages.noPermission') : $t('system.status.approved','Approve')"
+            @click="setOne(Number(row.id), 'approved')"
+          />
+          <UButton
+            size="xs"
+            icon="i-heroicons-x-circle"
+            color="error"
+            variant="soft"
+            :disabled="!isEditor"
+            :title="!isEditor ? $t('ui.messages.noPermission') : $t('system.status.draft','Reject')"
+            @click="setOne(Number(row.id), 'rejected')"
+          />
+        </div>
+      </template>
+    </AdminTableBridge>
 
     <PaginationControls
       class="pt-2"
@@ -73,6 +192,10 @@ import { useCurrentUser } from '@/composables/users/useCurrentUser'
 import PaginationControls from '@/components/common/PaginationControls.vue'
 import { useDebounceFn } from '@vueuse/core'
 import { useTableSelection } from '@/composables/common/useTableSelection'
+import AdminTableBridge from '@/components/admin/AdminTableBridge.vue'
+import type { ColumnDefinition } from '@/components/common/CommonDataTable.vue'
+import type { EntityRow } from '@/components/manage/view/EntityTable.vue'
+import { mapRevisionsToRows } from '@/utils/manage/entityRows'
 
 const { t } = useI18n()
 
@@ -106,18 +229,25 @@ const isEditor = computed(() => {
   return roles.includes('admin') || roles.includes('editor')
 })
 
+const rows = computed<EntityRow[]>(() => mapRevisionsToRows(items.value))
+
+const columns = computed<ColumnDefinition[]>(() => [
+  { key: 'code', label: t('ui.fields.entity','Entity'), sortable: false, width: '16rem' },
+  { key: 'category', label: t('ui.fields.type','Type'), sortable: false, width: '12rem' },
+  { key: 'entity_id', label: t('ui.fields.id','Entity ID'), sortable: false, width: '8rem' },
+  { key: 'name', label: t('ui.fields.name','Name'), sortable: false, width: '32%' },
+  { key: 'status', label: t('ui.fields.status','Status'), sortable: false },
+  { key: 'version', label: t('ui.fields.version','Version'), sortable: true, width: '6rem' },
+  { key: 'created_at', label: t('ui.misc.createdAt','Created'), sortable: true, width: '12rem' },
+  { key: 'actions', label: t('ui.table.actions','Actions'), sortable: false, width: '1%' },
+])
+
 const selection = useTableSelection(() => items.value.map(r => r.id))
 const selectedIds = selection.selectedList
 const hasSelectedItems = computed(() => selectedIds.value.length > 0)
-const allChecked = selection.isAllSelected
-const indeterminate = selection.isIndeterminate
-
-const isSelected = selection.isSelected
-function toggleOne(id:number, value:boolean) {
-  selection.toggleOne(id, value)
-}
-function toggleAll(value?: boolean) {
-  selection.toggleAll(value)
+const selectionAdapter = {
+  selectedList: selection.selectedList,
+  setSelected: (ids: Iterable<string | number>) => selection.setSelected(ids),
 }
 
 const pagination = reactive({ page: 1, pageSize: 20 })
@@ -180,7 +310,6 @@ function onViewDiff(r:any) {
   diffOpen.value = true
 }
 
-// Status filter state and options
 const status = ref<'draft'|'approved'|'rejected'|'published'>(props.defaultStatus)
 const statusItems = [
   { label: 'Draft', value: 'draft' },
@@ -206,6 +335,14 @@ onMounted(async () => {
   await reload()
 })
 
+watch(() => meta.value?.page, (next) => {
+  if (typeof next === 'number') pagination.page = next
+})
+
+watch(() => meta.value?.pageSize, (next) => {
+  if (typeof next === 'number') pagination.pageSize = next
+})
+
 function handlePageChange(next: number) {
   pagination.page = next
   reload({ page: next })
@@ -215,5 +352,21 @@ function handlePageSizeChange(next: number) {
   pagination.pageSize = next
   pagination.page = 1
   reload({ page: 1, pageSize: next })
+}
+
+function onSelectedUpdate(ids: Array<string | number>) {
+  selection.setSelected(ids)
+}
+
+const bridgeRef = ref<InstanceType<typeof AdminTableBridge> | null>(null)
+
+function openPreview(row: EntityRow) {
+  bridgeRef.value?.openPreview(row)
+}
+
+function renderEntityIdentifier(row: EntityRow) {
+  if (row.code) return row.code
+  if (row.raw?.entity_type && row.raw?.entity_id != null) return `${row.raw.entity_type}#${row.raw.entity_id}`
+  return `#${row.id ?? '—'}`
 }
 </script>

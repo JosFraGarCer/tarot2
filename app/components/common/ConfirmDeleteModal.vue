@@ -1,6 +1,18 @@
 <!-- app/components/common/ConfirmDeleteModal.vue -->
 <template>
-  <UModal v-model:open="localOpen" :title="title">
+  <UModal
+    v-model:open="localOpen"
+    :title="title"
+    :description="description"
+  >
+    <template #title>
+      <span class="text-lg font-semibold text-neutral-900 dark:text-neutral-50">{{ title }}</span>
+    </template>
+
+    <template #description>
+      <span v-if="description" class="text-sm text-neutral-600 dark:text-neutral-300">{{ description }}</span>
+    </template>
+
     <template #body>
       <div class="space-y-3">
         <UAlert
