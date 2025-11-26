@@ -1,3 +1,4 @@
+// app/components/common/entityDisplay.ts
 export type ReleaseStage = 'dev' | 'alpha' | 'beta' | 'candidate' | 'release' | 'revision'
 
 export type StatusCode = 'draft' | 'review' | 'approved' | 'archived' | (string & {})

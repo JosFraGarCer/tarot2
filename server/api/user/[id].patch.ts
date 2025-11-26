@@ -1,3 +1,4 @@
+// server/api/user/[id].patch.ts
 // server/api/users/[id].patch.ts
 // PATCH: update partial fields for User entity
 import { defineEventHandler, readBody } from 'h3'

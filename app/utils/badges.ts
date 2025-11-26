@@ -1,3 +1,4 @@
+// app/utils/badges.ts
 import type { BadgeColor } from '@nuxt/ui'
 
 type SupportedColor = Exclude<BadgeColor, 'info' | 'success'> | 'success'

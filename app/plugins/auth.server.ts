@@ -1,3 +1,4 @@
+// app/plugins/auth.server.ts
 // /app/plugins/auth.server.ts
 import { defineNuxtPlugin } from '#app'
 import { useUserStore } from '~/stores/user'

@@ -1,3 +1,4 @@
+// app/schemas/entities/basecard.ts
 // /app/schemas/entities/basecard.ts
 import { z } from 'zod'
 

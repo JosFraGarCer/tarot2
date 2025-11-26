@@ -1,3 +1,4 @@
+// app/types/api.ts
 // /types/api.ts
 export type Permissions = Record<string, boolean>
 

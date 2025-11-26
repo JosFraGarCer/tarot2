@@ -1,3 +1,4 @@
+// server/api/role/[id].delete.ts
 // server/api/roles/[id].delete.ts
 import { defineEventHandler } from 'h3'
 import { createResponse } from '../../utils/response'

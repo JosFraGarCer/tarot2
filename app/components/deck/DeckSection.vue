@@ -1,3 +1,4 @@
+<!-- app/components/deck/DeckSection.vue -->
 <!-- /app/components/deck/DeckSection.vue -->
 <template>
   <div>

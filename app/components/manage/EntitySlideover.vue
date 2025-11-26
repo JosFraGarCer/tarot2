@@ -1,3 +1,4 @@
+<!-- app/components/manage/EntitySlideover.vue -->
 <template>
   <USlideover
     v-model:open="open"

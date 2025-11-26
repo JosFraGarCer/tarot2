@@ -1,3 +1,4 @@
+// server/api/user/index.get.ts
 // server/api/users/index.get.ts
 import { defineEventHandler, getQuery } from 'h3'
 import { sql } from 'kysely'

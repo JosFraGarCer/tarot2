@@ -1,3 +1,4 @@
+// server/api/database/export.sql.get.ts
 import { defineEventHandler, createError } from 'h3'
 import { createResponse } from '../../utils/response'
 import { getUserFromEvent } from '../../plugins/auth'

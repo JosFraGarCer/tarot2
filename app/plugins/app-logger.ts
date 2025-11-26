@@ -1,3 +1,4 @@
+// app/plugins/app-logger.ts
 import type { Logger as PinoLogger } from 'pino'
 
 interface BaseLogger {

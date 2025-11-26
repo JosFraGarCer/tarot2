@@ -1,3 +1,4 @@
+// app/composables/manage/useImageUpload.ts
 import { ref } from 'vue'
 
 export function useImageUpload() {

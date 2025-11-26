@@ -1,3 +1,4 @@
+// server/api/user/me.get.ts
 // server/api/users/me.get.ts
 import { defineEventHandler, createError } from 'h3'
 import { sql } from 'kysely'

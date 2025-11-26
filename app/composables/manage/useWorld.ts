@@ -1,3 +1,4 @@
+// app/composables/manage/useWorld.ts
 // /app/composables/manage/useWorld.ts
 import { useEntity, type EntityFilterConfig } from '~/composables/manage/useEntity'
 import type { ManageCrud } from '@/types/manage'

@@ -1,3 +1,4 @@
+// app/schemas/admin/user.ts
 import { z } from 'zod'
 
 export const adminUserStatusEnum = z.enum(['active', 'inactive', 'suspended', 'banned', 'pending'])

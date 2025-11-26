@@ -1,3 +1,4 @@
+// app/composables/manage/useArcana.ts
 // /app/composables/manage/useArcana.ts
 import { useEntity, type EntityFilterConfig } from '~/composables/manage/useEntity'
 import type { ManageCrud } from '@/types/manage'

@@ -1,3 +1,4 @@
+// app/utils/fetcher.ts
 import { $fetch as ofetch, type FetchContext, type FetchRequest, type FetchOptions } from 'ofetch'
 import { tryUseNuxtApp } from '#app'
 import type { H3Event } from 'h3'

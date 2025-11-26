@@ -1,3 +1,4 @@
+// app/composables/manage/useTranslationActions.ts
 // /app/composables/manage/useTranslationActions.ts
 import { useI18n } from '#imports'
 import { useApiFetch } from '~/utils/fetcher'

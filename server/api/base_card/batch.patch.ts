@@ -1,3 +1,4 @@
+// server/api/base_card/batch.patch.ts
 import { defineEventHandler } from 'h3'
 import { batchUpdateEntities } from '../../utils/entityCrudHelpers'
 import { getUserFromEvent } from '../../plugins/auth'

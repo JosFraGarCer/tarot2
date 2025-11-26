@@ -1,3 +1,4 @@
+// server/api/world_card/export.get.ts
 import { defineEventHandler } from 'h3'
 import { exportEntities } from '../../utils/entityCrudHelpers'
 

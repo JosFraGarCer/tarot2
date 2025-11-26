@@ -1,3 +1,4 @@
+// server/api/skill/_crud.ts
 import { sql } from 'kysely'
 import { createCrudHandlers } from '../../utils/createCrudHandlers'
 import {

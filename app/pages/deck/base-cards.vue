@@ -1,3 +1,4 @@
+<!-- app/pages/deck/base-cards.vue -->
 <!-- app/pages/deck/index.vue -->
 <template>
   <DeckEntityPage

@@ -1,3 +1,4 @@
+<!-- app/components/manage/EntityBase.vue -->
 <!-- /app/components/manage/ManageEntity.vue -->
 <template>
   <div class="flex flex-col gap-4">

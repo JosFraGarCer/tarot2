@@ -1,3 +1,4 @@
+// app/composables/common/useNavigationMenu.ts
 // /app/composables/useNavigationMenu.ts
 import { computed } from 'vue'
 import type { NavigationMenuItem } from '@nuxt/ui'

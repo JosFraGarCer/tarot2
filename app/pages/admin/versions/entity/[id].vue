@@ -1,3 +1,4 @@
+<!-- app/pages/admin/versions/entity/[id].vue -->
 <!-- app/pages/admin/versions/[entity]/[id].vue -->
 <template>
   <div class="p-4">

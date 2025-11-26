@@ -404,11 +404,11 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
   - Query: `page, pageSize, q|search, status, is_active, created_by, card_type_id, lang, sort (created_at|modified_at|code|status|name|is_active|created_by|card_type_id), direction, tags, tag_ids`.
   - Incluye `card_type` resuelto por traducciones.
 - `POST /api/base_card`
-  - Body: `{ code, card_type_id, image?, status?, name, short_text?, description? }`.
+  - Body: `{ code, card_type_id, card_family, image?, status?, is_active?, legacy_effects?, effects?, metadata?, name, short_text?, description? }`.
 - `GET /api/base_card/:id`
   - Query: `lang`.
 - `PATCH /api/base_card/:id`
-  - Query: `lang`. Body parcial base `{ code?, card_type_id?, image?, status? }` y/o traducción `{ name?, short_text?, description? }`.
+  - Query: `lang`. Body parcial base `{ code?, card_type_id?, card_family?, image?, status?, is_active?, legacy_effects?, effects?, metadata? }` y/o traducción `{ name?, short_text?, description? }`.
 - `DELETE /api/base_card/:id`
   - Query: `lang`.
 - `PATCH /api/base_card/batch`
@@ -419,10 +419,10 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 ### Campos y validación
 
 - **POST /api/base_card**
-  - Requeridos: `code`, `card_type_id`, `name`
-  - Opcionales: `image (string|null)`, `status (string)`, `short_text (string|null)`, `description (string|null)`
+  - Requeridos: `code`, `card_type_id`, `card_family`, `name`
+  - Opcionales: `image (string|null)`, `status (string)`, `is_active (boolean)`, `legacy_effects (boolean)`, `effects (obj|null)`, `metadata (obj|null)`, `short_text (string|null)`, `description (string|null)`
 - **PATCH /api/base_card/:id** (con `lang` opcional)
-  - Base opcional: `code`, `card_type_id`, `image (string|null)`, `status`
+  - Base opcional: `code`, `card_type_id`, `card_family`, `image (string|null)`, `status`, `is_active`, `legacy_effects`, `effects (obj|null)`, `metadata (obj|null)`
   - Traducción opcional para `lang`: `name`, `short_text (string|null)`, `description (string|null)`
 
 ### Ejemplos de salida
@@ -454,7 +454,7 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 - `GET /api/card_type`
   - Query: `page, pageSize, q|search, status, is_active, created_by, lang, sort (created_at|modified_at|code|status|name|is_active|created_by), direction`.
 - `POST /api/card_type`
-  - Body: `{ code, image?, status?, is_active?, name, short_text?, description? }`.
+  - Body: `{ code, image?, status?, is_active?, metadata?, name, short_text?, description? }`.
 - `GET /api/card_type/:id` — Query: `lang`.
 - `PATCH /api/card_type/:id` — Query: `lang`. Body parcial base y/o traducción.
 - `DELETE /api/card_type/:id` — Query: `lang`.
@@ -466,9 +466,9 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 
 - **POST /api/card_type**
   - Requeridos: `code`, `name`
-  - Opcionales: `image (string|null)`, `status (string)`, `is_active (boolean)`, `short_text (string|null)`, `description (string|null)`
+  - Opcionales: `image (string|null)`, `status (string)`, `is_active (boolean)`, `metadata (obj|null)`, `short_text (string|null)`, `description (string|null)`
 - **PATCH /api/card_type/:id** (con `lang` opcional)
-  - Base opcional: `code`, `image (string|null)`, `status`, `is_active`
+  - Base opcional: `code`, `image (string|null)`, `status`, `is_active`, `metadata (obj|null)`
   - Traducción opcional: `name`, `short_text (string|null)`, `description (string|null)`
 
 ### Ejemplos de salida
@@ -543,7 +543,7 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
   - Query: `page, pageSize, q|search, status, is_active, created_by, facet_id, lang, sort (created_at|modified_at|code|status|name|is_active|created_by|facet_id), direction, tags, tag_ids`.
   - Incluye `facet` resuelto por traducciones.
 - `POST /api/skill`
-  - Body: `{ code, facet_id, image?, status?, name, short_text?, description? }`.
+  - Body: `{ code, facet_id, image?, status?, is_active?, legacy_effects?, effects?, name, short_text?, description? }`.
 - `GET /api/skill/:id` — Query: `lang`.
 - `PATCH /api/skill/:id` — Query: `lang`. Body parcial base y/o traducción.
 - `DELETE /api/skill/:id` — Query: `lang`.
@@ -554,9 +554,9 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 
 - **POST /api/skill**
   - Requeridos: `code`, `facet_id`, `name`
-  - Opcionales: `image (string|null)`, `status (string)`, `short_text (string|null)`, `description (string|null)`
+  - Opcionales: `image (string|null)`, `status (string)`, `is_active (boolean)`, `legacy_effects (boolean)`, `effects (obj|null)`, `short_text (string|null)`, `description (string|null)`
 - **PATCH /api/skill/:id** (con `lang` opcional)
-  - Base opcional: `code`, `facet_id`, `image (string|null)`, `status`
+  - Base opcional: `code`, `facet_id`, `image (string|null)`, `status`, `is_active`, `legacy_effects`, `effects (obj|null)`
   - Traducción opcional: `name`, `short_text (string|null)`, `description (string|null)`
 
 ### Ejemplos de salida
@@ -588,7 +588,7 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 - `GET /api/world`
   - Query: `page, pageSize, q|search, status, is_active, created_by, lang, sort (created_at|modified_at|code|status|name|is_active|created_by), direction, tags, tag_ids`.
 - `POST /api/world`
-  - Body: `{ code, image?, status?, name, short_text?, description? }`.
+  - Body: `{ code, image?, status?, is_active?, metadata?, content_version_id?, name, short_text?, description? }`.
 - `GET /api/world/:id` — Query: `lang`.
 - `PATCH /api/world/:id` — Query: `lang`. Body parcial base y/o traducción.
 - `DELETE /api/world/:id` — Query: `lang`.
@@ -599,9 +599,9 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 
 - **POST /api/world**
   - Requeridos: `code`, `name`
-  - Opcionales: `image (string|null)`, `status (string)`, `short_text (string|null)`, `description (string|null)`
+  - Opcionales: `image (string|null)`, `status (string)`, `is_active (boolean)`, `metadata (obj|null)`, `content_version_id (number|null)`, `short_text (string|null)`, `description (string|null)`
 - **PATCH /api/world/:id** (con `lang` opcional)
-  - Base opcional: `code`, `image (string|null)`, `status`
+  - Base opcional: `code`, `image (string|null)`, `status`, `is_active`, `metadata (obj|null)`, `content_version_id (number|null)`
   - Traducción opcional: `name`, `short_text (string|null)`, `description (string|null)`
 
 ### Ejemplos de salida
@@ -631,7 +631,7 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 - `GET /api/world_card`
   - Query: `page, pageSize, q|search, status, is_active, created_by, world_id, lang, sort (created_at|modified_at|status|name|is_active|created_by|world_id), direction, tags, tag_ids`.
 - `POST /api/world_card`
-  - Body: `{ code, world_id, base_card_id?, image?, status?, is_override?, name, short_text?, description? }`.
+  - Body: `{ code, world_id, base_card_id?, image?, status?, is_active?, is_override?, content_version_id?, legacy_effects?, effects?, name, short_text?, description? }`.
 - `GET /api/world_card/:id` — Query: `lang`.
 - `PATCH /api/world_card/:id` — Query: `lang`. Body parcial base y/o traducción.
 - `DELETE /api/world_card/:id` — Query: `lang`.
@@ -642,9 +642,9 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 
 - **POST /api/world_card**
   - Requeridos: `code`, `world_id`, `name`
-  - Opcionales: `base_card_id (number|null)`, `is_override (boolean)`, `image (string|null)`, `status (string)`, `short_text (string|null)`, `description (string|null)`
+  - Opcionales: `base_card_id (number|null)`, `image (string|null)`, `status (string)`, `is_active (boolean)`, `is_override (boolean)`, `content_version_id (number|null)`, `legacy_effects (boolean)`, `effects (obj|null)`, `short_text (string|null)`, `description (string|null)`
 - **PATCH /api/world_card/:id** (con `lang` opcional)
-  - Base opcional: `code`, `world_id`, `base_card_id (number|null)`, `is_override`, `image (string|null)`, `status`
+  - Base opcional: `code`, `world_id`, `base_card_id (number|null)`, `image (string|null)`, `status`, `is_active`, `is_override`, `content_version_id (number|null)`, `legacy_effects`, `effects (obj|null)`
   - Traducción opcional: `name`, `short_text (string|null)`, `description (string|null)`
 
 ### Ejemplos de salida
@@ -725,6 +725,8 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
 - `GET /api/content_revisions/:id` — Retorna revisión con `created_by_name` y `content_version_semver`.
 - `PATCH /api/content_revisions/:id`
   - Valida `version_number` único por entidad. Body parcial admite `{ diff?, notes?(nullable), status?, language_code?(nullable), version_number?, content_version_id?(nullable), prev_snapshot?, next_snapshot? }`.
+- `POST /api/content_revisions/:id/revert`
+  - Body: `{ notes? }`. Reaplica `prev_snapshot` sobre la entidad, registra nueva revisión de tipo `reverted` y audita la acción.
 - `DELETE /api/content_revisions/:id` — Borra revisión. `{ ok:true }`.
 
 ### Campos y validación
@@ -768,6 +770,9 @@ Nota: los listados de recursos usan `tag_links` con `entity_type` específico po
   - Retorna versión con `created_by_name` y `release`.
 - `PATCH /api/content_versions/:id`
   - Valida `version_semver` único si cambia. Body parcial `{ version_semver?, description?(nullable), metadata? (obj), release? }`.
+- `POST /api/content_versions/publish`
+  - Body: `{ version_id?, version_semver?, description?, metadata?, release? }`.
+  - Publica revisiones `approved`, asigna `content_version_id` a entidades afectadas y devuelve resumen.
 - `DELETE /api/content_versions/:id` — Borra versión. `{ ok:true }`.
 
 ### Campos y validación

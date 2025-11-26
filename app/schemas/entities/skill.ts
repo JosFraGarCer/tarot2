@@ -1,3 +1,4 @@
+// app/schemas/entities/skill.ts
 // /app/schemas/entities/skill.ts
 import { z } from 'zod'
 

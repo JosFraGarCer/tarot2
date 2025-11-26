@@ -1,3 +1,4 @@
+// app/utils/userStatus.ts
 // /app/utils/userStatus.ts
 export type UserStatusColor = 'neutral' | 'primary' | 'warning' | 'success' | 'error'
 export type UserStatusVariant = 'subtle' | 'soft' | 'outline'

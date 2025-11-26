@@ -1,3 +1,4 @@
+// app/utils/manage/entityRows.ts
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 
 export interface EntityRowOptions {

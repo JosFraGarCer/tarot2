@@ -1,3 +1,4 @@
+// server/api/user/[id].delete.ts
 // server/api/users/[id].delete.ts
 import { defineEventHandler } from 'h3'
 import { notFound } from '../../utils/error'

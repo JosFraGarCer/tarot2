@@ -1,3 +1,4 @@
+<!-- app/components/common/EntityCard.vue -->
 <template>
   <UCard :ui="cardUi" class="entity-card" v-bind="$attrs">
     <div :class="contentClasses">

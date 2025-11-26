@@ -1,3 +1,4 @@
+<!-- app/components/common/badges/TagChip.vue -->
 <template>
   <UTooltip v-if="shouldShowTooltip" :text="tooltipText" :open-delay="150">
     <UChip

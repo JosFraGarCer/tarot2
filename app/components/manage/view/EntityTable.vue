@@ -1,3 +1,4 @@
+<!-- app/components/manage/view/EntityTable.vue -->
 <!-- app/components/manage/EntityTable.vue -->
 <template>
   <div v-bind="$attrs">

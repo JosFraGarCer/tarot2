@@ -1,3 +1,4 @@
+// server/utils/deleteLocalizedEntity.ts
 import type { H3Event } from 'h3'
 import type { Kysely, Transaction } from 'kysely'
 import { createError } from 'h3'

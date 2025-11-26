@@ -1,3 +1,4 @@
+// app/stores/user.ts
 // /app/stores/user.ts
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import type { MeResponse, UserDTO } from '@/types/api'

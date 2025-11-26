@@ -1,3 +1,4 @@
+// server/middleware/01.auth.guard.ts
 // /server/middleware/01.auth.guard.ts
 import { defineEventHandler, createError } from 'h3'
 

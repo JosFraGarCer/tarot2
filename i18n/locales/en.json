@@ -1,263 +1,51 @@
 {
   "app": {
-    "layout": {
-      "menu": "Menu"
-    },
     "brand": {
       "title": "Tarot RPG"
+    },
+    "layout": {
+      "menu": "Menu"
     }
   },
-  "navigation": {
-    "menu": {
-      "admin": "Admin",
-      "arcana": "Arcana",
-      "baseCards": "Base Cards",
-      "cardTypes": "Card Types",
-      "changeLanguage": "Change language",
-      "database": "Database",
-      "deck": "Deck",
-      "facets": "Facets",
-      "feedback": "Feedback",
-      "home": "Home",
-      "login": "Login",
-      "logout": "Logout",
-      "manage": "Cards Database",
-      "manageUsers": "Users",
-      "skills": "Skills",
-      "tags": "Tags",
-      "userProfile": "Profile",
-      "versions": "Versions",
-      "worlds": "Worlds"
-    }
+  "common": {
+    "close": "Close",
+    "email": "Email",
+    "exportSuccess": "Export completed",
+    "importSuccess": "Import completed",
+    "noResults": "No results",
+    "parent": "Parent",
+    "related": "Related",
+    "resetFilters": "Reset filters",
+    "roles": "Roles",
+    "saved": "Saved",
+    "showing": "Showing",
+    "tryAdjustFilters": "Try adjusting your filters",
+    "type": "Type",
+    "untitled": "Untitled",
+    "updatedAt": "Updated",
+    "view": "View",
+    "username": "Username",
+    "password": "Password",
+    "partial": "Partial",
+    "sort": "Sort",
+    "short_text": "Short_text",
+    "image": "Image",
+    "legacy_effects": "Legacy_effects",
+    "effects": "Effects",
+    "language_code": "Language_code"
   },
   "deck": {
-    "title": "Deck overview",
-    "subtitle": "Browse entities and quick previews of your content.",
-    "viewAll": "View all",
-    "emptyTitle": "No items yet",
-    "emptySubtitle": "Try adjusting filters or create a new entry.",
-    "cardTypesDescription": "Manage and explore card types used by cards and skills.",
-    "baseCardsDescription": "Preview your base card library and jump into detailed management.",
-    "worldsDescription": "Discover worlds and their associated lore.",
     "arcanaDescription": "Browse arcana archetypes and their summaries.",
+    "baseCardsDescription": "Preview your base card library and jump into detailed management.",
+    "cardTypesDescription": "Manage and explore card types used by cards and skills.",
+    "emptySubtitle": "Try adjusting filters or create a new entry.",
+    "emptyTitle": "No items yet",
     "facetsDescription": "Review facets linked to arcana and cards.",
-    "skillsDescription": "Explore skills and their effects."
-  },
-  "ui": {
-    "actions": {
-      "activate": "Activate",
-      "changeStatus": "Change status",
-      "deactivate": "Deactivate",
-      "applyVersion": "Apply version",
-      "back": "Back",
-      "cancel": "Cancel",
-      "clear": "Clear",
-      "copy": "Copy",
-      "create": "Create",
-      "delete": "Delete",
-      "edit": "Edit",
-      "export": "Export",
-      "import": "Import",
-      "preview": "Preview",
-      "refresh": "Refresh",
-      "resolve": "Resolve",
-      "save": "Save",
-      "search": "Search",
-      "update": "Update"
-    },
-    "table": {
-      "actions": "Actions",
-      "items": "items",
-      "selected": "{count} selected",
-      "selectedCount": "{n} selected"
-    },
-    "states": {
-      "active": "Active",
-      "inactive": "Inactive",
-      "loading": "Loading...",
-      "new": "New"
-    },
-    "status": {
-      "draft": "Draft",
-      "review": "In review",
-      "approved": "Approved",
-      "archived": "Archived",
-      "unknown": "Unknown"
-    },
-    "fields": {
-      "card": "Card",
-      "category": "Category",
-      "code": "Code",
-      "comment": "Comment",
-      "description": "Description",
-      "details": "Details",
-      "entity": "Entity",
-      "language": "Language",
-      "metadata": "Metadata",
-      "modifiedAt": "Modified",
-      "name": "Name",
-      "shortText": "Short Text",
-      "sort": "Sort order",
-      "sortPlaceholder": "Optional display order",
-      "status": "Status",
-      "tags": "tags",
-      "template": "Template",
-      "version": "Version"
-    },
-    "misc": {
-      "createdAt": "Created"
-    },
-    "notifications": {
-      "error": "An error occurred",
-      "success": "Success",
-      "createSuccess": "Created successfully",
-      "deleteCascadeConfirm": "This will delete the item and all translations. Continue?",
-      "deleteSuccess": "Deleted successfully",
-      "deleteTranslationConfirm": "This will delete the translation for {lang}. Continue?",
-      "deleteTranslationSuccess": "Translation deleted successfully",
-      "empty": "No records yet",
-      "emptyDescription": "Create a new item to populate this list",
-      "updateSuccess": "Updated successfully"
-    },
-    "empty": {
-      "noData": "No data"
-    },
-    "messages": {
-      "noPermission": "You don’t have permission to perform this action."
-    },
-    "pagination": {
-      "page": "Page",
-      "pageSize": "Page size"
-    },
-    "filters": {
-      "active": "Active",
-      "all": "All",
-      "autoApply": "Auto apply",
-      "inactive": "Inactive",
-      "status": "Status"
-    },
-    "dialogs": {
-      "confirm": {
-        "deleteConfirm": "Delete",
-        "deleteDescription": "This will delete the {entity} and all translations. This action cannot be undone.",
-        "deleteTitle": "Delete {entity}",
-        "deleteTranslationConfirm": "Delete translation",
-        "deleteTranslationDescription": "This will delete the translation in {lang}. The base record will remain available.",
-        "deleteTranslationTitle": "Delete {entity} translation"
-      }
-    }
-  },
-  "features": {
-    "admin": {
-      "entityHistory": {
-        "back": "Back to versions",
-        "current": "Current entity",
-        "noDiff": "No differences",
-        "selectRevision": "Select a revision to view changes",
-        "title": "Entity revision history"
-      },
-      "feedback": {
-        "actions": {
-          "confirmResolve": "Confirm resolve",
-          "confirmResolveDescription": "Confirm resolving the selected feedback items",
-          "openEntity": "Open related entity",
-          "reopen": "Reopen",
-          "viewContent": "View content",
-          "viewNotes": "View notes"
-        },
-        "card": "Card",
-        "category": "Category",
-        "createdBy": "Created by",
-        "filters": {
-          "mineOnly": "My feedbacks",
-          "status": "Status",
-          "type": "Type"
-        },
-        "new": "New feedback",
-        "notes": {
-          "addNote": "Add note",
-          "empty": "No internal notes yet",
-          "hasNotes": "Has internal notes",
-          "save": "Save note",
-          "title": "Internal notes"
-        },
-        "previewDescription": "Preview the linked entity for this feedback entry",
-        "resolvedErr": "Error resolving feedback",
-        "resolvedOk": "Resolved successfully",
-        "resolvedPartial": "Some items failed",
-        "resolveSelected": "Resolve selected",
-        "status": "Status",
-        "title": "Title",
-        "viewJson": "View JSON"
-      },
-      "feedbackDashboard": {
-        "byType": "By type",
-        "open": "Open",
-        "resolved": "Resolved",
-        "total": "Total feedbacks",
-        "weekly": "Weekly activity (last 30 days)"
-      },
-      "feedbackDeleteConfirm": "Delete this feedback?",
-      "feedbackDeleteDescription": "This will permanently delete this feedback entry. This action cannot be undone.",
-      "feedbackDeleteTitle": "Delete feedback",
-      "feedbackSubtitle": "Review and manage card feedback",
-      "feedbackTitle": "Feedback",
-      "revisions": {
-        "approveSelected": "Approve selected",
-        "diffTitle": "Revision diff",
-        "rejectSelected": "Reject selected",
-        "title": "Approved Revisions",
-        "viewDiff": "View diff"
-      },
-      "revisionsHistory": {
-        "baseEntity": "Base entity",
-        "changesSummary": "{n} fields changed",
-        "compareSelected": "Compare selected",
-        "comparisonTitle": "Revision comparison",
-        "feedbackTab": "Feedback",
-        "left": "Revision A",
-        "noDiff": "No differences found",
-        "revert": "Revert to this revision",
-        "revertConfirm": "Are you sure you want to restore this revision?",
-        "revertError": "Error reverting revision",
-        "revertSuccess": "Revision reverted successfully",
-        "right": "Revision B",
-        "source": "Source",
-        "title": "Revision history",
-        "translation": "Translation ({lang})",
-        "viewDiff": "View diff",
-        "viewSnapshots": "View snapshots"
-      },
-      "versionsSubtitle": "Manage card versions and releases",
-      "versionsTitle": "Versions"
-    },
-    "auth": {
-      "identifierLabel": "Email or username",
-      "identifierPlaceholder": "User or Email",
-      "loginButton": "Sign in",
-      "loginDescription": "Access the administration tools with your account.",
-      "loginError": "Unable to sign in",
-      "loginSuccess": "Welcome back",
-      "loginTitle": "Sign in",
-      "logoutError": "Unable to sign out",
-      "logoutSuccess": "Signed out",
-      "passwordLabel": "Password",
-      "passwordPlaceholder": "Enter your password"
-    },
-    "feedback": {
-      "allTypes": "All types",
-      "attach": "Attachment (optional)",
-      "attachmentPlaceholder": "Link or reference",
-      "balance": "Balance",
-      "bug": "Bug",
-      "comment": "Comment",
-      "commentPlaceholder": "Describe your feedback...",
-      "noLinkedCard": "No linked card preview",
-      "saved": "Feedback saved",
-      "suggestion": "Suggestion",
-      "title": "Feedback",
-      "type": "Type"
-    }
+    "skillsDescription": "Explore skills and their effects.",
+    "subtitle": "Browse entities and quick previews of your content.",
+    "title": "Deck overview",
+    "viewAll": "View all",
+    "worldsDescription": "Discover worlds and their associated lore."
   },
   "domains": {
     "arcana": {
@@ -275,7 +63,16 @@
       "showingFallback": "Showing {lang} translation",
       "status": "Status",
       "title": "Arcana",
-      "validationRequired": "Code and name are required"
+      "validationRequired": "Code and name are required",
+      "rules": {
+        "tab": "Tab",
+        "placeholderTitle": "Placeholder Title",
+        "placeholderDescription": "Placeholder Description"
+      },
+      "manage": {
+        "title": "Title",
+        "description": "Description"
+      }
     },
     "baseCard": {
       "active": "Active",
@@ -378,7 +175,10 @@
       "category": "Category",
       "categoryPlaceholder": "Enter a category",
       "code": "Tag Code",
-      "create": "Create Tag",
+      "create": {
+        "title": "Title",
+        "subtitle": "Subtitle"
+      },
       "edit": "Edit Tag",
       "entityName": "Tag",
       "list": "Tags List",
@@ -386,7 +186,14 @@
       "name": "Tag Name",
       "parent": "Parent Tag",
       "sort": "Sort order",
-      "validationRequired": "Category, code and name are required"
+      "validationRequired": "Category, code and name are required",
+      "form": {
+        "title": "Title",
+        "subtitle": "Subtitle",
+        "parentHint": "Parent Hint",
+        "parentPlaceholder": "Parent Placeholder",
+        "success": "Success"
+      }
     },
     "user": {
       "avatarHint": "PNG, JPG, WEBP or AVIF up to 15MB. Drag & drop supported.",
@@ -429,27 +236,28 @@
       "updatedAt": "Updated",
       "updatePassword": "Update password",
       "updateStatus": "Update status",
-      "username": "Username"
+      "username": "Username",
+      "statusInvited": "Status Invited"
     },
     "version": {
       "deleteConfirm": "Delete this version?",
       "deleted": "Version deleted",
       "detailTitle": "Version detail",
-      "release": {
-        "label": "Release type",
-        "dev": "Dev",
-        "alfa": "Alpha",
-        "beta": "Beta",
-        "candidate": "Release Candidate",
-        "release": "Release",
-        "revision": "Revision"
-      },
       "err400": "Please review the fields and try again",
       "err409": "A version with this number already exists",
       "err500": "Unexpected server error",
       "modalDescription": "Provide version information and optional metadata",
       "publishApproved": "Publish approved revisions",
       "published": "Published",
+      "release": {
+        "alfa": "Alpha",
+        "beta": "Beta",
+        "candidate": "Release Candidate",
+        "dev": "Dev",
+        "label": "Release type",
+        "release": "Release",
+        "revision": "Revision"
+      },
       "saved": "Version saved",
       "semverInvalid": "Invalid version format. Use MAJOR.MINOR.PATCH[.BUILD]",
       "semverRequired": "Version is required",
@@ -470,31 +278,278 @@
       "title": "Worlds"
     }
   },
-  "common": {
-    "close": "Close",
-    "email": "Email",
-    "exportSuccess": "Export completed",
-    "importSuccess": "Import completed",
-    "noResults": "No results",
-    "parent": "Parent",
-    "related": "Related",
-    "resetFilters": "Reset filters",
-    "roles": "Roles",
-    "saved": "Saved",
-    "showing": "Showing",
-    "tryAdjustFilters": "Try adjusting your filters",
-    "type": "Type",
-    "untitled": "Untitled",
-    "updatedAt": "Updated"
-  },
   "entities": {
     "arcana": "Arcana",
     "cardType": "Card Type",
     "facet": "Facet",
-    "world": "World"
+    "world": "World",
+    "base_card": "Base_card",
+    "base_card_type": "Base_card_type",
+    "world_card": "World_card",
+    "base_skills": "Base_skills",
+    "tag": {
+      "category": "Category",
+      "parent": "Parent"
+    },
+    "tags": "Tags",
+    "card_type": "Card_type"
+  },
+  "features": {
+    "admin": {
+      "entityHistory": {
+        "back": "Back to versions",
+        "current": "Current entity",
+        "noDiff": "No differences",
+        "selectRevision": "Select a revision to view changes",
+        "title": "Entity revision history"
+      },
+      "feedback": {
+        "actions": {
+          "confirmResolve": "Confirm resolve",
+          "confirmResolveDescription": "Confirm resolving the selected feedback items",
+          "openEntity": "Open related entity",
+          "reopen": "Reopen",
+          "viewContent": "View content",
+          "viewNotes": "View notes"
+        },
+        "card": "Card",
+        "category": "Category",
+        "createdBy": "Created by",
+        "filters": {
+          "mineOnly": "My feedbacks",
+          "status": "Status",
+          "type": "Type",
+          "language": "Language",
+          "entityType": "Entity Type",
+          "createdRange": "Created Range",
+          "resolvedRange": "Resolved Range",
+          "createdBy": "Created By",
+          "resolvedBy": "Resolved By",
+          "anyDate": "Any Date"
+        },
+        "new": "New feedback",
+        "notes": {
+          "addNote": "Add note",
+          "empty": "No internal notes yet",
+          "hasNotes": "Has internal notes",
+          "save": "Save note",
+          "title": "Internal notes",
+          "description": "Description"
+        },
+        "previewDescription": "Preview the linked entity for this feedback entry",
+        "resolvedErr": "Error resolving feedback",
+        "resolvedOk": "Resolved successfully",
+        "resolvedPartial": "Some items failed",
+        "resolveSelected": "Resolve selected",
+        "status": "Status",
+        "title": "Title",
+        "viewJson": "View JSON",
+        "advancedFilters": "Advanced Filters"
+      },
+      "feedbackDashboard": {
+        "byType": "By type",
+        "open": "Open",
+        "resolved": "Resolved",
+        "total": "Total feedbacks",
+        "weekly": "Weekly activity (last 30 days)"
+      },
+      "feedbackDeleteConfirm": "Delete this feedback?",
+      "feedbackDeleteDescription": "This will permanently delete this feedback entry. This action cannot be undone.",
+      "feedbackDeleteTitle": "Delete feedback",
+      "feedbackSubtitle": "Review and manage card feedback",
+      "feedbackTitle": "Feedback",
+      "revisions": {
+        "approveSelected": "Approve selected",
+        "diffTitle": "Revision diff",
+        "rejectSelected": "Reject selected",
+        "title": "Approved Revisions",
+        "viewDiff": "View diff"
+      },
+      "revisionsHistory": {
+        "baseEntity": "Base entity",
+        "changesSummary": "{n} fields changed",
+        "compareSelected": "Compare selected",
+        "comparisonTitle": "Revision comparison",
+        "feedbackTab": "Feedback",
+        "left": "Revision A",
+        "noDiff": "No differences found",
+        "revert": "Revert to this revision",
+        "revertConfirm": "Are you sure you want to restore this revision?",
+        "revertError": "Error reverting revision",
+        "revertSuccess": "Revision reverted successfully",
+        "right": "Revision B",
+        "source": "Source",
+        "title": "Revision history",
+        "translation": "Translation ({lang})",
+        "viewDiff": "View diff",
+        "viewSnapshots": "View snapshots"
+      },
+      "versionsSubtitle": "Manage card versions and releases",
+      "versionsTitle": "Versions",
+      "entityViewer": {
+        "title": "Title",
+        "subtitle": "Subtitle",
+        "empty": "Empty",
+        "viewJson": "View Json"
+      },
+      "usersTitle": "Users Title",
+      "usersSubtitle": "Users Subtitle",
+      "users": {
+        "roleFilter": "Role Filter",
+        "suspendSelected": "Suspend Selected",
+        "activateSelected": "Activate Selected",
+        "resetPasswordSelected": "Reset Password Selected",
+        "deleteSelected": "Delete Selected",
+        "deleteTitle": "Delete Title",
+        "editTitle": "Edit Title",
+        "createTitle": "Create Title",
+        "editDescription": "Edit Description",
+        "createDescription": "Create Description",
+        "passwordOptional": "Password Optional",
+        "passwordRequired": "Password Required",
+        "deleteDescription": "Delete Description",
+        "updated": "Updated",
+        "created": "Created",
+        "statusUpdated": "Status Updated",
+        "passwordReset": "Password Reset",
+        "bulkSuspended": "Bulk Suspended",
+        "bulkActivated": "Bulk Activated",
+        "bulkPasswordReset": "Bulk Password Reset",
+        "bulkDeleted": "Bulk Deleted",
+        "permissionsCount": "Permissions Count",
+        "noEmail": "No Email",
+        "noRoles": "No Roles",
+        "permissions": "Permissions",
+        "permissionsCountLong": "Permissions Count Long",
+        "count": "Count",
+        "active": "Active",
+        "pending": "Pending"
+      },
+      "dashboardTitle": "Dashboard Title",
+      "dashboardSubtitle": "Dashboard Subtitle",
+      "usersSummary": "Users Summary",
+      "usersHighlight1": "Users Highlight1",
+      "usersHighlight2": "Users Highlight2",
+      "usersCta": "Users Cta",
+      "versionsSummary": "Versions Summary",
+      "versionsHighlight1": "Versions Highlight1",
+      "versionsHighlight2": "Versions Highlight2",
+      "versionsCta": "Versions Cta",
+      "feedbackSummary": "Feedback Summary",
+      "feedbackHighlight1": "Feedback Highlight1",
+      "feedbackHighlight2": "Feedback Highlight2",
+      "feedbackCta": "Feedback Cta",
+      "databaseTitle": "Database Title",
+      "databaseSummary": "Database Summary",
+      "databaseHighlight1": "Database Highlight1",
+      "databaseHighlight2": "Database Highlight2",
+      "databaseCta": "Database Cta"
+    },
+    "auth": {
+      "identifierLabel": "Email or username",
+      "identifierPlaceholder": "User or Email",
+      "loginButton": "Sign in",
+      "loginDescription": "Access the administration tools with your account.",
+      "loginError": "Unable to sign in",
+      "loginSuccess": "Welcome back",
+      "loginTitle": "Sign in",
+      "logoutError": "Unable to sign out",
+      "logoutSuccess": "Signed out",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password"
+    },
+    "feedback": {
+      "allTypes": "All types",
+      "attach": "Attachment (optional)",
+      "attachmentPlaceholder": "Link or reference",
+      "balance": "Balance",
+      "bug": "Bug",
+      "comment": "Comment",
+      "commentPlaceholder": "Describe your feedback...",
+      "noLinkedCard": "No linked card preview",
+      "saved": "Feedback saved",
+      "suggestion": "Suggestion",
+      "title": "Feedback",
+      "type": "Type"
+    }
   },
   "filters": {
     "parent": "Parent"
+  },
+  "importExport": {
+    "import": {
+      "actions": {
+        "confirm": "Import",
+        "trigger": "Import"
+      },
+      "errors": {
+        "invalidStructure": "Invalid JSON structure.",
+        "parseError": "The file is not valid JSON."
+      },
+      "instructions": {
+        "descriptionMultiLang": "Upload a JSON file with all translations. Existing codes will be skipped.",
+        "fileLabel": "JSON file"
+      },
+      "results": {
+        "partialErrors": "Some records could not be imported ({count})",
+        "partialToast": "Imported {created} items with {errors} errors",
+        "success": "Imported {count} items"
+      },
+      "sections": {
+        "baseCards": {
+          "notice": "Expected format: JSON with key \"base_card\"",
+          "title": "Import Base Cards"
+        },
+        "cardTypes": {
+          "title": "Import Card Types"
+        },
+        "skills": {
+          "notice": "Expected format: JSON with key \"skills\"",
+          "title": "Import Skills"
+        },
+        "tags": {
+          "notice": "Expected format: JSON with key \"tags\"",
+          "title": "Import Tags"
+        }
+      },
+      "sqlDescription": "Upload a .sql file to restore data.",
+      "sqlTitle": "Import SQL dump",
+      "jsonTitle": "Json Title",
+      "jsonDescription": "Json Description"
+    }
+  },
+  "media": {
+    "image": {
+      "description": "PNG, JPG or AVIF, max 15MB",
+      "dropLabel": "Drag an image or click",
+      "hint": "PNG, JPG or AVIF · Max 15MB",
+      "label": "Image",
+      "previewAlt": "Image preview",
+      "removeLabel": "Remove image"
+    }
+  },
+  "navigation": {
+    "menu": {
+      "admin": "Admin",
+      "arcana": "Arcana",
+      "baseCards": "Base Cards",
+      "cardTypes": "Card Types",
+      "changeLanguage": "Change language",
+      "database": "Database",
+      "deck": "Deck",
+      "facets": "Facets",
+      "feedback": "Feedback",
+      "home": "Home",
+      "login": "Login",
+      "logout": "Logout",
+      "manage": "Cards Database",
+      "manageUsers": "Users",
+      "skills": "Skills",
+      "tags": "Tags",
+      "userProfile": "Profile",
+      "versions": "Versions",
+      "worlds": "Worlds"
+    }
   },
   "system": {
     "status": {
@@ -509,64 +564,477 @@
       "resolved": "Resolved",
       "review": "Review",
       "translation_review": "Translation Review",
-      "undefined": "No status"
+      "undefined": "No status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended",
+      "banned": "Banned",
+      "pending": "Pending"
     }
   },
-  "media": {
-    "image": {
-      "description": "PNG, JPG or AVIF, max 15MB",
-      "dropLabel": "Drag an image or click",
-      "hint": "PNG, JPG or AVIF · Max 15MB",
-      "label": "Image",
-      "previewAlt": "Image preview",
-      "removeLabel": "Remove image"
-    }
-  },
-  "importExport": {
-    "import": {
-      "sections": {
-        "baseCards": {
-          "title": "Import Base Cards",
-          "notice": "Expected format: JSON with key \"base_card\""
-        },
-        "cardTypes": {
-          "title": "Import Card Types"
-        },
-        "skills": {
-          "notice": "Expected format: JSON with key \"skills\"",
-          "title": "Import Skills"
-        },
-        "tags": {
-          "notice": "Expected format: JSON with key \"tags\"",
-          "title": "Import Tags"
-        }
-      },
-      "actions": {
-        "trigger": "Import",
-        "confirm": "Import"
-      },
-      "instructions": {
-        "descriptionMultiLang": "Upload a JSON file with all translations. Existing codes will be skipped.",
-        "fileLabel": "JSON file"
-      },
-      "sqlTitle": "Import SQL dump",
-      "sqlDescription": "Upload a .sql file to restore data.",
-      "errors": {
-        "invalidStructure": "Invalid JSON structure.",
-        "parseError": "The file is not valid JSON."
-      },
-      "results": {
-        "partialErrors": "Some records could not be imported ({count})",
-        "partialToast": "Imported {created} items with {errors} errors",
-        "success": "Imported {count} items"
+  "ui": {
+    "actions": {
+      "activate": "Activate",
+      "applyVersion": "Apply version",
+      "back": "Back",
+      "cancel": "Cancel",
+      "changeStatus": "Change status",
+      "clear": "Clear",
+      "copy": "Copy",
+      "create": "Create",
+      "deactivate": "Deactivate",
+      "delete": "Delete",
+      "edit": "Edit",
+      "export": "Export",
+      "import": "Import",
+      "preview": "Preview",
+      "refresh": "Refresh",
+      "resolve": "Resolve",
+      "save": "Save",
+      "search": "Search",
+      "update": "Update",
+      "new": "New",
+      "reset": "Reset",
+      "download": "Download",
+      "view": "View",
+      "close": "Close",
+      "revert": "Revert",
+      "quickEdit": "Quick Edit",
+      "fullEdit": "Full Edit",
+      "previous": "Previous",
+      "next": "Next",
+      "editJson": "Edit Json",
+      "apply": "Apply",
+      "reload": "Reload"
+    },
+    "fields": {
+      "card": "Card",
+      "category": "Category",
+      "code": "Code",
+      "comment": "Comment",
+      "description": "Description",
+      "details": "Details",
+      "entity": "Entity",
+      "language": "Language",
+      "metadata": "Metadata",
+      "modifiedAt": "Modified",
+      "name": "Name",
+      "shortText": "Short Text",
+      "sort": "Sort order",
+      "sortPlaceholder": "Optional display order",
+      "status": "Status",
+      "tags": "tags",
+      "template": "Template",
+      "version": "Version",
+      "type": "Type",
+      "id": "Id",
+      "translation": "Translation",
+      "revisions": "Revisions",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "owner": "Owner",
+      "active": "Active",
+      "author": "Author",
+      "imageUrl": "Image Url",
+      "original": "Original",
+      "createdBy": "Created By"
+    },
+    "states": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "loading": "Loading...",
+      "new": "New",
+      "unknown": "Unknown",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "status": {
+      "approved": "Approved",
+      "archived": "Archived",
+      "draft": "Draft",
+      "review": "In review",
+      "unknown": "Unknown",
+      "pendingReview": "Pending Review",
+      "translationReview": "Translation Review",
+      "published": "Published",
+      "rejected": "Rejected"
+    },
+    "release": {
+      "dev": "Development",
+      "alpha": "Alpha",
+      "beta": "Beta",
+      "candidate": "Release Candidate",
+      "release": "Release",
+      "revision": "Revision",
+      "unknown": "Unknown Stage",
+      "stage": "Stage"
+    },
+    "translation": {
+      "complete": "Complete",
+      "partialFallback": "Partial (Fallback)",
+      "missing": "Missing",
+      "unknown": "Unknown Translation"
+    },
+    "dialogs": {
+      "confirm": {
+        "deleteConfirm": "Delete",
+        "deleteDescription": "This will delete the {entity} and all translations. This action cannot be undone.",
+        "deleteTitle": "Delete {entity}",
+        "deleteTranslationConfirm": "Delete translation",
+        "deleteTranslationDescription": "This will delete the translation in {lang}. The base record will remain available.",
+        "deleteTranslationTitle": "Delete {entity} translation"
       }
+    },
+    "empty": {
+      "noData": "No data"
+    },
+    "filters": {
+      "active": "Active",
+      "all": "All",
+      "autoApply": "Auto apply",
+      "inactive": "Inactive",
+      "status": "Status",
+      "anyDate": "Any Date",
+      "any": "Any"
+    },
+    "messages": {
+      "noPermission": "You don’t have permission to perform this action."
+    },
+    "misc": {
+      "createdAt": "Created",
+      "updatedAt": "Updated At"
+    },
+    "notifications": {
+      "createSuccess": "Created successfully",
+      "deleteCascadeConfirm": "This will delete the item and all translations. Continue?",
+      "deleteSuccess": "Deleted successfully",
+      "deleteTranslationConfirm": "This will delete the translation for {lang}. Continue?",
+      "deleteTranslationSuccess": "Translation deleted successfully",
+      "empty": "No records yet",
+      "emptyDescription": "Create a new item to populate this list",
+      "error": "An error occurred",
+      "success": "Success",
+      "updateSuccess": "Updated successfully",
+      "noLanguages": "No Languages",
+      "saved": "Saved",
+      "errorGeneric": "Error Generic",
+      "notFound": "Not Found",
+      "tryAgain": "Try Again",
+      "noLanguagesDescription": "No Languages Description"
+    },
+    "pagination": {
+      "page": "Page",
+      "pageSize": "Page size"
+    },
+    "table": {
+      "actions": "Actions",
+      "items": "items",
+      "selected": "{count} selected",
+      "selectedCount": "{n} selected",
+      "densityLabel": "Density Label",
+      "selectAll": "Select All",
+      "selectRow": "Select Row",
+      "densityComfortable": "Density Comfortable",
+      "densityRegular": "Density Regular",
+      "densityCompact": "Density Compact"
+    },
+    "labels": {
+      "unsavedChanges": "Unsaved Changes",
+      "editMode": "Edit Mode",
+      "readOnly": "Read Only"
+    },
+    "placeholders": {
+      "json": "Json"
+    },
+    "a11y": {
+      "entityInspectorDescription": "Entity Inspector Description"
+    },
+    "sections": {
+      "translations": "Translations",
+      "metadata": "Metadata",
+      "summary": "Summary",
+      "basic": "Basic"
+    },
+    "common": {
+      "untitled": "Untitled",
+      "entity": "Entity"
     }
   },
   "viewModes": {
     "card": "Card",
-    "classic": "Classic",
     "carta": "Carta",
+    "classic": "Classic",
     "table": "Table",
     "tableSoon": "Table view coming soon"
-  }
+  },
+  "bulk-resolve": "Bulk-resolve",
+  "feedback": {
+    "resolveSelected": "Resolve Selected",
+    "translation": "Translation",
+    "other": "Other",
+    "viewJson": "View Json"
+  },
+  "bulk-reopen": "Bulk-reopen",
+  "admin": {
+    "feedback": {
+      "actions": {
+        "reopenSelected": "Reopen Selected",
+        "deleteSelected": "Delete Selected"
+      },
+      "tabs": {
+        "all": "All",
+        "bug": "Bug",
+        "suggestion": "Suggestion",
+        "balance": "Balance",
+        "translation": "Translation"
+      },
+      "reopenError": "Reopen Error",
+      "confirmDelete": "Confirm Delete",
+      "deleteError": "Delete Error"
+    },
+    "revisionsHistory": {
+      "status": "Status",
+      "language": "Language",
+      "author": "Author",
+      "version": "Version"
+    }
+  },
+  "bulk-delete": "Bulk-delete",
+  "UButton": "U Button",
+  "roles": {
+    "editRole": "Edit Role",
+    "description": "Description"
+  },
+  "perm": {
+    "canManageUsers": "Can Manage Users",
+    "canEditContent": "Can Edit Content",
+    "canReview": "Can Review",
+    "canTranslate": "Can Translate",
+    "canPublish": "Can Publish",
+    "canAssignTags": "Can Assign Tags",
+    "canResolveFeedback": "Can Resolve Feedback",
+    "canSeeAllStatuses": "Can See All Statuses",
+    "canAccessManage": "Can Access Manage",
+    "canAccessAdmin": "Can Access Admin"
+  },
+  "versions": {
+    "editTitle": "Edit Title",
+    "createTitle": "Create Title",
+    "invalidMetadata": "Invalid Metadata"
+  },
+  "errors": {
+    "validation": "Validation",
+    "forbidden": "Forbidden",
+    "list_failed": "List_failed",
+    "action_failed": "Action_failed",
+    "update_failed": "Update_failed",
+    "unsupportedEntityTags": "Unsupported Entity Tags",
+    "unsupportedFeedback": "Unsupported Feedback",
+    "validation_failed": "Validation_failed"
+  },
+  "reset": "Reset",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "edit": "Edit",
+  "create": "Create",
+  "saved": "Saved",
+  "close": "Close",
+  "reset-filters": "Reset filters",
+  "remove": "Remove",
+  "submit": "Submit",
+  "remove-image": "Remove image",
+  "active": "Active",
+  "inactive": "Inactive",
+  "revisions": {
+    "title": "Title"
+  },
+  "fields": {
+    "code": "Code",
+    "name": "Name",
+    "tag": {
+      "name": "Name",
+      "code": "Code",
+      "category": "Category",
+      "short_text": "Short_text",
+      "description": "Description",
+      "parent_id": "Parent_id",
+      "is_active": "Is_active",
+      "sort": "Sort",
+      "status": "Status",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "category": "Category",
+    "short_text": "Short_text",
+    "description": "Description",
+    "parent_id": "Parent_id",
+    "is_active": "Is_active",
+    "sort": "Sort",
+    "skill": {
+      "name": "Name",
+      "code": "Code",
+      "facet_id": "Facet_id",
+      "short_text": "Short_text",
+      "description": "Description",
+      "language_code": "Language_code",
+      "image": "Image",
+      "is_active": "Is_active",
+      "sort": "Sort",
+      "status": "Status",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Category",
+      "parent_id": "Parent_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "facet_id": "Facet_id",
+    "language_code": "Language_code",
+    "image": "Image",
+    "status": "Status",
+    "arcana": {
+      "name": "Name",
+      "code": "Code",
+      "description": "Description",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Sort",
+      "status": "Status",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Category",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "base_card": {
+      "name": "Name",
+      "code": "Code",
+      "description": "Description",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Sort",
+      "status": "Status",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Category",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "card_type": {
+      "name": "Name",
+      "code": "Code",
+      "description": "Description",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Sort",
+      "status": "Status",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Category",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "facet": {
+      "name": "Name",
+      "code": "Code",
+      "description": "Description",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Sort",
+      "status": "Status",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Category",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "world": {
+      "name": "Name",
+      "code": "Code",
+      "description": "Description",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Sort",
+      "status": "Status",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Category",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    }
+  },
+  "Accept": "Accept",
+  "etag": "Etag",
+  "id": "Id",
+  "en": "En",
+  "diff": "Diff",
+  "prev_snapshot": "Prev_snapshot",
+  "next_snapshot": "Next_snapshot",
+  "alfa": "Alfa",
+  "Name": "Name",
+  "Status": "Status",
+  "Created": "Created",
+  "Actions": "Actions",
+  "arcana_translation": "Arcana_translation",
+  "base_card_translations": "Base_card_translations",
+  "base_skills_translations": "Base_skills_translations",
+  "facet_translation": "Facet_translation",
+  "world_translations": "World_translations",
+  "Draft": "Draft",
+  "Approved": "Approved",
+  "Rejected": "Rejected",
+  "Published": "Published",
+  "Users": "Users",
+  "Image": "Image",
+  "Class": "Class",
+  "Origin": "Origin",
+  "Description": "Description",
+  "Arcana": "Arcana",
+  "Facet": "Facet",
+  "Active": "Active",
+  "EN": "E N",
+  "ES": "E S",
+  "text-sm": "Text-sm",
+  "User": "User",
+  "Label": "Label",
+  "Etiqueta": "Etiqueta"
 }

@@ -1,3 +1,4 @@
+<!-- app/components/manage/EntityInspectorDrawer.vue -->
 <template>
   <USlideover
     v-model:open="internalOpen"

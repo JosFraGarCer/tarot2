@@ -1,3 +1,4 @@
+// app/composables/manage/useManageFilters.ts
 import type { AnyManageCrud } from '@/types/manage'
 import type { EntityFilterConfig } from './useEntity'
 

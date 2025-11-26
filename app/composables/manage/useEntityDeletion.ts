@@ -1,3 +1,4 @@
+// app/composables/manage/useEntityDeletion.ts
 import { computed, ref } from 'vue'
 import type { AnyManageCrud } from '@/types/manage'
 import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'

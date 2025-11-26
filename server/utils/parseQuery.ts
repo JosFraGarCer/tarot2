@@ -1,3 +1,4 @@
+// server/utils/parseQuery.ts
 import { getQuery, type H3Event } from 'h3'
 import type { ZodSchema } from 'zod'
 import { safeParseOrThrow } from './validate'

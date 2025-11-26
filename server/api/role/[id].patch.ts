@@ -1,3 +1,4 @@
+// server/api/role/[id].patch.ts
 // server/api/roles/[id].patch.ts
 // PATCH: update partial fields for Role entity
 import { defineEventHandler, readBody } from 'h3'

@@ -1,3 +1,4 @@
+<!-- app/components/manage/common/ImageUploadField.vue -->
 <!-- app/components/manage/form/ImageUploadField.vue -->
 <template>
   <div v-can="['canEditContent','canPublish']">

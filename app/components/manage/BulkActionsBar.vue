@@ -1,3 +1,4 @@
+<!-- app/components/manage/BulkActionsBar.vue -->
 <template>
   <Transition name="fade">
     <div

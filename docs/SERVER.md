@@ -8,6 +8,8 @@ This top section documents the server architecture, endpoints, utilities, middle
   - Nuxt 4 server on H3 (Nitro-style handlers)
   - PostgreSQL via Kysely (typed queries)
   - Auth state on the client via Pinia store (`app/stores/user.ts`) and `useAuth` composable
+  - Pino logger with per-request child loggers (`server/plugins/logger.ts`)
+  - In-memory rate limiting utilities (`server/utils/rateLimit.ts`) enforced globally
 - **Plugins**
   - `server/plugins/db.ts` → `globalThis.db` (Kysely + PostgresDialect)
   - `server/plugins/logger.ts` → `globalThis.logger` (Pino)
@@ -38,6 +40,7 @@ server/
   middleware/
     00.auth.hydrate.ts
     01.auth.guard.ts
+    02.rate-limit.ts
   plugins/
     db.ts, logger.ts, auth.ts
   utils/
@@ -50,7 +53,7 @@ server/
 
 - **/api/auth/**
   - `POST /api/auth/login` → sets HttpOnly `auth_token` cookie; returns `{ success, data: { token, user }, meta }`.
-  - `POST /api/auth/logout` → intended to clear cookie (see SECURITY.md note for current implementation status).
+  - `POST /api/auth/logout` → clears the HttpOnly cookie and returns an empty payload.
 - **/api/user/**
   - `GET /api/user` (index), `POST /api/user` (create)
   - `GET /api/user/:id`, `PATCH /api/user/:id`, `DELETE /api/user/:id`
@@ -75,6 +78,16 @@ server/
     - Returns single version with `release`, metadata and creator info.
   - `PATCH /api/content_versions/:id`
     - Body: partial update `{ version_semver?, description?, metadata?, release? }` with uniqueness check.
+- **/api/content_versions/publish**
+  - `POST /api/content_versions/publish`
+    - Body: `{ version_id?, version_semver?, description?, metadata?, release? }` validated by `contentVersionPublishSchema`.
+    - Requires `permissions.canPublish`.
+    - Creates or updates a content version, marks approved revisions as `published`, and backfills `content_version_id` on related entities.
+- **/api/content_revisions/:id/revert**
+  - `POST /api/content_revisions/:id/revert`
+    - Body: `{ notes? }` via `contentRevisionRevertSchema`.
+    - Permissions: `canRevert` or (`canPublish` / `canReview`).
+    - Restores entity fields from the stored snapshot and creates a new `reverted` revision entry.
 - **/api/uploads/**
   - `POST /api/uploads?type=<bucket>` → validates image, strips EXIF, resizes (≤1600px), converts jpeg/png/webp to avif, stores under `public/img/<type>/`
 
@@ -84,7 +97,7 @@ server/
   - Body: `{ identifier, password }`
   - Sets HttpOnly `auth_token` cookie and returns `{ token, user }` envelope.
 - **POST `/api/auth/logout`** (`server/api/auth/logout.post.ts`)
-  - Note: present but currently returns a user profile payload; does not clear cookies. See SECURITY.md for the recommended behavior.
+  - Clears the session cookie with `setCookie(..., maxAge: 0)` and returns `{ success: true, data: null }`.
 
 ## Users
 
@@ -132,11 +145,14 @@ server/
 2) `01.auth.guard.ts`
    - Applies to `/api/*` except `POST /api/auth/login` and `POST /api/auth/logout`.
    - 401 if unauthenticated; 403 when suspended; admins or `canManageUsers` bypass.
+3) `02.rate-limit.ts`
+   - Applies global (300 req / 5 min) and sensitive (10 req / 1 min) buckets per IP+user for `/api/*`, including publish/revert routes.
 
 ## Logging
 
-- Global Pino logger exposed as `globalThis.logger`.
+- Global Pino logger exposed as `globalThis.logger` with per-request child loggers (`server/plugins/logger.ts`).
 - Typical fields: `{ page, pageSize, count, search, sort, direction, lang, timeMs, ... }` for lists; `{ id, timeMs }` for details; imports/exports include counts.
+- Middleware logs include rate-limit passes and rejections.
 
 ## Example Requests
 
@@ -223,15 +239,14 @@ Patterns
 
 # API Endpoints
 
-Below each entity is summarized with available endpoints, inputs, and outputs. All list endpoints support pagination, sorting, search, filters, and AND-mode tag filtering with both tag ids and translated names.
+Below each entity is summarized with available endpoints, inputs, and outputs. All list endpoints support pagination, sorting, search, filters, and OR-mode tag filtering with both tag ids and translated names.
 
 Conventions
 - Language resolution: [getRequestedLanguage(query)](cci:1://file:///home/bulu/work/devel/tarot2/server/utils/i18n.ts:25:0-30:1) reads `lang|language|locale`
 - Fallback fields use COALESCE between requested language and `'en'`
 - Responses: `{ success: boolean, data, meta? }`
 - Errors: standardized via H3 `createError` and helpers
-
-## /api/auth
+- Tag filters (OR): `tag_ids`, `tags` with language fallback (matched via `ANY`/`= ANY()` semantics).
 
 ### POST /api/auth/login
 Authenticate and issue JWT. Sets `auth_token` httpOnly cookie.
@@ -351,7 +366,7 @@ For brevity, only highlights differ per entity are listed.
   - Errors: 400 (validation), 401 (invalid credentials).
 
 - **POST /api/auth/logout**
-  - Present but currently returns a user profile payload and does not clear cookies. See SECURITY.md for the recommended behavior.
+  - Clears the `auth_token` cookie (maxAge `0`) and returns `createResponse(null)`.
 
 - **GET /api/user/me**
   - Extracts/validates JWT.
@@ -726,16 +741,17 @@ List tags with translations and parent name.
 - Add new tag-bound entity? Follow existing pattern:
   - Translation joins and fallback.
   - `tags` aggregated subquery with `entity_type` and `<alias>.id`.
-  - In list: implement tag AND filters for both `tag_ids` and `tags` with translation fallback in the WHERE subquery.
+  - In list: implement tag OR filters (exists + `= ANY()`) for both `tag_ids` and `tags` with translation fallback.
   - Extend list logging with `tag_ids`, `tags`, `count_tags`.
 
 ---
 
 ## Changelog Highlights (Recent)
 
-- Added `tags` aggregation on list/detail for: world, world_card, arcana, base_card, skill, facet.
-- Added AND filtering by multiple `tag_ids` and/or `tags` (translated name) to all list endpoints above.
-- `tag` API list/detail now includes `parent_name` and allows filter by `parent_id`.
+- Added rate-limiting middleware plus per-route fallback checks on sensitive handlers.
+- `/api/auth/logout` now clears the session cookie via `setCookie(..., maxAge: 0)`.
+- New content publishing endpoints: `POST /api/content_versions/publish` and `POST /api/content_revisions/:id/revert`.
+- Tag filters operate in OR-mode (`ANY`), aligning with current SQL implementations.
 
 ---
 

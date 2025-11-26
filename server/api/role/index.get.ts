@@ -1,3 +1,4 @@
+// server/api/role/index.get.ts
 // server/api/roles/index.get.ts
 import { defineEventHandler, getQuery } from 'h3'
 import { sql } from 'kysely'

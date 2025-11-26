@@ -1,3 +1,4 @@
+// app/types/manage.ts
 import type { EntityCrud } from '~/composables/manage/useEntity'
 import type { CoreCardStatus } from '@/types/entities'
 

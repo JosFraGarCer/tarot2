@@ -1,44 +1,13 @@
-# Tarot
-Tarot es el nombre en clave para sistema universal de juego de rol mediante cartas
-
-Nuestro proyecto es la gestion y desarrollo de una app para la creación gestion de cartas.
-Estamos en las fases temprana de desarrollo donde aun estamos estableciendo las bases tanto de la aplicación como del sistema de juego Tarot. Para alinearnos en principios y metodología consulte también `docs/ARCHITECTURE_GUIDE.md`.
-
-## La aplicación
-La aplicación usa Nuxt 4 en su ultima version, NuxtUI 4 (en su ultima version), Pinia y pinia colada, TailwindCSS, i18n, zod y kysely con Postgres.
-Buscamos un buen tipado, una base de datos eficiente, una API optimizada y un codigo limpio, optimizado y sin duplicación de codigo inutil.
-Para su desarollo usamos el gestor pnpm
+# Tarot2 – Resumen del proyecto
+Tarot2 es el sistema interno para administrar el universo de cartas, mundos y reglas del juego Tarot. Esta documentación resume la arquitectura actual (Nuxt 4 + PostgreSQL), las entidades gestionadas, el flujo editorial y las reglas operativas vigentes. Consulte también `docs/ARCHITECTURE_GUIDE.md` para pautas tácticas y los informes en `/informes` para contexto estratégico.
 
 
-## Multi-idioma
-EL juego y la app manejaran varios idiomas, lo hara con tablas de traduccion con sufijo '_translations' y la app con i18n
-Al crear datos en la base de datos, el idioma por defecto será inglés. Al editar se usara el idioma actual que tenga la aplicación web
-
-### Idiomas en la base de datos
-API y las tablas manejadas en /manage tienen idioma. 
-En /manage en creacion SIEMPRE sera el idioma ingles. En edición cuando la pagina esta en un idioma distinto de EN mostrara como referencia el valor en ingles pero el campo de edicion será en el idioma actual seleccionado de la pagina.
-Cuando usamos el icono de borrar si estamos en un idioma diferente a EN y tiene campos con valor en el idioma actual ofrecera eliminar la traduccion. Si no hay ningun campo traducido de ingles Ofrecera borrar el objeto con todas sus traducciones. Si estamos con la pagina en idioma ingles Ofrecera borrar el objeto con todas sus traducciones
-
-
-
-## Universal
-El juego esta planteado para adaptar diversos universo de juego. Como historico (Roma, Edad Media, etc.) o fantasis (Kult, Paranoia, Rueda del tiempo)
-
-## Fases
-Primero crearemos y perfeccionaremos una base de datos basico (Postgres), migraciones, API, composables y paginas y componentes para empezar una gestión basica del sistema de juego.
-
-Cuando tengamos una minima base crearemos los componentes de carta para mostrarlas. Tambien mejoraremos la gestion para los tipos de cartas y sus peculiaridades.
-
-## Base de datos
-Es un postgres que conectamos con kisely. Tenemos una la tabla world y las cartas base, las cartas base tendran el prefijo base_ 
-Todas las traduccion tendran como minimo estos campos: name, code, short_text, description.
-
-## Breve explicación del sistema Tarot
+## 0. Breve explicación del sistema Tarot
 Tarot es un sistema de juego de rol universal diseñado para ser adaptable a múltiples mundos
 
 ### ¿Mundos?
 Si, poderemos gestionar nuestro propio set de cartas para añadir mundos de fantasia o ambientaciones. De momento tenemos creado la coleccion World pero world_cards podremos hacer nuestro propio set de cartas.
-EN PROYECTO: Primero hemos de terminar la base de gestion y base de sistema. Proximamente lo añadiremos.
+Estado: la base de gestión está operativa; seguimos ampliando contenido y automatizaciones de versiones.
 
 
 ### Los Arcanos y sus Facetas
@@ -95,76 +64,67 @@ Un personaje se construye a partir de cinco cartas conceptuales que definen comp
 
 **Potencia** responde a "EN QUÉ CREES" y representa la fuerza superior, ideal o poder que influye en el personaje. Esta carta introduce el sistema de Devoción y las Intervenciones, permitiendo al personaje canalizar su fe o convicción en momentos críticos.
 
+## 1. Stack y principios
+- **Frontend**: Nuxt 4 + Nuxt UI 4 + TailwindCSS + Pinia Colada. Los listados usan `CommonDataTable` y bridges Manage/Admin.@app/components/common/CommonDataTable.vue#1-127
+- **Backend**: Nuxt 4/H3 con Kysely tipado + helpers `createCrudHandlers`, `buildFilters`, `translatableUpsert` y `deleteLocalizedEntity` para CRUD homogéneo.@server/utils/createCrudHandlers.ts#1-240
+- **Autenticación**: JWT via `server/plugins/auth.ts`; middleware `00.auth.hydrate`, `01.auth.guard`, `02.rate-limit`.@server/plugins/auth.ts#1-210@server/middleware/02.rate-limit.ts#1-140
+- **Internacionalización**: i18n locales (`en`, `es`) y tablas `_translations` con fallback EN marcado por `markLanguageFallback` en respuestas.@server/utils/response.ts#65-95
+- **Contenido versionado**: casi todas las entidades enlazan con `content_versions` y guardan `status` (`card_status`) e `is_active`.@docs/SCHEMA POSTGRES..TXT#417-437
 
-## Adapcion de Tarot a la App
+## 2. Mapa funcional de la app
+- `/manage` — orquestado por `ManageEntity` (`EntityBase.vue`), incluye filtros dinámicos, bulk actions y previews via `EntityInspectorDrawer` para: `card_type`, `base_card`, `world`, `arcana`, `facet`, `skill`, `tag`.@app/pages/manage.vue#1-186
+- `/admin` — paneles específicos: versiones, revisiones, feedback, usuarios, roles, import/export. Utiliza `AdminTableBridge` y modales especializados.@app/components/admin/RevisionsTable.vue#1-320
+- `/deck` — visualización pública en construcción; usa `EntityCard` + `EntitySummary`.
+- `/login` — autenticación; consume `/api/auth/login` con rate limiting y limpieza de cookie en logout.@server/api/auth/logout.post.ts#1-70
 
-Hemos creado la pagina /manage para empeza a crear mundos y cartas base y los tipos de carta. El proximo paso es añadir tablas de arcanos y facetas en la base de datos para gestionarlo tambien en /manage
+## 3. Entidades gestionadas
+| Entidad | Tablas principales | Campos clave | Relacionada con |
+| --- | --- | --- | --- |
+| `world` | `world`, `world_translations`, `tag_links` | `status`, `is_active`, `content_version_id`, `metadata` | `world_card` | 
+| `arcana` | `arcana`, `arcana_translations`, `tag_links` | `status`, `is_active`, `sort`, `metadata` | `facet`, `skill` |
+| `facet` | `facet`, `facet_translations`, `tag_links` | `legacy_effects`, `effects`, `content_version_id` | `skill`, `card_effects` |
+| `base_card` | `base_card`, `base_card_translations`, `card_effects`, `tag_links` | `card_family`, `legacy_effects`, `effects` | `world_card` |
+| `world_card` | `world_card`, `world_card_translations`, `card_effects`, `tag_links` | overrides por mundo, `legacy_effects` | `base_card` |
+| `base_skills` | `base_skills`, `base_skills_translations`, `card_effects`, `tag_links` | habilidades base vinculadas a facets | `facet` |
+| `card_type` | `base_card_type`, `base_card_type_translations` | catálogos madre de cartas | `base_card` |
+| `content_versions` | releases editoriales | `version_semver`, `release`, `metadata` | `content_revisions`, entidades `content_version_id` |
+| `content_revisions` | historial incremental | `diff`, `prev_snapshot`, `next_snapshot`, `version_number`, `status` | `content_versions`, entidades CRUD |
+| `content_feedback` | comentarios QA | `status`, `version_number`, `language_code` | Manage/Admin feedback |
+| `tags` | `tags`, `tags_translations`, `tag_links` | jerarquías y categorías | Todos los listados |
+| `users` / `roles` | auth/admin | `permissions` JSONB (roles), `status` (`user_status`) | middleware auth |
 
-### Gestión de cartas
+> Véase `docs/SCHEMA POSTGRES..TXT` como fuente de verdad del esquema y `server/database/types.ts` para tipos generados Kysely.@server/database/types.ts#1-240
 
-Despues deberiamos hacer las cartas base y añadir tablas para enlazar con las ventajas que pueden otorgar. Estamos en estudio de como diseñar la base de datos para estos fines.
+## 4. Internacionalización y UX
+- Formularios (`FormModal.vue`) muestran valores EN cuando se edita otro idioma y permiten borrar traducciones sin eliminar la entidad EN.@app/components/manage/modal/FormModal.vue#1-400
+- La API devuelve `language_code_resolved` y `language_is_fallback` para que la UI muestre badges y promueva traducciones pendientes.
+- En `/manage`, los filtros (`ManageEntityFilters.vue`) exponen `lang`, tags y capacidades basadas en `useEntityCapabilities`.@app/components/manage/ManageEntityFilters.vue#1-260
+- `EntityInspectorDrawer` y `StatusBadge` reflejan `status`, `release_stage` y cobertura de traducciones.
 
-#### Ejemplos de cartas
-El pruebas/cards/worlds tenemos varias universos con diseño preliminares de cartas
+## 5. Sistema de efectos
+- **Semántico** (`card_effects`) integra catálogos `effect_type`, `effect_target` y soporta jerarquía (`parent_id`), plantillas y validación mediante campos `scope`, `validation_state`, `effect_group`.
+- **Legacy** (`effects` JSONB + `legacy_effects`) conserva narrativa por idioma; se usa en cartas, facetas, habilidades y overrides.
+- Documentación detallada en `docs/effect-system.md`. El editor UI alterna entre ambos modos según `legacy_effects`.
 
-### Paginas de la APP
-De momentos tenemos desarrollado /admin, /manage y /deck
-En un futuro se añadira gestion de mundos y personajes, y plantillas para las cartas.
+## 6. Flujo editorial
+1. **Creación/edición** desde `/manage` → `useEntity` sincroniza filtros, paginación y payload con Zod schemas específicos.@app/composables/manage/useEntity.ts#1-200
+2. **Revisiones** (`content_revisions`) registran `diff`, snapshots y `language_code`; pueden revertirse desde `/admin/revisions`.
+3. **Versiones** (`content_versions`) publican lotes mediante `/api/content_versions/publish`, marcando entidades con `content_version_id` y `status` `published` cuando aplica.@server/api/content_versions/publish.post.ts#1-200
+4. **Feedback** (`content_feedback`) centraliza QA; Manage/Admin reutilizan `useEntityPreviewFetch` para revisar el contenido afectado.
 
-#### Admin
-solo pueden acceder los administradores excepto en feedback que lo hara tambien el staff para resolver feeback como incidencias, etc.
+## 7. Seguridad
+- Login/logout con cookies HttpOnly, `SameSite=strict`, `secure` en producción y expiración configurable (`JWT_EXPIRES_IN`).
+- Rate limiting global y sensible con buckets IP+usuario (`300 req/5 min`, `10 req/60s` para auth/editorial sensibles).
+- Directiva `v-can` y composable `useAuth` sincronizan permisos con el backend. Usuarios `suspended` quedan bloqueados en `01.auth.guard`.
 
-#### Manage
-Gestion para creacion, edicion y traduccion de cartas
+## 8. Herramientas y scripts
+- **Export/Import** (`/api/database/export|import`) y por entidad (`/api/<entity>/export|import`) usan `entityCrudHelpers` para gestionar traducciones y tags.@server/utils/entityCrudHelpers.ts#1-220
+- **Scripts**: `scripts/add-leading-comments.mjs` y `scripts/sort-i18n.mjs` ayudan a mantener coherentes presets e i18n.
+- **Testing manual**: seguir checklist en `/informes/ROADMAP.md` y `/informes/SUGERENCIAS.md` hasta tener suite automatizada.
 
-#### Deck
-Para la visualizacion de las cartas
+## 9. Próximos pasos (roadmap vivo)
+- Migrar tablas legacy a `CommonDataTable` + bridges (ver `/informes/ROADMAP.md`).
+- Consolidar editor de efectos semánticos dentro de `FormModal` con validaciones compartidas.
+- Habilitar dashboards de cobertura i18n y métricas editoriales (ver `/informes/BRAINSTORMING.md`).
 
-
-## Arquitectura y stack (resumen derivado de /docs)
-
-- Backend: Nuxt 4 (H3/Nitro) + PostgreSQL vía Kysely (tipado) + JWT (jose) + Pino (logger).
-- Base URL API: `/api`. Respuestas normalizadas: `{ success, data, meta? }`.
-- Cliente: `useApiFetch` con ETag/If-None-Match y cache 304, SSR para listados críticos.
-- Módulos API por entidad: `world`, `world_card`, `arcana`, `base_card`, `card_type`, `skill`, `facet`, `tag`, además de `user`, `role`, `uploads`, `database`, `content_feedback`, `content_revisions`, `content_versions`.
-
-## Seguridad y autenticación
-
-- Login `POST /api/auth/login` → cookie `auth_token` HttpOnly. Middleware `00.auth.hydrate` carga usuario/roles/permissions; `01.auth.guard` protege `/api/*` (excepto login/logout).
-- Nota SECURITY: `POST /api/auth/logout` existe, pero no limpia la cookie todavía; recomendado añadir `setCookie(..., maxAge:0)`.
-
-## Esquema y versionado de contenido
-
-- `content_versions` incluye `version_semver`, `description`, `metadata`, `release` (`dev|alfa|beta|candidate|release|revision`).
-- Varias tablas referencian versiones (`content_version_id`/`version_id`) y comparten `status` (`card_status`) e `is_active`.
-- Internacionalización: tablas `<entidad>_translations` con `language_code` y fallback a `'en'` en las consultas.
-- Borrado por idioma: si `lang==='en'` se elimina la entidad y sus traducciones; en otro caso, sólo la traducción.
-
-## Sistema de efectos (Effect System 2.0)
-
-- Catálogos: `effect_type` y `effect_target` (+ traducciones). Instancias: `card_effects` con jerarquía (parent_id), `value/formula`, `scope`, `duration` y metadatos.
-- Modo narrativo (legacy): campos `legacy_effects` (bool) y `effects` (JSONB por idioma) en entidades como `base_card`, `world_card`, `base_skills`, `facet`.
-- UI: alterna entre modo legacy (Markdown) y semántico (estructurado) según `legacy_effects`.
-
-## Tags y filtros
-
-- Vínculos en `tag_links` por `entity_type` (`arcana|facet|base_card|base_card_type|world|world_card|base_skills`).
-- Documentación presenta diferencias: SERVER.md describe filtros de tags en modo AND; algunos endpoints actuales (p.ej. base_card) aplican OR (ANY). Se recomienda alinear (decidir y estandarizar: AND o OR) y actualizar docs/código en conjunto.
-
-## Rutas y convenciones
-
-- Usuarios: el backend implementa `/api/user/*` (singular). Parte de la documentación antigua menciona `/api/users/*` (plural). Recomendado unificar a singular y/o ofrecer alias temporal.
-- Endpoints especiales: `uploads` (imágenes optimizadas AVIF), `database` (export/import JSON/SQL), `content_feedback` (comentarios editoriales), `content_revisions` (historial y diffs), `content_versions` (releases) con `release`.
-
-## Alineaciones pendientes
-
-- Implementar `POST /api/content_versions/publish` (publicación de revisiones aprobadas) y `POST /api/content_revisions/:id/revert` (revert de revisión); la UI los referencia.
-- Unificar semántica de filtros de tags (AND vs OR) y actualizar documentación/consultas.
-- Corregir referencias antiguas a `/api/users` → `/api/user`.
-- Adoptar `useApiFetch` en GETs de admin para aprovechar ETag/304 de forma consistente.
-
-## Próximos pasos
-
-- Consolidar editor de cartas con integración del sistema de efectos (semántico/legacy).
-- Completar endpoints de publicación/revert y la UX de versiones.
-- Añadir rate limiting básico (SECURITY) y pulir logout para limpiar cookie.
+Para profundizar en componentes concretos consulte `docs/COMPONENTES manage y admin.MD`. Para detalles del backend revise `docs/SERVER.md` y `docs/API.MD`.

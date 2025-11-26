@@ -1,3 +1,4 @@
+<!-- app/components/manage/modal/EntityTagsModal.vue -->
 <!-- app/components/manage/Modal/EntityTagsModal.vue -->
 <template>
   <UModal

@@ -1,70 +1,52 @@
-# Auditoría exhaustiva: /deck (Catálogo)
+# Auditoría exhaustiva: /deck (Catálogo público)
 
-## Resumen
-- Sección pública de exploración del mazo: entidades `cardType`, `baseCard`, `world`, `arcana`, `facet`, `skill`.
-- Arquitectura: páginas finas (`/deck/*`) + componentes genéricos (`DeckEntityPage`, `DeckSection`) + composable `useDeckCrud` que reusa los CRUD de `/manage`.
-- SSR y caché: listado vía `useAsyncData` (server: true), ETag/304 vía `useApiFetch` en los composables reutilizados.
-- Sin errores críticos detectados en frontend; backend de listados y filtros está implementado.
+## Resumen actualizado
+- `/deck` ofrece catálogo público de `card_type`, `base_card`, `world`, `arcana`, `facet` y `skill`, reutilizando la capa de datos de `/manage` mediante `useDeckCrud`.
+- Páginas del subdirectorio `app/pages/deck` son delgadas; delegan layout en `DeckEntityPage` y listados en `DeckSection` con paginación SSR.
+- SSR + caching: `useAsyncData({ server:true })` + `useApiFetch` heredado de los CRUDs aseguran respuestas cacheables con ETag/304.
+- No se registran errores funcionales; la integración con backend está alineada con `docs/API.MD` y `docs/SCHEMA POSTGRES..TXT`.
 
-## Funcionamiento y capacidades de usuario
-- Páginas `/deck/*` delegan en `DeckEntityPage`, que arma el layout y renderiza un `DeckSection` paginado de la entidad.
-- `DeckSection`:
-  - Carga inicial SSR con `useAsyncData` usando clave estable `deck:{lang}:{entity}`.
-  - Integración con el CRUD de `manage` mediante `useDeckCrud(entity)`, heredando filtros y paginación.
-  - Vista en grid con plantillas de cartas (`useCardTemplates`, template por defecto `Class`).
-  - Paginación cliente/servidor mediante `PaginationControls` y `useEntityPagination` (delegado del CRUD reutilizado).
-  - Empty/skeleton states y control de `pageSize` dinámico (cuando `limit` está presente en modo preview).
+## Funcionamiento y capacidades
+- **Layout**: `DeckEntityPage.vue` renderiza encabezado (título/descripcion traducidos) y un `DeckSection` por entidad.@app/components/deck/DeckEntityPage.vue#1-42
+- **Listados**: `DeckSection.vue` usa `useDeckCrud(entity)` para obtener `items`, `loading`, `error`, `fetch` y paginación compartida. Registra tamaños de página y muestra skeletons/empty states.
+- **CRUD compartido**: `useDeckCrud` normaliza nombres y cachea instancias `use<entity>Crud` para evitar duplicación de estado; ajusta filtros `status`/`is_active` y paginación antes de llamar a `crud.fetchList()`.
+- **Rendering de cartas**: se apoya en plantillas (`useCardTemplates`, `useCardViewHelpers.resolveImage`) para mostrar tarjetas consistentes con Manage.
 
-## Dependencias frontend
-- Páginas: `app/pages/deck/{index,card-types,base-cards,arcana,facets,skills,worlds}.vue` (todas consumen `DeckEntityPage`).
-- Componentes: `components/deck/DeckEntityPage.vue`, `components/deck/DeckSection.vue`.
-- Composable principal: `composables/deck/useDeckCrud.ts`.
-- Utilidades comunes: `composables/common/useCardTemplates`, `useCardViewHelpers`, `components/common/PaginationControls.vue`.
+## Dependencias principales
+- Frontend: `app/pages/deck/*.vue`, `components/deck/DeckEntityPage.vue`, `components/deck/DeckSection.vue`, `composables/deck/useDeckCrud.ts`, `composables/common/useCardTemplates`, `components/common/PaginationControls.vue`.
+- Backend: CRUD handlers `/api/<entity>` reutilizados sin rutas especiales; `buildFilters` + `createPaginatedResponse` garantizan filtros y meta homogéneos.
 
-## Dependencias backend
-- Reutiliza endpoints de `/api/{card_type, base_card, world, arcana, facet, skill}` que existen con operaciones completas (index.get/post, id.get/patch/delete, export/import, batch.patch).
-- Filtros y paginación se resuelven en el servidor con Kysely + utilidades (`buildFilters`, `createPaginatedResponse`) y traducciones fallback (joins `*_translations` y coalesce con `en`).
+## Alineación con documentación
+- `docs/API.MD` recién actualizada cubre campos como `card_family`, `metadata`, `legacy_effects`, `content_version_id` que /deck consume indirectamente.
+- `docs/SERVER.md` confirma uso de `createCrudHandlers`, `buildFilters` y contratos `{ success, data, meta }`.
+- `docs/SCHEMA POSTGRES..TXT` es fuente de verdad para entidades mostradas en /deck.
+- `docs/effect-system.md` describe los efectos semánticos/legacy que pueden mostrarse en tarjetas públicas.
 
-## Alineación con /docs (API, SERVER, SCHEMA)
+## Cambios recientes
+- `useDeckCrud` ahora cachea instancias de CRUD para evitar re-instanciación y loguea operaciones en dev.
+- `DeckSection` admite `paginate` y registra `registerPageSizeOptions` para mantener UI consistente.
+- `AdvancedFiltersPanel` aún no se expone en /deck; se mantiene UI minimalista.
 
-- Base URL `/api` y respuestas `{ success, data, meta? }` (API.MD/SERVER.md).
-- I18n: los listados resuelven `name/short_text/description` con fallback a `'en'` y exponen `language_code_resolved`.
-- Mapeo `card_type` → tabla base `base_card_type` (nota en API.MD). En /deck consumimos `/api/card_type` que internamente mapea a dicha tabla.
-- Tags: la documentación generaliza filtros AND; algunos listados actuales (p.ej. base_card) aplican OR. Alinear semántica (decisión de producto) y actualizar consultas/documentación.
-- Carga de imágenes: rutas bajo `/img/<entity>/...` servidas desde `public/img` y/o generadas por `/api/uploads`.
+## Riesgos y mejoras pendientes
+- **Semántica de tags**: los endpoints usan OR en algunos casos; si se decide semántica AND, /deck deberá reflejar cambios.
+- **Accesibilidad**: revisar alt/aria-label en tarjetas y botones de paginación.
+- **TTL de cache**: evaluar aumentar TTL en `useApiFetch` para contenido público.
 
-### Sistema de efectos (Effect System 2.0)
+## Oportunidades
+1. Extraer `CardGrid` + `useCardVM` compartidos con `/manage`.
+2. Exponer filtros públicos (status, tags, idioma) reutilizando `useManageFilters` en modo solo lectura.
+3. Añadir favoritos/listas guardadas (requiere persistencia de usuario).
+4. Enriquecer preview con efectos (aprovechando `card_effects` y `legacy_effects`).
 
-- El esquema y `effect-system.md` introducen `effect_type`, `effect_target` y `card_effects` (semántico), además de modo narrativo (`legacy_effects` + `effects` JSONB por idioma).
-- /deck puede integrar una presentación de efectos (semánticos o legacy) en la previsualización de cartas base/world/skills/facets como mejora futura.
+## Testing recomendado
+- **E2E**: navegar por todas las secciones (`card-types`, `base-cards`, etc.), cambiar idioma, paginar y validar SSR sin errores.
+- **Unidad**: `useDeckCrud` (alias → CRUD, cache), `DeckSection` (pageSize, inicialización SSR), `useCardTemplates` (render de layouts).
 
-## Flujo de datos
-- `useDeckCrud` mapea la entidad solicitada a su CRUD de `manage` (cacheado para no re-instanciar).
-- `fetch(options)` de `useDeckCrud` ajusta paginación, status/is_active y dispara `crud.fetchList()`.
-- `DeckSection` obtiene `items` y `loading` del CRUD, registrando opciones de pageSize para que la UI de paginación se mantenga coherente.
-
-## Problemas detectados
-- No se han encontrado errores funcionales en `/deck`. La integración con `manage` es correcta y evita duplicar lógica de datos.
-
-## Oportunidades de optimización y reducción de duplicados
-- **[Grid de cartas]** Extraer un componente reutilizable (por ejemplo `CardGrid.vue`) que parametrice: plantilla, badges de estado/activo, imagen y tags. Hoy esa lógica se repite parcialmente en `/manage` (`EntityCards`, `EntityCardsClassic`) y en `/deck`.
-- **[ViewModel de carta]** Crear `useCardVM(entityKey)` que derive `titleOf`, `badges`, `image`, `langBadge`, evitando repetir helpers en varias vistas.
-- **[Caché TTL]** Ajustar TTL del `useApiFetch` por entidad (por ejemplo mayor para contenido público `/deck`) con `context.cacheTTL` para mejorar percepción de rendimiento.
-- **[Accesibilidad]** Añadir alt/aria-label consistentes en imágenes y botones dentro de las tarjetas.
-
-## Refactors propuestos (mover lógica fuera de *.vue)
-- `DeckSection.vue`: mover coordinación de `pageSizeItems` y `ensurePageSize()` a un composable `useDeckPagination(deckCrud)` para testearlo en aislamiento.
-- Unificar resolución de imágenes usando siempre `useCardViewHelpers.resolveImage` (garantizar fallback y rutas por entidad).
-
-## Funcionalidades posibles
-- **Favoritos/Listas**: permitir al usuario marcar cartas y ver colecciones.
-- **Búsqueda y filtros públicos**: exponer UI de filtrado (status/activo/tags) en `/deck` similar a `/manage` (solo lectura), reusando `useManageFilters` con una capa de mapeo.
-- **Previsualización ampliada**: modal con detalles y navegación de cartas relacionadas (por tags o tipo).
-
-## Testing sugerido
-- E2E: navegar por todas las entidades, paginar, validar skeleton/empty states y rendering SSR.
-- Unidad: `useDeckCrud` (mapeo y cacheo de CRUDs), `DeckSection` (coordinación de pageSize y carga inicial con `useAsyncData`).
-
-## Prioridades (Plan de acción)
-- **P2** Extraer `CardGrid` + `useCardVM` para reducir duplicación con `/manage`.
-- **P3** Ajustar TTLs y auditoría de accesibilidad (labels/alt).
+## Referencias clave
+- `@app/pages/deck/index.vue#1-200`
+- `@app/components/deck/DeckSection.vue`
+- `@app/composables/deck/useDeckCrud.ts#1-200`
+- `@app/composables/manage/useBaseCard.ts`, `useWorld.ts`, `useArcana.ts`, `useFacet.ts`, `useSkill.ts`, `useCardType.ts`
+- `@server/api/base_card/_crud.ts#1-220`
+- `@server/api/world/_crud.ts#1-195`
+- `@server/utils/filters.ts#40-158`

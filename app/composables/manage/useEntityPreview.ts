@@ -1,3 +1,4 @@
+// app/composables/manage/useEntityPreview.ts
 import { ref } from 'vue'
 
 export interface PreviewPayload {

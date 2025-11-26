@@ -1,86 +1,94 @@
 # Informe técnico de composables Tarot2
 
-## Panorama general
-El ecosistema de composables en Tarot2 se divide en tres familias principales:
-1. **Common** (`app/composables/common`) – utilidades agnósticas de dominio (`useListMeta`, `useQuerySync`, `useEntityCapabilities`).
-2. **Manage** (`app/composables/manage`) – orquestan CRUD genéricos para entidades traducibles, incluyendo filtros, paginación, tags, previews y modales.
-3. **Admin** (`app/composables/admin`) – focalizados en operaciones editoriales (`useContentVersions`, `useRevisions`, `useContentFeedback`, `useAdminUsersCrud`).
+## Índice
+1. [Resumen general](#1-resumen-general)
+2. [Mapa de familias y scope](#2-mapa-de-familias-y-scope)
+3. [Composables comunes](#3-composables-comunes)
+4. [Composables Manage](#4-composables-manage)
+5. [Composables Admin](#5-composables-admin)
+6. [Flujo SSR, cache e invalidaciones](#6-flujo-ssr-cache-e-invalidaciones)
+7. [Capacities, presets y Zod](#7-capacities-presets-y-zod)
+8. [Sincronización de queries](#8-sincronización-de-queries)
+9. [Zonas legacy o pendientes](#9-zonas-legacy-o-pendientes)
+10. [Áreas de riesgo](#10-áreas-de-riesgo)
+11. [Buenas prácticas](#11-buenas-prácticas)
+12. [Roadmap de composables](#12-roadmap-de-composables)
 
-Todos siguen el patrón de exponer refs reactivas (`items`, `pending`, `error`, `meta`) además de acciones (`fetchList`, `create`, `update`, `remove`) y, cuando aplica, estados derivados (selección, filtros sincronizados con la URL).
+## 1. Resumen general
+Los composables de Tarot2 encapsulan lógica SSR-safe, multi-idioma y editorial que alimenta componentes Manage/Admin. Las piezas clave son `useEntity` (CRUD genérico), `useListMeta` (contratos de paginación), `useQuerySync` (sincronización URL), `useEntityCapabilities` (capabilities declarativas) y especializaciones editoriales (`useContentVersions`, `useRevisions`, `useContentFeedback`). El objetivo actual es eliminar duplicación (selección, paginación), consolidar presets de formularios y habilitar telemetría ligera.
 
-## Composables comunes clave
-| Composable | Propósito | Notas |
+## 2. Mapa de familias y scope
+| Familia | Ubicación | Responsabilidad |
 | --- | --- | --- |
-| `useListMeta` | Normaliza `meta` de paginación en `{ page, pageSize, totalItems, totalPages, hasNext, hasPrev }` con fallback reactivo.[@app/composables/common/useListMeta.ts#1-46] | Útil para tablas con datos cliente/servidor, se usa en `CommonDataTable`, `useContentVersions` y otros. |
-| `useQuerySync` | Sincroniza filtros con la ruta (querystring), soportando parse/serialize personalizado y reemplazo vs push. | Base para `AdvancedFiltersPanel` en admin feedback, permite compartir vistas. |
-| `useEntityCapabilities` | Provider/consumer de capacidades por entidad (translatable, tags, preview, etc.).[@app/composables/common/useEntityCapabilities.ts#1-158] | Aísla opciones y permite overrides por proveedor, favoreciendo modularidad Admin/Manage. |
-| `useDateRange` | Gestiona rangos de fechas normalizados (ISO) con utilidades de parse, display y sincronización. | Permite filtros complejos en feedback, versiones y futuros reports. |
-| `useEntityPreviewFetch` | Resuelve previews de entidades (cards, worlds, etc.) reutilizando `useApiFetch`. | Evita duplicar lógica de endpoints preview entre feedback y manage. |
+| Common | `app/composables/common` | Meta/paginación, capabilities, sincronización de query, rangos de fecha, previews.|@app/composables/common/useListMeta.ts#1-46@
+| Manage | `app/composables/manage` | CRUD multi-idioma, filtros, modales, tags y previews para Manage.|@app/composables/manage/useEntity.ts#1-392@
+| Admin | `app/composables/admin` | Flujos editoriales, usuarios, feedback y backups internos.|@app/composables/admin/useContentFeedback.ts#1-360@
 
-### Buenas prácticas
-- Mantener firmas genéricas (MaybeRefOrGetter, InjectionKey) para facilitar DI.
-- Aceptar `fallback` y `overrides` en composables reutilizables (`useListMeta`, `useEntityCapabilities`).
-- Integrar watchers con `watchEffect` o debounced states para evitar fetch excesivo (`useEntity`).
-
-## Composables Manage
-### `useEntity`
-Composable genérico SSR-safe que provee CRUD con filtros reactivamente sincronizados y paginación configurable.[@app/composables/manage/useEntity.ts#1-392]
-- Usa `useAsyncData` para SSR y caché SWR (`listCache`) evitando refetch innecesario.
-- Recibe esquemas Zod opcionales para validar create/update.
-- Gestiona idioma (`lang`) automáticamente con `includeLangParam` y `includeLangInCreateBody` (default true).
-- Expone `pagination` + `pageSizeOptions`, integrándose con `usePaginatedList`.
-- Soporta invalidación manual y control de aborts para requests concurrentes.
-
-### Complementos Manage
-| Composable | Rol |
-| --- | --- |
-| `useManageFilters` | Inicializa filtros por entidad con defaults y provee `resetFilters` opcionalmente re-fetching. |
-| `useManageColumns` | Determina columnas por entidad para tablas (status, tags, arcana, etc.), centralizando configuración. |
-| `useEntityModals` | Orquesta estado de modales (formulario, import, tags) y la carga de datos base/EN para traducciones. |
-| `useEntityDeletion` | Controla flujos de borrado entidad/traducción, aceptando bandera `translatable`. |
-| `useEntityPreview` | Maneja la apertura de previsualizaciones con fallback a slideover o modal. |
-| `useEntityTags`, `useFeedback`, `useEntityTransfer` | Acciones específicas (tags, feedback, traslado) encapsuladas. |
-
-### Fortalezas / pendientes
-- Fortalezas: reutilización masiva, SSR-ready, integración multi-idioma automática.
-- Pendientes: extraer `useTableSelection` (selección replicada en tablas) y consolidar `useManageActions` en un provider de capabilities.
-
-## Composables Admin
-| Composable | Propósito | Detalles |
+## 3. Composables comunes
+| Composable | Rol | Referencias |
 | --- | --- | --- |
-| `useContentVersions` | CRUD para versiones + publish, normaliza `meta` con `toListMeta` y recuerda última query.[@app/composables/admin/useContentVersions.ts#76-159] | Debe migrar todos los consumidores a `useApiFetch` (ya lo usa) y añadir logging para publish. |
-| `useRevisions` | Maneja listado/aprobación/bulk operations sobre revisiones; integra notificaciones y watchers debounced. | Ideal para `RevisionsTable` con selección y meta compartidos. |
-| `useContentFeedback` | Gestiona feedback con filtros complejos (rango fechas, entidad, idioma), sincroniza `lastQuery` y optimiza actualizaciones in-place. | Usa `buildParams` que normaliza entradas y toasts de error. |
-| `useAdminUsersCrud` | Adapta `useEntity` a la semántica de usuarios (sin i18n, con roles/permissions). | Garantiza que `translatable=false` se respete en la UI. |
-| `useDatabaseExport`, `useDatabaseImport` | Reutilizan endpoints de backup (JSON/SQL). | Deben incorporar manejo de progreso/errores para archivos grandes. |
+| `useListMeta` | Convierte `meta` de API a `{ page, pageSize, totalItems, totalPages, hasNext, hasPrev }`. | Base para `CommonDataTable` y `PaginationControls`.@app/composables/common/useListMeta.ts#1-46@
+| `useQuerySync` | Sincroniza filtros con la ruta (parse/serialize, replace vs push). | Pilares de `AdvancedFiltersPanel`, dashboards Admin.@app/composables/common/useQuerySync.ts#1-180@
+| `useEntityCapabilities` | Inyecta capacidades por entidad (translatable, tags, preview, effects). | Consumido por `EntityBase`, bridges, modales.@app/composables/common/useEntityCapabilities.ts#1-158@
+| `useDateRange` | Gestiona rangos ISO y display amigable. | Usado en feedback, versiones, reportes.@app/composables/common/useDateRange.ts#1-120@
+| `useEntityPreviewFetch` | Obtiene previews lazy via `useApiFetch`, aplica `markLanguageFallback`. | Integrado en `EntityInspectorDrawer` y Feedback.@app/composables/common/useEntityPreviewFetch.ts#1-120@
 
-## Integración con NuxtUI y SSR
-- Los composables actúan como fuente de verdad para componentes (tablas, modales, paneles). La documentación recomienda usar `useApiFetch` (ETag) y watchers debounced para entradas (`useDebounceFn` en Revisions, Manage Users).
-- `useQuerySync` + `AdvancedFiltersPanel` y `useListMeta` permiten vistas compartibles y UX consistente.
-- SSR: `useAsyncData` en `useEntity` y `useLazyAsyncData` en algunos admin (p.ej. Manage Users) aseguran que los listados se hidraten con la misma cache, evitando flickers.
+## 4. Composables Manage
+1. **`useEntity`**: CRUD SSR-first con `useAsyncData`, cache SWR, validación opcional Zod y soporte multi-idioma (`lang`, `includeLangParam`).@app/composables/manage/useEntity.ts#1-392@
+   - Controla abortos, invalidaciones por entidad/idioma y expone `{ items, meta, pending, error, create, update, remove }`.
+2. **Complementos**:
+   - `useManageFilters`, `useManageColumns`, `useEntityModals`, `useEntityDeletion`, `useEntityPreview` coordinan filtros, columnas, modales, borrado y previews.@app/composables/manage/useManageFilters.ts#1-140@
+   - `useEntityTags`, `useEntityTransfer`, `useFeedback`, `useEntityBulk` encapsulan acciones específicas y actualizan caches Manage.
+3. **Contratos**: todos comparten interfaz `EntityCrudResult` y sincronizan `meta` vía `useListMeta`.
 
-## Oportunidades de optimización
-1. **Provider de capabilities unificado**: aprovechar `useEntityCapabilities` (ya creado) para que `useEntity`, `useEntityDeletion`, `useEntityModals` y `EntityBase` lean capacidades dinámicas en vez de props repetidas.
-2. **`useServerPagination`**: crear wrapper para endpoints con `buildFilters` y normalización meta, reduciendo duplicación en composables admin.
-3. **Composables de selección**: `useSelection(ids)` central (mapa `selectedMap`, `toggleOne`, `toggleAll`) para feedback, revisiones, tablas Manage.
-4. **Cache managers**: extender `clearApiFetchCache` en `useEntity` a granularidad por entidad/idioma para invalidaciones específicas (publish/revert).
-5. **Telemetry hooks**: `useRequestMetrics` que capture `timeMs` del header/log y exponga latencia a la UI para dashboards internos.
-6. **Form presets**: composable `useEntityFormPreset(entity)` que devuelva presets de campos (Zod schema, default values) sincronizado con backend.
+## 5. Composables Admin
+| Composable | Función | Detalles |
+| --- | --- | --- |
+| `useContentVersions` | CRUD + publish, conserva `lastQuery`, usa `useListMeta`. | Pendiente reforzar rate limit/logging publish.@app/composables/admin/useContentVersions.ts#76-159@
+| `useRevisions` | Listado y aprobación de revisiones con bulk actions, watchers debounced. | Debe adoptar `useTableSelection` compartido.@app/composables/admin/useRevisions.ts#1-260@
+| `useContentFeedback` | Filtros avanzados (entidad, idioma, status, fecha) + preview caching. | Usa `buildParams`, `useQuerySync`, `useEntityPreviewFetch`.@app/composables/admin/useContentFeedback.ts#114-360@
+| `useAdminUsersCrud` | CRUD de usuarios sin i18n, gestiona roles, permisos JSONB. | Extiende `useEntity` con capabilities específicas.@app/composables/admin/useAdminUsersCrud.ts#1-160@
+| `useDatabaseExport` / `useDatabaseImport` | Export/import JSON/SQL con tracking de progreso y errores. | Requiere límites de tamaño y feedback amigable.@app/composables/admin/useDatabaseExport.ts#1-120@
 
-## Buenas prácticas de uso
-- **Mantener contrato meta**: siempre mapear `meta` a `toListMeta` o `useListMeta` antes de exponerlo a componentes.
-- **Evitar `$fetch` directo**: usar `useApiFetch` para beneficiarse de ETag y logging consistente.
-- **Error handling uniforme**: replicar patrón de `toErrorMessage` (`useEntity`) y toasts centralizados para UX consistente.
-- **Debounce**: aplicar `useDebounceFn` o watchers con `setTimeout` (como `useEntity`) para reducir requests en filtros.
-- **Type inference**: exportar tipos `EntityCrud` y `ListMeta` para reuso en componentes (TS).
+## 6. Flujo SSR, cache e invalidaciones
+1. **Fetch**: `useApiFetch` (wrapper con ETag) reemplaza `$fetch` y es utilizado por `useEntity`, `useContentFeedback`, `useContentVersions` para coherencia SSR.@docs/API.MD#24-60@
+2. **SSR**: `useAsyncData` hidrata listados Manage; `useLazyAsyncData` se aplica en algunos dashboards Admin para evitar SSR pesado.@app/composables/manage/useEntity.ts#50-140@
+3. **Caché**: `clearApiFetchCache`, `invalidateList`, `refetchOnLanguageChange` mantienen datos consistentes tras mutations/publish.
+4. **Debounce/Abort**: `useDebounceFn` (VueUse) y control de aborts evitan requests redundantes en filtros/búsquedas.
 
-## Roadmap composables
+## 7. Capacities, presets y Zod
+1. **Capacities**: `useEntityCapabilities` provee capacidades a `EntityBase`, `ManageTableBridge`, `FormModal` para condicionar columnas, tags, previews, traducciones.
+2. **Presets/Zod**: `useEntity` admite schemas Zod, mientras `FormModal` consume `entityFieldPresets` y `useEntityFormPreset` (en diseño) para mapear campos declarativos.@app/composables/manage/useEntity.ts#120-210@
+3. **Admin gap**: composables admin aún no consumen presets unificados; pendiente `useEntityFormPreset` compartido.
+
+## 8. Sincronización de queries
+1. `useQuerySync` se integra en `AdvancedFiltersPanel`, `useContentFeedback`, `ManageEntityFilters` para compartir filtro mediante URL.
+2. Admite `replace` vs `push`, serialización custom (tags, rangos), y callbacks `onSync` para side-effects.
+
+## 9. Zonas legacy o pendientes
+1. **Selección**: falta `useTableSelection` unificado; `RevisionsTable`, `FeedbackList`, `EntityTableWrapper` manejan arrays locales.
+2. **Capabilities**: algunos componentes aún dependen de props (`translatable`, `noTags`); requiere migración total a provider.
+3. **Previews**: ciertos consumidores de feedback usan endpoints manuales en lugar de `useEntityPreviewFetch`.
+4. **Server pagination**: repetición de normalización `meta` en composables admin; urge wrapper `useServerPagination` basado en `buildFilters`.
+
+## 10. Áreas de riesgo
+1. **Caché inconsistente** si se omiten invalidaciones tras publish/delete.
+2. **Desalineación de filtros** al modificar `useQuerySync` sin actualizar consumidores.
+3. **Permisos**: divergencias en objeto `permissions` pueden habilitar acciones indebidas en UI.
+4. **Multi-idioma**: omitir `lang` en requests (Manage/Admin) rompe fallback y puede sobrescribir EN.@server/utils/translatableUpsert.ts#83-190@
+
+## 11. Buenas prácticas
+1. Centralizar `meta` via `useListMeta`/`toListMeta` antes de exponerlo a componentes.
+2. Usar siempre `useApiFetch`; prohibir `$fetch` directo salvo utilidades internas sin SSR.
+3. Normalizar manejo de errores con `toErrorMessage`, toasts localizados y logging útil.
+4. Aplicar debounce en inputs y abort controllers para evitar spam de requests.
+5. Documentar cada composable con comentario introductorio (propósito, invariantes) siguiendo reglas del repo.
+
+## 12. Roadmap de composables
 | Prioridad | Acción | Impacto |
 | --- | --- | --- |
-| Alta | `useTableSelection` + `useServerPagination` | Menos duplicación en tablas y handlers |
-| Media | Integrar `useEntityCapabilities` en todos los composables Manage/Admin | Configuración declarativa, menos props |
-| Media | Hooks de telemetría (`useRequestMetrics`) | Observabilidad desde UI |
-| Baja | `useEntityFormPreset` compartido | Formularios consistentes, menos duplicación |
-
-## Conclusiones
-El set de composables de Tarot2 ya ofrece una base robusta para SSR, multi-idioma y administración. Las mejoras deben enfocarse en centralizar capacidades, reducir duplicación (selección, paginación) y añadir telemetría ligera, manteniendo el patrón de contratos tipados y caché coherente que caracteriza al proyecto.
+| Alta | Crear `useTableSelection` compartido Manage/Admin. | Bulk actions coherentes, menos duplicación. |
+| Alta | Implementar `useServerPagination` (wrapper `buildFilters` + meta). | Consistencia backend/frontend, menor boilerplate. |
+| Media | Integrar `useEntityCapabilities` en todos los consumidores Manage/Admin. | Configuración declarativa, menos props. |
+| Media | Añadir `useRequestMetrics` y exponer telemetría ligera. | Observabilidad desde UI y logs. |
+| Baja | Finalizar `useEntityFormPreset` para Admin + presets declarativos. | Formularios consistentes, compatibilidad Fase 1.5. |

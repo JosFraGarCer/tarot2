@@ -1,3 +1,4 @@
+// server/api/database/import.sql.post.ts
 import { defineEventHandler, readBody, createError } from 'h3'
 import { createResponse } from '../../utils/response'
 import { getUserFromEvent } from '../../plugins/auth'

@@ -1,3 +1,4 @@
+<!-- app/components/manage/ManageTableBridge.vue -->
 <template>
   <div class="manage-table-bridge space-y-4">
     <BulkActionsBar v-if="hasBulkActionsSlot && selectedValues.length" :selected="selectedValues">

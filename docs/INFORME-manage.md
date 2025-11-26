@@ -1,79 +1,74 @@
 # Auditoría exhaustiva: /manage (Gestión)
 
-## Resumen
-- Página de gestión con pestañas para 7 entidades: `cardType`, `baseCard`, `world`, `arcana`, `facet`, `skill`, `tag`.
-- UI flexible con 4 modos de vista: `tabla`, `tarjeta`, `classic`, `carta`.
-- Lógica de negocio correctamente extraída a composables `useEntity*`, con SSR y paginación.
-- Endpoints backend sólidos para CRUD, filtros, export/import y tags. Sin errores críticos en esta sección.
+## Resumen actualizado
+- `/manage` centraliza la administración de `card_type`, `base_card`, `world`, `arcana`, `facet`, `skill` y `tag` usando `EntityBase.vue` + `ManageTableBridge`/`CommonDataTable`.
+- Vistas disponibles (`tabla`, `tarjeta`, `classic`, `carta`) se gestionan mediante `ViewControls` con presets guardados por entidad en `useManageView`.
+- CRUD y filtros dependen de `useEntity` y composables específicos por entidad con SSR y cache ETag vía `useApiFetch`.
+- Todos los endpoints `/api/<entity>` existen y siguen contratos `{ success, data, meta }`; export/import y operaciones batch están disponibles.
+- Traducciones, tags y versionado de contenido respetan el dominio y las banderas de capacidades definidas en `useEntityCapabilities`.
 
-## Funcionamiento y capacidades de usuario
-- Navegación por pestañas `UTabs` para elegir entidad.
-- Controles de vista con persistencia local (`useManageView`): modo de vista y template (Class/Origin).
-- Filtros por búsqueda, estado, activo, tipo, facet, tags y parent según la entidad (`EntityFilters`).
-- Listado en tabla o tarjetas, con acciones por ítem: Editar, Feedback, Tags, Borrar, Previsualizar.
-- Paginación con selector de `pageSize` (cliente/servidor) y memorias por entidad.
-- Exportación/Importación JSON por entidad; edición con formularios dinámicos (Zod/presets) e imagen opcional.
-- Gestión de etiquetas (`EntityTagsModal`) y envío de feedback contextual (`FeedbackModal`).
+## Funcionamiento y capacidades
+- **Navegación**: pestañas `UTabs` en `manage.vue` definen la entidad activa y pasan configuración específica a `ManageEntity`.@app/pages/manage.vue#1-186
+- **Controles de vista**: `ViewControls.vue` sincroniza modo (`viewMode`) y plantilla (`templateKey`) por entidad usando localStorage y presets declarados.
+- **Filtros**: `EntityFilters.vue` y `AdvancedFiltersPanel.vue` combinan búsqueda, estado, `is_active`, relaciones (facet, card type, arcana), tags y parent. Configurados por `EntityFilterConfig` desde cada composable CRUD.
+- **CRUD**: `FormModal.vue` construye formularios dinámicos a partir de schema Zod (`server/schemas/*`) y `entityFieldPresets`, soporta imágenes (`ImageUploadField`), efectos legacy (`legacy_effects`) y traducciones con fallback EN.
+- **Acciones**: cada fila (tabla o tarjeta) permite editar, previsualizar (`EntityInspectorDrawer`), gestionar tags, enviar feedback y eliminar. Bulk actions utilizán `useTableSelection` y `BulkActionsBar` en `ManageTableBridge`.
+- **Previews**: `EntityInspectorDrawer` renderiza resumen con badges de idioma/estado/release usando `useEntityPreviewFetch` para SSR seguro.
+- **Export/Import**: acciones llaman a `entityCrudHelpers` para exportar/importar JSON preservando traducciones y tags.
 
-## Dependencias frontend
-- Páginas: `app/pages/manage.vue`.
-- Componentes principales:
-  - `components/manage/EntityBase.vue` (contenedor principal de la entidad)
-  - `components/manage/EntityFilters.vue`, `EntityTableWrapper.vue`, `view/EntityCards.vue`, `view/EntityCardsClassic.vue`, `view/EntityCarta.vue`
-  - Modales: `modal/FormModal.vue`, `modal/PreviewModal.vue`, `modal/ImportJson.vue`, `modal/EntityTagsModal.vue`, `modal/FeedbackModal.vue`
-  - Acciones/confirmaciones: `common/DeleteDialogs.vue`, `manage/EntityActions.vue`
-- Composables clave:
-  - Core CRUD: `composables/manage/useEntity.ts`
-  - CRUD por entidad: `useWorldCrud`, `useArcanaCrud`, `useFacetCrud`, `useSkillCrud`, `useCardTypeCrud`, `useBaseCardCrud`
-  - UI/estado: `useManageView`, `useManageFilters`, `useManageColumns`, `useManageActions`, `useEntityPagination`, `useEntityPreview`, `useEntityDeletion`, `useImageUpload`, `useOptimisticStatus`, `useEntityTags`, `useEntityTransfer`, `useFeedback`, `useTranslationActions`
-- Utilidades: `utils/fetcher.ts` (ETag + cache), `utils/status.ts`, `composables/common/useCardTemplates`, `useCardViewHelpers`.
+## Dependencias frontend principales
+- Página: `app/pages/manage.vue` (tabs, ViewControls, ManageEntity).
+- Contenedor: `components/manage/EntityBase.vue` (coordinación de filtros, vista, modales, preview, bulk).
+- Vistas: `EntityTableWrapper.vue`, `view/EntityCards.vue`, `view/EntityCardsClassic.vue`, `view/EntityCarta.vue`.
+- Modales: `FormModal.vue`, `PreviewModal.vue` (legacy), `ImportJson.vue`, `EntityTagsModal.vue`, `FeedbackModal.vue`.
+- Composables: `useEntity`, `use<entity>Crud`, `useManageView`, `useEntityPagination`, `useEntityTags`, `useEntityDeletion`, `useTranslationActions`, `useCardViewHelpers`, `useImageUpload`, `useEntityCapabilities`.
 
 ## Dependencias backend
-- Middlewares: `server/middleware/00.auth.hydrate.ts`, `01.auth.guard.ts` (protegen todo `/api` excepto auth).
-- Plugins: `server/plugins/db.ts` (Kysely/PG), `plugins/auth.ts` (JWT, helpers).
-- Endpoints usados por /manage (presentes y consistentes):
-  - `/api/card_type/*`, `/api/base_card/*`, `/api/world/*`, `/api/arcana/*`, `/api/facet/*`, `/api/skill/*`, `/api/tag/*`, `/api/tag_links` (POST/DELETE), export/import para cada entidad.
+- Middleware: `00.auth.hydrate`, `01.auth.guard`, `02.rate-limit`.
+- CRUD handlers por entidad (`server/api/<entity>/_crud.ts`) usan `createCrudHandlers`, `buildFilters`, `translatableUpsert`, `deleteLocalizedEntity`.
+- Tablas relevantes: consultar `docs/SCHEMA POSTGRES..TXT` (worlds, arcana, facets, base_card, base_skills, world_card, base_card_type, tags, tag_links, content_versions).
 
-## Alineación con /docs (API, SERVER, SCHEMA, effect-system)
+## Alineación con documentación oficial
+- `docs/API.MD` refleja campos actuales (`card_family`, `metadata`, `legacy_effects`, `content_version_id`, etc.) y endpoints adicionales (`/content_versions/publish`, `/content_revisions/:id/revert`).
+- `docs/SERVER.md` describe middleware, utilidades y patrones compartidos usados por Manage.
+- `docs/effect-system.md` documenta los modos semántico y legacy utilizados por las entidades con efectos.
+- `docs/SCHEMA POSTGRES..TXT` es la referencia del modelo de datos consumido desde Manage.
 
-- Respuestas y paginación: `{ success, data, meta { page, pageSize, totalItems, totalPages, count, search } }`.
-- I18n: uso de `<entidad>_translations` con fallback `'en'` y campo `language_code_resolved` en listados/detalles.
-- Borrado por idioma: si la página está en `en`, el borrado elimina la entidad + traducciones; en otro idioma, se ofrece eliminar sólo la traducción (comportamiento ya reflejado en UI de `DeleteDialogs`).
-- Tags: la documentación general (SERVER.md) señala filtros AND por múltiples tags; algunos listados actuales usan OR. Definir y alinear semántica a nivel de producto y actualizar consultas/UX.
-- Card types: la ruta `/api/card_type` mapea a la tabla `base_card_type` (API.MD). Mantener esta convención en componentes/presets.
-- Sistema de efectos: el esquema incorpora `effect_type`, `effect_target` y `card_effects` (semántico) y modo legacy (`legacy_effects` + `effects` JSONB). Se recomienda preparar `FormModal`/presets para soportar edición de efectos cuando se active el módulo en UI.
+## Cambios recientes
+- Migración completa a `CommonDataTable` + `ManageTableBridge` para unificar tablas y bulk actions.
+- `EntityInspectorDrawer` sustituyó previews legacy; integra `UFocusTrap` y badges accesibles.
+- `useEntityCapabilities` define banderas por entidad (`translatable`, `hasTags`, `hasPreview`, `actionsBatch`).
+- `AdvancedFiltersPanel` y `useQuerySync` gestionan filtros avanzados con sincronización URL.
+- `useEntityPreviewFetch` brinda preview SSR común para feedback y manage.
 
-## Flujo de datos
-- `useEntity` normaliza respuestas heterogéneas (meta/paginación) y expone `items`, `pagination`, `filters`, `fetchList/fetchOne/create/update/remove`.
-- SSR: `useAsyncData` con `watch` por clave estable (`resourcePath + filtros + paginación + lang`).
-- Caché HTTP: `useApiFetch` añade `If-None-Match` y maneja `304` para reusar datos en cliente.
+## Riesgos y mejoras pendientes
+- **Semántica de tags**: algunos CRUD aplican OR; la documentación recomienda AND. Decidir política y alinear SQL + UI.
+- **Edición de efectos**: falta un editor UI para `card_effects`; plan en `/informes/BRAINSTORMING.md`.
+- **Imports**: aún hay llamadas `$fetch` residuales; migrar a `useApiFetch` para ETag/SSR consistente.
+- **Consistencia de presets**: documentar y validar `entityFieldPresets` por entidad.
 
-## Problemas detectados
-- No se detectaron errores funcionales en los endpoint usados por /manage.
-- Mezcla de alias en imports (`@/` y `~/`) a lo largo de los componentes. Mejora menor de consistencia.
+## Oportunidades de optimización
+1. Centralizar badges de estado/release en `StatusBadge.vue` y reutilizar en todas las vistas.
+2. Extraer `useSelection` compartido para tablas y tarjetas.
+3. Implementar vistas guardadas (filtros + vista) por entidad.
+4. Exponer CLI para generar nueva entidad (composable, presets, informes) siguiendo reglas de edición.
 
-## Oportunidades de optimización y reducción de duplicados
-- **[Estado/Badges]** Consolidar representación del estado (color/variant/labelKey) en un componente `StatusBadge.vue` para reutilizar en `EntityTable`, `EntityCards`, `EntityCardsClassic`, `EntityCarta` y `CartaRow`.
-- **[Imágenes]** Ya existe `useCardViewHelpers.resolveImage`; asegurar uso en todas las vistas (p.ej. `CartaRow.vue` usa `img` directa). Extraer fallback y rutas a un solo helper.
-- **[Selección]** La lógica de selección (mapa/ids) se repite en tablas/listas. Extraer `useSelection(ids)` común.
-- **[Form presets]** `FormModal` mezcla Zod + presets; documentar presets por entidad y centralizar `entityFieldPresets` en un registro extensible.
-- **[Imports]** Unificar uso de `useApiFetch` en todos los lugares (evitar `$fetch('/api/...')`).
+## Testing manual recomendado
+- CRUD completo (crear, editar, traducir, borrar) en las 7 entidades con verificación de `status`, `is_active`, tags y efectos.
+- Bulk actions (activar/desactivar, tags) y confirmación en API.
+- Export/import JSON y verificación de traducciones/tags.
+- Preview Drawer en EN/ES incluyendo fallback.
+- Filtros avanzados + paginación + SSR sin errores.
+- Envío de feedback y verificación en `/admin/feedback`.
 
-## Refactors propuestos (mover lógica fuera de *.vue)
-- **`EntityCards(.vue)` y `EntityCardsClassic(.vue)`**: extraer la construcción del view-model (titleOf, badges, tags) a `useEntityCardVM(entityKey)`.
-- **`EntityTableWrapper.vue`**: la normalización de filas ya está, pero se puede exportar a `useEntityRowMapper(entityKey)` para reusar en futuras tablas.
-- **`ManageEntity.vue`**: orquestación correcta; considerar mover handlers de export/import/feedback/tags a un composable `useManageEntityActions` para simplificar el setup.
-
-## Funcionalidades posibles
-- **Revisión por lotes**: aplicar estado/tags en batch sobre una selección multipágina (requiere endpoints batch ya disponibles para varias entidades).
-- **Vistas guardadas**: persistir combinaciones de filtros + vista como “presets”.
-- **Historial local**: recordar búsquedas por entidad.
-
-## Testing sugerido
-- E2E: flujos de CRUD, filtros, paginación, export/import por entidad.
-- Unidad: `useEntity` (normalización de meta/paginación), `useManageFilters` (reset y alias), `useEntityTransfer` (errores JSON), `useImageUpload`.
-
-## Prioridades (Plan de acción)
-- **P1** Unificar imports a `~/` o `@/` de forma consistente.
-- **P2** Componente `StatusBadge.vue` y `useSelection` para reducir duplicado.
-- **P2** Adoptar `useApiFetch` en todas las llamadas (reemplazar `$fetch('/api/...')`).
+## Referencias clave
+- `@app/pages/manage.vue#1-186`
+- `@app/components/manage/EntityBase.vue#1-424`
+- `@app/components/manage/ManageTableBridge.vue#1-240`
+- `@app/components/manage/modal/FormModal.vue#1-400`
+- `@app/components/common/EntityInspectorDrawer.vue#1-220`
+- `@app/composables/manage/useEntity.ts#1-200`
+- `@server/api/base_card/_crud.ts#1-220`
+- `@server/api/world_card/_crud.ts#1-238`
+- `@server/utils/createCrudHandlers.ts#1-240`
+- `@server/utils/filters.ts#40-158`

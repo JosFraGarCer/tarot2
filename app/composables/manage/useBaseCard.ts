@@ -1,3 +1,4 @@
+// app/composables/manage/useBaseCard.ts
 // /app/composables/manage/useBaseCard.ts
 import { useEntity, type EntityFilterConfig } from '~/composables/manage/useEntity'
 import type { ManageCrud } from '@/types/manage'

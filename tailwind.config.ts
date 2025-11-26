@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import typography from '@tailwindcss/typography'
 
 export default <Partial<Config>>{
   content: [
@@ -9,7 +10,6 @@ export default <Partial<Config>>{
     './plugins/**/*.{js,ts}',
     './nuxt.config.{js,ts}',
   ],
-  plugins: [
-    require('@tailwindcss/typography'),
-  ],
+  plugins: [typography],
 }
+

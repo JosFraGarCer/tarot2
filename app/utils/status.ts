@@ -1,3 +1,4 @@
+// app/utils/status.ts
 // /app/utils/status.ts
 import type { CoreCardStatus } from '@/types/entities'
 

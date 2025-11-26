@@ -1,3 +1,4 @@
+// app/composables/admin/useEntityPreviewFetch.ts
 import { useApiFetch } from '@/utils/fetcher'
 
 /**

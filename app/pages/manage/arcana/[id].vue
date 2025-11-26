@@ -1,3 +1,4 @@
+<!-- app/pages/manage/arcana/[id].vue -->
 <template>
   <div class="space-y-4 px-4 pb-8">
     <div v-if="pending" class="space-y-4">

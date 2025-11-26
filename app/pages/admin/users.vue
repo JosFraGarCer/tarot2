@@ -1,3 +1,4 @@
+<!-- app/pages/admin/users.vue -->
 <!-- /app/pages/admin/users.vue -->
 <template>
   <ManageUsers />

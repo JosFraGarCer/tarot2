@@ -1,3 +1,4 @@
+// app/types/admin.ts
 import type { Permissions } from '@/types/permissions'
 import type { ManageCrud } from '@/types/manage'
 

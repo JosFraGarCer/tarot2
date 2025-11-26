@@ -1,3 +1,4 @@
+// server/middleware/00.auth.hydrate.ts
 // /server/middleware/00.auth.hydrate.ts
 import { defineEventHandler } from 'h3'
 import { sql } from 'kysely'

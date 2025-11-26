@@ -1,3 +1,4 @@
+// app/composables/common/useImagePreview.ts
 // app/composables/useImagePreview.ts
 import { ref, onBeforeUnmount } from 'vue'
 import type { UploadFileLike } from '@/types/forms'

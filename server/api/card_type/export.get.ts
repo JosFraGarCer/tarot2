@@ -1,3 +1,4 @@
+// server/api/card_type/export.get.ts
 import { defineEventHandler } from 'h3'
 import { exportEntities } from '../../utils/entityCrudHelpers'
 

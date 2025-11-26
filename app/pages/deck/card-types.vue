@@ -1,3 +1,4 @@
+<!-- app/pages/deck/card-types.vue -->
 <!-- app/pages/deck/index.vue -->
 <template>
   <DeckEntityPage

@@ -1,3 +1,4 @@
+// app/schemas/entities/arcana.ts
 // /app/schemas/entities/arcana.ts
 import { z } from 'zod'
 

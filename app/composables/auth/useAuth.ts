@@ -1,3 +1,4 @@
+// app/composables/auth/useAuth.ts
 // /app/composables/auth/useAuth.ts
 import { computed } from 'vue'
 import { useUserStore } from '~/stores/user'

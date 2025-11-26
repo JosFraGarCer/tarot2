@@ -1,3 +1,4 @@
+// app/composables/manage/useManageColumns.ts
 import { computed, type ComputedRef } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'

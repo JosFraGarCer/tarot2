@@ -1,3 +1,4 @@
+<!-- app/components/manage/modal/ConfirmDialog.vue -->
 <!-- app/components/manage/Modal/ConfirmDialog.vue -->
 <template>
   <UModal

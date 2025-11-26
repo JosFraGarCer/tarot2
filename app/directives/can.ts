@@ -1,3 +1,4 @@
+// app/directives/can.ts
 // /app/directives/can.ts
 import type { DirectiveBinding, ObjectDirective } from 'vue'
 import { watchEffect } from 'vue'

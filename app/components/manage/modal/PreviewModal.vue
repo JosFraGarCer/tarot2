@@ -1,3 +1,4 @@
+<!-- app/components/manage/modal/PreviewModal.vue -->
 <!-- app/components/manage/Modal/PreviewModal.vue -->
 <script setup lang="ts">
 import Preview from '~/components/manage/Preview.vue'

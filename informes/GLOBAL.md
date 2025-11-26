@@ -1,65 +1,86 @@
 # Informe global de arquitectura Tarot2
 
-## Resumen ejecutivo
-Tarot2 consolida un ecosistema Nuxt 4 full-stack que ofrece SSR, administración avanzada de contenido y un modelo relacional en PostgreSQL. Las decisiones clave giran en torno a: tipado extremo a extremo con Kysely+Zod, internacionalización completa, paneles administrativos sobre NuxtUI 4 y políticas editoriales apoyadas en `content_versions` y `content_revisions`.[@docs/PROJECT_INFO.md#8-170][@docs/SERVER.md#1-200]
+## Índice
+1. [Resumen ejecutivo](#1-resumen-ejecutivo)
+2. [Capas del sistema](#2-capas-del-sistema)
+3. [Frontend: patrones e invariantes](#3-frontend-patrones-e-invariantes)
+4. [Backend: servicios y middleware](#4-backend-servicios-y-middleware)
+5. [Datos, entidades y multi-idioma](#5-datos-entidades-y-multi-idioma)
+6. [Invariantes transversales](#6-invariantes-transversales)
+7. [Zonas legacy o en transición](#7-zonas-legacy-o-en-transición)
+8. [Áreas de riesgo](#8-áreas-de-riesgo)
+9. [Buenas prácticas recomendadas](#9-buenas-prácticas-recomendadas)
+10. [Métricas clave](#10-métricas-clave)
+11. [Próximos pasos](#11-próximos-pasos)
 
-## Principios rectores
-1. **Dominios cohesivos**: agrupar código por entidad (`world`, `arcana`, `base_card`, etc.) tanto en `app/` como en `server/api`. Facilita localizar artefactos CRUD+i18n y reduce regresiones cruzadas.[@docs/PROJECT_INFO.md#32-141]
-2. **SSR-first con caché ETag**: los listados críticos deben servirse vía `useAsyncData`/`useApiFetch` habilitando `If-None-Match` para coherencia cliente-servidor y rendimiento óptimo.[@docs/PROJECT_INFO.md#124-170][@docs/SERVER.md#49-140]
-3. **Internacionalización end-to-end**: toda lectura se resuelve con fallback a inglés mediante joins dobles y `language_code_resolved`; la UI debe espelhar el mismo flujo.[@docs/PROJECT_INFO.md#14-41][@docs/SERVER.md#215-332]
-4. **Contratos normalizados**: todas las rutas devuelven `{ success, data, meta? }` y reutilizan `buildFilters` + `createPaginatedResponse` para metadatos consistentes.[@docs/API.MD#5-70][@docs/SERVER.md#95-137]
-5. **Observabilidad transversal**: Pino registra filtros, idioma y tiempos; extender ese patrón a front (telemetría de interacción) es clave para detectar cuellos de botella.[@docs/SERVER.md#136-140]
-6. **Separación Admin/Manage**: mantener responsabilidades y capacidades diferenciadas (permisos, UX y flujos), evitando mezclar componentes salvo utilidades neutras.[@docs/PROJECT_INFO.md#110-120][@docs/INFORME-admin.md#223-170]
+## 1. Resumen ejecutivo
+Tarot2 es una plataforma Nuxt 4 con SSR completo que integra paneles Manage/Admin sobre Nuxt UI 4 y un backend H3/Kysely conectado a PostgreSQL multi-idioma. La estrategia actual prioriza patrones convergentes (CommonDataTable, EntityInspectorDrawer, FormModal), contratos API tipados y flujos editoriales versionados. El foco inmediato es cerrar brechas legacy, reforzar seguridad (rate limiting, logout), consolidar capabilities declarativas y preparar observabilidad ligera.
 
-## Estado actual del sistema
-### Frontend (Nuxt 4 + NuxtUI 4)
-- `/manage`: contenedor polimórfico basado en `EntityBase.vue` con vistas tabla, tarjeta, classic y carta; apalanca composables genéricos (`useEntity`, `useManageFilters`, `useEntityModals`).[@app/components/manage/EntityBase.vue#22-232]
-- `/admin`: dashboards especializados (versions, feedback, users) que consumen wrappers como `UserTable`, `RevisionsTable` y `AdvancedFiltersPanel` para filtros complejos.[@app/components/admin/RevisionsTable.vue#1-215][@app/components/admin/users/UserTable.vue#1-90]
-- Componentes comunes (`PaginationControls`, `AdvancedFiltersPanel`, badges de estado) estandarizan interacción y accesibilidad.
-
-### Backend (H3 + Kysely)
-- Rutas agrupadas por entidad bajo `server/api/*` con middleware `00.auth.hydrate` y `01.auth.guard` (JWT + roles).[`@docs/SERVER.md#49-140`]
-- `buildFilters` normaliza ordenación/ búsqueda, incluyendo rangos de fecha y semántica AND de tags en listados.[@docs/SERVER.md#318-335][@server/api/content_feedback/index.get.ts#28-136]
-- `content_versions` gobierna releases (`release_stage` enum) y se complementa con endpoints de publicación y revert pendientes de endurecer métricas.[@docs/SCHEMA POSTGRES..TXT#38-437]
-
-### Datos e internacionalización
-- Esquema `*_translations` con dominio `language_code`; eliminación condicionada por idioma garantiza soft-delete de traducciones.[@docs/SCHEMA POSTGRES..TXT#318-842]
-- Tablas editoriales (`content_feedback`, `content_revisions`) incluyen referencias a usuarios y versión, habilitando auditorías.[@docs/SCHEMA POSTGRES..TXT#384-408][@docs/SCHEMA POSTGRES..TXT#845-888]
-
-## Lineamientos operativos
-1. **Pipeline vertical**: cualquier feature nueva debe recorrer DB → API → composables → UI asegurando tests y documentación actualizados.[@docs/PROJECT_INFO.md#27-113]
-2. **Gestión de versiones**: exponer chips de `release` y herramientas de `publish/revert` integradas con métricas para liberar contenido controladamente.[@docs/PROJECT_INFO.md#136-170]
-3. **Seguridad**: reforzar logout limpiando cookie, añadir rate limiting (login/logout/publish/revert) y aprovechar permisos agregados backend para gating UI.[@docs/PROJECT_INFO.md#132-170][@docs/API.MD#31-88]
-4. **Observabilidad**: enriquecer logs con `entity_type`, `lang`, `tag_filters` y latencias; incorporar tracing light (p. ej. `X-Request-Id`) para correlación front-back.
-5. **Accesibilidad**: mantener componentes NuxtUI con WCAG AA (contraste, focus ring, shortcuts) y aprovechar densidades configurables en tablas.
-
-## Roadmap recomendado
-| Fase | Alcance | Entregables clave |
+## 2. Capas del sistema
+| Capa | Artefactos clave | Responsabilidades |
 | --- | --- | --- |
-| F0 | Endurecer cimientos | Limpieza cookie logout, rate limiting básico, adopción completa de `useApiFetch` en admin, extraer `useTableSelection` |
-| F1 | Convergencia UI | `useEntityCapabilities`, `BulkActionsBar`, `EntityInspectorDrawer`, refactor de badges y presets de formularios |
-| F2 | Observabilidad y releases | Métricas de publicación, dashboards Pino → OpenTelemetry light, toggles UI por `release` |
-| F3 | Expansión narrativa | Integrar Effect System 2.0 en formularios, preparar mundos/mazos avanzados por configuración |
+| Presentación | Nuxt 4, Nuxt UI 4, TailwindCSS, componentes en `app/components` | Render SSR/SPA, accesibilidad, interacciones UI coherentes.@app/components/manage/EntityBase.vue#22-232@
+| Lógica cliente | Composables (`app/composables`), Pinia-like pattern | CRUD genérico (`useEntity`), filtros sincronizados (`useQuerySync`), capabilities y modales.@app/composables/manage/useEntity.ts#1-392@
+| API | H3 handlers en `server/api/<entity>` | CRUD, batch, editoriales, auth, import/export, uploads.@server/api/world/_crud.ts#19-195@
+| Persistencia | PostgreSQL (`docs/SCHEMA POSTGRES..TXT`), enums, traducciones | Modelo relacional con entidades base, tablas `_translations`, relaciones tags y efectos JSON.@
 
-## Riesgos y mitigación
-- **Divergencia Admin/Manage** → establecer contractos (`EntityRow`, capabilities) y lint de imports para evitar acoplamientos accidentales.
-- **Fragilidad i18n** → tests e2e multi-idioma + mocks DB con traducciones incompletas para validar fallback.
-- **Cargas pesadas SSR** → monitorear `timeMs` > 500 ms en logs y adoptar caching incremental por entidad.
-- **Sync permisos** → centralizar roles y feature flags en JSONB `permissions` con helpers en front (`usePermission`) enlazados a merging backend.
+## 3. Frontend: patrones e invariantes
+1. **Manage (`/manage`)**: `EntityBase.vue` coordina filtros (`ManageEntityFilters`, `AdvancedFiltersPanel`), vistas (tabla/cards/carta), modales y preview drawer.@app/components/manage/EntityBase.vue#22-232@
+2. **Admin (`/admin`)**: dashboards (`FeedbackList`, `RevisionsTable`, `ManageUsers`) reutilizan bridges, filtros avanzados y drawers.@app/components/admin/FeedbackList.vue#1-380@
+3. **Componentes comunes**: `CommonDataTable`, `StatusBadge`, `EntityInspectorDrawer`, `BulkActionsBar` (en diseño) definen la base compartida.@app/components/common/CommonDataTable.vue#1-320@
+4. **SSR/Reactive flow**: vistas usan `useAsyncData`/`useApiFetch`, `useListMeta`, `useEntityCapabilities` para capacidades declarativas.@app/composables/common/useEntityCapabilities.ts#1-158@
 
-## Métricas recomendadas
-- **Render SSR (<300 ms)** para `/manage` y `/admin/versions`.
-- **Ratio 304/200**: objetivo ≥40 % en listados paginados gracias a ETag.
-- **Cobertura i18n**: % campos traducidos por idioma vs base EN.
-- **Revisiones publicadas**: lead time promedio por release (aprobado → publicado).
+## 4. Backend: servicios y middleware
+1. **Plugins**: `db.ts` (Kysely/PostgresDialect), `auth.ts` (bcrypt + JOSE), `logger.ts` (Pino).@server/plugins/db.ts#1-80@
+2. **Middleware**: `00.auth.hydrate`, `01.auth.guard`, `02.rate-limit` (pendiente adoption total).@server/middleware/02.rate-limit.ts#1-140@
+3. **CRUD pattern**: `createCrudHandlers` orquesta `index`, `show`, `create`, `update`, `delete`, `batch`, `export`, `import` usando `buildFilters`, `translatableUpsert`, `deleteLocalizedEntity` y logging unificado.@server/utils/createCrudHandlers.ts#1-240@
+4. **Editorial**: `content_versions`, `content_revisions`, `content_feedback` exponen flujos publish/revert, bulk approvals, feedback multi-idioma.@server/api/content_versions/publish.post.ts#1-200@
+5. **Servicios adicionales**: uploads (`server/api/uploads/index.post.ts`), import/export (`server/api/database/*`), auth JWT.
 
-## Stack y convenciones
-- **Frontend**: Nuxt 4, NuxtUI 4, Pinia, VueUse, TailwindCSS.
-- **Backend**: H3, Kysely, PostgreSQL, Pino, Zod, bcrypt, jose.[@docs/SERVER.md#1-200]
-- **Infra**: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, almacenamiento de imágenes optimizado AVIF vía `server/api/uploads`.
-- **Formato repositorio**: alias `~/` (frontend) y `@/` (resolver unificado) con ESLint/TSConfig alineados.
+## 5. Datos, entidades y multi-idioma
+1. **Esquema base**: tablas principales (`worlds`, `arcana`, `base_cards`, `card_types`, `facets`, `skills`, `world_cards`, `tags`, `users`, `roles`) con claves primarias y metadata estructurada.@docs/SCHEMA POSTGRES..TXT#1-884@
+2. **Traducciones**: cada entidad traducible posee `*_translations` con `language_code`, fallback EN gestionado por SQL + `markLanguageFallback`.
+3. **Tags**: `tag_links` relaciona entidades usando dominio `entity_type` (invariante compartido).
+4. **Effects JSON**: `effects` (JSONB) para facets/skills/world_cards requiere mantener shape esperada por UI y backend.@server/api/world_card/_crud.ts#43-232@
 
-## Próximos pasos inmediatos
-1. Completar los informes específicos (server, composables, componentes, sugerencias) para detallar acciones ejecutables.
-2. Abrir issues/fichas de trabajo alineadas al roadmap, incluyendo pruebas y documentación.
-3. Socializar este resumen con el equipo para validar prioridades y riesgos antes del siguiente sprint.
+## 6. Invariantes transversales
+1. **Contratos API** `{ success, data, meta? }` con `createPaginatedResponse` y `createResponse`.@server/utils/response.ts#24-95@
+2. **Filtrado/paginación** exclusivamente via `buildFilters` (rango fechas, tags, sort whitelists).@server/utils/filters.ts#40-158@
+3. **Internacionalización de CRUD** con `translatableUpsert`/`deleteLocalizedEntity`; borrado EN elimina entidad completa.@server/utils/translatableUpsert.ts#83-190@
+4. **SSR-first**: `useApiFetch` + `useAsyncData` y ETag 304 obligatorios en vistas conectadas a API.
+5. **Capabilities**: configuraciones declarativas vía `useEntityCapabilities` definen acciones disponibles (preview, tags, traducciones).
+6. **Seguridad**: middleware auth, permisos JSONB, rate limit pendiente, logging Pino con contexto (`entity`, `lang`, `timeMs`).
+
+## 7. Zonas legacy o en transición
+1. `EntityTableWrapper.vue` y `EntityTable.vue` (Manage/Admin Users) replican features ya cubiertas por `CommonDataTable` y bridges.@app/components/manage/EntityTableWrapper.vue#1-107@
+2. `PreviewModal.vue` sigue activo como modal heredado en Manage.@app/components/manage/modal/PreviewModal.vue#1-47@
+3. Tablas Admin (`VersionList.vue`, `users/UserTable.vue`) renderizan `<table>` manual o wrapper legacy.@app/components/admin/VersionList.vue#1-86@
+4. Formularios Admin (`VersionModal.vue`, `RoleForm.vue`) no reutilizan `FormModal` ni presets declarativos.@app/components/admin/RoleForm.vue#1-84@
+5. Endpoints front con `$fetch` suelto deben migrarse a `useApiFetch` (ver ManageUsers, algunos dashboards Admin).@
+
+## 8. Áreas de riesgo
+1. **SQL compleja** en `_crud.ts` (world_card, facet, skill): riesgo de romper filtros multi-idioma/tags.@server/api/world_card/_crud.ts#19-228@
+2. **Editorial publish/revert** sin rate limit ni métricas consistentes.
+3. **Borrado EN** elimina entidad completa; requiere confirmaciones UI estrictas.
+4. **Import/export** sin límites fuertes de tamaño/formato.
+5. **Desfase capabilities/permissions** si frontend/back divergen.
+
+## 9. Buenas prácticas recomendadas
+1. Seguir pipeline DB → API → composable → componente documentando invariantes.
+2. Reutilizar CommonDataTable, bridges, EntityInspectorDrawer, FormModal antes de crear variantes.
+3. Usar `useApiFetch` para lecturas/escrituras; prohibir `$fetch` directo salvo utilidades internas.
+4. Agregar checklist de accesibilidad y telemetría ligera tras cada feature.
+5. Registrar excepciones en `/informes` y codemaps, manteniendo las reglas Windsurf actualizadas.
+
+## 10. Métricas clave
+1. **SSR latency** `< 300 ms` para `/manage` y vistas administrativas críticas (medir en Pino + `useRequestMetrics`).
+2. **304/200 ratio** ≥ 40 % en listados tras primer request.
+3. **Cobertura i18n** (% campos traducidos vs base EN por entidad).
+4. **Publish lead time** (aprobado → publicado) registrado en `content_versions`.
+5. **Errores 4xx/5xx controlados** por endpoint, correlacionados con `entity_type` y usuario.
+
+## 11. Próximos pasos
+1. Completar migraciones de tablas, previews y formularios a patrones modernos (Fase 1).
+2. Activar rate limit y logout seguro, consolidar helper SQL de tags y `useServerPagination` (Fase 0/1).
+3. Instrumentar telemetría ligera, métricas editoriales y dashboards i18n (Fase 2).
+4. Preparar Effect System 2.0 y metadata extendida para entidades narrativas (Fase 3).

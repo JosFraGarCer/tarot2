@@ -1,3 +1,4 @@
+<!-- app/components/manage/EntityTableWrapper.vue -->
 <!-- /app/components/manage/views/ManageEntityTable.vue -->
 <template>
   <EntityTable

@@ -1,3 +1,4 @@
+<!-- app/components/common/EntitySummary.vue -->
 <template>
   <UCard :ui="cardUi" class="entity-summary" v-bind="$attrs">
     <div class="flex flex-col gap-2">

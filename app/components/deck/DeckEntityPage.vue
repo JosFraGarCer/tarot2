@@ -1,3 +1,4 @@
+<!-- app/components/deck/DeckEntityPage.vue -->
 <template>
   <div class="space-y-6">
     <header class="flex flex-col gap-1">

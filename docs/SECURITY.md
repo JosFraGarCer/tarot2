@@ -1,126 +1,81 @@
-# Security Overview
+# Security Overview – Tarot2
 
-This document describes how authentication, authorization, and session security work in this Nuxt 4 + H3 backend, along with recommended frontend protections.
+Este documento resume el estado actual de autenticación, autorización, mitigación de abuso y logging en el backend de Tarot2. Todas las referencias apuntan a código real del repositorio y reflejan los cambios recientes (rate limiting aplicado a flujos editoriales, limpieza de sesión en logout y observabilidad estructurada).
 
+## 1. Autenticación
+- **Login** (`POST /api/auth/login`)
+  - Valida `{ identifier, password }`, comprueba hash con `bcrypt.compare` y genera JWT HS256 con `createToken`.@server/api/auth/login.post.ts#1-140@server/plugins/auth.ts#1-210
+  - Setea cookie `auth_token` con `HttpOnly`, `SameSite:'strict'`, `secure` en producción y `maxAge` configurable vía `JWT_EXPIRES_IN`.
+- **Hydration**
+  - `00.auth.hydrate.ts` verifica la cookie, carga usuario + roles, fusiona permisos (`mergePermissions`) y adjunta `event.context.user` para el resto del request.@server/middleware/00.auth.hydrate.ts#1-140@server/utils/users.ts#1-120
+- **Me endpoint**
+  - `GET /api/user/me` expone el usuario autenticado para hidratar el store front (`useAuth.fetchCurrentUser`).@server/api/user/me.get.ts#1-80@app/composables/auth/useAuth.ts#1-200
+- **Logout** (`POST /api/auth/logout`)
+  - Limpia la cookie (`setCookie(..., maxAge:0, path:'/'`) y retorna `createResponse(null)`; aplica rate limit adicional con `enforceRateLimit`.
+  - Referencia a SECURITY.md mantenida sincronizada con implementación.@server/api/auth/logout.post.ts#1-70
 
-## Authentication Flow
+## 2. Autorización
+- **Middleware 01.auth.guard**
+  - Bloquea todo `/api/*` excepto login/logout, devuelve 401 si falta usuario y 403 si `user.status === 'suspended'`. Permite paso a administradores o `permissions.canManageUsers`.
+  - Valida granularmente rutas sensibles (`/api/role` exige `canManageUsers`).@server/middleware/01.auth.guard.ts#1-140
+- **Capacidades declarativas**
+  - `useEntityCapabilities` centraliza banderas (`canRevision`, `hasTags`, `actionsBatch`) usadas en Admin/Manage, manteniendo UI y backend alineados.@app/composables/common/useEntityCapabilities.ts#1-158
+- **Directiva v-can**
+  - En frontend restringe botones/componentes según permisos obtenidos del store (`useUserStore().hasPermission`).@app/directives/can.ts#1-120
 
-- **Login**
-  - Endpoint: `POST /api/auth/login` (`server/api/auth/login.post.ts`)
-  - Body: `{ identifier: string, password: string }` where `identifier` is username or email.
-  - Verifies credentials with `bcrypt.compare` against `users.password_hash`.
-  - Issues a JWT via `createToken` in `server/plugins/auth.ts`.
-  - Sets `auth_token` as an HttpOnly cookie.
-  - Response envelope is returned via `createResponse({ token, user })`.
+## 3. Mitigación de abuso y rate limiting
+- **Middleware global** `02.rate-limit.ts`
+  - Buckets por IP+usuario: `300 req / 5 min` (global) y `10 req / 60 s` (sensibles). Registra éxitos y rechazos (`logger.debug` / `logger.warn`).@server/middleware/02.rate-limit.ts#1-140
+- **enforceRateLimit** (`server/utils/rateLimit.ts`)
+  - Endpoints críticos invocan límites adicionales: login/logout, publicación de versiones, revert de revisiones, uploads y acciones editoriales.
+  - Ejemplos: `content_versions/publish.post.ts`, `content_revisions/[id]/revert.post.ts`, `auth/logout.post.ts`.
+- **Import/export**
+  - Operaciones masivas (`/api/database/import|export`) siguen sujetos al middleware y registran duración + contador para auditoría.
 
-- **Session Hydration**
-  - Middleware `server/middleware/00.auth.hydrate.ts` extracts `auth_token` from cookies, verifies it via `verifyToken`, loads the full user (including roles), merges permissions with `mergePermissions`, and attaches `event.context.user`.
+## 4. Sesiones y cookies
+- Cookie `auth_token` es la única credencial persistida.
+- Atributos forzados:
+  - `httpOnly: true`, `sameSite: 'strict'`, `secure: isProd`, `maxAge: 7d` (configurable).
+- Expiración del JWT controlada por `JWT_EXPIRES_IN` (formato `1d`, `12h`, `3600s`).
+- Rotación manual (pendiente) planificada en `/informes/BRAINSTORMING.md`.
 
-- **Session Fetch (Client)**
-  - Composable: `app/composables/auth/useAuth.ts` → `fetchCurrentUser()` calls GET `/api/user/me` y setea el store de usuario con la respuesta.
-  - Server endpoint providing the “me” response: `server/api/user/me.get.ts`.
+## 5. Integridad y validación
+- **Zod**: todos los handlers usan schemas en `server/schemas/*` con `safeParseOrThrow`.
+- **createCrudHandlers**: garantiza respuestas homogéneas, manejo transaccional y borrado multi-idioma seguro (`translatableUpsert`, `deleteLocalizedEntity`).@server/utils/createCrudHandlers.ts#1-240@server/utils/translatableUpsert.ts#1-191
+- **Borrado por idioma**: si `lang !== 'en'` solo elimina la traducción; si `lang === 'en'` borra base + traducciones.
+- **Uploads**: validan extensión, tamaño (≤15 MB), convierten a AVIF y saneado de rutas antes de guardar en `public/img`.@server/api/uploads/index.post.ts#1-170
 
-- **Logout**
-  - Intended endpoint: `POST /api/auth/logout`.
-  - Note: A file exists at `server/api/auth/logout.post.ts`, but it currently returns the current user profile and does not clear the cookie. To fully log out, add cookie clearing, e.g. `setCookie(event, 'auth_token', '', { maxAge: 0, ... })`.
+## 6. Logging y auditoría
+- **Logger** `server/plugins/logger.ts`: crea child logger por request (`requestId`, `method`, `url`, `userId`).@server/plugins/logger.ts#1-160
+- **Listados**: incluyen `page`, `pageSize`, `count`, `filters`, `lang`, `timeMs` en `info`.
+- **Mutaciones**: registran `entity`, `id`, `user_id`, `duration`, `scope`.
+- **Eventos editoriales**: publicación y revert devuelven payload resumido (`totalEntities`, `revisionsPublished`) y quedan logueados para monitoreo.
+- **Access logs**: rate limiting crea entradas `logger.debug/warn` para permitir correlación con abusos.
 
+## 7. Frontend protections
+- **Route guard** `app/middleware/auth.global.ts`:
+  - Redirige invitados a `/login` y evita que usuarios autenticados regresen a login.
+  - Aísla secciones `/admin` a usuarios con permisos (`canAccessAdmin`, `canManageUsers`, `canReview`, etc.).
+- **Composables** `useAuth`/`useUserStore`: refrescan sesión, invalidan UI si el backend revoca permisos.
+- **UI degradada**: directiva `v-can.disable` deshabilita botones en lugar de ocultarlos para mayor transparencia.
 
-## Middleware Protections
-
-- **00.auth.hydrate.ts**
-  - Attaches `event.context.user = { ...user, roles, permissions }` when a valid `auth_token` is present.
-
-- **01.auth.guard.ts**
-  - Applies to all `/api/*` except `POST /api/auth/login` and `POST /api/auth/logout`.
-  - Throws 401 if `event.context.user` is missing.
-  - Blocks suspended users (403).
-  - Grants all access to admin or `permissions.canManageUsers`.
-  - Example granular rule: blocks access to `/api/role*` unless `canManageUsers`.
-
-- **Public vs Protected**
-  - Public: `POST /api/auth/login`, `POST /api/auth/logout` (per guard set).
-  - Protected: everything else under `/api/*`.
-
-
-## Cookie & Session Security
-
-- Cookie name: `auth_token`.
-- Attributes set on login (`setCookie` in `login.post.ts`):
-  - `httpOnly: true`.
-  - `sameSite: 'strict'`.
-  - `secure: process.env.NODE_ENV === 'production'`.
-  - `maxAge: 7 days`.
-- JWT expiration: configured via `JWT_EXPIRES_IN` env (supports formats like `1d`, `12h`, `1800s`).
-- Secret: `JWT_SECRET` env is required.
-
-
-## Frontend Protection
-
-- **Nuxt Route Guard**
-  - File: `app/middleware/auth.global.ts`.
-  - Behavior:
-    - Guests can access public routes (`/`, `/login`) only.
-    - Authenticated users are redirected away from `/login`.
-    - Admins (`role === 'admin'` or `canManageUsers` or `canAccessAdmin`) can access everything.
-    - Staff (e.g., `canEditContent`, `canReview`, `canTranslate`) can access management sections.
-    - Regular users are constrained to `/user`.
-
-- **Permission-based UI**
-  - A `v-can` directive is not present in the repo. Recommended pattern:
-    - Use `useUserStore().hasPermission(key)` and a small directive or component wrapper to conditionally render features.
-    - Example idea:
-      ```ts
-      // pseudo: register v-can using user store
-      app.directive('can', {
-        mounted(el, binding) {
-          const ok = useUserStore().hasPermission(binding.value)
-          if (!ok) el.remove()
-        }
-      })
-      ```
-
-
-## Data Integrity
-
-- **Validation**: Zod schemas and `safeParseOrThrow` (`server/utils/validate.ts`) are used across routes.
-- **Error normalization**: Prefer `createError({ statusCode, statusMessage })` from H3 for consistent HTTP errors.
-
-
-## Audit & Logging
-
-- Logger: Pino via `server/plugins/logger.ts`, exposed as `globalThis.logger`.
-- Typical logs:
-  - Authentication events: login success/failed attempts.
-  - Database import/export counts and timings.
-  - List/detail handlers include timing and filter metadata.
-- Rate limiting/throttling: not implemented. Recommended to add (e.g., per-IP and per-user limits on sensitive endpoints).
-
-
-## File Uploads Security
-
-- Endpoint: `POST /api/uploads?type=<bucket>`.
-- Validates `type` with a strict regex, enforces max size (15 MB), and rejects unsupported/corrupted images.
-- Sharp processing:
-  - Reads metadata with `failOn: 'warning'`.
-  - Resizes to fit within 1600x1600.
-  - Rotates to fix orientation and strip EXIF.
-  - Converts JPEG/PNG/WEBP to AVIF by default (quality 72; lossless=false).
-- Persists under `public/img/<type>/`.
-
-
-## Request Flow (textual)
-
-[Client]
-→ [Nuxt Route Middleware (app/middleware/auth.global.ts)]
-→ [H3 00.auth.hydrate.ts attaches event.context.user]
-→ [H3 01.auth.guard.ts enforces access]
-→ [API Handler (server/api/*) uses Kysely/Postgres]
-→ [Response via createResponse]
-
-
-## Configuration
-
-- `DATABASE_URL` (required)
-- `JWT_SECRET` (required)
+## 8. Configuración requerida
+- `DATABASE_URL`
+- `JWT_SECRET`
 - `JWT_EXPIRES_IN` (default `1d`)
-- Password hashing uses `bcrypt` with SALT_ROUNDS=10 (constant in `server/plugins/auth.ts`).
+- `UPLOAD_MAX_FILE_SIZE` (indirecto, validación hardcoded a 15MB)
+- `LOG_LEVEL` (controla Pino)
+
+## 9. Checklist de seguridad diario
+- ✅ Revisión de logs `scope:middleware.rateLimit.*` y `scope:content_versions.publish`.
+- ✅ Validar que `auth_token` use `Secure` en entornos productivos.
+- ✅ Confirmar que endpoints nuevos usan `enforceRateLimit` y `createResponse`.
+- ✅ Ejecutar pruebas manuales de logout múltiple (prevención de abuso) y rotación de credenciales admin.
+
+## 10. Pendientes y roadmap
+1. **Rotación automática de claves JWT** (mantenida en `/informes/BRAINSTORMING.md` Idea 19). Requiere soportar múltiples claves activas.
+2. **Persistencia distribuida de rate limit** para despliegues multi-nodo (actualmente in-memory).
+3. **Alerting**: propagar `requestId` a frontend y dashboards para correlación end-to-end.
+4. **Security headers extra**: evaluar `Content-Security-Policy` y `Permissions-Policy` en respuesta SSR.
+
+Con estas prácticas, Tarot2 mantiene una superficie de ataque reducida y homogénea, lista para endurecerse con la automatización de rotación JWT, métricas centralizadas y CSP estricta.

@@ -1,3 +1,4 @@
+// app/composables/manage/entityFieldPresets.ts
 export type FieldConfig = {
   label: string
   type?: 'text' | 'select' | 'toggle' | 'upload' | 'effects'

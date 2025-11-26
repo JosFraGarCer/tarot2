@@ -1,3 +1,4 @@
+<!-- app/components/manage/EntityActions.vue -->
 <!-- app/components/manage/common/EntityActionsNew.vue -->
 <script setup lang="ts">
 import { computed } from 'vue'

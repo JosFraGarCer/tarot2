@@ -1,3 +1,4 @@
+<!-- app/components/common/StatusBadge.vue -->
 <template>
   <UBadge
     v-if="renderable"

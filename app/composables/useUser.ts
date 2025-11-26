@@ -1,3 +1,4 @@
+// app/composables/useUser.ts
 // /app/composables/useUser.ts
 import { ref, computed } from 'vue'
 import { useUserStore } from '~/stores/user'

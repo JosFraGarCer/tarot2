@@ -1,3 +1,4 @@
+<!-- app/components/admin/AdminTableBridge.vue -->
 <template>
   <div class="admin-table-bridge space-y-4">
     <BulkActionsBar v-if="hasBulkActionsSlot && selectedIds.length">

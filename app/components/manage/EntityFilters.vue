@@ -1,3 +1,4 @@
+<!-- app/components/manage/EntityFilters.vue -->
 <!-- /app/components/manage/filters/ManageEntityFilters.vue -->
 <template>
   <div class="flex flex-col gap-3">

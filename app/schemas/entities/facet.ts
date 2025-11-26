@@ -1,3 +1,4 @@
+// app/schemas/entities/facet.ts
 // /app/schemas/entities/facet.ts
 import { z } from 'zod'
 

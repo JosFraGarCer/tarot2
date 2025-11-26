@@ -1,3 +1,4 @@
+<!-- app/pages/manage.vue -->
 <!-- /app/pages/manage.vue -->
 <template>
   <div class="px-4">

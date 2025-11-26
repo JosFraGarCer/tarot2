@@ -1,3 +1,4 @@
+// server/api/role/[id].get.ts
 // server/api/roles/[id].get.ts
 import { defineEventHandler } from 'h3'
 import { createResponse } from '../../utils/response'

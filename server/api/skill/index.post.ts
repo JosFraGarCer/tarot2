@@ -1,3 +1,4 @@
+// server/api/skill/index.post.ts
 // server/api/base_skills/index.post.ts
 import { skillCrud } from './_crud'
 

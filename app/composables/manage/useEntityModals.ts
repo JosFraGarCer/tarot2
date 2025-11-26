@@ -1,3 +1,4 @@
+// app/composables/manage/useEntityModals.ts
 import { reactive, ref } from 'vue'
 import type { AnyManageCrud } from '@/types/manage'
 import { useFormState } from '~/composables/manage/useFormState'

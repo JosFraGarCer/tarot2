@@ -1,3 +1,4 @@
+// app/composables/manage/useEntityPagination.ts
 import { computed } from 'vue'
 import type { AnyManageCrud } from '@/types/manage'
 

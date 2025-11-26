@@ -1,138 +1,10 @@
 {
   "app": {
-    "layout": {
-      "menu": "Menú"
-    },
     "brand": {
       "title": "Tarot RPG"
-    }
-  },
-  "navigation": {
-    "menu": {
-      "admin": "Administración",
-      "arcana": "Arcanos",
-      "baseCards": "Cartas Base",
-      "cardTypes": "Tipo Cartas",
-      "changeLanguage": "cambiar idioma",
-      "database": "Base de datos",
-      "deck": "Mazo",
-      "facets": "Facetas",
-      "feedback": "Feedback",
-      "home": "Inicio",
-      "login": "Iniciar sesión",
-      "logout": "Cerrar sesión",
-      "manage": "Gestión Cartas",
-      "manageUsers": "Usuarios",
-      "skills": "Habilidades",
-      "tags": "Etiquetas",
-      "userProfile": "Perfil",
-      "versions": "Versiones",
-      "worlds": "Mundos"
-    }
-  },
-  "deck": {
-    "title": "Resumen del mazo",
-    "subtitle": "Explora entidades y vistas rápidas de tu contenido.",
-    "viewAll": "Ver todo",
-    "emptyTitle": "Sin elementos todavía",
-    "emptySubtitle": "Prueba ajustando los filtros o crea una nueva entrada.",
-    "cardTypesDescription": "Gestiona y explora los tipos de carta utilizados por cartas y habilidades.",
-    "baseCardsDescription": "Previsualiza tu biblioteca de cartas base y accede a la gestión detallada.",
-    "worldsDescription": "Descubre mundos y su lore asociado.",
-    "arcanaDescription": "Explora arcanos arquetipo y sus resúmenes.",
-    "facetsDescription": "Revisa las facetas vinculadas a arcanos y cartas.",
-    "skillsDescription": "Explora habilidades y sus efectos."
-  },
-  "ui": {
-    "actions": {
-      "activate": "Activar",
-      "changeStatus": "Cambiar estado",
-      "deactivate": "Desactivar",
-      "applyVersion": "Aplicar versión",
-      "cancel": "Cancelar",
-      "clear": "Limpiar",
-      "create": "Crear",
-      "delete": "Eliminar",
-      "edit": "Editar",
-      "export": "Exportar",
-      "import": "Importar",
-      "preview": "Previsualización",
-      "refresh": "Recargar",
-      "resolve": "Resolver",
-      "save": "Guardar",
-      "search": "Buscar",
-      "update": "Actualizar"
     },
-    "table": {
-      "actions": "Acciones",
-      "items": "encontrados",
-      "selected": "{count} seleccionadas",
-      "selectedCount": "{n} seleccionados"
-    },
-    "states": {
-      "active": "Activa",
-      "inactive": "Inactiva",
-      "loading": "Cargando..."
-    },
-    "fields": {
-      "card": "Carta",
-      "category": "Categoría",
-      "code": "Código",
-      "comment": "Comentario",
-      "description": "Descripción",
-      "details": "Detalles",
-      "entity": "Entidad",
-      "language": "Idioma",
-      "modifiedAt": "Modificado",
-      "name": "Nombre",
-      "shortText": "Texto Corto",
-      "sort": "Orden",
-      "sortPlaceholder": "Orden opcional",
-      "status": "Estado",
-      "tags": "tags",
-      "template": "Plantilla",
-      "version": "Versión"
-    },
-    "misc": {
-      "createdAt": "Creado"
-    },
-    "empty": {
-      "noData": "Sin datos"
-    },
-    "messages": {
-      "noPermission": "No tienes permisos para realizar esta acción."
-    },
-    "pagination": {
-      "page": "Página",
-      "pageSize": "Tamaño página"
-    },
-    "notifications": {
-      "success": "Éxito",
-      "createSuccess": "Creado correctamente",
-      "deleteCascadeConfirm": "Esto eliminará el elemento y todas sus traducciones. ¿Continuar?",
-      "deleteSuccess": "Eliminado exitosamente",
-      "deleteTranslationConfirm": "Esto eliminará la traducción para {lang}. ¿Continuar?",
-      "deleteTranslationSuccess": "Traducción eliminada correctamente",
-      "empty": "Todavía no hay registros",
-      "emptyDescription": "Crea un nuevo elemento para llenar esta lista",
-      "error": "Ha ocurrido un error",
-      "updateSuccess": "Actualizado correctamente"
-    },
-    "filters": {
-      "active": "Activas",
-      "all": "Todas",
-      "inactive": "Inactivas",
-      "status": "Estado"
-    },
-    "dialogs": {
-      "confirm": {
-        "deleteConfirm": "Eliminar",
-        "deleteDescription": "Esto eliminará el {entity} y todas sus traducciones. Esta acción no se puede deshacer.",
-        "deleteTitle": "Eliminar {entity}",
-        "deleteTranslationConfirm": "Eliminar traducción",
-        "deleteTranslationDescription": "Esto eliminará la traducción en {lang}. El registro base seguirá disponible.",
-        "deleteTranslationTitle": "Eliminar traducción de {entity}"
-      }
+    "layout": {
+      "menu": "Menú"
     }
   },
   "common": {
@@ -150,144 +22,57 @@
     "tryAdjustFilters": "Prueba ajustando tus filtros",
     "type": "Tipo",
     "untitled": "Sin título",
-    "updatedAt": "Actualizado"
+    "updatedAt": "Actualizado",
+    "view": "Vista",
+    "username": "Username",
+    "password": "Password",
+    "partial": "Partial",
+    "sort": "Ordenar",
+    "short_text": "Short_text",
+    "image": "Image",
+    "legacy_effects": "Legacy_effects",
+    "effects": "Effects",
+    "language_code": "Language_code"
   },
-  "entities": {
-    "arcana": "Arcano",
-    "cardType": "Tipo de carta",
-    "facet": "Faceta",
-    "world": "Mundo"
-  },
-  "filters": {
-    "parent": "Padre"
-  },
-  "features": {
-    "admin": {
-      "entityHistory": {
-        "back": "Volver a versiones",
-        "current": "Entidad actual",
-        "noDiff": "Sin diferencias",
-        "selectRevision": "Selecciona una revisión para ver los cambios",
-        "title": "Historial de revisiones de la entidad"
-      },
-      "feedback": {
-        "actions": {
-          "confirmResolve": "Confirmar resolución",
-          "openEntity": "Abrir entidad vinculada",
-          "reopen": "Reabrir",
-          "viewContent": "Ver contenido",
-          "viewNotes": "Ver notas"
-        },
-        "card": "Carta",
-        "category": "Categoría",
-        "createdBy": "Creado por",
-        "filters": {
-          "mineOnly": "Mis feedbacks",
-          "status": "Estado",
-          "type": "Tipo"
-        },
-        "new": "Nuevo feedback",
-        "notes": {
-          "addNote": "Añadir nota",
-          "empty": "No hay notas internas todavía",
-          "hasNotes": "Contiene notas internas",
-          "save": "Guardar nota",
-          "title": "Notas internas"
-        },
-        "resolvedErr": "Error al resolver feedback",
-        "resolvedOk": "Resuelto correctamente",
-        "resolvedPartial": "Algunos elementos fallaron",
-        "resolveSelected": "Resolver seleccionados",
-        "status": "Estado",
-        "title": "Título",
-        "viewJson": "Ver JSON"
-      },
-      "feedbackDashboard": {
-        "byType": "Por tipo",
-        "open": "Abiertos",
-        "resolved": "Resueltos",
-        "total": "Feedbacks totales",
-        "weekly": "Actividad semanal (últimos 30 días)"
-      },
-      "feedbackDeleteConfirm": "¿Eliminar este feedback?",
-      "feedbackDeleteDescription": "Esto eliminará permanentemente esta entrada de feedback. Esta acción no se puede deshacer.",
-      "feedbackDeleteTitle": "Eliminar feedback",
-      "feedbackSubtitle": "Revisar y gestionar feedback de cartas",
-      "feedbackTitle": "Feedback",
-      "revisions": {
-        "approveSelected": "Aprobar seleccionadas",
-        "diffTitle": "Diff de revisión",
-        "rejectSelected": "Rechazar seleccionadas",
-        "title": "Revisiones aprobadas",
-        "viewDiff": "Ver diff"
-      },
-      "revisionsHistory": {
-        "baseEntity": "Entidad base",
-        "changesSummary": "{n} campos modificados",
-        "compareSelected": "Comparar seleccionadas",
-        "comparisonTitle": "Comparación de revisiones",
-        "feedbackTab": "Feedback",
-        "left": "Revisión A",
-        "noDiff": "No se encontraron diferencias",
-        "revert": "Revertir a esta revisión",
-        "revertConfirm": "¿Seguro que quieres restaurar esta revisión?",
-        "revertError": "Error al revertir la revisión",
-        "revertSuccess": "Revisión restaurada correctamente",
-        "right": "Revisión B",
-        "source": "Origen",
-        "title": "Historial de revisiones",
-        "translation": "Traducción ({lang})",
-        "viewDiff": "Ver diff",
-        "viewSnapshots": "Ver snapshots"
-      },
-      "versionsSubtitle": "Gestiona versiones y publicaciones de cartas",
-      "versionsTitle": "Versiones"
-    },
-    "auth": {
-      "identifierLabel": "Correo o usuario",
-      "identifierPlaceholder": "Usuario o Email",
-      "loginButton": "Iniciar sesión",
-      "loginDescription": "Accede a las herramientas de administración con tu cuenta.",
-      "loginError": "No se pudo iniciar sesión",
-      "loginSuccess": "Bienvenido de nuevo",
-      "loginTitle": "Inicia sesión",
-      "logoutError": "No se pudo cerrar sesión",
-      "logoutSuccess": "Sesión cerrada",
-      "passwordLabel": "Contraseña",
-      "passwordPlaceholder": "Introduce tu contraseña"
-    },
-    "feedback": {
-      "allTypes": "Todos los tipos",
-      "attach": "Adjunto (opcional)",
-      "attachmentPlaceholder": "Enlace o referencia",
-      "balance": "Balance",
-      "bug": "Bug",
-      "comment": "Comentario",
-      "commentPlaceholder": "Describe tu feedback...",
-      "noLinkedCard": "Sin vista previa de carta",
-      "saved": "Feedback guardado",
-      "suggestion": "Sugerencia",
-      "title": "Feedback",
-      "type": "Tipo"
-    }
+  "deck": {
+    "arcanaDescription": "Explora arcanos arquetipo y sus resúmenes.",
+    "baseCardsDescription": "Previsualiza tu biblioteca de cartas base y accede a la gestión detallada.",
+    "cardTypesDescription": "Gestiona y explora los tipos de carta utilizados por cartas y habilidades.",
+    "emptySubtitle": "Prueba ajustando los filtros o crea una nueva entrada.",
+    "emptyTitle": "Sin elementos todavía",
+    "facetsDescription": "Revisa las facetas vinculadas a arcanos y cartas.",
+    "skillsDescription": "Explora habilidades y sus efectos.",
+    "subtitle": "Explora entidades y vistas rápidas de tu contenido.",
+    "title": "Resumen del mazo",
+    "viewAll": "Ver todo",
+    "worldsDescription": "Descubre mundos y su lore asociado."
   },
   "domains": {
     "arcana": {
       "active": "Activo",
-      "batchUpdateDescription": "Elige los campos a aplicar a los elementos seleccionados",
-      "batchUpdateTitle": "Actualización masiva",
-      "code": "Código del Arcano",
-      "create": "Crear Arcano",
-      "edit": "Editar Arcano",
-      "entityName": "arcano",
+      "batchUpdateDescription": "Batch Update Description",
+      "batchUpdateTitle": "Batch Update Title",
+      "code": "Code",
+      "create": "Crear",
+      "edit": "Editar",
+      "entityName": "Entity Name",
       "inactive": "Inactivo",
-      "missingTranslation": "Falta traducción ({lang})",
+      "missingTranslation": "Missing Translation",
       "name": "Nombre del Arcano",
       "searchPlaceholder": "Buscar arcana...",
       "showingFallback": "Mostrando traducción en {lang}",
       "status": "Estado",
       "title": "Arcanos",
-      "validationRequired": "El código y el nombre son obligatorios"
+      "validationRequired": "El código y el nombre son obligatorios",
+      "rules": {
+        "tab": "Tab",
+        "placeholderTitle": "Placeholder Title",
+        "placeholderDescription": "Placeholder Description"
+      },
+      "manage": {
+        "title": "Título",
+        "description": "Descripción"
+      }
     },
     "baseCard": {
       "active": "Activa",
@@ -385,7 +170,10 @@
       "category": "Categoría",
       "categoryPlaceholder": "Introduce una categoría",
       "code": "Código de Etiqueta",
-      "create": "Crear Etiqueta",
+      "create": {
+        "title": "Título",
+        "subtitle": "Subtítulo"
+      },
       "edit": "Editar Etiqueta",
       "entityName": "etiqueta",
       "list": "Listado de Etiquetas",
@@ -393,7 +181,14 @@
       "name": "Nombre de la Etiqueta",
       "parent": "Etiqueta padre",
       "sort": "Orden",
-      "validationRequired": "Categoría, código y nombre son obligatorios"
+      "validationRequired": "Categoría, código y nombre son obligatorios",
+      "form": {
+        "title": "Título",
+        "subtitle": "Subtítulo",
+        "parentHint": "Parent Hint",
+        "parentPlaceholder": "Parent Placeholder",
+        "success": "Éxito"
+      }
     },
     "user": {
       "avatarHint": "PNG, JPG, WEBP o AVIF hasta 15MB. Arrastra y suelta o haz clic.",
@@ -436,20 +231,33 @@
       "updatedAt": "Actualizado",
       "updatePassword": "Actualizar contraseña",
       "updateStatus": "Actualizar estado",
-      "username": "Nombre de usuario"
+      "username": "Nombre de usuario",
+      "statusInvited": "Status Invited"
     },
     "version": {
       "publishApproved": "Publicar revisiones aprobadas",
       "published": "Publicado",
       "release": {
-        "label": "Tipo de release",
-        "dev": "Dev",
         "alfa": "Alfa",
         "beta": "Beta",
         "candidate": "Release Candidate",
+        "dev": "Dev",
+        "label": "Tipo de release",
         "release": "Release",
         "revision": "Revisión"
-      }
+      },
+      "version": "Version",
+      "viewMetadata": "View Metadata",
+      "modalDescription": "Modal Description",
+      "semverRequired": "Semver Required",
+      "semverInvalid": "Semver Invalid",
+      "detailTitle": "Detail Title",
+      "deleteConfirm": "Delete Confirm",
+      "deleted": "Eliminado",
+      "saved": "Guardado",
+      "err400": "Err400",
+      "err409": "Err409",
+      "err500": "Err500"
     },
     "world": {
       "batchUpdateDescription": "Elige los campos a aplicar a los elementos seleccionados",
@@ -465,38 +273,226 @@
       "title": "Mundos"
     }
   },
-  "system": {
-    "status": {
-      "approved": "Aprobado",
-      "archived": "Archivado",
-      "changes_requested": "Cambios pedidos",
-      "draft": "Borrador",
-      "open": "Abierto",
-      "pending_review": "En revisión",
-      "published": "Publicado",
-      "rejected": "Rechazado",
-      "resolved": "Resuelto",
-      "review": "Revisión",
-      "translation_review": "Revisión Traducción",
-      "undefined": "Sin estado"
+  "entities": {
+    "arcana": "Arcano",
+    "cardType": "Tipo de carta",
+    "facet": "Faceta",
+    "world": "Mundo",
+    "base_card": "Base_card",
+    "base_card_type": "Base_card_type",
+    "world_card": "World_card",
+    "base_skills": "Base_skills",
+    "tag": {
+      "category": "Categoría",
+      "parent": "Parent"
+    },
+    "tags": "Tags",
+    "card_type": "Card_type"
+  },
+  "features": {
+    "admin": {
+      "entityHistory": {
+        "back": "Volver a versiones",
+        "current": "Entidad actual",
+        "noDiff": "Sin diferencias",
+        "selectRevision": "Selecciona una revisión para ver los cambios",
+        "title": "Historial de revisiones de la entidad"
+      },
+      "feedback": {
+        "actions": {
+          "confirmResolve": "Confirmar resolución",
+          "openEntity": "Abrir entidad vinculada",
+          "reopen": "Reabrir",
+          "viewContent": "Ver contenido",
+          "viewNotes": "Ver notas",
+          "confirmResolveDescription": "Confirm Resolve Description"
+        },
+        "card": "Carta",
+        "category": "Categoría",
+        "createdBy": "Creado por",
+        "filters": {
+          "mineOnly": "Mis feedbacks",
+          "status": "Estado",
+          "type": "Tipo",
+          "language": "Language",
+          "entityType": "Entity Type",
+          "createdRange": "Created Range",
+          "resolvedRange": "Resolved Range",
+          "createdBy": "Created By",
+          "resolvedBy": "Resolved By",
+          "anyDate": "Any Date"
+        },
+        "new": "Nuevo feedback",
+        "notes": {
+          "addNote": "Añadir nota",
+          "empty": "No hay notas internas todavía",
+          "hasNotes": "Contiene notas internas",
+          "save": "Guardar nota",
+          "title": "Notas internas",
+          "description": "Descripción"
+        },
+        "resolvedErr": "Error al resolver feedback",
+        "resolvedOk": "Resuelto correctamente",
+        "resolvedPartial": "Algunos elementos fallaron",
+        "resolveSelected": "Resolver seleccionados",
+        "status": "Estado",
+        "title": "Título",
+        "viewJson": "Ver JSON",
+        "advancedFilters": "Advanced Filters"
+      },
+      "feedbackDashboard": {
+        "byType": "Por tipo",
+        "open": "Abiertos",
+        "resolved": "Resueltos",
+        "total": "Feedbacks totales",
+        "weekly": "Actividad semanal (últimos 30 días)"
+      },
+      "feedbackDeleteConfirm": "¿Eliminar este feedback?",
+      "feedbackDeleteDescription": "Esto eliminará permanentemente esta entrada de feedback. Esta acción no se puede deshacer.",
+      "feedbackDeleteTitle": "Eliminar feedback",
+      "feedbackSubtitle": "Revisar y gestionar feedback de cartas",
+      "feedbackTitle": "Feedback",
+      "revisions": {
+        "approveSelected": "Aprobar seleccionadas",
+        "diffTitle": "Diff de revisión",
+        "rejectSelected": "Rechazar seleccionadas",
+        "title": "Revisiones aprobadas",
+        "viewDiff": "Ver diff"
+      },
+      "revisionsHistory": {
+        "baseEntity": "Entidad base",
+        "changesSummary": "{n} campos modificados",
+        "compareSelected": "Comparar seleccionadas",
+        "comparisonTitle": "Comparación de revisiones",
+        "feedbackTab": "Feedback",
+        "left": "Revisión A",
+        "noDiff": "No se encontraron diferencias",
+        "revert": "Revertir a esta revisión",
+        "revertConfirm": "¿Seguro que quieres restaurar esta revisión?",
+        "revertError": "Error al revertir la revisión",
+        "revertSuccess": "Revisión restaurada correctamente",
+        "right": "Revisión B",
+        "source": "Origen",
+        "title": "Historial de revisiones",
+        "translation": "Traducción ({lang})",
+        "viewDiff": "Ver diff",
+        "viewSnapshots": "Ver snapshots"
+      },
+      "versionsSubtitle": "Gestiona versiones y publicaciones de cartas",
+      "versionsTitle": "Versiones",
+      "entityViewer": {
+        "title": "Título",
+        "subtitle": "Subtítulo",
+        "empty": "Vacío",
+        "viewJson": "View Json"
+      },
+      "usersTitle": "Users Title",
+      "usersSubtitle": "Users Subtitle",
+      "users": {
+        "roleFilter": "Role Filter",
+        "suspendSelected": "Suspend Selected",
+        "activateSelected": "Activate Selected",
+        "resetPasswordSelected": "Reset Password Selected",
+        "deleteSelected": "Delete Selected",
+        "deleteTitle": "Delete Title",
+        "editTitle": "Edit Title",
+        "createTitle": "Create Title",
+        "editDescription": "Edit Description",
+        "createDescription": "Create Description",
+        "passwordOptional": "Password Optional",
+        "passwordRequired": "Password Required",
+        "deleteDescription": "Delete Description",
+        "updated": "Actualizado",
+        "created": "Creado",
+        "statusUpdated": "Status Updated",
+        "passwordReset": "Password Reset",
+        "bulkSuspended": "Bulk Suspended",
+        "bulkActivated": "Bulk Activated",
+        "bulkPasswordReset": "Bulk Password Reset",
+        "bulkDeleted": "Bulk Deleted",
+        "permissionsCount": "Permissions Count",
+        "noEmail": "No Email",
+        "noRoles": "No Roles",
+        "permissions": "Permissions",
+        "permissionsCountLong": "Permissions Count Long",
+        "count": "Cantidad",
+        "active": "Activo",
+        "pending": "Pendiente"
+      },
+      "dashboardTitle": "Dashboard Title",
+      "dashboardSubtitle": "Dashboard Subtitle",
+      "usersSummary": "Users Summary",
+      "usersHighlight1": "Users Highlight1",
+      "usersHighlight2": "Users Highlight2",
+      "usersCta": "Users Cta",
+      "versionsSummary": "Versions Summary",
+      "versionsHighlight1": "Versions Highlight1",
+      "versionsHighlight2": "Versions Highlight2",
+      "versionsCta": "Versions Cta",
+      "feedbackSummary": "Feedback Summary",
+      "feedbackHighlight1": "Feedback Highlight1",
+      "feedbackHighlight2": "Feedback Highlight2",
+      "feedbackCta": "Feedback Cta",
+      "databaseTitle": "Database Title",
+      "databaseSummary": "Database Summary",
+      "databaseHighlight1": "Database Highlight1",
+      "databaseHighlight2": "Database Highlight2",
+      "databaseCta": "Database Cta"
+    },
+    "auth": {
+      "identifierLabel": "Correo o usuario",
+      "identifierPlaceholder": "Usuario o Email",
+      "loginButton": "Iniciar sesión",
+      "loginDescription": "Accede a las herramientas de administración con tu cuenta.",
+      "loginError": "No se pudo iniciar sesión",
+      "loginSuccess": "Bienvenido de nuevo",
+      "loginTitle": "Inicia sesión",
+      "logoutError": "No se pudo cerrar sesión",
+      "logoutSuccess": "Sesión cerrada",
+      "passwordLabel": "Contraseña",
+      "passwordPlaceholder": "Introduce tu contraseña"
+    },
+    "feedback": {
+      "allTypes": "Todos los tipos",
+      "attach": "Adjunto (opcional)",
+      "attachmentPlaceholder": "Enlace o referencia",
+      "balance": "Balance",
+      "bug": "Bug",
+      "comment": "Comentario",
+      "commentPlaceholder": "Describe tu feedback...",
+      "noLinkedCard": "Sin vista previa de carta",
+      "saved": "Feedback guardado",
+      "suggestion": "Sugerencia",
+      "title": "Feedback",
+      "type": "Tipo"
     }
   },
-  "media": {
-    "image": {
-      "description": "PNG, JPG o AVIF, máximo 15MB",
-      "dropLabel": "Arrastra una imagen o haz clic",
-      "hint": "PNG, JPG o AVIF · Máximo 15MB",
-      "label": "Imagen",
-      "previewAlt": "Vista previa de imagen",
-      "removeLabel": "Eliminar imagen"
-    }
+  "filters": {
+    "parent": "Padre"
   },
   "importExport": {
     "import": {
+      "actions": {
+        "confirm": "Importar",
+        "trigger": "Importar JSON"
+      },
+      "errors": {
+        "invalidStructure": "Estructura de JSON inválida.",
+        "parseError": "El archivo no es un JSON válido."
+      },
+      "instructions": {
+        "descriptionMultiLang": "Sube un archivo JSON con todas las traducciones. Los códigos existentes se omitirán.",
+        "fileLabel": " Archivo JSON"
+      },
+      "results": {
+        "partialErrors": "Algunos registros no pudieron importarse ({count})",
+        "partialToast": "Se importaron {created} elementos con {errors} errores",
+        "success": "Se importaron {count} elementos"
+      },
       "sections": {
         "baseCards": {
-          "title": "Importar cartas base",
-          "notice": "Formato esperado: JSON con key \"base_cards\""
+          "notice": "Formato esperado: JSON con key \"base_cards\"",
+          "title": "Importar cartas base"
         },
         "cardTypes": {
           "title": "Importar tipos de carta"
@@ -510,30 +506,529 @@
           "title": "Importar Etiquetas"
         }
       },
-      "actions": {
-        "trigger": "Importar JSON",
-        "confirm": "Importar"
-      },
-      "instructions": {
-        "descriptionMultiLang": "Sube un archivo JSON con todas las traducciones. Los códigos existentes se omitirán.",
-        "fileLabel": " Archivo JSON"
-      },
-      "errors": {
-        "invalidStructure": "Estructura de JSON inválida.",
-        "parseError": "El archivo no es un JSON válido."
-      },
-      "results": {
-        "partialErrors": "Algunos registros no pudieron importarse ({count})",
-        "partialToast": "Se importaron {created} elementos con {errors} errores",
-        "success": "Se importaron {count} elementos"
+      "jsonTitle": "Json Title",
+      "jsonDescription": "Json Description",
+      "sqlTitle": "Sql Title",
+      "sqlDescription": "Sql Description"
+    }
+  },
+  "media": {
+    "image": {
+      "description": "PNG, JPG o AVIF, máximo 15MB",
+      "dropLabel": "Arrastra una imagen o haz clic",
+      "hint": "PNG, JPG o AVIF · Máximo 15MB",
+      "label": "Imagen",
+      "previewAlt": "Vista previa de imagen",
+      "removeLabel": "Eliminar imagen"
+    }
+  },
+  "navigation": {
+    "menu": {
+      "admin": "Administración",
+      "arcana": "Arcanos",
+      "baseCards": "Cartas Base",
+      "cardTypes": "Tipo Cartas",
+      "changeLanguage": "cambiar idioma",
+      "database": "Base de datos",
+      "deck": "Mazo",
+      "facets": "Facetas",
+      "feedback": "Feedback",
+      "home": "Inicio",
+      "login": "Iniciar sesión",
+      "logout": "Cerrar sesión",
+      "manage": "Gestión Cartas",
+      "manageUsers": "Usuarios",
+      "skills": "Habilidades",
+      "tags": "Etiquetas",
+      "userProfile": "Perfil",
+      "versions": "Versiones",
+      "worlds": "Mundos"
+    }
+  },
+  "system": {
+    "status": {
+      "approved": "Aprobado",
+      "archived": "Archivado",
+      "changes_requested": "Cambios pedidos",
+      "draft": "Borrador",
+      "open": "Abierto",
+      "pending_review": "En revisión",
+      "published": "Publicado",
+      "rejected": "Rechazado",
+      "resolved": "Resuelto",
+      "review": "Revisión",
+      "translation_review": "Revisión Traducción",
+      "undefined": "Sin estado",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "suspended": "Suspended",
+      "banned": "Banned",
+      "pending": "Pendiente"
+    }
+  },
+  "ui": {
+    "actions": {
+      "activate": "Activar",
+      "applyVersion": "Aplicar versión",
+      "cancel": "Cancelar",
+      "changeStatus": "Cambiar estado",
+      "clear": "Limpiar",
+      "create": "Crear",
+      "deactivate": "Desactivar",
+      "delete": "Eliminar",
+      "edit": "Editar",
+      "export": "Exportar",
+      "import": "Importar",
+      "preview": "Previsualización",
+      "refresh": "Recargar",
+      "resolve": "Resolver",
+      "save": "Guardar",
+      "search": "Buscar",
+      "update": "Actualizar",
+      "new": "Nuevo",
+      "reset": "Restablecer",
+      "download": "Descargar",
+      "view": "Vista",
+      "close": "Cerrar",
+      "revert": "Revert",
+      "copy": "Copiar",
+      "quickEdit": "Quick Edit",
+      "fullEdit": "Full Edit",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "editJson": "Edit Json",
+      "back": "Back",
+      "apply": "Apply",
+      "reload": "Reload"
+    },
+    "fields": {
+      "card": "Carta",
+      "category": "Categoría",
+      "code": "Código",
+      "comment": "Comentario",
+      "description": "Descripción",
+      "details": "Detalles",
+      "entity": "Entidad",
+      "language": "Idioma",
+      "modifiedAt": "Modificado",
+      "name": "Nombre",
+      "shortText": "Texto Corto",
+      "sort": "Orden",
+      "sortPlaceholder": "Orden opcional",
+      "status": "Estado",
+      "tags": "tags",
+      "template": "Plantilla",
+      "version": "Versión",
+      "type": "Tipo",
+      "id": "Id",
+      "metadata": "Metadata",
+      "translation": "Translation",
+      "revisions": "Revisions",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "owner": "Owner",
+      "active": "Activo",
+      "author": "Author",
+      "imageUrl": "Image Url",
+      "original": "Original",
+      "createdBy": "Created By"
+    },
+    "states": {
+      "active": "Activa",
+      "inactive": "Inactiva",
+      "loading": "Cargando...",
+      "unknown": "Unknown",
+      "enabled": "Habilitado",
+      "disabled": "Deshabilitado",
+      "new": "Nuevo"
+    },
+    "status": {
+      "draft": "Borrador",
+      "review": "En revisión",
+      "pendingReview": "Revisión pendiente",
+      "translationReview": "Revisión de traducción",
+      "approved": "Aprobado",
+      "published": "Publicado",
+      "rejected": "Rechazado",
+      "archived": "Archivado",
+      "unknown": "Estado desconocido"
+    },
+    "release": {
+      "dev": "Desarrollo",
+      "alpha": "Alfa",
+      "beta": "Beta",
+      "candidate": "Candidato a lanzamiento",
+      "release": "Lanzamiento",
+      "revision": "Revisión",
+      "unknown": "Etapa desconocida",
+      "stage": "Stage"
+    },
+    "translation": {
+      "complete": "Completa",
+      "partialFallback": "Parcial (Alternativo)",
+      "missing": "Faltante",
+      "unknown": "Traducción desconocida"
+    },
+    "dialogs": {
+      "confirm": {
+        "deleteConfirm": "Eliminar",
+        "deleteDescription": "Esto eliminará el {entity} y todas sus traducciones. Esta acción no se puede deshacer.",
+        "deleteTitle": "Eliminar {entity}",
+        "deleteTranslationConfirm": "Eliminar traducción",
+        "deleteTranslationDescription": "Esto eliminará la traducción en {lang}. El registro base seguirá disponible.",
+        "deleteTranslationTitle": "Eliminar traducción de {entity}"
       }
+    },
+    "empty": {
+      "noData": "Sin datos"
+    },
+    "filters": {
+      "active": "Activas",
+      "all": "Todas",
+      "inactive": "Inactivas",
+      "status": "Estado",
+      "autoApply": "Auto Apply",
+      "anyDate": "Any Date",
+      "any": "Cualquiera"
+    },
+    "messages": {
+      "noPermission": "No tienes permisos para realizar esta acción."
+    },
+    "misc": {
+      "createdAt": "Creado",
+      "updatedAt": "Updated At"
+    },
+    "notifications": {
+      "createSuccess": "Creado correctamente",
+      "deleteCascadeConfirm": "Esto eliminará el elemento y todas sus traducciones. ¿Continuar?",
+      "deleteSuccess": "Eliminado exitosamente",
+      "deleteTranslationConfirm": "Esto eliminará la traducción para {lang}. ¿Continuar?",
+      "deleteTranslationSuccess": "Traducción eliminada correctamente",
+      "empty": "Todavía no hay registros",
+      "emptyDescription": "Crea un nuevo elemento para llenar esta lista",
+      "error": "Ha ocurrido un error",
+      "success": "Éxito",
+      "updateSuccess": "Actualizado correctamente",
+      "noLanguages": "No Languages",
+      "saved": "Guardado",
+      "errorGeneric": "Error Generic",
+      "notFound": "Not Found",
+      "tryAgain": "Try Again",
+      "noLanguagesDescription": "No Languages Description"
+    },
+    "pagination": {
+      "page": "Página",
+      "pageSize": "Tamaño página"
+    },
+    "table": {
+      "actions": "Acciones",
+      "items": "encontrados",
+      "selected": "{count} seleccionadas",
+      "selectedCount": "{n} seleccionados",
+      "densityLabel": "Density Label",
+      "selectAll": "Select All",
+      "selectRow": "Select Row",
+      "densityComfortable": "Density Comfortable",
+      "densityRegular": "Density Regular",
+      "densityCompact": "Density Compact"
+    },
+    "labels": {
+      "unsavedChanges": "Unsaved Changes",
+      "editMode": "Edit Mode",
+      "readOnly": "Read Only"
+    },
+    "placeholders": {
+      "json": "Json"
+    },
+    "a11y": {
+      "entityInspectorDescription": "Entity Inspector Description"
+    },
+    "sections": {
+      "translations": "Translations",
+      "metadata": "Metadata",
+      "summary": "Summary",
+      "basic": "Básico"
+    },
+    "common": {
+      "untitled": "Untitled",
+      "entity": "Entity"
     }
   },
   "viewModes": {
     "card": "Carta",
-    "classic": "Clásica",
     "carta": "Carta",
+    "classic": "Clásica",
     "table": "Tabla",
     "tableSoon": "Vista de tabla próximamente"
-  }
+  },
+  "bulk-resolve": "Bulk-resolve",
+  "feedback": {
+    "resolveSelected": "Resolve Selected",
+    "translation": "Translation",
+    "other": "Other",
+    "viewJson": "View Json"
+  },
+  "bulk-reopen": "Bulk-reopen",
+  "admin": {
+    "feedback": {
+      "actions": {
+        "reopenSelected": "Reopen Selected",
+        "deleteSelected": "Delete Selected"
+      },
+      "tabs": {
+        "all": "Todos",
+        "bug": "Bug",
+        "suggestion": "Suggestion",
+        "balance": "Balance",
+        "translation": "Translation"
+      },
+      "reopenError": "Reopen Error",
+      "confirmDelete": "Confirm Delete",
+      "deleteError": "Delete Error"
+    },
+    "revisionsHistory": {
+      "status": "Estado",
+      "language": "Language",
+      "author": "Author",
+      "version": "Version"
+    }
+  },
+  "bulk-delete": "Bulk-delete",
+  "UButton": "U Button",
+  "roles": {
+    "editRole": "Edit Role",
+    "description": "Descripción"
+  },
+  "perm": {
+    "canManageUsers": "Can Manage Users",
+    "canEditContent": "Can Edit Content",
+    "canReview": "Can Review",
+    "canTranslate": "Can Translate",
+    "canPublish": "Can Publish",
+    "canAssignTags": "Can Assign Tags",
+    "canResolveFeedback": "Can Resolve Feedback",
+    "canSeeAllStatuses": "Can See All Statuses",
+    "canAccessManage": "Can Access Manage",
+    "canAccessAdmin": "Can Access Admin"
+  },
+  "versions": {
+    "editTitle": "Edit Title",
+    "createTitle": "Create Title",
+    "invalidMetadata": "Invalid Metadata"
+  },
+  "errors": {
+    "validation": "Validation",
+    "forbidden": "Forbidden",
+    "list_failed": "List_failed",
+    "action_failed": "Action_failed",
+    "update_failed": "Update_failed",
+    "unsupportedEntityTags": "Unsupported Entity Tags",
+    "unsupportedFeedback": "Unsupported Feedback",
+    "validation_failed": "Validation_failed"
+  },
+  "reset": "Restablecer",
+  "cancel": "Cancelar",
+  "confirm": "Confirmar",
+  "edit": "Editar",
+  "create": "Crear",
+  "saved": "Guardado",
+  "close": "Cerrar",
+  "reset-filters": "Restablecer filtros",
+  "remove": "Eliminar",
+  "submit": "Enviar",
+  "remove-image": "Eliminar imagen",
+  "active": "Activo",
+  "inactive": "Inactivo",
+  "revisions": {
+    "title": "Título"
+  },
+  "fields": {
+    "code": "Code",
+    "name": "Nombre",
+    "tag": {
+      "name": "Nombre",
+      "code": "Code",
+      "category": "Categoría",
+      "short_text": "Short_text",
+      "description": "Descripción",
+      "parent_id": "Parent_id",
+      "is_active": "Is_active",
+      "sort": "Ordenar",
+      "status": "Estado",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "category": "Categoría",
+    "short_text": "Short_text",
+    "description": "Descripción",
+    "parent_id": "Parent_id",
+    "is_active": "Is_active",
+    "sort": "Ordenar",
+    "skill": {
+      "name": "Nombre",
+      "code": "Code",
+      "facet_id": "Facet_id",
+      "short_text": "Short_text",
+      "description": "Descripción",
+      "language_code": "Language_code",
+      "image": "Image",
+      "is_active": "Is_active",
+      "sort": "Ordenar",
+      "status": "Estado",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Categoría",
+      "parent_id": "Parent_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "facet_id": "Facet_id",
+    "language_code": "Language_code",
+    "image": "Image",
+    "status": "Estado",
+    "arcana": {
+      "name": "Nombre",
+      "code": "Code",
+      "description": "Descripción",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Ordenar",
+      "status": "Estado",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Categoría",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "base_card": {
+      "name": "Nombre",
+      "code": "Code",
+      "description": "Descripción",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Ordenar",
+      "status": "Estado",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Categoría",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "card_type": {
+      "name": "Nombre",
+      "code": "Code",
+      "description": "Descripción",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Ordenar",
+      "status": "Estado",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Categoría",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "facet": {
+      "name": "Nombre",
+      "code": "Code",
+      "description": "Descripción",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Ordenar",
+      "status": "Estado",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Categoría",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    },
+    "world": {
+      "name": "Nombre",
+      "code": "Code",
+      "description": "Descripción",
+      "short_text": "Short_text",
+      "is_active": "Is_active",
+      "sort": "Ordenar",
+      "status": "Estado",
+      "image": "Image",
+      "language_code": "Language_code",
+      "created_by": "Created_by",
+      "content_version_id": "Content_version_id",
+      "category": "Categoría",
+      "parent_id": "Parent_id",
+      "facet_id": "Facet_id",
+      "arcana_id": "Arcana_id",
+      "card_type_id": "Card_type_id",
+      "effects": "Effects",
+      "legacy_effects": "Legacy_effects"
+    }
+  },
+  "Accept": "Aceptar",
+  "etag": "Etag",
+  "id": "Id",
+  "en": "En",
+  "diff": "Diff",
+  "prev_snapshot": "Prev_snapshot",
+  "next_snapshot": "Next_snapshot",
+  "alfa": "Alfa",
+  "Name": "Nombre",
+  "Status": "Estado",
+  "Created": "Creado",
+  "Actions": "Actions",
+  "arcana_translation": "Arcana_translation",
+  "base_card_translations": "Base_card_translations",
+  "base_skills_translations": "Base_skills_translations",
+  "facet_translation": "Facet_translation",
+  "world_translations": "World_translations",
+  "Draft": "Draft",
+  "Approved": "Approved",
+  "Rejected": "Rejected",
+  "Published": "Published",
+  "Users": "Users",
+  "Image": "Image",
+  "Class": "Class",
+  "Origin": "Origin",
+  "Description": "Descripción",
+  "Arcana": "Arcana",
+  "Facet": "Facet",
+  "Active": "Activo",
+  "EN": "E N",
+  "ES": "E S",
+  "text-sm": "Text-sm",
+  "User": "User",
+  "Label": "Etiqueta",
+  "Etiqueta": "Etiqueta"
 }

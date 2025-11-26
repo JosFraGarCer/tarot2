@@ -1,3 +1,4 @@
+// app/schemas/entities/cardtype.ts
 // /app/schemas/entities/cardtype.ts
 import { z } from 'zod'
 

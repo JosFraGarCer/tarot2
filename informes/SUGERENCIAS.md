@@ -1,30 +1,66 @@
-# Sugerencias priorizadas
+# Sugerencias priorizadas Tarot2
 
-Listado de 26 iniciativas concretas para optimizar y escalar Tarot2. Cada punto indica beneficio y referencia técnica.
+## Índice
+1. [Resumen](#1-resumen)
+2. [Fase 0 · Cimientos](#2-fase-0--cimientos)
+3. [Fase 1 · Convergencia UI](#3-fase-1--convergencia-ui)
+4. [Fase 2 · Observabilidad](#4-fase-2--observabilidad)
+5. [Fase 3 · Expansión narrativa](#5-fase-3--expansión-narrativa)
+6. [Iniciativas continuas](#6-iniciativas-continuas)
+7. [Áreas de riesgo](#7-áreas-de-riesgo)
+8. [Buenas prácticas recomendadas](#8-buenas-prácticas-recomendadas)
 
-1. **Implementar middleware `02.rate-limit`** para login, logout, publish y revert, usando Redis/PG como store y cabeceras `Retry-After`. _Beneficio_: mitiga abusos y cumple requisitos SECURITY. _Referencia_: @docs/PROJECT_INFO.md#132-170
-2. **Corregir `POST /api/auth/logout`** limpiando la cookie `auth_token` con `setCookie(name, '', { maxAge: 0 })`. _Beneficio_: cierra sesiones de forma segura. _Referencia_: @docs/PROJECT_INFO.md#132-170
-3. **Migrar tablas Admin/Manage a `CommonDataTable`** con soporte de capacidades y densidades. _Beneficio_: UX coherente y menos duplicación. _Referencia_: @app/components/common/CommonDataTable.vue#110-320
-4. **Extraer `useTableSelection`** para gestionar selección, toggle y bulk actions en feedback, revisiones y tablas manage. _Beneficio_: reduce código duplicado y errores de selección. _Referencia_: @app/components/manage/EntityTableWrapper.vue#116-312
-5. **Proveer `BulkActionsBar` sticky** con contadores y botones masivos (resolver, aprobar, publicar). _Beneficio_: mantiene acciones visibles en datasets largos. _Referencia_: @app/components/admin/RevisionsTable.vue#12-64
-6. **Unificar badges de estado** en `StatusBadge` que soporte estados, release y traducción. _Beneficio_: estilos consistentes y fácil mantenimiento. _Referencia_: @app/components/common/CommonDataTable.vue#114-118
-7. **Adoptar `useEntityCapabilities` en EntityBase y composables** para reemplazar props `translatable`, `noTags`, etc. _Beneficio_: configuración declarativa según entidad. _Referencia_: @app/composables/common/useEntityCapabilities.ts#1-158
-8. **Crear helper `useServerPagination`** que envuelva `buildFilters` y normalice `meta` en handlers comunes. _Beneficio_: menos boilerplate en rutas H3. _Referencia_: @docs/SERVER.md#95-137
-9. **Extender `AdvancedFiltersPanel`** con campo `date-range` basado en `UDatePicker` y serialización ISO. _Beneficio_: filtros avanzados uniformes. _Referencia_: @app/components/common/AdvancedFiltersPanel.vue#12-332
-10. **Centralizar previews en `EntityInspectorDrawer`** (USlideover) usando `useEntityPreviewFetch`. _Beneficio_: UX consistente y elimina endpoints inexistentes. _Referencia_: @docs/INFORME-admin.md#112-214
-11. **Introducir `useRequestMetrics`** para capturar `timeMs` de logs/respuestas y exponerlos en UI. _Beneficio_: visibilidad de performance. _Referencia_: @server/api/content_feedback/index.get.ts#95-137
-12. **Monitorear ratio 304/200** desde `useApiFetch` agregando contadores en logger. _Beneficio_: valida efectividad de caché ETag. _Referencia_: @docs/PROJECT_INFO.md#124-170
-13. **Crear presets de formulario por entidad** (`useEntityFormPreset`) alimentados por esquemas Zod. _Beneficio_: formularios homogéneos y menos lógica manual. _Referencia_: @app/composables/manage/useEntity.ts#33-82
-14. **Alinear pruebas E2E (Playwright)** para flujos publish/revert, feedback multi-idioma y SSR inicial. _Beneficio_: reduce regresiones en pipelines críticos. _Referencia_: @docs/INFORME-admin.md#126-156
-15. **Agregar lint/import rules** para evitar dependencias cruzadas Admin↔Manage salvo `common`. _Beneficio_: mantiene separación de responsabilidades. _Referencia_: @docs/PROJECT_INFO.md#110-120
-16. **Extender logging Pino** con `entity_type`, `lang`, `tag_filters` y `requestId`. _Beneficio_: facilita depuración y trazabilidad. _Referencia_: @docs/SERVER.md#136-140
-17. **Normalizar uso de `useApiFetch`** en todas las páginas admin, reemplazando `$fetch`. _Beneficio_: cache uniforme y headers consistentes. _Referencia_: @docs/INFORME-admin.md#96-100
-18. **Crear skeletons reutilizables** para tablas/listas (loading states) en `components/common`. _Beneficio_: UX coherente y menos duplicación. _Referencia_: @app/components/manage/EntityTableWrapper.vue#35-39
-19. **Documentar alias `/api/user` vs `/api/users`** y, de ser necesario, exponer alias temporal. _Beneficio_: evita confusiones en integraciones externas. _Referencia_: @docs/SERVER.md#155-157
-20. **Automatizar métricas de release** (revisiones publicadas, tiempo de aprobación) almacenando summary en `content_versions`. _Beneficio_: seguimiento editorial. _Referencia_: @docs/PROJECT_INFO.md#136-170
-21. **Implementar validación semántica de tags AND** unificando helper SQL y actualizando docs. _Beneficio_: comportamiento consistente en filtros. _Referencia_: @docs/API.MD#22-27
-22. **Añadir accesibilidad a modales** (`aria-describedby`, focus trap, mensajes `aria-live`). _Beneficio_: cumplimiento WCAG y mejor UX. _Referencia_: @app/components/admin/VersionModal.vue#3-41
-23. **Configurar telemetría ligera (OpenTelemetry/OTLP)** para instrumentar tiempo de handlers críticos. _Beneficio_: observabilidad en producción. _Referencia_: @docs/SERVER.md#136-140
-24. **Integrar Effect System 2.0 en formularios** preparando campos semánticos y toggles legacy. _Beneficio_: transición ordenada desde efectos markdown. _Referencia_: @docs/PROJECT_INFO.md#143-148
-25. **Crear dashboard de cobertura i18n** que reporte campos traducidos vs EN por entidad. _Beneficio_: prioriza esfuerzos de traducción. _Referencia_: @docs/PROJECT_INFO.md#14-41
-26. **Publicar guía interna de componentes** (Storybook/MDX) para `EntityBase`, `AdvancedFiltersPanel`, `CommonDataTable`. _Beneficio_: onboarding rápido y diseño consistente. _Referencia_: @app/components/manage/EntityBase.vue#22-232
+## 1. Resumen
+Backlog accionable priorizado por fases. Todas las sugerencias referencian código real y se apegan a las reglas de edición para Windsurf.
+
+## 2. Fase 0 · Cimientos
+| Acción | Beneficio | Referencia |
+| --- | --- | --- |
+| Aplicar `02.rate-limit` en login/logout/publish/revert. | Bloquea abuso de endpoints sensibles. | @server/middleware/02.rate-limit.ts#1-140 |
+| Limpiar cookie `auth_token` en `POST /api/auth/logout`. | Cierra sesiones de forma segura. | @server/api/auth/logout.post.ts#1-60 |
+| Reemplazar `$fetch` restante por `useApiFetch`. | Coherencia SSR + ETag. | @docs/PROJECT_INFO.md#124-170 |
+| Extraer `useTableSelection` compartido. | Bulk actions consistentes. | @app/components/manage/EntityTableWrapper.vue#1-107 |
+| Auditoría de accesibilidad (focus trap, `aria-*`). | Cumplimiento WCAG AA. | @app/components/admin/VersionModal.vue#1-80 |
+
+## 3. Fase 1 · Convergencia UI
+| Acción | Beneficio | Referencia |
+| --- | --- | --- |
+| Migrar tablas a `ManageTableBridge`/`AdminTableBridge` + `CommonDataTable`. | UI homogénea, menos deuda. | @app/components/manage/ManageTableBridge.vue#1-240 |
+| Implementar `BulkActionsBar` sticky compartida. | Acciones visibles en datasets largos. | @app/components/admin/RevisionsTable.vue#12-120 |
+| Consolidar previews en `EntityInspectorDrawer` + `useEntityPreviewFetch`. | UX consistente y accesible. | @app/components/common/EntityInspectorDrawer.vue#1-220 |
+| Expandir `StatusBadge` a Admin (reemplazo chips legacy). | Semántica unificada. | @app/components/common/StatusBadge.vue#1-120 |
+| Adoptar `useEntityCapabilities` como provider global. | Configuración declarativa. | @app/composables/common/useEntityCapabilities.ts#1-158 |
+
+## 4. Fase 2 · Observabilidad
+| Acción | Beneficio | Referencia |
+| --- | --- | --- |
+| Crear `useRequestMetrics` y ampliar logging (`entity_type`, `lang`, `tag_filters`, `requestId`). | Telemetría ligera end-to-end. | @server/api/content_feedback/index.get.ts#95-136 |
+| Monitorear ratio 304/200 en logs/dashboards. | Validar efectividad de caché. | @docs/PROJECT_INFO.md#124-170 |
+| Registrar métricas publish/revert en `content_versions`. | Seguimiento editorial. | @docs/SCHEMA POSTGRES..TXT#417-437 |
+| Configurar telemetría OTLP ligera para endpoints críticos. | Alertas tempranas en producción. | @docs/SERVER.md#136-140 |
+
+## 5. Fase 3 · Expansión narrativa
+| Acción | Beneficio | Referencia |
+| --- | --- | --- |
+| Integrar Effect System 2.0 en formularios con toggles legacy. | Evolución controlada de efectos. | @docs/PROJECT_INFO.md#143-148 |
+| Extender mundos/mazos con metadata adicional. | Nuevos contenidos alineados a schema. | @server/api/world_card/_crud.ts#19-228 |
+| Crear dashboard de cobertura i18n + guías internas (Storybook/MDX). | Prioriza traducción y onboarding. | @docs/PROJECT_INFO.md#14-41 |
+
+## 6. Iniciativas continuas
+| Acción | Beneficio | Referencia |
+| --- | --- | --- |
+| Implementar `useServerPagination` y helper SQL para tags AND/ANY. | Reduce duplicación backend. | @server/utils/filters.ts#40-158 |
+| Documentar alias `/api/user` vs `/api/users`. | Evita confusiones en integraciones. | @docs/SERVER.md#155-157 |
+| Mantener lint/import rules para aislar Admin vs Manage. | Respeta arquitectura. | @docs/PROJECT_INFO.md#110-120 |
+| Extraer skeletons reutilizables para tablas/listas. | UX consistente en loading. | @app/components/manage/EntityTableWrapper.vue#35-90 |
+| Publicar guía interna de componentes y presets. | Facilita onboarding y coherencia. | @app/components/manage/EntityBase.vue#22-232 |
+
+## 7. Áreas de riesgo
+1. Cambios en SQL compleja (`_crud.ts`) deben acompañarse de pruebas multi-idioma y validación de tags.
+2. Ventana de abuso mientras rate limiting y logout seguro no se completan.
+3. Migraciones parciales a bridges o presets pueden dejar UI inconsistente; documentar estado y checklist QA.
+
+## 8. Buenas prácticas recomendadas
+1. Ejecutar checklist manual previa a cada merge (CRUD, bulk, preview, filtros, paginación, consola).
+2. Registrar excepciones temporales en `/informes` y reglas de edición para evitar regresiones.
+3. Coordinar refactors backend/frontend usando codemaps y `docs/SCHEMA POSTGRES..TXT` como fuente de verdad.

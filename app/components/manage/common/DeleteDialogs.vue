@@ -1,3 +1,4 @@
+<!-- app/components/manage/common/DeleteDialogs.vue -->
 <!-- app/components/manage/common/EntityDeleteDialogs.vue -->
 
 <script setup lang="ts">

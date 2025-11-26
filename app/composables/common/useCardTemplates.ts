@@ -1,3 +1,4 @@
+// app/composables/common/useCardTemplates.ts
 // app/composables/useCardTemplates.ts
 import { computed } from 'vue'
 import CardClass from '~/components/card/Class.vue'

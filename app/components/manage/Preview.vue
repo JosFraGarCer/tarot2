@@ -1,3 +1,4 @@
+<!-- app/components/manage/Preview.vue -->
 <!-- app/components/manage/Modal/Preview.vue -->
 <script setup lang="ts">
 import Origin from '~/components/card/Origin.vue'

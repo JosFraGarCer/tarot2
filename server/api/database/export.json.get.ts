@@ -1,3 +1,4 @@
+// server/api/database/export.json.get.ts
 import { defineEventHandler, createError } from 'h3'
 import { createResponse } from '../../utils/response'
 import { exportEntities } from '../../utils/entityCrudHelpers'

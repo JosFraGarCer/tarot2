@@ -1,3 +1,4 @@
+// app/types/entities.ts
 // app/types/entities/entities.ts
 // /types/entities.ts
 // Tipos cliente optimizados para entidades del sistema (TTRPG Cards)

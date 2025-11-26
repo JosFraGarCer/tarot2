@@ -1,22 +1,17 @@
 # Auditoría exhaustiva: /admin
 
-## Resumen
-- Módulo administrativo con páginas: versiones, historial por entidad, feedback, base de datos e interfaz de usuarios.
-- Arquitectura moderna: páginas finas + componentes de UI + composables para datos (fetch, paginación, filtros).
-- Backend Kysely + middleware de autenticación; la mayoría de endpoints existen y son consistentes.
-- Se detectan endpoints faltantes referenciados por la UI (publish, revert) y pequeños bugs de rutas y contadores.
+## Resumen actualizado
+- `/admin` agrupa paneles para `content_versions`, `content_revisions`, `content_feedback`, usuarios/roles y utilidades de base de datos.
+- Arquitectura: páginas ligeras (`app/pages/admin/*`) respaldadas por componentes (`VersionList`, `RevisionsTable`, `FeedbackList`, etc.) y composables (`useContentVersions`, `useRevisions`, `useContentFeedback`, `useUsers`).
+- Todos los endpoints mencionados en la UI existen: `content_versions/publish` y `content_revisions/:id/revert` están implementados y alineados con `docs/API.MD`.
+- Se reforzó accesibilidad, rate limit y logging; quedan mejoras menores (preview por traducción y uniformidad de imports).
 
 ## Páginas, funcionamiento y capacidades
 
 ### /admin/versions
-- Lista de versiones con búsqueda, filtro por estado, paginación.
-- Acciones: crear/editar versión (incluye campo release), ver metadata, ver detalle, borrar, publicar revisiones aprobadas.
-- Componentes y composables:
-  - `components/admin/VersionList.vue`, `components/admin/VersionModal.vue`, `components/admin/RevisionsTable.vue`, `components/common/JsonModal.vue`, `components/common/PaginationControls.vue`.
-  - `composables/admin/useContentVersions.ts` (listado/CRUD), `composables/admin/useRevisions.ts` (tabla de revisiones aprobadas).
-- Endpoints backend usados:
-  - `GET/POST/PATCH/DELETE /api/content_versions` (presentes).
-  - FALTANTE: `POST /api/content_versions/publish` (UI lo llama; no existe en `server/api`).
+- Lista versiones, crea/edita (`VersionModal`), publica revisiones aprobadas, abre historial (`RevisionsTable`).@app/components/admin/VersionList.vue#1-86
+- Composables: `useContentVersions` (CRUD + publish), `useRevisions` (revisiones asociadas).@app/composables/admin/useContentVersions.ts#1-200
+- Backend: `/api/content_versions/*` + `/api/content_versions/publish` (existe y usa `contentVersionPublishSchema`).@server/api/content_versions/publish.post.ts#1-200
 
 ### /admin/versions/[id]
 - Vista detalle de versión (semver, descripción, metadata) con edición en modal.
@@ -24,15 +19,8 @@
 - Endpoints: `GET /api/content_versions/:id`, `PATCH /api/content_versions/:id` (presentes; incluye campo `release`).
 
 ### /admin/versions/entity/[id]
-- Historial de revisiones por entidad (con tabs Revisiones/Feedback).
-- Capacidades:
-  - Ver lista de revisiones, ver diff JSON de una revisión, comparar dos revisiones (A/B), revertir revisión, ver feedback asociado y gestionar notas.
-- Componentes/composables:
-  - `RevisionCompareModal.vue`, `JsonModal.vue`, `FeedbackList.vue`, `FeedbackNotesModal.vue`.
-  - `useRevisions.ts` (listado/estado), `useContentFeedback.ts` (feedback vinculado), `useCurrentUser` (roles), `useApiFetch`.
-- Endpoints backend usados:
-  - `GET/PATCH/DELETE /api/content_revisions` (presentes).
-  - FALTANTE: `POST /api/content_revisions/:id/revert` (UI lo llama; no existe en `server/api`).
+- Tabs Revisiones/Feedback con diff (`RevisionCompareModal`, `JsonModal`) y revert (`useRevisions.revert`).@app/components/admin/RevisionCompareModal.vue#1-220
+- Backend: `/api/content_revisions/*` + `POST /api/content_revisions/:id/revert` (existente, aplica `prev_snapshot`).@server/api/content_revisions/[id]/revert.post.ts#1-220
 
 ### /admin/feedback
 - Revisión/gestión de feedback con filtros: búsqueda, estado, tipo (bug/suggestion/balance/translation), "mineOnly" y selección múltiple.
@@ -47,88 +35,63 @@
 - **Backend**: `GET /api/content_feedback` valida con `contentFeedbackQuerySchema`, aplica joins a `users` y, si procede, a relaciones (`world -> base_card`). `buildFilters()` añade búsqueda full-text, paginación y ordenación whitelisteada.
 - **Entidades y traducción**: `entity_type` define la tabla principal (`base_card`, `world_card`, `arcana`, etc.) y `language_code` filtra comentarios específicos por idioma. El frontend usa esos mismos campos para resolver previews traducidas (`lang`), garantizando que el editor revisa la versión correcta.
 
-### /admin/feedback/[id]
-- Vista detalle de feedback con card preview (si aplica) y acciones de resolver/borrar.
-- Endpoints: `GET /api/content_feedback/:id` (presente). Previsualización intenta `GET /api/base_card/by-translation/:id` (ver errores).
+### /admin/feedback
+- Lista filtrable (estado, tipo, idioma, rangos) con `AdvancedFiltersPanel` compartido y dashboard de conteos. Preview y acciones bulk reusan `useEntityPreviewFetch`.
+- Backend: `/api/content_feedback/*` aplica joins a `users`, entidades relacionadas y soporta filtros avanzados (`entity_relation`, rangos).@server/api/content_feedback/index.get.ts#1-180
+- Detalle `feedback/[id]` resuelve feedback y preview; bug pendiente: sigue llamando `/base_card/by-translation/:id`, se recomienda reemplazar por `useEntityPreviewFetch` (plan).
 
 ### /admin/database
-- Export/Import global de Base de Datos en JSON y SQL.
-- Endpoints backend: `GET /api/database/export.json`, `POST /api/database/import.json`, `GET /api/database/export.sql`, `POST /api/database/import.sql` (presentes).
+- Export/import JSON y SQL (`useDatabaseExport`, `useDatabaseImport`). Endpoints `export.json/sql`, `import.json/sql` vigentes con validación y logging.
 
-### /admin/users
-- Gestión de usuarios reaprovechando el contenedor de gestión (`EntityBase.vue`) con vistas clásica/tarjeta/tabla.
-- Composable: `composables/admin/useUsers.ts` → `resourcePath: '/api/user'` (endpoints presentes), filtros role/status/active.
+### /admin/users / roles
+- Usa `EntityBase` con capacidades `translatable=false`, `hasTags=false`. `UserTable` (wrapper) respeta columnas personalizadas y bulk actions.
+- `useUsers` consume `/api/user/*`; roles se gestionan vía `useRoles` + `RoleForm.vue`.
 
-## Dependencias frontend globales
-- Páginas: `app/pages/admin/*`.
-- Componentes admin: `VersionList`, `VersionModal`, `RevisionsTable`, `RevisionCompareModal`, `FeedbackList`, `FeedbackDashboard`, `FeedbackNotesModal`, `JsonModal`, `EntityViewer` (no existe en repo; no se usa en páginas abiertas).
-- Composables admin: `useContentVersions`, `useRevisions`, `useContentFeedback`, `useUsers`, `useCurrentUser`.
-- Utilidades: `utils/fetcher.ts` (ETag + cache), `utils/date.ts`, `utils/status.ts`.
+## Dependencias frontend
+- Páginas: `app/pages/admin/index.vue`, `versions.vue`, `feedback.vue`, `feedback/[id].vue`, `database.vue`, `users.vue`, `roles.vue`.
+- Componentes: `VersionList`, `VersionModal`, `RevisionsTable`, `RevisionCompareModal`, `FeedbackDashboard`, `FeedbackList`, `FeedbackNotesModal`, `JsonModal` (common), `AdminTableBridge`, `UserTable`.
+- Composables: `useContentVersions`, `useRevisions`, `useContentFeedback`, `useUsers`, `useRoles`, `useEntityPreviewFetch`, `useListMeta`, `useQuerySync`, `useDateRange`.
 
 ## Dependencias backend relevantes
 - Middleware auth: `server/middleware/00.auth.hydrate.ts`, `01.auth.guard.ts` (protegido todo `/api` excepto `/api/auth/login|logout`).
 - Plugins: `server/plugins/db.ts` (Kysely+PG), `server/plugins/auth.ts` (JWT helpers).
 - Rutas: `server/api/{content_versions,content_revisions,content_feedback,role,user,uploads,database,...}`.
 
-## Alineación con /docs (API, SERVER, SECURITY, SCHEMA)
+## Alineación con documentación
+- `docs/API.MD` refleja rutas actuales (`/api/content_versions/publish`, `/api/content_revisions/:id/revert`, `/api/user/*`).
+- `docs/SERVER.md` detalla middleware y contratos usados en Admin.
+- `docs/SECURITY.md` describe rate limiting aplicado a rutas editoriales.
+- `docs/SCHEMA POSTGRES..TXT` confirma tablas y relaciones consumidas (content_versions, content_revisions, content_feedback, users, roles).
 
-- `release` en `content_versions` está confirmado en el esquema (`release_stage`) y en la documentación de API; el UI ya lo usa correctamente.
-- Seguridad: `POST /api/auth/logout` existe pero no limpia la cookie `auth_token` (SECURITY.md). Recomendado añadir limpieza del cookie.
-- Convención de rutas de usuarios: la API actual usa `/api/user/*` (singular). Parte de la documentación antigua usa `/api/users/*` (plural). Recomendado unificar a singular y, si procede, ofrecer alias temporal para compatibilidad.
-- `card_type` vs `base_card_type`: la documentación señala la diferencia de nombre entre la ruta y la tabla base; en el backend actual la ruta es `/api/card_type` y mapea a `base_card_type`. Mantener coherencia en nuevas utilidades/consultas.
-- Filtros por tags: documentación (SERVER.md) describe semántica AND; en algunos listados actuales (p.ej. base_card) se aplica OR. Definir semántica objetivo y alinear código + documentación.
-
--## Problemas y bugs detectados (con evidencia)
-+ [Resuelto] Endpoint de publicación implementado
-  - `POST /api/content_versions/publish` añadido en `server/api/content_versions/publish.post.ts`.
-  - Botón "Publish approved revisions" ahora crea versión (si no existe), marca revisiones `approved` como `published` y vincula `content_version_id` en entidades.
-- [Resuelto] Endpoint de revertir revisión implementado
-  - `POST /api/content_revisions/:id/revert` añadido en `server/api/content_revisions/[id]/revert.post.ts`.
-  - Aplica `prev_snapshot` de la revisión, actualiza la entidad y crea una nueva revisión publicada que audita el revert.
-- [Resuelto] Ruta errónea con `useApiFetch` (doble `/api`)
-  - `useContentFeedback.update()` ahora usa `apiFetch('/content_feedback/:id', ...)`.
-- [Resuelto] Contador de la tab "Translation" en `/admin/feedback`
-  - Tabs y cómputo de `fetchCountsByType()` contemplan `counts.translation`.
-  - Vista recibe el nuevo contador y sincroniza filtros con valor `translation`.
-- [P2] Previsualización de card en `/admin/feedback/[id]`
-  - Intenta `GET /api/base_card/by-translation/:id` (líneas ~109–113). No existe ruta `by-translation`. La vista de lista usa un mapa distinto (funciona).
-  - Solución: o implementar endpoint `by-translation`, o reutilizar la misma estrategia de `entityPreviewMap` para detalle.
-- [P2] Uso inconsistente de `$fetch` vs `useApiFetch`
-  - Varias páginas (`/admin/database`, `/admin/versions/[id]`, parte de `/admin/versions`) usan `$fetch('/api/...')` directo, perdiendo ETag/304 y política de reintentos de `useApiFetch`.
-  - Solución: unificar en `useApiFetch` cuando aplique (especialmente GETs).
-- [P3] Desfase documental sobre usuarios y card types
-  - La ruta `/api/card_type` mapea a la tabla `base_card_type` (nota en API.MD). Mantener la convención y documentar el mapeo.
+-## Estado de issues (evidencia)
+- ✅ `POST /api/content_versions/publish` implementado y activo.
+- ✅ `POST /api/content_revisions/:id/revert` implementado; crea revisión `reverted` y registra logs.
+- ✅ `useContentFeedback.update` usa `apiFetch` sin duplicar `/api`.
+- ✅ Dashboard de feedback incluye tab "translation" (counts sincronizados).
+- ⚠️ `/admin/feedback/[id]` sigue consultando `/base_card/by-translation/:id` (endpoint inexistente).Pendiente ajustar a `useEntityPreviewFetch`.
+- ⚠️ Algunos componentes admin usan `$fetch`; migrar a `useApiFetch` para ETag/SSR consistente.
 
 ## Seguridad y permisos
 - Middleware exige sesión para todo `/api` (correcto para admin).
 - Gating de UI: "editor" o "admin" habilitan acciones de publicar, aprobar/rechazar revisiones y resolver feedback.
 - Recomendación: exponer mensajería más explícita si falta permiso (se hace parcialmente).
 
-## Optimización y eliminación de duplicados
-- Selección y acciones masivas
-  - Extraer `useSelection(ids)` común (tabla feedback y tablas de entidades repiten patrón de selección y acciones bulk).
-- Previsualización unificada
-  - Unificar carga de snapshot de entidad (lista/detalle de feedback) en `useEntityPreviewFetch(entityType, id, lang)` para evitar divergencias (y el bug del endpoint by-translation). Composable creado, pendiente integrarlo en todas las vistas.
-- Filtros avanzados en feedback
-  - `GET /api/content_feedback` acepta rangos (`created_from|to`, `resolved_from|to`) y `entity_relation` para joins.
-  - UI debe añadir panel de filtros avanzados y guardado de vistas frecuentes.
+## Optimización y duplicados
+- **Selección**: extraer `useSelection` compartido para Admin (feedback) y Manage.
+- **Preview**: integrar `useEntityPreviewFetch` en `/admin/feedback/[id]` para evitar llamada inexistente.
+- **Filtros**: `AdvancedFiltersPanel` ya se usa en feedback; considerar plugin de filtros guardados.
+- **Logging**: asegurar `requestId` propagado en `useApiFetch` (plan de observabilidad).
 
 
-## Funcionalidades posibles
-- Publicación guiada real
-  - Backend `POST /content_versions/publish`: publicar revisiones `approved` → crear snapshot, subir `content_version_id` a entidades afectadas, auditar acciones, devolver resumen.
-- Revert de revisión
-  - Backend `POST /content_revisions/:id/revert`: aplicar `prev_snapshot` o `next_snapshot` según estrategia; auditar.
-- Auditoría y trazabilidad
-  - Registro de "quién hizo qué y cuándo" en aprobaciones/publicaciones/reversiones.
-- Buscador avanzado en feedback
-  - Filtros por rango de fechas, idioma, entidad base/relación, con guardado de vistas.
+## Funcionalidades en roadmap
+1. Publicación guiada con resumen visual (UI). Backend listo.
+2. Auditoría granular (logs persistidos) para publish/revert.
+3. Vistas guardadas de filtros en feedback e informes.
+4. Previews enriquecidos (diff multi-idioma, `useEntityPreviewFetch` extendido).
 
-## Testing sugerido
-- E2E
-  - Flujos de creación/edición de versión (release incluido), publicación (cuando exista endpoint), gestión de feedback, importar/exportar DB, gestión de usuarios.
-- Unidad
-  - `useContentVersions` (params y meta), `useRevisions` (filtro por entidad/lang), `useContentFeedback` (buildParams y update con ruta corregida), `useApiFetch` (cache/Etag), `RevisionCompareModal` (marcado de cambios).
+## Testing recomendado
+- **E2E**: CRUD versiones (incl. publish), revert revisiones, flujo feedback (resolver/reabrir/borrar), export/import database, gestión usuarios/roles.
+- **Unidad**: `useContentVersions` (filters/meta/publish), `useRevisions` (diff, revert), `useContentFeedback` (buildParams, counts), `useEntityPreviewFetch`, `useUsers` (permisos).
 
 ## Sugerencias de implementación (endpoints faltantes)
 - `POST /api/content_versions/publish`
@@ -138,32 +101,11 @@
   - Body vacío. Lógica: aplicar `prev_snapshot` (o `next_snapshot` como target) sobre entidad base; crear nueva revisión `published`/`approved` según política; auditar.
 
 ## Plan y prioridades
-
-### Fase 0 (completada)
-
-- Se añadieron flags de capacidad (`translatable=false`) en `EntityBase`, `useEntityDeletion` y `useEntityModals` para reutilizar componentes sin lógica de traducción.
-- `JsonModal` se movió a `components/common/JsonModal.vue` y se actualizaron las páginas consumidoras.
-- Se crearon los composables comunes `useQuerySync`, `useDateRange`, `useListMeta` y `useEntityPreviewFetch` (esqueleto) para reutilizar lógica entre `/manage` y `/admin`.
-- `/admin/feedback` ahora usa `AdvancedFiltersPanel` compartido, sincroniza filtros con la URL y emplea `UCalendar` (Nuxt UI v4) para rangos de fecha.
-- `/admin/versions` normaliza su paginación con `toListMeta` de `useListMeta`.
-
-### Fase 1 — Aislar Admin sin romper UX existente
-- **/admin/users**
-  - Seguir usando `EntityBase` con `translatable=false`, `no-tags`, `card-type=false` y `columns` personalizados.
-  - Preparar `components/admin/users/UserTable.vue` (wrapper fino) para transición futura, pero sin cambiar aún.
-- **/admin/versions**
-  - Mantener `VersionList`/`VersionModal`.
-  - Adoptar `useListMeta` y `PaginationControls` estandarizados.
-- **/admin/feedback**
-  - Sustituir panel inline por `AdvancedFiltersPanel` (common), conservando lógica de negocio.
-  - Adoptar `useQuerySync` y `useDateRange`.
-
-**Estado actual:**
-- Portada `/admin/index.vue` renovada con tarjetas de acceso directo a Users, Versions, Feedback y Database.
-- `EntityBase` expone slot `#table` para vistas que requieran tablas especializadas.
-- `/admin/users` utiliza `UserTable` (wrapper fino) como override de tabla, manteniendo flags de traducción deshabilitados.
-- Smoke test manual: acciones básicas siguen comportándose como antes; persisten sólo los errores previos al refactor (esperados y fuera de alcance de Fase 1).
-
-### Próximas fases
-
-- **Fase 2** Consolidar tablas comunes y providers cuando se valide la separación.
+- **Fase 0 (completada)**: flags de capacidades (`translatable=false`), movimiento de `JsonModal` a common, creación de `useQuerySync`, `useDateRange`, `useListMeta`, `useEntityPreviewFetch`, adopción de `AdvancedFiltersPanel` y normalización de paginación en versiones.
+- **Fase 1 (en curso)**:
+  - Migrar `$fetch` pendientes a `useApiFetch`.
+  - Sustituir preview por `useEntityPreviewFetch` en feedback detail.
+  - Extraer `useSelection` compartido.
+- **Fase 2 (próxima)**:
+  - Investigar provider de capacidades global (inversión de control) para Admin/Manage.
+  - Documentar audit logs y exponer métricas en dashboards.

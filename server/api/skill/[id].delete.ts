@@ -1,3 +1,4 @@
+// server/api/skill/[id].delete.ts
 // server/api/base_skills/[id].delete.ts
 import { skillCrud } from './_crud'
 

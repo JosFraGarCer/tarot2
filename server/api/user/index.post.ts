@@ -1,3 +1,4 @@
+// server/api/user/index.post.ts
 // server/api/users/index.post.ts
 import { defineEventHandler, readBody } from 'h3'
 import { sql } from 'kysely'

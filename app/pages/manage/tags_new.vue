@@ -1,3 +1,4 @@
+<!-- app/pages/manage/tags_new.vue -->
 <template>
   <div class="px-4 pb-10 space-y-6">
     <div class="flex flex-wrap items-start justify-between gap-3">

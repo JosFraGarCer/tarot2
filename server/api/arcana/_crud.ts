@@ -1,3 +1,4 @@
+// server/api/arcana/_crud.ts
 import { sql } from 'kysely'
 import { createCrudHandlers } from '../../utils/createCrudHandlers'
 import { arcanaQuerySchema, arcanaCreateSchema, arcanaUpdateSchema } from '../../schemas/arcana'

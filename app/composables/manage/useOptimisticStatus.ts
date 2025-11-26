@@ -1,3 +1,4 @@
+// app/composables/manage/useOptimisticStatus.ts
 import type { AnyManageCrud } from '@/types/manage'
 
 export function useOptimisticStatus(crud: AnyManageCrud, t?: (k: string) => string, toast?: any) {

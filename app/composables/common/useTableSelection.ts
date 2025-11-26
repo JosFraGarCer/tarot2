@@ -1,3 +1,4 @@
+// app/composables/common/useTableSelection.ts
 import { computed, shallowRef, type ComputedRef, type ShallowRef } from 'vue'
 
 type VisibleIdsGetter = () => Array<number | string | null | undefined>
