@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
         .insertInto('tags')
         .values({
           code: body.code,
-          category: body.category ?? (null as any),
+          category: body.category ?? null,
           parent_id: body.parent_id ?? null,
           sort: body.sort ?? 0,
           is_active: body.is_active ?? true,
@@ -79,8 +79,8 @@ export default defineEventHandler(async (event) => {
     logger?.info?.(
       {
         scope: 'tag.create',
-        id: (created as any).id,
-        code: (created as any).code,
+        id: (created as { id: unknown }).id,
+        code: (created as { code: unknown }).code,
         lang,
         timeMs: Date.now() - startedAt,
       },

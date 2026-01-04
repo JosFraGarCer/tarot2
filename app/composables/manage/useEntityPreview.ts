@@ -24,16 +24,17 @@ export function useEntityPreview() {
     if (!value) previewData.value = null
   }
 
-  function openPreviewFromEntity(entity: any, options?: PreviewOptions) {
-    if (!entity) return
+  function openPreviewFromEntity(entity: unknown, options?: PreviewOptions) {
+    const e = entity as Record<string, unknown>
+    if (!e) return
     const t = options?.t
-    const locale = options?.locale || entity?.language_code_resolved || entity?.language_code || 'en'
-    const { legacyEffects, effectsMarkdown } = resolveEffects(entity, locale)
+    const locale = options?.locale || (e?.language_code_resolved as string) || (e?.language_code as string) || 'en'
+    const { legacyEffects, effectsMarkdown } = resolveEffects(e, locale)
     previewData.value = {
-      title: entity.name ?? entity.title ?? entity.code ?? (t ? t('common.untitled') : '—'),
-      img: entity.image ?? entity.thumbnail_url ?? null,
-      shortText: entity.short_text ?? entity.summary ?? null,
-      description: entity.description ?? null,
+      title: (e.name as string) ?? (e.title as string) ?? (e.code as string) ?? (t ? t('common.untitled') : '—'),
+      img: (e.image as string) ?? (e.thumbnail_url as string) ?? null,
+      shortText: (e.short_text as string) ?? (e.summary as string) ?? null,
+      description: (e.description as string) ?? null,
       legacyEffects,
       effectsMarkdown,
     }
@@ -48,7 +49,7 @@ export function useEntityPreview() {
   }
 }
 
-function resolveEffects(entity: any, locale: string): { legacyEffects: boolean; effectsMarkdown: string | null } {
+function resolveEffects(entity: Record<string, unknown>, locale: string): { legacyEffects: boolean; effectsMarkdown: string | null } {
   const legacy = !!entity?.legacy_effects
   if (!legacy) {
     return { legacyEffects: false, effectsMarkdown: null }

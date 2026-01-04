@@ -66,7 +66,7 @@
       <template #body>
         <div class="space-y-3">
           <UFormField :label="'SQL file (.sql)'">
-            <input ref="sqlFileInput" type="file" accept=".sql" class="block w-full text-sm" />
+            <input ref="sqlFileInput" type="file" accept=".sql" class="block w-full text-sm" >
           </UFormField>
           <p v-if="sqlImportError" class="text-xs text-red-600">{{ sqlImportError }}</p>
         </div>
@@ -85,6 +85,7 @@
 import { computed, ref } from 'vue'
 import ImportJsonModal from '~/components/manage/modal/ImportJson.vue'
 import { useApiFetch } from '@/utils/fetcher'
+import { getErrorMessage } from '@/utils/error'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -101,7 +102,7 @@ const openJsonImport = () => { jsonModalOpen.value = true; jsonImportError.value
 
 const exportJson = async () => {
   try {
-    const res = await apiFetch<{ success?: boolean; data?: any }>('/database/export.json')
+    const res = await apiFetch<{ success?: boolean; data?: Record<string, unknown> }>('/database/export.json')
     const payload = res?.data ?? {}
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -113,8 +114,8 @@ const exportJson = async () => {
     a.remove()
     URL.revokeObjectURL(url)
     toast.add({ title: t('ui.actions.export'), color: 'success' })
-  } catch (error: any) {
-    toast.add({ title: t('ui.notifications.error'), description: error?.data?.message || error?.message, color: 'error' })
+  } catch (err) {
+    toast.add({ title: t('ui.notifications.error'), description: getErrorMessage(err), color: 'error' })
   }
 }
 
@@ -123,9 +124,9 @@ const handleJsonImport = async (file: File) => {
   try {
     jsonImportLoading.value = true
     const text = await file.text()
-    let payload: any
+    let payload: Record<string, unknown>
     try {
-      payload = JSON.parse(text)
+      payload = JSON.parse(text) as Record<string, unknown>
     } catch {
       jsonImportError.value = t('importExport.import.errors.parseError')
       return
@@ -133,8 +134,8 @@ const handleJsonImport = async (file: File) => {
     await apiFetch('/database/import.json', { method: 'POST', body: payload })
     toast.add({ title: t('ui.actions.import'), color: 'success' })
     jsonModalOpen.value = false
-  } catch (error: any) {
-    jsonImportError.value = error?.data?.message || error?.message || t('ui.notifications.error')
+  } catch (err) {
+    jsonImportError.value = getErrorMessage(err, t('ui.notifications.error'))
   } finally {
     jsonImportLoading.value = false
   }
@@ -155,7 +156,7 @@ const closeSqlImport = () => { sqlModalOpen.value = false; sqlImportError.value 
 const exportSql = async () => {
   try {
     const res = await apiFetch<Blob | ArrayBuffer>('/database/export.sql', { responseType: 'blob' as const })
-    const blob = res instanceof Blob ? res : new Blob([res as any], { type: 'application/sql' })
+    const blob = res instanceof Blob ? res : new Blob([res as ArrayBuffer], { type: 'application/sql' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -165,8 +166,8 @@ const exportSql = async () => {
     a.remove()
     URL.revokeObjectURL(url)
     toast.add({ title: t('ui.actions.export'), color: 'success' })
-  } catch (error: any) {
-    toast.add({ title: t('ui.notifications.error'), description: error?.data?.message || error?.message, color: 'error' })
+  } catch (err) {
+    toast.add({ title: t('ui.notifications.error'), description: getErrorMessage(err), color: 'error' })
   }
 }
 
@@ -180,8 +181,8 @@ const handleSqlImport = async () => {
     await apiFetch('/database/import.sql', { method: 'POST', body: text, headers: { 'Content-Type': 'text/plain' } })
     toast.add({ title: t('ui.actions.import'), color: 'success' })
     closeSqlImport()
-  } catch (error: any) {
-    sqlImportError.value = error?.data?.message || error?.message || t('ui.notifications.error')
+  } catch (err) {
+    sqlImportError.value = getErrorMessage(err, t('ui.notifications.error'))
   } finally {
     sqlImportLoading.value = false
   }

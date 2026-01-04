@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 const props = withDefaults(defineProps<{
-  open: boolean
+  open?: boolean
   title: string
   description?: string
   confirmLabel?: string

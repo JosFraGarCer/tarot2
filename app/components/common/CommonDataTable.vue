@@ -85,8 +85,8 @@
       >
         <slot :name="`cell-${column.key}`" v-bind="ctx">
           <component
-            v-if="column.component"
             :is="column.component"
+            v-if="column.component"
             v-bind="buildComponentProps(column, ctx)"
           />
           <span v-else class="block truncate">
@@ -121,7 +121,7 @@
       :total-pages="metaState.totalPages"
       :page-size-items="pageSizeItems"
       @update:page="(page) => emit('update:page', page)"
-      @update:pageSize="(size) => emit('update:pageSize', size)"
+      @update:page-size="(size) => emit('update:pageSize', size)"
     />
   </div>
 </template>
@@ -135,7 +135,13 @@ import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useListMeta, type ListMeta } from '~/composables/common/useListMeta'
 import { useEntityCapabilities, type EntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
-export interface ColumnDefinition<T = any> {
+// Row data type - generic record with id
+export interface TableRowData {
+  id?: number | string
+  [key: string]: unknown
+}
+
+export interface ColumnDefinition<T = TableRowData> {
   key: string
   label?: string
   sortable?: boolean
@@ -146,8 +152,8 @@ export interface ColumnDefinition<T = any> {
 }
 
 const props = withDefaults(defineProps<{
-  items: any[]
-  columns: ColumnDefinition[]
+  items?: TableRowData[]
+  columns?: ColumnDefinition[]
   meta?: Partial<ListMeta> | null
   loading?: boolean
   selectable?: boolean
@@ -186,8 +192,8 @@ const emit = defineEmits<{
   (e: 'update:page', value: number): void
   (e: 'update:pageSize', value: number): void
   (e: 'update:sort', value: TableSort): void
-  (e: 'row:click', value: any): void
-  (e: 'row:dblclick', value: any): void
+  (e: 'row:click', value: TableRowData): void
+  (e: 'row:dblclick', value: TableRowData): void
 }>()
 
 const slots = useSlots()
@@ -338,7 +344,7 @@ const slotColumns = computed(() => resolvedColumns.value
     }
   }))
 
-function buildComponentProps(column: { key: string; component: any; badgeType?: 'status' | 'release' | 'translation' | 'user' }, ctx: any) {
+function buildComponentProps(column: { key: string; component: unknown; badgeType?: 'status' | 'release' | 'translation' | 'user' }, ctx: { getValue?: () => unknown; row?: { original?: TableRowData } }) {
   const value = ctx?.getValue ? ctx.getValue() : ctx?.row?.original?.[column.key]
 
   if (column.component === StatusBadge) {
@@ -420,13 +426,13 @@ const allSelected = computed({
   },
 })
 
-function rowKeyValue(row: any): string | number {
+function rowKeyValue(row: TableRowData): string | number {
   const key = props.rowKey ?? 'id'
   const value = row?.[key]
   return typeof value === 'number' || typeof value === 'string' ? value : String(value)
 }
 
-function toggleRow(row: any, include: boolean) {
+function toggleRow(row: TableRowData, include: boolean) {
   const key = rowKeyValue(row)
   const next = new Set(selectedInternal.value)
   if (include) next.add(key)

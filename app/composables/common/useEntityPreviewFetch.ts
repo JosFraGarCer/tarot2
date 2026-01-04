@@ -1,21 +1,27 @@
 // app/composables/common/useEntityPreviewFetch.ts
-import { computed, shallowRef } from 'vue'
+import { computed } from 'vue'
 import { hash } from 'ohash'
 import { useAsyncData, useNuxtApp } from '#imports'
 import { useApiFetch } from '@/utils/fetcher'
 
-export interface EntityPreviewOptions {
+// Generic entity data type - entities have at minimum an id
+export interface EntityData {
+  id: number | string
+  [key: string]: unknown
+}
+
+export interface EntityPreviewOptions<T = EntityData> {
   kind: string
   id: string | number | null | undefined
   lang?: string | null
-  query?: Record<string, any>
-  transform?: (data: any) => any
+  query?: Record<string, string | number | boolean | undefined>
+  transform?: (data: T | null) => T | null
   immediate?: boolean
 }
 
-interface CachedEntry {
+interface CachedEntry<T = EntityData> {
   timestamp: number
-  data: any
+  data: T | null
 }
 
 const previewCache = new Map<string, CachedEntry>()
@@ -47,7 +53,7 @@ export function useEntityPreviewFetch(options: EntityPreviewOptions) {
     return entry
   }
 
-  function setCache(payload: any) {
+  function setCache(payload: EntityData | null) {
     const cacheKey = key.value
     if (!cacheKey) return
     previewCache.set(cacheKey, { data: payload, timestamp: Date.now() })
@@ -69,12 +75,13 @@ export function useEntityPreviewFetch(options: EntityPreviewOptions) {
     const endpoint = buildEndpoint(options.kind)
     if (!endpoint) return null
 
-    const response = await apiFetch<any>(`${endpoint}/${options.id}`, {
+    const response = await apiFetch<{ data?: EntityData }>(`${endpoint}/${options.id}`, {
       method: 'GET',
       params: options.lang ? { lang: options.lang, ...(options.query ?? {}) } : options.query,
     })
 
-    const payload = options.transform ? options.transform(response?.data ?? response ?? null) : response?.data ?? response ?? null
+    const rawData = response?.data ?? (response as unknown as EntityData) ?? null
+    const payload = options.transform ? options.transform(rawData) : rawData
     setCache(payload)
     return payload
   }, {

@@ -22,7 +22,7 @@ export function useManageView(options: { storageKey?: string } = {}) {
   const templateKey = useState<ManageTemplateKey>(`${storageKey}:templateKey`, () => 'Class')
   const { templateOptions } = useCardTemplates()
 
-  if (process.client) {
+  if (import.meta.client) {
     const storedMode = localStorage.getItem(`${storageKey}.mode`)
     if (isManageViewMode(storedMode) && storedMode !== viewMode.value) {
       viewMode.value = storedMode

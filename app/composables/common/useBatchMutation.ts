@@ -11,29 +11,29 @@ import type { EntityCapabilities } from '~/composables/common/useEntityCapabilit
 export interface BatchMutationError {
   message: string
   statusCode?: number
-  details?: any
-  raw?: any
+  details?: unknown
+  raw?: unknown
 }
 
-export interface BatchMutationResult<TResult = any> {
+export interface BatchMutationResult<TResult = unknown> {
   success?: boolean
   data?: TResult
-  meta?: Record<string, any> | null
-  [key: string]: any
+  meta?: Record<string, unknown> | null
+  [key: string]: unknown
 }
 
-export interface RunBatchInput<TPayload = Record<string, any>> {
+export interface RunBatchInput<TPayload = Record<string, unknown>> {
   ids: Array<string | number>
   payload?: TPayload | null
   method?: string
   headers?: Record<string, string>
 }
 
-export interface UseBatchMutationOptions<TPayload = Record<string, any>, TResult = any> {
+export interface UseBatchMutationOptions<TPayload = Record<string, unknown>, TResult = unknown> {
   kind: string
   endpoint: string
   method?: string
-  transformPayload?: (input: { ids: Array<string | number>; payload?: TPayload | null }) => Record<string, any>
+  transformPayload?: (input: { ids: Array<string | number>; payload?: TPayload | null }) => Record<string, unknown>
   onSuccess?: (result: TResult, context: BatchMutationContext<TPayload, TResult>) => void | Promise<void>
   onError?: (error: BatchMutationError, context: BatchMutationContext<TPayload, TResult>) => void | Promise<void>
   autoToast?: boolean
@@ -65,7 +65,7 @@ export interface BatchMutationController<TPayload, TResult> {
 const DEFAULT_METHOD = 'PATCH'
 const DEFAULT_CAPABILITY_KEY: keyof EntityCapabilities = 'actionsBatch'
 
-export function useBatchMutation<TPayload = Record<string, any>, TResult = any>(
+export function useBatchMutation<TPayload = Record<string, unknown>, TResult = unknown>(
   optionsInput: MaybeRefOrGetter<UseBatchMutationOptions<TPayload, TResult> | null | undefined>,
 ): BatchMutationController<TPayload, TResult> {
   const loading = ref(false)
@@ -169,7 +169,7 @@ export function useBatchMutation<TPayload = Record<string, any>, TResult = any>(
 
       logger?.info?.('batch.success', { kind: opts.kind, endpoint: opts.endpoint, ids: ids.length })
       return result
-    } catch (err: any) {
+    } catch (err: unknown) {
       const normalizedError = normalizeError(err)
       lastError.value = normalizedError
       lastResult.value = null
@@ -210,7 +210,7 @@ export function useBatchMutation<TPayload = Record<string, any>, TResult = any>(
   }
 }
 
-function buildDefaultPayload(ids: Array<string | number>, payload?: Record<string, any> | null) {
+function buildDefaultPayload(ids: Array<string | number>, payload?: Record<string, unknown> | null) {
   if (payload && typeof payload === 'object') {
     return { ids, ...payload }
   }
@@ -258,7 +258,7 @@ function unwrapResult<TResult>(response: BatchMutationResult<TResult> | TResult)
   return response as TResult
 }
 
-function normalizeError(error: any): BatchMutationError {
+function normalizeError(error: unknown): BatchMutationError {
   if (!error) {
     return { message: 'Unknown error occurred', raw: error }
   }
@@ -271,13 +271,17 @@ function normalizeError(error: any): BatchMutationError {
     return { message: error.message, raw: error }
   }
 
-  const message = error?.data?.message || error?.message || error?.statusMessage || 'Batch action failed'
-  const statusCode = error?.statusCode || error?.status || error?.response?.status
+  const err = error as Record<string, unknown>
+  const errData = err?.data as Record<string, unknown> | undefined
+  const errResponse = err?.response as Record<string, unknown> | undefined
+  
+  const message = String(errData?.message || err?.message || err?.statusMessage || 'Batch action failed')
+  const statusCode = (err?.statusCode || err?.status || errResponse?.status) as number | undefined
 
   return {
     message,
     statusCode,
-    details: error?.data ?? error?.response?.data ?? error,
+    details: errData ?? errResponse?.data ?? error,
     raw: error,
   }
 }
@@ -298,7 +302,7 @@ function handleImmediateError<TPayload, TResult>(
   options.onError?.(error, { ids: [], payload, options })
 }
 
-function emitWarning(message: string, meta?: any) {
+function emitWarning(message: string, meta?: unknown) {
   if (process.env.NODE_ENV !== 'production') {
     console.warn(`[useBatchMutation] ${message}`, meta)
   }

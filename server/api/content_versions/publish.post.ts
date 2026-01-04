@@ -7,6 +7,19 @@ import { badRequest, forbidden, notFound } from '../../utils/error'
 import { contentVersionPublishSchema } from '../../schemas/content-version'
 import { enforceRateLimit } from '../../utils/rateLimit'
 
+// User context type
+interface UserContext {
+  id?: number
+  permissions?: Record<string, boolean>
+}
+
+// Approved revision row type
+interface ApprovedRevision {
+  id: number
+  entity_type: string
+  entity_id: number
+}
+
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   const logger = event.context.logger ?? globalThis.logger
@@ -14,7 +27,7 @@ export default defineEventHandler(async (event) => {
 
   logger?.info?.({ scope: 'content_versions.publish.start', requestId }, 'Content version publish started')
 
-  const user = (event.context as any).user
+  const user = event.context.user as UserContext | undefined
   const permissions = user?.permissions ?? {}
   if (!permissions.canPublish) forbidden('Permission required to publish content versions')
 
@@ -37,7 +50,7 @@ export default defineEventHandler(async (event) => {
   let versionSemver: string | null = null
 
   const transactionResult = await db.transaction().execute(async (trx) => {
-    let metadataPatch: Record<string, any> = {}
+    let metadataPatch: Record<string, unknown> = {}
 
     if (versionId == null) {
       const release = payload.release ?? 'revision'
@@ -80,7 +93,7 @@ export default defineEventHandler(async (event) => {
 
       versionSemver = existing.version_semver
 
-      const updatePatch: Record<string, any> = {}
+      const updatePatch: Record<string, unknown> = {}
 
       if (payload.version_semver && payload.version_semver !== existing.version_semver) {
         const duplicate = await trx
@@ -100,9 +113,9 @@ export default defineEventHandler(async (event) => {
       const baseMetadata = (() => {
         const meta = existing.metadata
         if (!meta) return {}
-        if (typeof meta === 'object') return meta as Record<string, any>
+        if (typeof meta === 'object') return meta as Record<string, unknown>
         try {
-          return JSON.parse(String(meta))
+          return JSON.parse(String(meta)) as Record<string, unknown>
         } catch {
           return {}
         }
@@ -153,7 +166,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const byType: Record<string, number[]> = {}
-    for (const revision of approved as any[]) {
+    for (const revision of approved) {
       byType[revision.entity_type] ||= []
       byType[revision.entity_type].push(Number(revision.entity_id))
     }
@@ -171,7 +184,7 @@ export default defineEventHandler(async (event) => {
     return { approved }
   })
 
-  const approved = transactionResult.approved as Array<{ id: number; entity_type: string; entity_id: number }>
+  const approved = transactionResult.approved as ApprovedRevision[]
   const totalRevisionsPublished = approved?.length ?? 0
   const totalEntities = approved?.length
     ? new Set(approved.map((item) => `${item.entity_type}:${item.entity_id}`)).size

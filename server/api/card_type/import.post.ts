@@ -1,10 +1,10 @@
 // server/api/card_type/import.post.ts
 import { defineEventHandler } from 'h3'
 import { importEntities } from '../../utils/entityCrudHelpers'
-import { getUserFromEvent } from '../../plugins/auth'
+import { tryGetUserId } from '../../plugins/auth'
 
 export default defineEventHandler(async (event) => {
-  let userId: number | null = null
-  try { const u = await getUserFromEvent(event); userId = (u as any).id ?? null } catch {}
+  const userId = await tryGetUserId(event)
+
   return importEntities({ event, table: 'card_type', userId })
 })

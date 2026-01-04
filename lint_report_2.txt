@@ -1,0 +1,1017 @@
+
+> tarot2@ lint /home/bulu/work/devel/tarot2
+> eslint .
+
+
+/home/bulu/work/devel/tarot2/app/components/admin/AdminTableBridge.vue
+  25:7  warning  v-on event '@update:pageSize' must be hyphenated  vue/v-on-event-hyphenation
+
+/home/bulu/work/devel/tarot2/app/components/admin/FeedbackNotesModal.vue
+  30:13  warning  Attribute "v-model" should go before "class"  vue/attributes-order
+
+/home/bulu/work/devel/tarot2/app/components/admin/RevisionCompareModal.vue
+  16:61  warning  'v-html' directive can lead to XSS attack      vue/no-v-html
+  16:80  warning  Require self-closing on HTML elements (<pre>)  vue/html-self-closing
+  20:61  warning  'v-html' directive can lead to XSS attack      vue/no-v-html
+  20:80  warning  Require self-closing on HTML elements (<pre>)  vue/html-self-closing
+
+/home/bulu/work/devel/tarot2/app/components/admin/VersionModal.vue
+  142:14  error  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/components/admin/users/ManageUsers.vue
+  274:36  warning  Attribute "v-model" should go before "class"  vue/attributes-order
+  277:36  warning  Attribute "v-model" should go before "class"  vue/attributes-order
+  280:36  warning  Attribute "v-model" should go before "class"  vue/attributes-order
+  286:17  warning  Attribute "v-model" should go before "class"  vue/attributes-order
+  298:17  warning  Attribute "v-model" should go before "class"  vue/attributes-order
+  563:26  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/components/admin/users/UserCardsGrid.vue
+  76:7  error  'props' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  82:4  error  These overloads can be combined into one signature taking `'edit' | 'delete'`     @typescript-eslint/unified-signatures
+
+/home/bulu/work/devel/tarot2/app/components/admin/users/UserCartaView.vue
+  61:101  warning  The "edit" event has been triggered but not declared on `defineEmits`    vue/require-explicit-emits
+  64:98   warning  The "delete" event has been triggered but not declared on `defineEmits`  vue/require-explicit-emits
+
+/home/bulu/work/devel/tarot2/app/components/admin/users/UserListClassic.vue
+  36:101  warning  The "edit" event has been triggered but not declared on `defineEmits`             vue/require-explicit-emits
+  39:98   warning  The "delete" event has been triggered but not declared on `defineEmits`           vue/require-explicit-emits
+  67:10   error    'computed' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  70:7    error    'props' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/components/admin/users/UserTable.vue
+  56:3  warning  Prop "columns" should be optional                       vue/no-required-prop-with-default
+  57:3  warning  Prop "label" should be optional                         vue/no-required-prop-with-default
+  58:3  warning  Prop 'onEdit' requires default value to be set          vue/require-default-prop
+  59:3  warning  Prop 'onDelete' requires default value to be set        vue/require-default-prop
+  60:3  warning  Prop 'onExport' requires default value to be set        vue/require-default-prop
+  61:3  warning  Prop 'onBatchUpdate' requires default value to be set   vue/require-default-prop
+  62:3  warning  Prop 'onCreate' requires default value to be set        vue/require-default-prop
+  63:3  warning  Prop 'onResetFilters' requires default value to be set  vue/require-default-prop
+
+/home/bulu/work/devel/tarot2/app/components/card/Class.vue
+   9:3  warning  Prop 'shortText' requires default value to be set    vue/require-default-prop
+  10:3  warning  Prop 'description' requires default value to be set  vue/require-default-prop
+  11:3  warning  Prop 'img' requires default value to be set          vue/require-default-prop
+
+/home/bulu/work/devel/tarot2/app/components/card/Origin.vue
+   9:3  warning  Prop 'img' requires default value to be set          vue/require-default-prop
+  10:3  warning  Prop 'description' requires default value to be set  vue/require-default-prop
+  11:3  warning  Prop 'shortText' requires default value to be set    vue/require-default-prop
+
+/home/bulu/work/devel/tarot2/app/components/common/AdvancedFiltersPanel.vue
+  147:80  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  187:33  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  205:50  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  206:4   error  This overload and the one on line 205 can be combined into one signature taking `'update:modelValue' | 'apply'`  @typescript-eslint/unified-signatures
+  206:38  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  237:80  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  241:42  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  242:30  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  257:99  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  258:86  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  291:62  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  292:45  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  305:39  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  410:48  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  410:83  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  411:30  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  417:56  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  418:56  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  429:52  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  429:87  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  451:34  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  451:49  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  461:25  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  461:33  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  466:30  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  470:34  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  486:38  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  487:36  error  Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/components/common/CommonDataTable.vue
+   89:13   warning  Attribute ":is" should go before "v-if"                                                                              vue/attributes-order
+  124:7    warning  v-on event '@update:pageSize' must be hyphenated                                                                     vue/v-on-event-hyphenation
+  138:39   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  149:3    warning  Prop "items" should be optional                                                                                      vue/no-required-prop-with-default
+  149:10   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  150:3    warning  Prop "columns" should be optional                                                                                    vue/no-required-prop-with-default
+  151:3    warning  Prop 'meta' requires default value to be set                                                                         vue/require-default-prop
+  187:4    error    This overload and the one on line 186 can be combined into one signature taking `'update:page' | 'update:pageSize'`  @typescript-eslint/unified-signatures
+  189:27   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  190:4    error    This overload and the one on line 189 can be combined into one signature taking `'row:click' | 'row:dblclick'`       @typescript-eslint/unified-signatures
+  190:30   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  341:64   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  341:135  error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  423:27   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  429:25   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/components/common/ConfirmDeleteModal.vue
+  38:3  warning  Prop "open" should be optional                                                                         vue/no-required-prop-with-default
+  55:4  error    This overload and the one on line 54 can be combined into one signature taking `'confirm' | 'cancel'`  @typescript-eslint/unified-signatures
+
+/home/bulu/work/devel/tarot2/app/components/common/EntityCard.vue
+  195:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/components/common/EntitySummary.vue
+  177:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/components/common/JsonModal.vue
+  101:13  error  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  123:22  error  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  124:4   error  These overloads can be combined into one signature taking `'save' | 'update:value'`  @typescript-eslint/unified-signatures
+  124:30  error  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  185:8   error  Replace `process.client` with `import.meta.client`                                   nuxt/prefer-import-meta
+  243:32  error  Replace `process.client` with `import.meta.client`                                   nuxt/prefer-import-meta
+
+/home/bulu/work/devel/tarot2/app/components/common/MarkdownPreview.vue
+  30:5  warning  'v-html' directive can lead to XSS attack  vue/no-v-html
+
+/home/bulu/work/devel/tarot2/app/components/common/PaginationControls.vue
+  64:4  error  This overload and the one on line 63 can be combined into one signature taking `'update:page' | 'update:pageSize'`       @typescript-eslint/unified-signatures
+  65:4  error  This overload and the one on line 63 can be combined into one signature taking `'update:page' | 'update:page-size'`      @typescript-eslint/unified-signatures
+  65:4  error  This overload and the one on line 64 can be combined into one signature taking `'update:pageSize' | 'update:page-size'`  @typescript-eslint/unified-signatures
+
+/home/bulu/work/devel/tarot2/app/components/common/StatusBadge.vue
+  36:3  warning  Prop "type" should be optional                         vue/no-required-prop-with-default
+  37:3  warning  Prop 'value' requires default value to be set          vue/require-default-prop
+  39:3  warning  Prop 'colorOverride' requires default value to be set  vue/require-default-prop
+
+/home/bulu/work/devel/tarot2/app/components/common/entityDisplay.ts
+  35:1  error  Import in body of module; reorder to top  import/first
+
+/home/bulu/work/devel/tarot2/app/components/deck/DeckSection.vue
+  89:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/components/manage/CartaRow.vue
+  113:3  error  'imageFallback' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  114:3  error  'statusColor' is assigned a value but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  115:3  error  'statusVariant' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/components/manage/EntityActions.vue
+  19:4  error  This overload and the one on line 18 can be combined into one signature taking `'edit' | 'editform'`      @typescript-eslint/unified-signatures
+  20:4  error  This overload and the one on line 18 can be combined into one signature taking `'edit' | 'feedback'`      @typescript-eslint/unified-signatures
+  20:4  error  This overload and the one on line 19 can be combined into one signature taking `'editform' | 'feedback'`  @typescript-eslint/unified-signatures
+  21:4  error  This overload and the one on line 18 can be combined into one signature taking `'edit' | 'tags'`          @typescript-eslint/unified-signatures
+  21:4  error  This overload and the one on line 19 can be combined into one signature taking `'editform' | 'tags'`      @typescript-eslint/unified-signatures
+  21:4  error  This overload and the one on line 20 can be combined into one signature taking `'feedback' | 'tags'`      @typescript-eslint/unified-signatures
+  22:4  error  This overload and the one on line 18 can be combined into one signature taking `'edit' | 'delete'`        @typescript-eslint/unified-signatures
+  22:4  error  This overload and the one on line 19 can be combined into one signature taking `'editform' | 'delete'`    @typescript-eslint/unified-signatures
+  22:4  error  This overload and the one on line 20 can be combined into one signature taking `'feedback' | 'delete'`    @typescript-eslint/unified-signatures
+  22:4  error  This overload and the one on line 21 can be combined into one signature taking `'tags' | 'delete'`        @typescript-eslint/unified-signatures
+  26:7  error  'localeCode' is assigned a value but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+  29:7  error  'statusMenu' is assigned a value but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/components/manage/EntityBase.vue
+   54:34  warning  Require self-closing on HTML elements (<div>)                                              vue/html-self-closing
+   75:11  warning  v-on event '@update:pageSize' must be hyphenated                                           vue/v-on-event-hyphenation
+  417:7   warning  Attribute ":id" should go before "v-model:open"                                            vue/attributes-order
+  446:15  error    'TableColumn' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+  477:3   warning  Prop 'templateKey' requires default value to be set                                        vue/require-default-prop
+  478:3   warning  Prop 'filtersConfig' requires default value to be set                                      vue/require-default-prop
+  527:10  error    'setPreviewOpen' is defined but never used. Allowed unused vars must match /^_/u           @typescript-eslint/no-unused-vars
+  656:16  error    'refresh' is defined but never used. Allowed unused vars must match /^_/u                  @typescript-eslint/no-unused-vars
+  707:3   error    'deleteTarget' is assigned a value but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  871:9   error    'onChangeStatus' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  874:16  error    'onTranslate' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+  883:12  error    'e' is defined but never used                                                              @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/components/manage/EntityFilters.vue
+    8:20  error    Unexpected mutation of "crud" prop              vue/no-mutating-props
+  100:3   warning  Prop 'config' requires default value to be set  vue/require-default-prop
+  233:7   error    Unexpected mutation of "crud" prop              vue/no-mutating-props
+  264:7   error    Unexpected mutation of "crud" prop              vue/no-mutating-props
+  268:5   error    Unexpected mutation of "crud" prop              vue/no-mutating-props
+
+/home/bulu/work/devel/tarot2/app/components/manage/EntityInspectorDrawer.vue
+  164:3  warning  Prop "open" should be optional  vue/no-required-prop-with-default
+
+/home/bulu/work/devel/tarot2/app/components/manage/EntitySlideover.vue
+  412:4   error  This overload and the one on line 411 can be combined into one signature taking `'close' | 'saved'`  @typescript-eslint/unified-signatures
+  723:27  error  Do not delete dynamically computed property keys                                                     @typescript-eslint/no-dynamic-delete
+  755:8   error  Replace `process.server` with `import.meta.server`                                                   nuxt/prefer-import-meta
+  852:35  error  Unexpected any. Specify a different type                                                             @typescript-eslint/no-explicit-any
+  857:35  error  Unexpected any. Specify a different type                                                             @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/components/manage/EntityTableWrapper.vue
+  111:4  error  This overload and the one on line 109 can be combined into one signature taking `'edit' | 'delete'`           @typescript-eslint/unified-signatures
+  113:4  error  This overload and the one on line 112 can be combined into one signature taking `'export' | 'batchUpdate'`    @typescript-eslint/unified-signatures
+  115:4  error  This overload and the one on line 114 can be combined into one signature taking `'create' | 'reset-filters'`  @typescript-eslint/unified-signatures
+  116:4  error  This overload and the one on line 109 can be combined into one signature taking `'edit' | 'feedback'`         @typescript-eslint/unified-signatures
+  116:4  error  This overload and the one on line 111 can be combined into one signature taking `'delete' | 'feedback'`       @typescript-eslint/unified-signatures
+  117:4  error  This overload and the one on line 109 can be combined into one signature taking `'edit' | 'tags'`             @typescript-eslint/unified-signatures
+  117:4  error  This overload and the one on line 111 can be combined into one signature taking `'delete' | 'tags'`           @typescript-eslint/unified-signatures
+  117:4  error  This overload and the one on line 116 can be combined into one signature taking `'feedback' | 'tags'`         @typescript-eslint/unified-signatures
+
+/home/bulu/work/devel/tarot2/app/components/manage/ManageTableBridge.vue
+   25:7  warning  v-on event '@update:pageSize' must be hyphenated                                                                     vue/v-on-event-hyphenation
+  132:4  error    This overload and the one on line 131 can be combined into one signature taking `'update:page' | 'update:pageSize'`  @typescript-eslint/unified-signatures
+  135:4  error    This overload and the one on line 134 can be combined into one signature taking `'row:click' | 'row:dblclick'`       @typescript-eslint/unified-signatures
+
+/home/bulu/work/devel/tarot2/app/components/manage/Preview.vue
+   8:3  warning  Prop 'img' requires default value to be set          vue/require-default-prop
+   9:3  warning  Prop 'description' requires default value to be set  vue/require-default-prop
+  10:3  warning  Prop 'shortText' requires default value to be set    vue/require-default-prop
+
+/home/bulu/work/devel/tarot2/app/components/manage/modal/ConfirmDialog.vue
+  64:4  error  This overload and the one on line 63 can be combined into one signature taking `'confirm' | 'cancel'`  @typescript-eslint/unified-signatures
+
+/home/bulu/work/devel/tarot2/app/components/manage/modal/FormModal.vue
+  114:3   warning  Prop 'description' requires default value to be set                                                          vue/require-default-prop
+  119:3   warning  Prop 'ui' requires default value to be set                                                                   vue/require-default-prop
+  122:3   warning  Prop 'imageFile' requires default value to be set                                                            vue/require-default-prop
+  123:3   warning  Prop 'imagePreview' requires default value to be set                                                         vue/require-default-prop
+  124:3   warning  Prop 'imageFieldConfig' requires default value to be set                                                     vue/require-default-prop
+  159:4   error    This overload and the one on line 158 can be combined into one signature taking `'submit' | 'cancel'`        @typescript-eslint/unified-signatures
+  160:4   error    This overload and the one on line 158 can be combined into one signature taking `'submit' | 'remove-image'`  @typescript-eslint/unified-signatures
+  160:4   error    This overload and the one on line 159 can be combined into one signature taking `'cancel' | 'remove-image'`  @typescript-eslint/unified-signatures
+  309:12  error    'e' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/components/manage/view/EntityCards.vue
+   39:19  warning  Attribute "v-for" should go before "v-else"                                                                   vue/attributes-order
+  144:8   error    'CartaRow' is defined but never used. Allowed unused vars must match /^_/u                                    @typescript-eslint/no-unused-vars
+  159:4   error    This overload and the one on line 158 can be combined into one signature taking `'edit' | 'delete'`           @typescript-eslint/unified-signatures
+  160:4   error    This overload and the one on line 158 can be combined into one signature taking `'edit' | 'feedback'`         @typescript-eslint/unified-signatures
+  160:4   error    This overload and the one on line 159 can be combined into one signature taking `'delete' | 'feedback'`       @typescript-eslint/unified-signatures
+  161:4   error    This overload and the one on line 158 can be combined into one signature taking `'edit' | 'tags'`             @typescript-eslint/unified-signatures
+  161:4   error    This overload and the one on line 159 can be combined into one signature taking `'delete' | 'tags'`           @typescript-eslint/unified-signatures
+  161:4   error    This overload and the one on line 160 can be combined into one signature taking `'feedback' | 'tags'`         @typescript-eslint/unified-signatures
+  162:4   error    This overload and the one on line 158 can be combined into one signature taking `'edit' | 'preview'`          @typescript-eslint/unified-signatures
+  162:4   error    This overload and the one on line 159 can be combined into one signature taking `'delete' | 'preview'`        @typescript-eslint/unified-signatures
+  162:4   error    This overload and the one on line 160 can be combined into one signature taking `'feedback' | 'preview'`      @typescript-eslint/unified-signatures
+  162:4   error    This overload and the one on line 161 can be combined into one signature taking `'tags' | 'preview'`          @typescript-eslint/unified-signatures
+  164:4   error    This overload and the one on line 163 can be combined into one signature taking `'create' | 'reset-filters'`  @typescript-eslint/unified-signatures
+  171:3   error    'imageFallback' is assigned a value but never used. Allowed unused vars must match /^_/u                      @typescript-eslint/no-unused-vars
+  232:10  error    'onCreateClick' is defined but never used. Allowed unused vars must match /^_/u                               @typescript-eslint/no-unused-vars
+  234:10  error    'resolveEffectsMarkdown' is defined but never used. Allowed unused vars must match /^_/u                      @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/components/manage/view/EntityCardsClassic.vue
+   42:19  warning  Attribute "v-for" should go before "v-else"                                                                   vue/attributes-order
+  156:4   error    This overload and the one on line 155 can be combined into one signature taking `'edit' | 'delete'`           @typescript-eslint/unified-signatures
+  157:4   error    This overload and the one on line 155 can be combined into one signature taking `'edit' | 'feedback'`         @typescript-eslint/unified-signatures
+  157:4   error    This overload and the one on line 156 can be combined into one signature taking `'delete' | 'feedback'`       @typescript-eslint/unified-signatures
+  158:4   error    This overload and the one on line 155 can be combined into one signature taking `'edit' | 'tags'`             @typescript-eslint/unified-signatures
+  158:4   error    This overload and the one on line 156 can be combined into one signature taking `'delete' | 'tags'`           @typescript-eslint/unified-signatures
+  158:4   error    This overload and the one on line 157 can be combined into one signature taking `'feedback' | 'tags'`         @typescript-eslint/unified-signatures
+  159:4   error    This overload and the one on line 155 can be combined into one signature taking `'edit' | 'preview'`          @typescript-eslint/unified-signatures
+  159:4   error    This overload and the one on line 156 can be combined into one signature taking `'delete' | 'preview'`        @typescript-eslint/unified-signatures
+  159:4   error    This overload and the one on line 157 can be combined into one signature taking `'feedback' | 'preview'`      @typescript-eslint/unified-signatures
+  159:4   error    This overload and the one on line 158 can be combined into one signature taking `'tags' | 'preview'`          @typescript-eslint/unified-signatures
+  161:4   error    This overload and the one on line 160 can be combined into one signature taking `'create' | 'reset-filters'`  @typescript-eslint/unified-signatures
+  170:3   error    'isActive' is assigned a value but never used. Allowed unused vars must match /^_/u                           @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/components/manage/view/EntityCarta.vue
+  103:4   error  This overload and the one on line 102 can be combined into one signature taking `'edit' | 'delete'`       @typescript-eslint/unified-signatures
+  104:4   error  This overload and the one on line 102 can be combined into one signature taking `'edit' | 'feedback'`     @typescript-eslint/unified-signatures
+  104:4   error  This overload and the one on line 103 can be combined into one signature taking `'delete' | 'feedback'`   @typescript-eslint/unified-signatures
+  105:4   error  This overload and the one on line 102 can be combined into one signature taking `'edit' | 'tags'`         @typescript-eslint/unified-signatures
+  105:4   error  This overload and the one on line 103 can be combined into one signature taking `'delete' | 'tags'`       @typescript-eslint/unified-signatures
+  105:4   error  This overload and the one on line 104 can be combined into one signature taking `'feedback' | 'tags'`     @typescript-eslint/unified-signatures
+  106:4   error  This overload and the one on line 102 can be combined into one signature taking `'edit' | 'preview'`      @typescript-eslint/unified-signatures
+  106:4   error  This overload and the one on line 103 can be combined into one signature taking `'delete' | 'preview'`    @typescript-eslint/unified-signatures
+  106:4   error  This overload and the one on line 104 can be combined into one signature taking `'feedback' | 'preview'`  @typescript-eslint/unified-signatures
+  106:4   error  This overload and the one on line 105 can be combined into one signature taking `'tags' | 'preview'`      @typescript-eslint/unified-signatures
+  117:3   error  'titleOf' is assigned a value but never used. Allowed unused vars must match /^_/u                        @typescript-eslint/no-unused-vars
+  118:3   error  'isActive' is assigned a value but never used. Allowed unused vars must match /^_/u                       @typescript-eslint/no-unused-vars
+  119:3   error  'langBadge' is assigned a value but never used. Allowed unused vars must match /^_/u                      @typescript-eslint/no-unused-vars
+  155:10  error  'onPreview' is defined but never used. Allowed unused vars must match /^_/u                               @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/components/manage/view/EntityTable.vue
+  177:4  error  This overload and the one on line 176 can be combined into one signature taking `'update:selectedIds' | 'export-selected'`  @typescript-eslint/unified-signatures
+  178:4  error  This overload and the one on line 176 can be combined into one signature taking `'update:selectedIds' | 'update-selected'`  @typescript-eslint/unified-signatures
+  178:4  error  This overload and the one on line 177 can be combined into one signature taking `'export-selected' | 'update-selected'`     @typescript-eslint/unified-signatures
+
+/home/bulu/work/devel/tarot2/app/composables/admin/useContentFeedback.ts
+  131:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  261:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  280:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  280:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  293:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  293:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  322:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  322:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  336:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  336:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/admin/useDatabaseManager.ts
+   49:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   87:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/admin/useRevisions.ts
+  146:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  174:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  199:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  214:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/auth/useAuth.ts
+  29:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  70:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/common/useBatchMutation.ts
+   14:13   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   15:9    error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   18:48   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   21:25   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   22:18   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:58   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   32:68   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   32:84   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   36:108  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   68:60   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   68:76   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  172:19   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  213:84   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  261:32   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  301:46   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/common/useCardTemplates.ts
+  9:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/common/useCardViewHelpers.ts
+   2:20  error  'unref' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  52:26  error  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  56:27  error  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+  60:28  error  Unexpected any. Specify a different type                                 @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/common/useEntityPreviewFetch.ts
+   2:20  error  'shallowRef' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  11:26  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  12:22  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  12:30  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  18:9   error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  50:30  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  72:37  error  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/common/useFormSection.ts
+    9:93   error  void is not valid as a constituent in a union type  @typescript-eslint/no-invalid-void-type
+    9:128  error  void is not valid as a constituent in a union type  @typescript-eslint/no-invalid-void-type
+   40:65   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   44:47   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   44:87   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   47:21   error  Do not delete dynamically computed property keys    @typescript-eslint/no-dynamic-delete
+   53:34   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   55:34   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   57:34   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   62:25   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   62:33   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+   85:61   error  void is not valid as a constituent in a union type  @typescript-eslint/no-invalid-void-type
+   91:57   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  106:41   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  112:41   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  112:77   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  138:43   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  140:21   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  155:47   error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/common/useQuerySync.ts
+    7:68  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+   17:67  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+   24:60  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+   98:10  error  Replace `process.client` with `import.meta.client`                          nuxt/prefer-import-meta
+  131:7   error  Replace `process.client` with `import.meta.client`                          nuxt/prefer-import-meta
+  160:55  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  186:34  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  186:39  error  'fallback' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  186:49  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  234:31  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  235:71  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  258:21  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  258:29  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  275:48  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  277:36  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/deck/useDeckCrud.ts
+  125:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useEntity.ts
+   36:32  error  'TList' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  403:10  error  Replace `process.client` with `import.meta.client`                       nuxt/prefer-import-meta
+  413:41  error  Empty block statement                                                    no-empty
+  465:53  error  Empty block statement                                                    no-empty
+  620:7   error  Replace `process.client` with `import.meta.client`                       nuxt/prefer-import-meta
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useEntityDeletion.ts
+  3:1  error  All imports in the declaration are only used as types. Use `import type`  @typescript-eslint/consistent-type-imports
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useEntityFormPreset.ts
+  3:1  error  All imports in the declaration are only used as types. Use `import type`  @typescript-eslint/consistent-type-imports
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useEntityModals.ts
+   2:1   error  All imports in the declaration are only used as types. Use `import type`  @typescript-eslint/consistent-type-imports
+  59:19  error  Empty block statement                                                     no-empty
+  89:70  error  Do not delete dynamically computed property keys                          @typescript-eslint/no-dynamic-delete
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useEntityPagination.ts
+  5:10  error  'toOptions' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useFeedback.ts
+  142:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useFormState.ts
+  78:50  error  Do not delete dynamically computed property keys  @typescript-eslint/no-dynamic-delete
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useManageActions.ts
+  3:1  error  All imports in the declaration are only used as types. Use `import type`  @typescript-eslint/consistent-type-imports
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useManageView.ts
+  25:7  error  Replace `process.client` with `import.meta.client`  nuxt/prefer-import-meta
+
+/home/bulu/work/devel/tarot2/app/composables/manage/useOptimisticStatus.ts
+  2:1  error  All imports in the declaration are only used as types. Use `import type`  @typescript-eslint/consistent-type-imports
+
+/home/bulu/work/devel/tarot2/app/composables/useUser.ts
+  25:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  33:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/pages/admin/database.vue
+   69:94  warning  Disallow self-closing on HTML void elements (<input/>)  vue/html-self-closing
+  104:60  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  116:19  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  126:18  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  136:19  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  158:63  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  168:19  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  183:19  error    Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/pages/admin/feedback/[id].vue
+   96:19  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+   97:22  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+   98:18  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  110:68  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  119:15  error  Unexpected any. Specify a different type                                    @typescript-eslint/no-explicit-any
+  140:16  error  'onDelete' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/pages/admin/feedback/index.vue
+   40:9   warning  Attribute "v-model" should go before ":schema"                                              vue/attributes-order
+  234:7   error    'router' is assigned a value but never used. Allowed unused vars must match /^_/u           @typescript-eslint/no-unused-vars
+  235:7   error    'route' is assigned a value but never used. Allowed unused vars must match /^_/u            @typescript-eslint/no-unused-vars
+  267:61  error    'resetQueryState' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  278:69  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  278:96  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  279:71  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  279:99  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  387:30  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  462:33  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  479:7   error    'dashboardQuery' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  491:7   error    'pageForUi' is assigned a value but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  494:7   error    'totalPagesForUi' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  510:55  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  511:57  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  547:22  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  549:23  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  550:22  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  676:64  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  686:30  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  698:29  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  703:12  error    'err' is defined but never used                                                             @typescript-eslint/no-unused-vars
+  708:28  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  713:12  error    'err' is defined but never used                                                             @typescript-eslint/no-unused-vars
+  718:22  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  723:21  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  736:17  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  759:12  error    'err' is defined but never used                                                             @typescript-eslint/no-unused-vars
+  783:39  error    Unexpected any. Specify a different type                                                    @typescript-eslint/no-explicit-any
+  829:12  error    'err' is defined but never used                                                             @typescript-eslint/no-unused-vars
+  842:12  error    'err' is defined but never used                                                             @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/pages/admin/users.vue
+  10:1  error  Import in body of module; reorder to top  import/first
+
+/home/bulu/work/devel/tarot2/app/pages/admin/versions/[id].vue
+   77:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   78:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   88:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   90:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:71  error  Empty block statement                     no-empty
+
+/home/bulu/work/devel/tarot2/app/pages/admin/versions/entity/[id].vue
+  129:25  error  'error' is assigned a value but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  129:47  error  'fetchList' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  129:58  error  'fetchOne' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  129:68  error  'setStatus' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  131:30  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  134:24  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  160:32  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  165:12  error  'e' is defined but never used                                                         @typescript-eslint/no-unused-vars
+  170:19  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  183:46  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  187:25  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  188:21  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  205:12  error  'e' is defined but never used                                                         @typescript-eslint/no-unused-vars
+  211:36  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  215:35  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  219:35  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  224:23  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  225:20  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  245:14  error  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/pages/admin/versions/index.vue
+   96:65   error  'publish' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  109:22   error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  137:20   error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  146:25   error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  150:27   error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  159:126  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  163:62   error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  180:15   error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  192:22   error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  193:19   error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/pages/login.vue
+  56:20  error  'ref' is defined but never used. Allowed unused vars must match /^_/u            @typescript-eslint/no-unused-vars
+  65:9   error  't' is assigned a value but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  67:16  error  'user' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/app/pages/manage.vue
+  90:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/pages/manage/arcana/[id].vue
+  307:28  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  351:8   error  Replace `process.server` with `import.meta.server`  nuxt/prefer-import-meta
+  376:66  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  422:46  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  444:52  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  464:23  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  464:31  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  484:45  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  495:35  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  499:31  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  534:21  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  593:21  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  626:21  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  737:19  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  771:27  error  Do not delete dynamically computed property keys    @typescript-eslint/no-dynamic-delete
+  790:17  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+  805:34  error  Unexpected any. Specify a different type            @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/pages/manage/tags_new.vue
+  223:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  223:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  245:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  252:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  309:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  339:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/pages/user.vue
+  229:29  error  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  285:36  error  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  310:53  error  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  357:12  error  'error' is defined but never used                                                      @typescript-eslint/no-unused-vars
+  428:7   error  'saveStatus' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  494:31  error  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+  521:31  error  Unexpected any. Specify a different type                                               @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/plugins/app-logger.ts
+    5:27   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+    6:26   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+    7:26   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+    8:27   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+    9:37   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   13:48   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   14:47   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   15:47   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   16:56   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   17:34   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   20:10   error  'isPinoLogger' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   26:27   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   33:26   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   40:26   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   47:27   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   60:74   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   61:108  error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   86:36   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   98:9    error  Replace `process.server` with `import.meta.server`                              nuxt/prefer-import-meta
+  102:43   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  122:7    error  Replace `process.client` with `import.meta.client`                              nuxt/prefer-import-meta
+
+/home/bulu/work/devel/tarot2/app/stores/user.ts
+  59:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  68:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/utils/fetcher.ts
+  165:12  error  Replace `process.server` with `import.meta.server`  nuxt/prefer-import-meta
+
+/home/bulu/work/devel/tarot2/app/utils/manage/entityRows.ts
+    3:15   error  'ManageEntity' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   82:18   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   98:19   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+   99:21   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  196:22   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  197:22   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  198:22   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  199:22   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  200:22   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  201:22   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  202:22   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  203:22   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  211:21   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  212:21   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  213:21   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  214:21   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  215:21   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  216:21   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  217:21   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  218:21   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  219:24   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  220:24   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  221:24   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  222:24   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  225:73   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  225:100  error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  242:36   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  245:17   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  262:39   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  267:44   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  298:49   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  303:44   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+  349:47   error  Unexpected any. Specify a different type                                        @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/app/utils/navigation.ts
+  37:18  error  'role' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/scripts/missed-i18n.mjs
+  25:70   error  Unnecessary escape character: \-  no-useless-escape
+  25:98   error  Unnecessary escape character: \-  no-useless-escape
+  25:174  error  Unnecessary escape character: \-  no-useless-escape
+  25:202  error  Unnecessary escape character: \-  no-useless-escape
+  25:252  error  Unnecessary escape character: \-  no-useless-escape
+  25:280  error  Unnecessary escape character: \-  no-useless-escape
+  25:327  error  Unnecessary escape character: \-  no-useless-escape
+  25:355  error  Unnecessary escape character: \-  no-useless-escape
+
+/home/bulu/work/devel/tarot2/scripts/translate-missing.mjs
+   57:3   error  Duplicate key 'fields.parent_id'  no-dupe-keys
+  308:7   error  Duplicate key 'content'           no-dupe-keys
+  341:7   error  Duplicate key 'success'           no-dupe-keys
+  342:7   error  Duplicate key 'error'             no-dupe-keys
+  343:7   error  Duplicate key 'warning'           no-dupe-keys
+  344:7   error  Duplicate key 'info'              no-dupe-keys
+  376:7   error  Duplicate key 'area'              no-dupe-keys
+  445:7   error  Duplicate key 'content'           no-dupe-keys
+  478:7   error  Duplicate key 'success'           no-dupe-keys
+  479:7   error  Duplicate key 'error'             no-dupe-keys
+  480:7   error  Duplicate key 'warning'           no-dupe-keys
+  481:7   error  Duplicate key 'info'              no-dupe-keys
+  513:7   error  Duplicate key 'area'              no-dupe-keys
+  732:7   error  Duplicate key 'Complete'          no-dupe-keys
+  738:7   error  Duplicate key 'Info'              no-dupe-keys
+  739:7   error  Duplicate key 'Debug'             no-dupe-keys
+  786:7   error  Duplicate key 'Kilo'              no-dupe-keys
+  836:36  error  Unnecessary escape character: \"  no-useless-escape
+  836:53  error  Unnecessary escape character: \"  no-useless-escape
+
+/home/bulu/work/devel/tarot2/server/api/arcana/_crud.ts
+    5:15  error  'DB' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+    7:49  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+    8:32  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+   17:26  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+   21:54  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+   24:53  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  132:44  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  142:49  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+  163:49  error  Unexpected any. Specify a different type                              @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/auth/login.post.ts
+  65:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  66:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/auth/logout.post.ts
+  10:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/base_card/_crud.ts
+   10:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   10:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   18:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   22:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   31:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  157:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  167:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/card_type/_crud.ts
+   10:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   10:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   18:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   22:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  106:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/content_feedback/index.get.ts
+  9:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  9:65  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  9:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/content_feedback/index.post.ts
+  13:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/content_revisions/[id].patch.ts
+  49:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/content_revisions/[id]/revert.post.ts
+   24:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   47:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   48:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   49:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   49:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   54:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   90:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/content_revisions/index.post.ts
+  13:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/content_versions/index.post.ts
+  14:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/content_versions/publish.post.ts
+   17:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   40:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/database/export.json.get.ts
+  18:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:72  error  Empty block statement                     no-empty
+  29:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/database/export.sql.get.ts
+  17:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:72  error  Empty block statement                     no-empty
+  23:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  80:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/database/import.json.post.ts
+  18:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  20:72  error  Empty block statement                     no-empty
+  29:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/database/import.sql.post.ts
+  17:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  19:72  error  Empty block statement                     no-empty
+  23:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  67:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/facet/_crud.ts
+   10:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   10:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   20:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   27:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   33:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  161:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  193:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/role/[id].get.ts
+  24:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/role/[id].patch.ts
+  22:81  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/role/index.get.ts
+   4:10  error  'sql' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  31:23  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  35:30  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  35:74  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  46:31  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  51:38  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  64:22  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+  70:68  error  Unexpected any. Specify a different type                               @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/role/index.post.ts
+  19:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/skill/_crud.ts
+   10:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   10:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   20:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   27:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   33:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  161:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  193:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/tag/[id].patch.ts
+  67:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/tag/batch.patch.ts
+  30:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  44:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  68:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  91:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/tag/export.get.ts
+  27:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:72  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/tag/import.post.ts
+  35:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  37:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/tag/index.post.ts
+  27:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  83:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/tag_links/index.post.ts
+  14:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/uploads/index.post.ts
+  48:31  error  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  85:9   error  'targetFormat' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/server/api/user/[id].get.ts
+  34:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  34:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/user/[id].patch.ts
+  81:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  81:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  82:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  85:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  92:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  94:72  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/user/index.get.ts
+  50:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  70:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  71:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  92:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  97:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/user/index.post.ts
+  66:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  67:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/user/me.get.ts
+  43:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  43:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  44:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  47:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  70:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/world/_crud.ts
+   10:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   10:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   20:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   27:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  162:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  179:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/api/world_card/_crud.ts
+   10:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   10:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   20:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   32:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   35:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   38:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   41:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  182:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  194:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  216:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/middleware/00.auth.hydrate.ts
+  41:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/middleware/01.auth.guard.ts
+  18:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/plugins/logger.ts
+  20:3  warning  Unused eslint-disable directive (no problems were reported from 'no-var')
+
+/home/bulu/work/devel/tarot2/server/schemas/content-revision.ts
+  26:14  error  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/bulu/work/devel/tarot2/server/utils/createCrudHandlers.ts
+   24:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   38:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   39:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   40:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   44:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   45:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   61:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   62:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   63:13  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   64:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  104:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:84  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  127:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  128:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  133:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  134:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  134:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  135:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  135:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  136:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  165:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  174:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  215:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  223:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  229:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  230:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  242:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  249:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  249:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  250:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  294:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  300:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/utils/deleteLocalizedEntity.ts
+  39:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/home/bulu/work/devel/tarot2/server/utils/entityCrudHelpers.ts
+   16:39  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   16:47  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   17:40  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   17:45  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   17:50  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   17:78  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   17:83  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   17:88  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   24:9   error  'idField' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   41:47  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   59:31  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   75:42  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   77:21  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+   92:13  error  Empty block statement                                                               no-empty
+  116:72  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  118:42  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  125:33  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  129:38  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  138:34  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  139:18  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  141:57  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  180:35  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  184:38  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  185:51  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  191:46  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  200:50  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  205:23  error  Do not delete dynamically computed property keys                                    @typescript-eslint/no-dynamic-delete
+  214:39  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  225:45  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  239:48  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  253:21  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  280:33  error  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+
+✖ 766 problems (706 errors, 60 warnings)
+  19 errors and 20 warnings potentially fixable with the `--fix` option.
+
+ ELIFECYCLE  Command failed with exit code 1.

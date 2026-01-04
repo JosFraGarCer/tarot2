@@ -52,16 +52,18 @@ const weeklyBuckets = ref<{ label: string; count: number }[]>([])
 const { fetchMeta } = useContentFeedback()
 const apiFetch = useApiFetch
 
-async function fetchCount(q: Record<string, any>) {
+async function fetchCount(q: Record<string, unknown>) {
   try {
     const meta = await fetchMeta({ ...q, page: 1, pageSize: 1 })
     if (meta?.totalItems != null) return Number(meta.totalItems)
-  } catch {}
+  } catch {
+    // Ignore errors during count fetch
+  }
   return 0
 }
 
 async function loadTotals() {
-  const base: Record<string, any> = {}
+  const base: Record<string, unknown> = {}
   if (props.query?.type && props.query.type !== 'all') base.category = props.query.type
   totals.total = await fetchCount(base)
   totals.open = await fetchCount({ ...base, status: 'open' })
@@ -90,13 +92,14 @@ async function loadWeekly() {
   for (const d of dates) map.set(format(d), 0)
 
   for (let page = 1; page <= 5; page++) {
-    const response = await apiFetch<{ data?: any[] } | any[]>('/content_feedback', {
+    const response = await apiFetch<{ data?: Record<string, unknown>[] } | Record<string, unknown>[]>('/content_feedback', {
       method: 'GET',
       params: { page, pageSize: 50 },
     })
     const data = Array.isArray(response) ? response : Array.isArray(response?.data) ? response.data : []
     for (const it of data) {
-      const created = new Date((it as any).created_at || (it as any).createdAt)
+      const item = it as Record<string, unknown>
+      const created = new Date((item.created_at as string) || (item.createdAt as string))
       if (created >= since) {
         const key = format(startOfDay(created))
         map.set(key, (map.get(key) || 0) + 1)

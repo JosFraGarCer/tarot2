@@ -32,7 +32,7 @@
                   </UBadge>
                 </td>
                 <td class="py-2 pr-4">{{ r.language_code || '—' }}</td>
-                <td class="py-2 pr-4">{{ (r as any).author_name || r.created_by || '—' }}</td>
+                <td class="py-2 pr-4">{{ r.author_name || r.created_by || '—' }}</td>
                 <td class="py-2 pr-4">{{ r.content_version_id || '—' }}</td>
                 <td class="py-2 pr-4">{{ formatDate(r.created_at) }}</td>
                 <td class="py-2 pr-0">
@@ -72,10 +72,10 @@
 
 <script setup lang="ts">
 import JsonModal from '@/components/admin/JsonModal.vue'
-import { useRevisions } from '@/composables/admin/useRevisions'
+import { useRevisions, type RevisionItem } from '@/composables/admin/useRevisions'
 import { formatDate } from '@/utils/date'
 
-const props = defineProps<{ open: boolean; entityType: string; entityId: number; languageCode?: string | null }>()
+const props = defineProps<{ entityType: string; entityId: number; languageCode?: string | null }>()
 const open = defineModel<boolean>('open')
 
 const { items, pending, error, fetchByEntity } = useRevisions()
@@ -83,24 +83,24 @@ const { items, pending, error, fetchByEntity } = useRevisions()
 const title = computed(() => `${useI18n().t('features.admin.revisionsHistory.title','Revision history')} · ${props.entityType} #${props.entityId}`)
 
 watch(() => [props.entityType, props.entityId, props.languageCode, open.value], async ([et, id, lang, isOpen]) => {
-  if (isOpen && et && id) await fetchByEntity(et, id, lang || undefined)
+  if (isOpen && et && id) await fetchByEntity(et as string, id as number, lang as string | undefined)
 }, { immediate: true })
 
 const diffOpen = ref(false)
-const currentDiff = ref<any>({})
-function onViewDiff(r:any) {
+const currentDiff = ref<Record<string, unknown>>({})
+function onViewDiff(r: RevisionItem) {
   currentDiff.value = r?.diff || {}
   diffOpen.value = true
 }
 
 const snapshotsOpen = ref(false)
-const currentPrev = ref<any>({})
-const currentNext = ref<any>({})
-function onViewSnapshots(r:any) {
+const currentPrev = ref<Record<string, unknown>>({})
+const currentNext = ref<Record<string, unknown>>({})
+function onViewSnapshots(r: RevisionItem) {
   currentPrev.value = r?.prev_snapshot || {}
   currentNext.value = r?.next_snapshot || {}
   snapshotsOpen.value = true
 }
 
-function formatJson(obj:any) { try { return JSON.stringify(obj, null, 2) } catch { return String(obj) } }
+function formatJson(obj: unknown) { try { return JSON.stringify(obj, null, 2) } catch { return String(obj) } }
 </script>

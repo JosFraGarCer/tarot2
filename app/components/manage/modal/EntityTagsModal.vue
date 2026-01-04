@@ -1,11 +1,59 @@
 <!-- app/components/manage/modal/EntityTagsModal.vue -->
 <!-- app/components/manage/Modal/EntityTagsModal.vue -->
+<script setup lang="ts">
+import { computed } from 'vue'
+
+type TagOption = { label: string; value: number }
+
+const props = defineProps<{
+  open: boolean
+  title: string
+  description?: string | null
+  modelValue: number[]
+  options: TagOption[]
+  saving?: boolean
+  confirmLabel?: string
+  cancelLabel?: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:open', value: boolean): void
+  (e: 'update:modelValue', value: number[]): void
+  (e: 'confirm'): void
+}>()
+
+const isOpen = computed({
+  get: () => props.open,
+  set: (val) => emit('update:open', val)
+})
+
+const selectedOptions = computed(() => {
+  const values = Array.isArray(props.modelValue) ? props.modelValue : []
+  return (props.options || []).filter(o => values.includes(o.value))
+})
+
+const sortedOptions = computed(() => {
+  const values = Array.isArray(props.modelValue) ? props.modelValue : []
+  if (!Array.isArray(props.options) || props.options.length === 0) return props.options ?? []
+  const selected = new Set(values)
+  const selectedItems: TagOption[] = []
+  const unselectedItems: TagOption[] = []
+  for (const option of props.options) {
+    if (selected.has(option.value)) selectedItems.push(option)
+    else unselectedItems.push(option)
+  }
+  return [...selectedItems, ...unselectedItems]
+})
+
+const clearAll = () => emit('update:modelValue', [])
+const onSubmit = () => emit('confirm')
+</script>
+
 <template>
   <UModal
-    :open="open"
+    v-model:open="isOpen"
     :title="title"
-    :description="description"
-    @update:open="val => $emit('update:open', val)"
+    :description="description || undefined"
   >
     <template #body>
       <UForm @submit="onSubmit">
@@ -55,45 +103,3 @@
     </template>
   </UModal>
 </template>
-
-<script setup lang="ts">
-import { computed } from 'vue'
-
-const props = defineProps<{
-  open: boolean
-  title: string
-  description?: string
-  modelValue: number[]
-  options: Array<{ label: string; value: number }>
-  saving?: boolean
-  confirmLabel?: string
-  cancelLabel?: string
-}>()
-
-const emit = defineEmits<{
-  (e: 'update:open', value: boolean): void
-  (e: 'update:modelValue', value: number[]): void
-  (e: 'confirm'): void
-}>()
-
-const selectedOptions = computed(() => {
-  const values = Array.isArray(props.modelValue) ? props.modelValue : []
-  return (props.options || []).filter(o => values.includes(o.value))
-})
-
-const sortedOptions = computed(() => {
-  const values = Array.isArray(props.modelValue) ? props.modelValue : []
-  if (!Array.isArray(props.options) || props.options.length === 0) return props.options ?? []
-  const selected = new Set(values)
-  const selectedItems: typeof props.options = []
-  const unselectedItems: typeof props.options = []
-  for (const option of props.options) {
-    if (selected.has(option.value)) selectedItems.push(option)
-    else unselectedItems.push(option)
-  }
-  return [...selectedItems, ...unselectedItems]
-})
-
-const clearAll = () => emit('update:modelValue', [])
-const onSubmit = () => emit('confirm')
-</script>

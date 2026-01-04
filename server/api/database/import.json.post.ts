@@ -15,10 +15,10 @@ async function getUserPermissions(userId: number) {
     .groupBy('ur.user_id')
     .executeTakeFirst()
   const roles = row?.roles
-  let rolesArr: any[] = []
-  if (Array.isArray(roles)) rolesArr = roles
-  else if (roles) { try { rolesArr = JSON.parse(String(roles)) } catch {} }
-  return mergePermissions(rolesArr)
+  let rolesArr: Record<string, unknown>[] = []
+  if (Array.isArray(roles)) rolesArr = roles as Record<string, unknown>[]
+  else if (roles) { try { rolesArr = JSON.parse(String(roles)) } catch { /* ignore */ } }
+  return mergePermissions(rolesArr as { permissions?: unknown }[])
 }
 
 export default defineEventHandler(async (event) => {
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   let userId: number | undefined
   try {
     const user = await getUserFromEvent(event)
-    userId = (user as any).id
+    userId = (user as { id: number }).id
     const perms = await getUserPermissions(userId!)
     if (!(perms.canManageUsers || perms.canAccessAdmin)) {
       throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Import order to satisfy FKs where applicable
-    const order: Array<{ key: string; args: any }> = [
+    const order: Array<{ key: string; args: Parameters<typeof importEntities>[0] }> = [
       { key: 'card_type', args: { event, table: 'base_card_type' } },
       { key: 'arcana', args: { event, table: 'arcana' } },
       { key: 'facet', args: { event, table: 'facet' } },
@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
     for (const item of order) {
       if (!(item.key in body)) continue
       const res = await importEntities({ ...item.args, userId })
-      const data = res.data as any
+      const data = res.data as { created: number; updated: number; errors: Array<{ index: number; message: string }> }
       counts[item.key] = { created: data.created || 0, updated: data.updated || 0 }
       for (const e of data.errors || []) {
         errors.push({ entity: item.key, index: e.index, message: e.message })

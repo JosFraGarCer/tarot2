@@ -87,9 +87,10 @@ import EntityActions from '~/components/manage/EntityActions.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
+import type { ManageCrud } from '@/types/manage'
 
 const props = defineProps<{
-  crud: any
+  crud: ManageCrud
   label: string
   entity: string
   templateKey?: string
@@ -98,24 +99,21 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', entity: any): void
-  (e: 'delete', entity: any): void
-  (e: 'feedback', entity: any): void
-  (e: 'tags', entity: any): void
-  (e: 'preview', entity: any): void
+  (e: 'edit', entity: Record<string, unknown>): void
+  (e: 'delete', entity: Record<string, unknown>): void
+  (e: 'feedback', entity: Record<string, unknown>): void
+  (e: 'tags', entity: Record<string, unknown>): void
+  (e: 'preview', entity: Record<string, unknown>): void
 }>()
 
 const { t, locale } = useI18n()
 
 const { resolveTemplate } = useCardTemplates()
 const templateKey = computed(() => props.templateKey ?? 'Class')
-const Resolved = computed(() => resolveTemplate(templateKey.value as any))
+const Resolved = computed(() => resolveTemplate(templateKey.value as 'Class' | 'Origin'))
 
 const {
-  resolveImage,
-  titleOf,
-  isActive,
-  langBadge
+  resolveImage
 } = useCardViewHelpers({
   entity: computed(() => props.entity),
   locale
@@ -142,23 +140,24 @@ const showCardType = computed(() => {
 
 const isTagEntity = computed(() => props.entity === 'tag')
 
-function onTags(entity: any) {
+function onTags(entity: unknown) {
   if (!allowTags.value) return
-  emit('tags', entity)
+  emit('tags', entity as Record<string, unknown>)
 }
 
-function onDelete(entity: any) {
-  emit('delete', entity)
+function onDelete(entity: unknown) {
+  emit('delete', entity as Record<string, unknown>)
 }
 
-function onPreview(entity: any) {
+function _onPreview(entity: unknown) {
   if (!allowPreview.value) return
-  emit('preview', entity)
+  emit('preview', entity as Record<string, unknown>)
 }
 
-function resolveEffectsMarkdown(item: any): string | null {
-  if (!item?.legacy_effects) return null
-  const raw = item?.effects
+function resolveEffectsMarkdown(item: unknown): string | null {
+  const i = item as Record<string, unknown>
+  if (!i?.legacy_effects) return null
+  const raw = i?.effects
   if (!raw) return null
   const record = typeof raw === 'string' ? parseJsonSafe(raw) : raw
   if (!record || typeof record !== 'object') return null
@@ -167,7 +166,7 @@ function resolveEffectsMarkdown(item: any): string | null {
   const normalizedLocale = String(localeCode || 'en').toLowerCase()
   const localesToTry = [normalizedLocale]
 
-  const resolvedLang = String(item?.language_code_resolved || item?.language_code || '').toLowerCase()
+  const resolvedLang = String(i?.language_code_resolved || i?.language_code || '').toLowerCase()
   if (resolvedLang && !localesToTry.includes(resolvedLang)) localesToTry.unshift(resolvedLang)
   if (!localesToTry.includes('en')) localesToTry.push('en')
 
@@ -205,11 +204,11 @@ function parseJsonSafe(value: string): unknown {
   }
 }
 
-function resolveTypeLabel(item: any): string {
+function resolveTypeLabel(item: unknown): string {
+  const i = item as Record<string, unknown>
   return (
-    item?.card_type_name
-    ?? item?.card_type_code
-    ?? item?.typeLabel
+    (i?.card_type_name as string)
+    ?? (i?.card_type_code as string)
     ?? props.entity
     ?? ''
   )

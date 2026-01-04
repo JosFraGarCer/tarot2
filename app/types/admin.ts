@@ -6,7 +6,7 @@ export interface AdminUserRole {
   id: number
   name: string
   description?: string | null
-  permissions?: Permissions | Record<string, any>
+  permissions?: Permissions | Record<string, unknown>
 }
 
 export interface AdminUserEntity {

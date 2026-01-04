@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useToast, useI18n } from '#imports'
 import { useApiFetch } from '@/utils/fetcher'
+import { getErrorMessage } from '@/utils/error'
 
 export function useDatabaseManager() {
   const toast = useToast()
@@ -40,14 +41,15 @@ export function useDatabaseManager() {
   async function exportJson() {
     jsonExporting.value = true
     try {
-      const res = await apiFetch('/database/export.json')
+      const res = await apiFetch<Record<string, unknown>>('/database/export.json')
       const payload = res?.data ?? res
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
       downloadFile(`database-${new Date().toISOString().slice(0, 10)}.json`, blob, 'JSON')
       toast.add({ title: t('common.exportSuccess'), color: 'success' })
-    } catch (e: any) {
-      toast.add({ title: t('ui.notifications.error'), description: e?.message, color: 'error' })
-      log('JSON Export', false, e?.message || 'Failed')
+    } catch (e: unknown) {
+      const message = getErrorMessage(e)
+      toast.add({ title: t('ui.notifications.error'), description: message, color: 'error' })
+      log('JSON Export', false, message)
     } finally {
       jsonExporting.value = false
     }
@@ -64,10 +66,11 @@ export function useDatabaseManager() {
       await apiFetch('/database/import.json', { method: 'POST', body: data })
       toast.add({ title: t('common.importSuccess'), color: 'success' })
       log('JSON Import', true, file.name)
-    } catch (e: any) {
-      jsonImportError.value = e?.message
-      toast.add({ title: t('ui.notifications.error'), description: e?.message, color: 'error' })
-      log('JSON Import', false, e?.message || 'Failed')
+    } catch (e: unknown) {
+      const message = getErrorMessage(e)
+      jsonImportError.value = message
+      toast.add({ title: t('ui.notifications.error'), description: message, color: 'error' })
+      log('JSON Import', false, message)
     } finally {
       jsonImporting.value = false
     }
@@ -77,13 +80,14 @@ export function useDatabaseManager() {
   async function exportSql() {
     sqlExporting.value = true
     try {
-      const res = await apiFetch('/database/export.sql', { responseType: 'blob' as any })
-      const blob = res instanceof Blob ? res : new Blob([res], { type: 'application/sql' })
+      const res = await apiFetch('/database/export.sql', { responseType: 'blob' })
+      const blob = res instanceof Blob ? res : new Blob([res as unknown as string], { type: 'application/sql' })
       downloadFile(`database-${new Date().toISOString().slice(0, 10)}.sql`, blob, 'SQL')
       toast.add({ title: t('common.exportSuccess'), color: 'success' })
-    } catch (e: any) {
-      toast.add({ title: t('ui.notifications.error'), description: e?.message, color: 'error' })
-      log('SQL Export', false, e?.message || 'Failed')
+    } catch (e: unknown) {
+      const message = getErrorMessage(e)
+      toast.add({ title: t('ui.notifications.error'), description: message, color: 'error' })
+      log('SQL Export', false, message)
     } finally {
       sqlExporting.value = false
     }
@@ -103,10 +107,11 @@ export function useDatabaseManager() {
       })
       toast.add({ title: t('common.importSuccess'), color: 'success' })
       log('SQL Import', true, file.name)
-    } catch (e: any) {
-      sqlImportError.value = e?.message
-      toast.add({ title: t('ui.notifications.error'), description: e?.message, color: 'error' })
-      log('SQL Import', false, e?.message || 'Failed')
+    } catch (e: unknown) {
+      const message = getErrorMessage(e)
+      sqlImportError.value = message
+      toast.add({ title: t('ui.notifications.error'), description: message, color: 'error' })
+      log('SQL Import', false, message)
     } finally {
       sqlImporting.value = false
     }

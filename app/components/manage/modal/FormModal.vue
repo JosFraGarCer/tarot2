@@ -114,15 +114,15 @@ const props = withDefaults(defineProps<{
   description?: string
   entityLabel: string,
   entity: string,
-  form: Record<string, any>
+  form: Record<string, unknown>
   loading?: boolean
-  ui?: Record<string, any>
+  ui?: Record<string, unknown>
   submitLabel?: string
   cancelLabel?: string
   imageFile?: File | null
   imagePreview?: string | null
-  imageFieldConfig?: Record<string, any>
-  englishItem?: Record<string, any> | null
+  imageFieldConfig?: Record<string, unknown>
+  englishItem?: Record<string, unknown> | null
   schema?: {
     create?: z.ZodTypeAny
     update?: z.ZodTypeAny
@@ -183,7 +183,7 @@ const { arcanaOptions, cardTypeOptions, facetOptions, loadAll } = useEntityRelat
 const resolvedImagePreview = computed(() => {
   const preview = props.imagePreview
   if (typeof preview === 'string' && preview) return resolveImage(preview)
-  const imageValue = (form as any)?.image
+  const imageValue = (form as Record<string, unknown>)?.image
   if (typeof imageValue === 'string' && imageValue) return resolveImage(imageValue)
   return null
 })
@@ -233,29 +233,42 @@ const normalizedLabel = computed(() =>
     .trim() || ''
 )
 
+interface FieldConfig {
+  label?: string
+  placeholder?: string
+  required?: boolean
+  disabled?: boolean
+  hidden?: boolean
+  type?: 'select' | 'toggle' | 'effects' | 'upload' | 'input' | 'textarea'
+  rows?: number
+  relation?: string
+  options?: Array<{ label: string; value: unknown } | string>
+}
+
 // Build fields from Zod schema if provided; fallback to presets
-const schemaResolvedFields = computed<Record<string, any>>(() => {
+const schemaResolvedFields = computed<Record<string, FieldConfig>>(() => {
   try {
     const s = props.schema?.update || props.schema?.create
-    if (!s || typeof (s as any)._def === 'undefined') return {}
-    const obj = (s as any)
-    const shapeDef = obj?._def?.shape
+    if (!s || typeof (s as unknown as { _def: unknown })._def === 'undefined') return {}
+    const obj = s as unknown as { _def: { shape?: () => Record<string, unknown> | Record<string, unknown> } }
+    const shapeDef = obj._def?.shape
     const shape = typeof shapeDef === 'function' ? shapeDef() : shapeDef
     if (!shape) return {}
 
-    function unwrap(t: any): any {
+    function unwrap(t: unknown): unknown {
       // unwrap Optional/Nullable/Effects
-      while (t && (t._def?.typeName === 'ZodOptional' || t._def?.typeName === 'ZodNullable' || t._def?.typeName === 'ZodEffects')) {
-        t = t._def?.innerType || t._def?.schema || t._def?.inner
+      let current = t as { _def?: { typeName?: string; innerType?: unknown; schema?: unknown; inner?: unknown } }
+      while (current && (current._def?.typeName === 'ZodOptional' || current._def?.typeName === 'ZodNullable' || current._def?.typeName === 'ZodEffects')) {
+        current = (current._def?.innerType || current._def?.schema || current._def?.inner) as typeof current
       }
-      return t
+      return current
     }
 
-    const fields: Record<string, any> = {}
+    const fields: Record<string, FieldConfig> = {}
     for (const key of Object.keys(shape)) {
-      const raw = (shape as any)[key]
-      const t = unwrap(raw)
-      let field: any = { label: key, placeholder: '', required: false, disabled: false }
+      const raw = (shape as Record<string, unknown>)[key]
+      const t = unwrap(raw) as { _def?: { typeName?: string; values?: unknown[]; options?: unknown[] } }
+      let field: FieldConfig = { label: key, placeholder: '', required: false, disabled: false }
 
       // Heurística para relaciones por nombre
       if (/(^|_)arcana_id$/.test(key)) field = { ...field, type: 'select', relation: 'arcana' }
@@ -264,7 +277,7 @@ const schemaResolvedFields = computed<Record<string, any>>(() => {
       else if (key === 'image') field = { ...field, type: 'upload' }
       else if (t?._def?.typeName === 'ZodBoolean') field = { ...field, type: 'toggle' }
       else if (t?._def?.typeName === 'ZodEnum' || t?._def?.typeName === 'ZodNativeEnum') {
-        const options = (t?._def?.values || t?._def?.options || [])
+        const options = (t._def.values || t._def.options || []) as string[]
         field = { ...field, type: 'select', relation: undefined, options }
       } else {
         field = { ...field, type: 'input' }
@@ -272,7 +285,7 @@ const schemaResolvedFields = computed<Record<string, any>>(() => {
 
       // Ensure known keys map to correct UI controls regardless of Zod internals
       if (key === 'status') {
-        const options = (t?._def?.values || t?._def?.options || field.options || [])
+        const options = (t?._def?.values || t?._def?.options || field.options || []) as string[]
         field = { ...field, type: 'select', relation: undefined, options }
       }
       if (key === 'is_active') {
@@ -293,7 +306,7 @@ const schemaResolvedFields = computed<Record<string, any>>(() => {
       fields[key] = field
     }
     return fields
-  } catch (e) {
+  } catch (_e) {
     // fallback silencioso a presets
     return {}
   }
@@ -307,18 +320,20 @@ const resolvedFields = computed(() => {
   if (!preset) {
     console.warn(`⚠️ No preset found for entityLabel="${props.entityLabel}" → normalized="${label}`)
   }
-  return preset || {}
+  return (preset?.fields || {}) as Record<string, FieldConfig>
 })
 
 // 🔧 Estado local sincronizado con form.effects
 const effectsText = computed({
   get() {
-    const eff = (form as any)?.effects?.[localeCode.value]
+    const f = form as Record<string, unknown>
+    const eff = (f.effects as Record<string, string[] | string | undefined>)?.[localeCode.value]
     return Array.isArray(eff) ? eff.join('\n') : (eff || '')
   },
   set(v: string) {
-    if (!(form as any).effects) (form as any).effects = {}
-    ;(form as any).effects[localeCode.value] = v
+    const f = form as Record<string, unknown>
+    if (!f.effects) f.effects = {}
+    ;(f.effects as Record<string, unknown>)[localeCode.value] = v
       ? v.split(/\n+/).filter(line => line.trim() !== '')
       : []
   }
@@ -342,7 +357,7 @@ function getRelationOptions(relation?: string) {
 }
 
 // Items for select fields: prefer relation options; otherwise enum/explicit options.
-function selectItems(field: any, key: string) {
+function selectItems(field: FieldConfig, key: string) {
   // If relation specified, use relation options
   if (field?.relation) return getRelationOptions(field.relation)
 
@@ -361,7 +376,7 @@ function selectItems(field: any, key: string) {
     if (typeof raw[0] === 'string') {
       return (raw as string[]).map(v => ({ label: String(v), value: v }))
     }
-    return raw
+    return raw as { label: string; value: unknown }[]
   }
 
   return []

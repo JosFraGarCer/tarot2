@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     const out = {
       ...row,
       permissions: (() => {
-        const val = (row as any).permissions
+        const val = (row as { permissions: unknown }).permissions
         if (val && typeof val === 'string') {
           try { return JSON.parse(val) } catch { return {} }
         }

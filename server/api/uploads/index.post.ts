@@ -11,7 +11,7 @@ const VALID_TYPE_REGEX = /^[a-z0-9_-]+$/i
 const FALLBACK_EXTENSION = '.png'
 const SUPPORTED_IMAGE_FORMATS = new Set(['jpeg', 'jpg', 'png', 'webp', 'gif', 'svg', 'avif'])
 const OPTIMIZABLE_FORMATS = new Set(['jpeg', 'jpg', 'png', 'webp'])
-const LOSSLESS_TARGET_FORMAT = 'avif'
+const _LOSSLESS_TARGET_FORMAT = 'avif' // Reserved for future use
 const MAX_DIMENSION = 1600
 
 const createUploadError = (statusCode: number, code: string, message: string) =>
@@ -45,8 +45,8 @@ type FormDataFile = {
   type?: string
 }
 
-const isFormDataFile = (item: any): item is FormDataFile =>
-  item && typeof item === 'object' && item.data instanceof Buffer && typeof item.filename === 'string'
+const isFormDataFile = (item: unknown): item is FormDataFile =>
+  !!item && typeof item === 'object' && (item as FormDataFile).data instanceof Buffer && typeof (item as FormDataFile).filename === 'string'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
     throw createUploadError(400, 'FILE_MISSING', 'No file provided')
   }
 
-  const file = formData.find((item) => isFormDataFile(item))
+  const file = formData.find((item) => isFormDataFile(item)) as FormDataFile | undefined
   if (!file || !file.data || !file.filename) {
     throw createUploadError(400, 'INVALID_FILE', 'Invalid file upload')
   }
@@ -82,7 +82,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const normalizedFormat = detectedFormat === 'jpg' ? 'jpeg' : detectedFormat
-  const targetFormat = LOSSLESS_TARGET_FORMAT
 
   // 🚫 Validamos MIME vs formato real
   const reportedSubtype = mimeType.split('/')[1]?.split(';')[0]?.toLowerCase()

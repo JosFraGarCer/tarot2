@@ -9,7 +9,7 @@ export interface PaginationConfig {
   pageSizeOptions?: number[]
 }
 
-export interface PaginatedList<TFilters extends Record<string, any>> {
+export interface PaginatedList<TFilters extends Record<string, unknown>> {
   page: Ref<number>
   pageSize: Ref<number>
   totalItems: Ref<number>
@@ -23,7 +23,7 @@ export interface PaginatedList<TFilters extends Record<string, any>> {
   registerPageSizeOptions: (...values: number[]) => void
 }
 
-export function usePaginatedList<TFilters extends Record<string, any>>(
+export function usePaginatedList<TFilters extends Record<string, unknown>>(
   filters: TFilters,
   config: PaginationConfig = {},
 ): PaginatedList<TFilters> {

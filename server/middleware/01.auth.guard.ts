@@ -15,7 +15,12 @@ export default defineEventHandler((event) => {
   // ✅ Solo login/logout son públicos
   if (PUBLIC_API_PATHS.has(path)) return
 
-  const user = (event.context as any).user
+  const user = event.context.user as {
+    status?: string
+    permissions?: Record<string, boolean>
+    roles?: { name?: string }[]
+  } | undefined
+
   if (!user) throw createError({ statusCode: 401, message: 'Not authenticated' })
   if (user.status === 'suspended')
     throw createError({ statusCode: 403, message: 'Account suspended' })

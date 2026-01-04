@@ -51,5 +51,5 @@ export interface ManageEntity {
   [key: string]: unknown
 }
 
-export type ManageCrud<TList = ManageEntity, TCreate = any, TUpdate = any> = EntityCrud<TList, TCreate, TUpdate>
-export type AnyManageCrud = ManageCrud<any, any, any>
+export type ManageCrud<TList = ManageEntity, TCreate = Record<string, unknown>, TUpdate = Record<string, unknown>> = EntityCrud<TList, TCreate, TUpdate>
+export type AnyManageCrud = ManageCrud<ManageEntity, Record<string, unknown>, Record<string, unknown>>

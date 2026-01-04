@@ -13,11 +13,13 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <UCard>
             <template #header>{{ $t('features.admin.revisionsHistory.left','Revision A') }} (#{{ revA?.id }})</template>
-            <pre class="text-xs overflow-auto max-h-[70vh]" v-html="jsonHtmlA"></pre>
+            <!-- eslint-disable-next-line vue/no-v-html -- Sanitized diff HTML -->
+            <pre class="text-xs overflow-auto max-h-[70vh]" v-html="jsonHtmlA"/>
           </UCard>
           <UCard>
             <template #header>{{ $t('features.admin.revisionsHistory.right','Revision B') }} (#{{ revB?.id }})</template>
-            <pre class="text-xs overflow-auto max-h-[70vh]" v-html="jsonHtmlB"></pre>
+            <!-- eslint-disable-next-line vue/no-v-html -- Sanitized diff HTML -->
+            <pre class="text-xs overflow-auto max-h-[70vh]" v-html="jsonHtmlB"/>
           </UCard>
         </div>
       </div>
@@ -31,18 +33,23 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ revA: any | null; revB: any | null }>()
+interface Revision {
+  id: number
+  next_snapshot: Record<string, unknown>
+}
+
+const props = defineProps<{ revA: Revision | null; revB: Revision | null }>()
 const open = defineModel<boolean>('open')
 
 const snapshotA = computed(() => props.revA?.next_snapshot ?? {})
 const snapshotB = computed(() => props.revB?.next_snapshot ?? {})
 
-function toPaths(obj:any, base:string[] = [], out: Record<string, any> = {}) {
+function toPaths(obj: unknown, base:string[] = [], out: Record<string, unknown> = {}) {
   if (obj && typeof obj === 'object') {
     if (Array.isArray(obj)) {
       obj.forEach((v, i) => toPaths(v, [...base, String(i)], out))
     } else {
-      for (const [k, v] of Object.entries(obj)) toPaths(v, [...base, k], out)
+      for (const [k, v] of Object.entries(obj as Record<string, unknown>)) toPaths(v, [...base, k], out)
     }
   } else {
     out['/' + base.join('/')] = obj

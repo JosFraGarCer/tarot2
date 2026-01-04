@@ -1,5 +1,5 @@
 // app/composables/common/useCardViewHelpers.ts
-import { computed, unref } from 'vue'
+import { computed } from 'vue'
 import { useCardStatus } from '~/utils/status'
 
 export interface CardViewHelperOptions {
@@ -49,15 +49,15 @@ export function useCardViewHelpers(options: CardViewHelperOptions) {
     el.src = DEFAULT_IMAGE
   }
 
-  function titleOf(item: any): string {
+  function titleOf(item: { name?: string; title?: string; code?: string } | null | undefined): string {
     return item?.name ?? item?.title ?? item?.code ?? '—'
   }
 
-  function isActive(item: any): boolean {
+  function isActive(item: { is_active?: boolean; isActive?: boolean } | null | undefined): boolean {
     return Boolean(item?.is_active ?? item?.isActive ?? false)
   }
 
-  function langBadge(item: any): string | null {
+  function langBadge(item: { language_code_resolved?: string; language_code?: string; lang?: string } | null | undefined): string | null {
     const resolved = (item?.language_code_resolved || item?.language_code || item?.lang || '').toString()
     if (!resolved) return null
 

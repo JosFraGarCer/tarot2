@@ -23,7 +23,7 @@ function parseJsonValue(value: unknown, field: string, defaultValue?: Record<str
         return parsed as Record<string, unknown>
       }
       throw new Error('Not an object')
-    } catch (err) {
+    } catch {
       throw new z.ZodError([
         {
           path: [field],

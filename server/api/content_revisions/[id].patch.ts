@@ -46,9 +46,9 @@ export default defineEventHandler(async (event) => {
     if (payload.language_code !== undefined) patch.language_code = payload.language_code ?? null
     if (payload.content_version_id !== undefined) patch.content_version_id = payload.content_version_id ?? null
     if (payload.notes !== undefined) patch.notes = payload.notes ?? null
-    if ((payload as any).diff !== undefined) patch.diff = payload.diff ?? {}
-    if ((payload as any).prev_snapshot !== undefined) patch.prev_snapshot = payload.prev_snapshot ?? null
-    if ((payload as any).next_snapshot !== undefined) patch.next_snapshot = payload.next_snapshot ?? null
+    if (payload.diff !== undefined) patch.diff = payload.diff ?? {}
+    if (payload.prev_snapshot !== undefined) patch.prev_snapshot = payload.prev_snapshot ?? null
+    if (payload.next_snapshot !== undefined) patch.next_snapshot = payload.next_snapshot ?? null
 
     if (Object.keys(patch).length > 0) {
       const updated = await globalThis.db

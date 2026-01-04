@@ -31,18 +31,29 @@ export default defineEventHandler(async (event) => {
 
     if (!row) notFound('User not found')
 
-    const rolesArr: any[] = Array.isArray((row as any).roles)
-      ? ((row as any).roles as any[])
+    const userRow = row as {
+      id: number
+      username: string
+      email: string
+      image: string | null
+      status: string
+      created_at: Date | string
+      modified_at: Date | string
+      roles: unknown
+    }
+
+    const rolesArr: Record<string, unknown>[] = Array.isArray(userRow.roles)
+      ? (userRow.roles as Record<string, unknown>[])
       : (() => {
           try {
-            return JSON.parse((row as any).roles as string)
+            return JSON.parse(userRow.roles as string)
           } catch {
             return []
           }
         })()
-    const permissions = mergePermissions(rolesArr)
+    const permissions = mergePermissions(rolesArr as { permissions?: unknown }[])
 
-    const user = { ...(row as any), roles: rolesArr, permissions }
+    const user = { ...userRow, roles: rolesArr, permissions }
 
     globalThis.logger?.info('User fetched', { id, timeMs: Date.now() - startedAt })
     return createResponse(user, null)

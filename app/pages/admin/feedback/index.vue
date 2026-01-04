@@ -34,10 +34,10 @@
       </div>
 
       <AdvancedFiltersPanel
+        v-model="advancedState"
         class="mb-4"
         :open="advancedOpen"
         :schema="advancedSchema"
-        v-model="advancedState"
         :apply-label="tt('ui.actions.apply','Apply')"
         :reset-label="tt('ui.actions.reset','Reset')"
         @apply="applyAdvanced"
@@ -221,6 +221,27 @@ import { useDebounceFn } from '@vueuse/core'
 import { useQuerySync } from '@/composables/common/useQuerySync'
 import { normalizeRange } from '@/composables/common/useDateRange'
 import type { FilterDefinition } from '@/components/common/AdvancedFiltersPanel.vue'
+import { getErrorMessage } from '@/utils/error'
+
+// Feedback item type
+interface FeedbackItem {
+  id: number
+  entity_type?: string
+  entity_id?: number
+  card_code?: string
+  title?: string
+  comment?: string
+  status?: string
+  language_code?: string | null
+  detail?: string | null
+}
+
+// Team user type
+interface TeamUser {
+  id: number
+  username?: string
+  email?: string
+}
 
 const { t, te } = useI18n()
 function tt(key: string, fallback: string) {
@@ -231,8 +252,8 @@ useSeoMeta({ title: `${t('navigation.menu.admin') || 'Admin'} · ${tt('features.
 
 const toast = useToast()
 const apiFetch = useApiFetch
-const router = useRouter()
-const route = useRoute()
+const _router = useRouter()
+const _route = useRoute()
 
 type FeedbackRouteState = {
   search: string
@@ -264,7 +285,7 @@ const initialState: FeedbackRouteState = {
   pageSize: 20,
 }
 
-const { state: queryState, update: updateQueryState, reset: resetQueryState } = useQuerySync<FeedbackRouteState>({
+const { state: queryState, update: updateQueryState, reset: _resetQueryState } = useQuerySync<FeedbackRouteState>({
   defaults: initialState,
   parse(raw) {
     const statusParam = raw.status === 'open' || raw.status === 'resolved' ? raw.status : 'all'
@@ -275,8 +296,8 @@ const { state: queryState, update: updateQueryState, reset: resetQueryState } = 
     const createdByParam = typeof raw.created_by === 'string' ? Number(raw.created_by) : undefined
     const resolvedByParam = typeof raw.resolved_by === 'string' ? Number(raw.resolved_by) : undefined
 
-    const createdRange = normalizeRange({ from: raw.created_from as any, to: raw.created_to as any })
-    const resolvedRange = normalizeRange({ from: raw.resolved_from as any, to: raw.resolved_to as any })
+    const createdRange = normalizeRange({ from: raw.created_from as string | undefined, to: raw.created_to as string | undefined })
+    const resolvedRange = normalizeRange({ from: raw.resolved_from as string | undefined, to: raw.resolved_to as string | undefined })
 
     const parseRange = (range: { from?: string; to?: string }) => {
       if (!range.from || !range.to) return undefined
@@ -383,8 +404,8 @@ const entityTypeOptions = computed(() => [
   { label: tt('entities.base_skills', 'Skills'), value: 'base_skills' },
 ])
 const userOptions = computed(() => {
-  const users = currentUser.value?.team ?? []
-  const base = users.map((u: any) => ({ label: u.username || u.email, value: u.id }))
+  const users = (currentUser.value?.team ?? []) as TeamUser[]
+  const base = users.map((u) => ({ label: u.username || u.email || '', value: u.id }))
   return [{ label: tt('ui.filters.any', 'Any'), value: undefined }, ...base]
 })
 
@@ -459,7 +480,7 @@ const advancedState = reactive({
 })
 
 const filters = computed(() => {
-  const payload: Record<string, any> = {
+  const payload: Record<string, string | number | boolean | Date | undefined> = {
     search: search.value || undefined,
     status: status.value !== 'all' ? status.value : undefined,
     category: type.value !== 'all' ? type.value : undefined,
@@ -476,7 +497,7 @@ const filters = computed(() => {
   return payload
 })
 
-const dashboardQuery = computed(() => ({
+const _dashboardQuery = computed(() => ({
   status: filters.value.status ?? null,
   type: filters.value.category ?? null,
 }))
@@ -488,10 +509,10 @@ const pageSizeItems = [
   { label: '50', value: 50 },
 ]
 
-const pageForUi = computed(() => meta.value?.page ?? pagination.page)
+const _pageForUi = computed(() => meta.value?.page ?? pagination.page)
 const pageSizeForUi = computed(() => meta.value?.pageSize ?? pagination.pageSize)
 const totalItemsForUi = computed(() => meta.value?.totalItems ?? (items.value?.length ?? 0))
-const totalPagesForUi = computed(() => {
+const _totalPagesForUi = computed(() => {
   if (meta.value?.totalPages != null) return meta.value.totalPages
   const size = Math.max(1, pageSizeForUi.value)
   return Math.max(1, Math.ceil((totalItemsForUi.value || 0) / size))
@@ -507,8 +528,8 @@ watch(
 
     advancedState.language = next.language
     advancedState.entityType = next.entityType
-    advancedState.createdRange = next.createdRange as any
-    advancedState.resolvedRange = next.resolvedRange as any
+    advancedState.createdRange = next.createdRange as [Date | string, Date | string] | undefined
+    advancedState.resolvedRange = next.resolvedRange as [Date | string, Date | string] | undefined
     advancedState.createdBy = next.createdBy
     advancedState.resolvedBy = next.resolvedBy
 
@@ -544,10 +565,10 @@ const resolvedRangeLabel = computed(() => formatRangeLabel(advancedState.resolve
 
 const selectedIds = ref<number[]>([])
 const jsonOpen = ref(false)
-const jsonData = ref<any>(null)
+const jsonData = ref<Record<string, unknown> | null>(null)
 const notesOpen = ref(false)
-const notesItem = ref<any | null>(null)
-const toDelete = ref<any | null>(null)
+const notesItem = ref<FeedbackItem | null>(null)
+const toDelete = ref<FeedbackItem | null>(null)
 const deleteOpen = ref(false)
 const deleting = ref(false)
 const resolveOpen = ref(false)
@@ -673,17 +694,17 @@ async function fetchEntitySnapshot(entityType: string, entityId: number, lang?: 
   const endpoint = entityPreviewMap[entityType]
   if (!endpoint) return null
   try {
-    const response = await apiFetch<{ success?: boolean; data: any }>(`${endpoint}/${entityId}`, {
+    const response = await apiFetch<{ success?: boolean; data: Record<string, unknown> }>(`${endpoint}/${entityId}`, {
       method: 'GET',
       params: lang ? { lang } : undefined,
     })
-    return response?.data ?? response ?? null
+    return response?.data ?? null
   } catch {
     return null
   }
 }
 
-async function onViewJson(f: any) {
+async function onViewJson(f: FeedbackItem) {
   const id = Number(f.entity_id)
   const entityType = String(f.entity_type || '')
   const lang = f.language_code || undefined
@@ -695,32 +716,32 @@ async function onViewJson(f: any) {
   }
 }
 
-async function onResolve(f: any) {
+async function onResolve(f: FeedbackItem) {
   try {
     await resolve(f.id)
     toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.feedback.resolvedOk', 'Resolved successfully'), color: 'success' })
     await reload()
-  } catch (err) {
+  } catch (_err) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: tt('features.admin.feedback.resolvedErr', 'Error resolving feedback'), color: 'error' })
   }
 }
 
-async function onReopen(f: any) {
+async function onReopen(f: FeedbackItem) {
   try {
     await reopen(f.id)
     toast.add({ title: tt('features.admin.feedback.actions.reopen', 'Reopen'), color: 'success' })
     await reload()
-  } catch (err) {
+  } catch (_err) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: tt('admin.feedback.reopenError', 'Error reopening feedback'), color: 'error' })
   }
 }
 
-function onDelete(f: any) {
+function onDelete(f: FeedbackItem) {
   toDelete.value = f
   deleteOpen.value = true
 }
 
-function onNotes(f: any) {
+function onNotes(f: FeedbackItem) {
   notesItem.value = f
   notesOpen.value = true
 }
@@ -733,8 +754,8 @@ async function saveNotes(nextDetail: string) {
     notesOpen.value = false
     notesItem.value = null
     await loadList()
-  } catch (err: any) {
-    toast.add({ title: tt('ui.notifications.error', 'Error'), description: String(err?.data?.message ?? err?.message ?? err), color: 'error' })
+  } catch (err: unknown) {
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: getErrorMessage(err), color: 'error' })
   }
 }
 
@@ -780,7 +801,7 @@ async function confirmDelete() {
 async function fetchCountsByType() {
   const types = ['bug', 'suggestion', 'balance', 'translation'] as const
   try {
-    const baseFilters: Record<string, any> = {
+    const baseFilters: Record<string, string | number | boolean | Date | undefined> = {
       search: filters.value.search,
       status: filters.value.status,
       created_by: filters.value.created_by,

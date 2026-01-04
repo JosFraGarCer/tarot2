@@ -34,7 +34,7 @@ export const navigationMap: NavItem[] = [
     id: 'manage',
     labelKey: 'navigation.menu.manage',
     to: '/manage',
-    visible: (p, role) =>
+    visible: (p, _role) =>
       Boolean(
         p.canAccessManage ||
         p.canEditContent ||

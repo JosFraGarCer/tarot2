@@ -53,18 +53,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, computed } from 'vue'
+import { reactive, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useI18n } from '#imports'
 import { useAuth } from '@/composables/auth/useAuth'
 
 definePageMeta({
   layout: 'default'
 })
 
-const { t } = useI18n()
 const router = useRouter()
-const { login, user, error, loading, isAuthenticated } = useAuth()
+const { login, error, loading, isAuthenticated } = useAuth()
 
 const form = reactive({
   identifier: '',

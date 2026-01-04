@@ -66,6 +66,19 @@ import { formatDate } from '~/utils/date'
 import VersionModal from '~/components/admin/VersionModal.vue'
 import JsonModal from '~/components/admin/JsonModal.vue'
 import { useApiFetch } from '@/utils/fetcher'
+import { getErrorMessage } from '@/utils/error'
+
+// Content version type
+interface ContentVersion {
+  id: number
+  version_semver: string
+  description?: string | null
+  release?: string
+  metadata?: Record<string, unknown>
+  created_at?: string
+  created_by?: number | null
+}
+
 const route = useRoute()
 const router = useRouter()
 const localePath = useLocalePath()
@@ -74,8 +87,8 @@ function tt(key: string, fallback: string) { return te(key) ? t(key) : fallback 
 
 const id = computed(() => Number(route.params.id))
 const pending = ref(true)
-const error = ref<any>(null)
-const version = ref<any>(null)
+const error = ref<string | null>(null)
+const version = ref<ContentVersion | null>(null)
 
 const apiFetch = useApiFetch
 
@@ -85,10 +98,10 @@ async function load() {
   pending.value = true
   error.value = null
   try {
-    const res = await apiFetch<{ success: boolean; data: any }>(`/content_versions/${id.value}`)
-    version.value = res?.data
-  } catch (e: any) {
-    error.value = e?.data?.message || e?.message || String(e)
+    const res = await apiFetch<{ success: boolean; data: ContentVersion }>(`/content_versions/${id.value}`)
+    version.value = res?.data ?? null
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e)
   } finally {
     pending.value = false
   }

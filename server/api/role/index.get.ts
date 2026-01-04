@@ -1,7 +1,7 @@
 // server/api/role/index.get.ts
 // server/api/roles/index.get.ts
 import { defineEventHandler, getQuery } from 'h3'
-import { sql } from 'kysely'
+// sql import removed - not currently used
 import { safeParseOrThrow } from '../../utils/validate'
 import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
@@ -28,11 +28,11 @@ export default defineEventHandler(async (event) => {
       {
         page,
         pageSize,
-        search: (q as any).search ?? search ?? search2,
+        search: (search ?? search2),
         // search over name and description
         searchColumns: ['r.name', 'r.description'],
         countDistinct: 'r.id',
-        sort: { field: (q as any).sort ?? 'created_at', direction: (q as any).direction ?? 'desc' },
+        sort: { field: ((q as Record<string, unknown>).sort as string) ?? 'created_at', direction: ((q as Record<string, unknown>).direction as 'asc' | 'desc') ?? 'desc' },
         defaultSort: { field: 'created_at', direction: 'desc' },
         sortColumnMap: {
           name: 'r.name',
@@ -43,31 +43,40 @@ export default defineEventHandler(async (event) => {
 
     const rows = await query.execute()
 
-    const data = rows.map((r: any) => ({
-      id: r.id,
-      name: r.name,
-      description: r.description,
-      permissions: (() => {
-        const val = r.permissions as any
-        if (val && typeof val === 'string') {
-          try { return JSON.parse(val) } catch { return {} }
-        }
-        return val ?? {}
-      })(),
-      created_at: r.created_at,
-    }))
+    const data = rows.map((r: unknown) => {
+      const row = r as {
+        id: number
+        name: string
+        description: string | null
+        permissions: unknown
+        created_at: Date | string
+      }
+      return {
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        permissions: (() => {
+          const val = row.permissions
+          if (val && typeof val === 'string') {
+            try { return JSON.parse(val) } catch { return {} }
+          }
+          return val ?? {}
+        })(),
+        created_at: row.created_at,
+      }
+    })
 
     globalThis.logger?.info('Roles listed', {
       page: p,
       pageSize: ps,
       count: data.length,
-      search: ((q as any).search ?? search ?? search2) ?? null,
+      search: (search ?? search2) ?? null,
       sort: resolvedSortField ?? 'created_at',
       direction: resolvedSortDirection ?? 'desc',
       timeMs: Date.now() - startedAt,
     })
 
-    return createPaginatedResponse(data, totalItems, p, ps, ((q as any).search ?? search ?? search2) ?? null)
+    return createPaginatedResponse(data, totalItems, p, ps, (search ?? search2) ?? null)
   } catch (error) {
     globalThis.logger?.error('Failed to fetch roles', {
       error: error instanceof Error ? error.message : String(error),

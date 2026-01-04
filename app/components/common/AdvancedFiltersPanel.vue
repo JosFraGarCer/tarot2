@@ -144,7 +144,10 @@ import { useQuerySync } from '~/composables/common/useQuerySync'
 type Scalar = string | number | boolean | null | undefined
 type FilterType = 'text' | 'select' | 'multi-select' | 'range' | 'tags' | 'toggle' | 'date-range'
 
-interface BaseFilterDefinition<TType extends FilterType = FilterType, TValue = any> {
+// Filter value can be scalar, array, range object, or date tuple
+type FilterValue = Scalar | Scalar[] | { min: Scalar; max: Scalar } | [Date | string | null, Date | string | null] | null
+
+interface BaseFilterDefinition<TType extends FilterType = FilterType, TValue = FilterValue> {
   key: string
   label: string
   type: TType
@@ -184,7 +187,7 @@ export type FilterDefinition =
 const props = withDefaults(
   defineProps<{
     schema: FilterDefinition[]
-    modelValue?: Record<string, any>
+    modelValue?: Record<string, FilterValue>
     open?: boolean
     autoApply?: boolean
     syncWithRoute?: boolean
@@ -202,8 +205,8 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: Record<string, any>): void
-  (e: 'apply', value: Record<string, any>): void
+  (e: 'update:modelValue', value: Record<string, FilterValue>): void
+  (e: 'apply', value: Record<string, FilterValue>): void
   (e: 'reset'): void
   (e: 'update:open', value: boolean): void
 }>()
@@ -234,12 +237,12 @@ function defaultValue(field: FilterDefinition) {
 
 function cloneValue<T>(value: T): T {
   if (Array.isArray(value)) return [...value] as T
-  if (value && typeof value === 'object') return { ...(value as Record<string, any>) } as T
+  if (value && typeof value === 'object') return { ...(value as Record<string, unknown>) } as T
   return (value ?? null) as T
 }
 
-const defaults = computed<Record<string, any>>(() => {
-  const base: Record<string, any> = {}
+const defaults = computed<Record<string, FilterValue>>(() => {
+  const base: Record<string, FilterValue> = {}
   for (const field of props.schema) {
     base[field.key] = cloneValue(props.modelValue?.[field.key] ?? defaultValue(field))
   }
@@ -254,8 +257,8 @@ const queryKeyMap = computed<Record<string, string>>(() => {
   return map
 })
 
-const parseMap = computed<Partial<Record<string, (value: Scalar | Scalar[] | null | undefined) => any>>>(() => {
-  const map: Partial<Record<string, (value: Scalar | Scalar[] | null | undefined) => any>> = {}
+const parseMap = computed<Partial<Record<string, (value: Scalar | Scalar[] | null | undefined) => FilterValue>>>(() => {
+  const map: Partial<Record<string, (value: Scalar | Scalar[] | null | undefined) => FilterValue>> = {}
   for (const field of props.schema) {
     const fallback = defaults.value[field.key]
     switch (field.type) {
@@ -288,8 +291,8 @@ const parseMap = computed<Partial<Record<string, (value: Scalar | Scalar[] | nul
   return map
 })
 
-const serializeMap = computed<Partial<Record<string, (value: any) => Scalar | Scalar[] | null | undefined>>>(() => {
-  const map: Partial<Record<string, (value: any) => Scalar | Scalar[] | null | undefined>> = {}
+const serializeMap = computed<Partial<Record<string, (value: FilterValue) => Scalar | Scalar[] | null | undefined>>>(() => {
+  const map: Partial<Record<string, (value: FilterValue) => Scalar | Scalar[] | null | undefined>> = {}
   for (const field of props.schema) {
     if (field.type === 'range') {
       map[field.key] = () => undefined
@@ -302,7 +305,7 @@ const serializeMap = computed<Partial<Record<string, (value: any) => Scalar | Sc
 })
 
 const syncing = ref(false)
-const state = reactive<Record<string, any>>({ ...defaults.value })
+const state = reactive<Record<string, FilterValue>>({ ...defaults.value })
 
 const querySync = props.syncWithRoute
   ? useQuerySync(() => ({
@@ -407,15 +410,15 @@ function handleOpenChange(value: boolean) {
   emit('update:open', value)
 }
 
-function parseRangeState(query: Record<string, any>, baseDefaults: Record<string, any>) {
-  const next: Record<string, any> = {}
+function parseRangeState(query: Record<string, FilterValue>, baseDefaults: Record<string, FilterValue>) {
+  const next: Record<string, FilterValue> = {}
   for (const field of props.schema) {
     if (field.type !== 'range') continue
     const key = field.queryKey ?? field.key
-    const base = baseDefaults[field.key] ?? { min: null, max: null }
+    const base = (baseDefaults[field.key] as { min: Scalar; max: Scalar } | null) ?? { min: null, max: null }
     const raw = query[key]
-    let min = raw && typeof raw === 'object' ? (raw as any).min : undefined
-    let max = raw && typeof raw === 'object' ? (raw as any).max : undefined
+    let min = raw && typeof raw === 'object' && 'min' in raw ? (raw as { min?: Scalar }).min : undefined
+    let max = raw && typeof raw === 'object' && 'max' in raw ? (raw as { max?: Scalar }).max : undefined
     if (query[`${key}_min`] !== undefined) min = query[`${key}_min`]
     if (query[`${key}_max`] !== undefined) max = query[`${key}_max`]
     next[field.key] = {
@@ -426,13 +429,13 @@ function parseRangeState(query: Record<string, any>, baseDefaults: Record<string
   return next
 }
 
-function serializeRangeState(state: Record<string, any>, baseDefaults: Record<string, any>) {
+function serializeRangeState(state: Record<string, FilterValue>, baseDefaults: Record<string, FilterValue>) {
   const query: Record<string, string | undefined> = {}
   for (const field of props.schema) {
     if (field.type !== 'range') continue
     const key = field.queryKey ?? field.key
-    const current = state[field.key] ?? {}
-    const base = baseDefaults[field.key] ?? { min: null, max: null }
+    const current = (state[field.key] as { min?: Scalar; max?: Scalar } | null) ?? {}
+    const base = (baseDefaults[field.key] as { min?: Scalar; max?: Scalar } | null) ?? { min: null, max: null }
     const currentMin = current?.min ?? null
     const currentMax = current?.max ?? null
     const baseMin = base?.min ?? null
@@ -448,9 +451,8 @@ function serializeRangeState(state: Record<string, any>, baseDefaults: Record<st
   return query
 }
 
-function coerceRangeValue(value: any, fallback: any) {
+function coerceRangeValue(value: Scalar, fallback: Scalar) {
   if (value == null || value === '') return fallback ?? null
-  if (Array.isArray(value)) return value.length ? value[0] : fallback ?? null
   if (typeof fallback === 'number') {
     const num = Number(value)
     return Number.isFinite(num) ? num : fallback ?? null
@@ -458,19 +460,19 @@ function coerceRangeValue(value: any, fallback: any) {
   return value
 }
 
-function valuesEqual(a: any, b: any) {
+function valuesEqual(a: Scalar | Date, b: Scalar | Date) {
   if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime()
   return a === b
 }
 
-function isEmptyValue(value: any) {
+function isEmptyValue(value: Scalar) {
   return value == null || value === ''
 }
 
-function formatRouteValue(value: any) {
+function formatRouteValue(value: Scalar | Date) {
   if (value instanceof Date) return value.toISOString()
   if (typeof value === 'number') return Number.isFinite(value) ? String(value) : undefined
-  return value
+  return value as string | undefined
 }
 
 function normalizeDateTuple(value: Array<Date | string | null>): [Date | string | null, Date | string | null] | null {
@@ -483,8 +485,8 @@ function normalizeDateTuple(value: Array<Date | string | null>): [Date | string 
 function formatDateRangeLabel(value: [Date | string | null, Date | string | null] | null, placeholder: string) {
   if (!value || !value[0] || !value[1]) return placeholder
   const formatter = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-  const start = new Date(value[0] as any)
-  const end = new Date(value[1] as any)
+  const start = new Date(value[0] as string | Date)
+  const end = new Date(value[1] as string | Date)
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return placeholder
   return `${formatter.format(start)} – ${formatter.format(end)}`
 }

@@ -284,7 +284,23 @@ import { useEntityCapabilities } from '~/composables/common/useEntityCapabilitie
 import { useCardStatus } from '~/utils/status'
 import { arcanaUpdateSchema } from '~/schemas/entities/arcana'
 import { useApiFetch } from '~/utils/fetcher'
+import { getErrorMessage, isNotFoundError } from '~/utils/error'
 import type { EntityMetadataItem } from '~/components/common/entityDisplay'
+
+// Entity data type
+interface ArcanaEntity {
+  id?: number
+  code?: string
+  name?: string
+  short_text?: string | null
+  description?: string | null
+  status?: string
+  is_active?: boolean
+  image?: string | null
+  metadata?: Record<string, unknown> | null
+  language_is_fallback?: boolean
+  [key: string]: unknown
+}
 
 interface BasicFormState {
   name: string
@@ -304,7 +320,7 @@ interface TranslationFormState {
 }
 
 interface MetadataFormState {
-  metadata: Record<string, any> | null
+  metadata: Record<string, unknown> | null
 }
 
 type TranslationStatusValue = 'complete' | 'partial' | 'missing'
@@ -348,7 +364,7 @@ const detailLang = computed(() => {
 const asyncKey = computed(() => `manage-arcana:${arcanaId.value}:${detailLang.value}`)
 
 function resolveApiBase(): string | undefined {
-  if (!process.server) return undefined
+  if (!import.meta.server) return undefined
   const url = useRequestURL()
   return `${url.origin}/api`
 }
@@ -373,7 +389,7 @@ const { data: entityData, pending, error, refresh } = await useAsyncData(
   },
 )
 
-const entity = computed(() => entityData.value as Record<string, any> | null)
+const entity = computed(() => entityData.value as ArcanaEntity | null)
 
 const entityCapabilities = useEntityCapabilities('arcana')
 const statusUtil = useCardStatus()
@@ -419,7 +435,7 @@ function createEmptyBasicState(): BasicFormState {
   }
 }
 
-function buildBasicState(raw: Record<string, any>, translationOverride?: TranslationFormState | null): BasicFormState {
+function buildBasicState(raw: ArcanaEntity, translationOverride?: TranslationFormState | null): BasicFormState {
   const translation = translationOverride ?? null
   return {
     name: translation?.name ?? raw.name ?? '',
@@ -441,7 +457,7 @@ function createEmptyTranslationState(): TranslationFormState {
   }
 }
 
-function buildTranslationState(raw: Record<string, any>, lang: string): TranslationFormState {
+function buildTranslationState(raw: ArcanaEntity, lang: string): TranslationFormState {
   return {
     lang,
     name: raw.name ?? '',
@@ -461,7 +477,7 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
-function deepEqual(a: any, b: any): boolean {
+function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true
   if (typeof a !== typeof b) return false
   if (a === null || b === null) return a === b
@@ -470,36 +486,32 @@ function deepEqual(a: any, b: any): boolean {
     return a.every((item, index) => deepEqual(item, b[index]))
   }
   if (typeof a === 'object' && typeof b === 'object') {
-    const aKeys = Object.keys(a)
-    const bKeys = Object.keys(b)
+    const aObj = a as Record<string, unknown>
+    const bObj = b as Record<string, unknown>
+    const aKeys = Object.keys(aObj)
+    const bKeys = Object.keys(bObj)
     if (aKeys.length !== bKeys.length) return false
     for (const key of aKeys) {
-      if (!deepEqual(a[key], b[key])) return false
+      if (!deepEqual(aObj[key], bObj[key])) return false
     }
     return true
   }
   return false
 }
 
-function diffState<T extends Record<string, any>>(current: T, baseline: T, exclude: string[] = []): Partial<T> {
+function diffState<T extends Record<string, unknown>>(current: T, baseline: T, exclude: string[] = []): Partial<T> {
   const result: Partial<T> = {}
   for (const key of Object.keys(current)) {
     if (exclude.includes(key)) continue
     if (!deepEqual(current[key], baseline[key])) {
-      result[key] = current[key]
+      result[key as keyof T] = current[key as keyof T]
     }
   }
   return result
 }
 
-function resolveErrorMessage(err: any): string {
-  return err?.data?.message || err?.message || tt('ui.notifications.errorGeneric', 'Unexpected error')
-}
-
-function isNotFoundError(err: any): boolean {
-  const status = err?.status ?? err?.response?.status
-  const statusCode = err?.data?.statusCode ?? err?.statusCode
-  return status === 404 || statusCode === 404
+function resolveErrorMessage(err: unknown): string {
+  return getErrorMessage(err, tt('ui.notifications.errorGeneric', 'Unexpected error'))
 }
 
 const basicBaseline = ref<BasicFormState>(createEmptyBasicState())
@@ -531,7 +543,7 @@ const basicSection = useFormSection<BasicFormState>(
         toast.add({ title: tt('ui.notifications.saved', 'Changes saved'), color: 'success' })
         await refresh()
         return { success: true }
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message = resolveErrorMessage(err)
         toast.add({ title: tt('ui.notifications.error', 'Error'), description: message, color: 'error' })
         return { success: false, message }
@@ -590,7 +602,7 @@ const translationSection = useFormSection<TranslationFormState>(
         toast.add({ title: tt('ui.notifications.saved', 'Changes saved'), color: 'success' })
         await refresh()
         return { success: true }
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message = resolveErrorMessage(err)
         toast.add({ title: tt('ui.notifications.error', 'Error'), description: message, color: 'error' })
         return { success: false, message }
@@ -623,7 +635,7 @@ const metadataSection = useFormSection<MetadataFormState>(
         toast.add({ title: tt('ui.notifications.saved', 'Changes saved'), color: 'success' })
         await refresh()
         return { success: true }
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message = resolveErrorMessage(err)
         toast.add({ title: tt('ui.notifications.error', 'Error'), description: message, color: 'error' })
         return { success: false, message }
@@ -734,9 +746,8 @@ watch(
       if (!translationSection.dirty.value || translationBaseline.value.lang !== lang) {
         translationBaseline.value = clone(state)
       }
-    } catch (err: any) {
-      const notFound = isNotFoundError(err)
-      if (!notFound) {
+    } catch (err: unknown) {
+      if (!isNotFoundError(err)) {
         const message = resolveErrorMessage(err)
         toast.add({ title: tt('ui.notifications.error', 'Error'), description: message, color: 'error' })
       }
@@ -768,6 +779,7 @@ function saveMetadata() {
 async function reloadTranslation() {
   const lang = selectedTranslationLang.value
   if (!lang) return
+  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- Cache invalidation
   delete translationCache[lang]
   translationSection.reset()
   translationBaseline.value = { ...createEmptyTranslationState(), lang }
@@ -787,9 +799,8 @@ async function fetchTranslationForLang(lang: string) {
     translationCache[lang] = clone(state)
     translationMeta[lang] = buildTranslationMeta(Boolean(state.name?.trim()), Boolean(data?.language_is_fallback))
     translationBaseline.value = clone(state)
-  } catch (err: any) {
-    const notFound = isNotFoundError(err)
-    if (!notFound) {
+  } catch (err: unknown) {
+    if (!isNotFoundError(err)) {
       const message = resolveErrorMessage(err)
       toast.add({ title: tt('ui.notifications.error', 'Error'), description: message, color: 'error' })
     }
@@ -802,7 +813,7 @@ async function fetchTranslationForLang(lang: string) {
   }
 }
 
-function onMetadataEdited(value: any) {
+function onMetadataEdited(value: Record<string, unknown>) {
   metadataSection.patch({ metadata: value })
 }
 

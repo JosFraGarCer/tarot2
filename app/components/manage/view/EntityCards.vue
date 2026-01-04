@@ -36,7 +36,7 @@
         </UCard>
       </div>
     </template>
-    <UCard v-else v-for="item in crud.items?.value ?? crud.items" :key="item.id">
+    <UCard v-for="item in crud.items?.value ?? crud.items" v-else :key="item.id">
       <template #header>
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0 space-y-1">
@@ -141,7 +141,7 @@ import { computed } from 'vue'
 import { useI18n } from '#imports'
 import EntityActions from '~/components/manage/EntityActions.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
-import CartaRow from '~/components/manage/CartaRow.vue'
+import CartaRow from '~/components/manage/CartaRow.vue' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 import type { ManageCrud } from '@/types/manage'
 import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
@@ -155,11 +155,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', entity: any): void
-  (e: 'delete', entity: any): void
-  (e: 'feedback', entity: any): void
-  (e: 'tags', entity: any): void
-  (e: 'preview', entity: any): void
+  (e: 'edit', entity: Record<string, unknown>): void
+  (e: 'delete', entity: Record<string, unknown>): void
+  (e: 'feedback', entity: Record<string, unknown>): void
+  (e: 'tags', entity: Record<string, unknown>): void
+  (e: 'preview', entity: Record<string, unknown>): void
   (e: 'create'): void
   (e: 'reset-filters'): void
 }>()
@@ -168,7 +168,6 @@ const { t, locale } = useI18n()
 
 const {
   resolveImage,
-  imageFallback,
   titleOf,
   isActive,
   langBadge
@@ -199,16 +198,17 @@ const showCardType = computed(() => {
 const isUserEntity = computed(() => props.entity === 'user')
 const isTagEntity = computed(() => props.entity === 'tag')
 
-function userRoles(item: any): string[] {
-  const roles = Array.isArray(item?.roles) ? item.roles : []
+function userRoles(item: unknown): string[] {
+  const r = item as Record<string, unknown>
+  const roles = Array.isArray(r?.roles) ? r.roles : []
   return roles
-    .map((role: any) => role?.name)
-    .filter((val: any): val is string => typeof val === 'string' && val.length > 0)
+    .map((role: unknown) => (role as Record<string, unknown>)?.name)
+    .filter((val: unknown): val is string => typeof val === 'string' && val.length > 0)
 }
 
 function formatDate(value: unknown) {
   if (!value) return ''
-  const date = value instanceof Date ? value : new Date(value as any)
+  const date = value instanceof Date ? value : new Date(value as string | number)
   if (Number.isNaN(date.getTime())) return ''
   const localeCode = typeof locale === 'string' ? locale : locale.value
   try {
@@ -218,19 +218,19 @@ function formatDate(value: unknown) {
   }
 }
 
-function onPreviewClick(item: any) {
+function onPreviewClick(item: unknown) {
   if (!allowPreview.value) return
-  emit('preview', item)
+  emit('preview', item as Record<string, unknown>)
 }
-function onEditClick(item: any) { emit('edit', item) }
-function onDeleteClick(item: any) { emit('delete', item) }
-function onFeedbackClick(item: any) { emit('feedback', item) }
-function onTagsClick(item: any) { emit('tags', item) }
+function onEditClick(item: unknown) { emit('edit', item as Record<string, unknown>) }
+function onDeleteClick(item: unknown) { emit('delete', item as Record<string, unknown>) }
+function onFeedbackClick(item: unknown) { emit('feedback', item as Record<string, unknown>) }
+function onTagsClick(item: unknown) { emit('tags', item as Record<string, unknown>) }
 function onCreateFromEmpty() { emit('create') }
 function onResetFiltersFromEmpty() { emit('reset-filters') }
-function onCreateClick() { emit('create') }
+function _onCreateClick() { emit('create') }
 
-function resolveEffectsMarkdown(item: any): string | null {
+function _resolveEffectsMarkdown(item: Record<string, unknown>): string | null {
   const effects = item?.effects
   if (!effects || typeof effects !== 'object') return null
   const localeCode = typeof locale === 'string' ? locale : locale.value

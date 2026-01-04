@@ -6,23 +6,50 @@ import {
   baseCardTypeCreateSchema,
   baseCardTypeUpdateSchema,
 } from '../../schemas/base-card-type'
+import type { DB, CardStatus } from '../../database/types'
+import type { Kysely, SelectQueryBuilder } from 'kysely'
+import type { z } from 'zod'
 
-function sanitize<T extends Record<string, any>>(input: T): Record<string, any> {
-  const out: Record<string, any> = {}
+// Inferred types from Zod schemas
+type CardTypeQuery = z.infer<typeof baseCardTypeQuerySchema>
+type CardTypeCreate = z.infer<typeof baseCardTypeCreateSchema>
+type CardTypeUpdate = z.infer<typeof baseCardTypeUpdateSchema>
+
+// Row type returned by buildSelect query
+export interface CardTypeRow {
+  id: number
+  code: string
+  status: CardStatus
+  is_active: boolean
+  created_by: number | null
+  image: string | null
+  created_at: Date
+  modified_at: Date
+  name: string | null
+  short_text: string | null
+  description: string | null
+  language_code_resolved: string
+  create_user: string | null
+}
+
+function sanitize<T extends Record<string, unknown>>(input: T): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) out[key] = value
   }
   return out
 }
 
-function buildSelect(db: any, lang: string) {
+// Returns a SelectQueryBuilder - using 'any' for complex joined table type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, CardTypeRow> {
   return db
     .selectFrom('base_card_type as ct')
     .leftJoin('users as u', 'u.id', 'ct.created_by')
-    .leftJoin('base_card_type_translations as t_req', (join: any) =>
+    .leftJoin('base_card_type_translations as t_req', (join) =>
       join.onRef('t_req.card_type_id', '=', 'ct.id').on('t_req.language_code', '=', lang),
     )
-    .leftJoin('base_card_type_translations as t_en', (join: any) =>
+    .leftJoin('base_card_type_translations as t_en', (join) =>
       join.onRef('t_en.card_type_id', '=', 'ct.id').on('t_en.language_code', '=', sql`'en'`),
     )
     .select([
@@ -56,7 +83,7 @@ export const cardTypeCrud = createCrudHandlers({
     languageKey: 'language_code',
     defaultLang: 'en',
   },
-  buildListQuery: ({ db, query, lang }) => {
+  buildListQuery: ({ db, query, lang }: { db: Kysely<DB>; query: CardTypeQuery; lang: string }) => {
     let base = buildSelect(db, lang)
 
     if (query.is_active !== undefined) {
@@ -97,13 +124,13 @@ export const cardTypeCrud = createCrudHandlers({
       logMeta: () => ({}),
     }
   },
-  selectOne: ({ db, lang }, id) =>
+  selectOne: ({ db, lang }: { db: Kysely<DB>; lang: string }, id: number) =>
     buildSelect(db, lang)
       .where('ct.id', '=', id)
       .executeTakeFirst(),
   mutations: {
-    buildCreatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+    buildCreatePayload: (input: CardTypeCreate, ctx) => {
+      const userId = (ctx.event.context.user as { id: number } | undefined)?.id ?? null
       const baseData = sanitize({
         code: input.code,
         image: input.image ?? null,
@@ -119,8 +146,8 @@ export const cardTypeCrud = createCrudHandlers({
       })
       return { baseData, translationData, lang: input.lang }
     },
-    buildUpdatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+    buildUpdatePayload: (input: CardTypeUpdate, ctx) => {
+      const userId = (ctx.event.context.user as { id: number } | undefined)?.id ?? null
       const baseData = sanitize({
         code: input.code,
         image: input.image ?? null,

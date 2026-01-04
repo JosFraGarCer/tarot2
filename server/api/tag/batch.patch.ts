@@ -20,14 +20,14 @@ const tagBatchSchema = z
     description: z.string().nullable().optional(),
   })
   .refine((payload) => {
-    const { ids, ...rest } = payload
+    const { ids: _ids, ...rest } = payload
     return Object.keys(rest).length > 0
   }, 'No fields to update')
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   const logger = event.context.logger ?? globalThis.logger
-  const userId = (event.context.user as any)?.id ?? null
+  const userId = (event.context.user as { id: number })?.id ?? null
 
   logger?.info?.({
     scope: 'tag.batch.start',
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
   const body = tagBatchSchema.parse(await readBody(event))
   const ids = Array.from(new Set(body.ids))
 
-  const basePatch: Record<string, any> = {}
+  const basePatch: Record<string, unknown> = {}
   if (body.is_active !== undefined) basePatch.is_active = body.is_active
   if (body.category !== undefined) basePatch.category = body.category
   if (body.parent_id !== undefined) basePatch.parent_id = body.parent_id
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     basePatch.updated_by = userId
   }
 
-  const translationPatch: Record<string, any> = {}
+  const translationPatch: Record<string, unknown> = {}
   if (body.name !== undefined) translationPatch.name = body.name
   if (body.short_text !== undefined) translationPatch.short_text = body.short_text
   if (body.description !== undefined) translationPatch.description = body.description
@@ -65,7 +65,7 @@ export default defineEventHandler(async (event) => {
     } else {
       // Ensure entities exist when only translations provided
       const count = await trx.selectFrom('tags').select(sql`count(*)`.as('c')).where('id', 'in', ids).executeTakeFirst()
-      const total = Number((count as any)?.c ?? 0)
+      const total = Number((count as { c?: unknown })?.c ?? 0)
       if (total !== ids.length) {
         throw createError({ statusCode: 404, statusMessage: 'One or more tags not found' })
       }
@@ -84,11 +84,11 @@ export default defineEventHandler(async (event) => {
           await trx
             .updateTable('tags_translations')
             .set({
-              ...(translationPatch.name !== undefined ? { name: translationPatch.name } : {}),
-              ...(translationPatch.short_text !== undefined ? { short_text: translationPatch.short_text ?? null } : {}),
-              ...(translationPatch.description !== undefined ? { description: translationPatch.description ?? null } : {}),
+              ...(translationPatch.name !== undefined ? { name: translationPatch.name as string } : {}),
+              ...(translationPatch.short_text !== undefined ? { short_text: (translationPatch.short_text as string) ?? null } : {}),
+              ...(translationPatch.description !== undefined ? { description: (translationPatch.description as string) ?? null } : {}),
             })
-            .where('id', '=', (existing as any).id)
+            .where('id', '=', (existing as { id: unknown }).id)
             .execute()
         } else {
           if (translationPatch.name === undefined) {
@@ -99,9 +99,9 @@ export default defineEventHandler(async (event) => {
             .values({
               tag_id: id,
               language_code: lang,
-              name: translationPatch.name,
-              short_text: translationPatch.short_text ?? null,
-              description: translationPatch.description ?? null,
+              name: translationPatch.name as string,
+              short_text: (translationPatch.short_text as string) ?? null,
+              description: (translationPatch.description as string) ?? null,
             })
             .execute()
         }

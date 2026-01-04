@@ -14,16 +14,16 @@ async function getUserPermissions(userId: number) {
     .groupBy('ur.user_id')
     .executeTakeFirst()
   const roles = row?.roles
-  let rolesArr: any[] = []
-  if (Array.isArray(roles)) rolesArr = roles
-  else if (roles) { try { rolesArr = JSON.parse(String(roles)) } catch {} }
-  return mergePermissions(rolesArr)
+  let rolesArr: Record<string, unknown>[] = []
+  if (Array.isArray(roles)) rolesArr = roles as Record<string, unknown>[]
+  else if (roles) { try { rolesArr = JSON.parse(String(roles)) } catch { /* ignore */ } }
+  return mergePermissions(rolesArr as { permissions?: unknown }[])
 }
 
-function normalizeSqlInput(body: any): string {
+function normalizeSqlInput(body: unknown): string {
   if (typeof body === 'string') return body
   if (body && typeof body === 'object') {
-    if (typeof body.sql === 'string') return body.sql
+    if (typeof (body as { sql: unknown }).sql === 'string') return (body as { sql: string }).sql
   }
   throw createError({ statusCode: 400, statusMessage: 'Invalid body: expected text or { sql: string }' })
 }
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
   let userId: number | undefined
   try {
     const user = await getUserFromEvent(event)
-    userId = (user as any).id
+    userId = (user as { id: number }).id
     const perms = await getUserPermissions(userId!)
     if (!(perms.canManageUsers || perms.canAccessAdmin)) {
       throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
@@ -64,8 +64,9 @@ export default defineEventHandler(async (event) => {
         try {
           await trx.executeQuery(sql.raw(s))
           executed++
-        } catch (e: any) {
-          errors.push({ index: i, message: e?.message ?? String(e), statement: s.slice(0, 200) })
+        } catch (e: unknown) {
+          const err = e as Error
+          errors.push({ index: i, message: err?.message ?? String(err), statement: s.slice(0, 200) })
           // continue with next; not rolling back entire transaction (best-effort restore)
         }
       }

@@ -122,7 +122,7 @@ function createDeckCrud<TKey extends DeckEntityKey>(entityKey: TKey): DeckCrudSu
   }
 
   const isDev = import.meta.dev
-  const log = (...args: any[]) => {
+  const log = (...args: unknown[]) => {
     if (!isDev) return
     console.debug('[useDeckCrud]', ...args)
   }

@@ -81,6 +81,11 @@ defineProps<{
   users: AdminUserEntity[]
 }>()
 
+defineEmits<{
+  (e: 'edit', user: AdminUserEntity): void
+  (e: 'delete', user: AdminUserEntity): void
+}>()
+
 const { t, te } = useI18n()
 
 function tt(key: string, fallback: string) {

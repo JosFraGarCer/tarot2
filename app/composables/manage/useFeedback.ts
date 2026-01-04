@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useI18n, useToast } from '#imports'
 import type { AnyManageCrud } from '@/types/manage'
 import { useApiFetch } from '@/utils/fetcher'
+import { getErrorMessage } from '@/utils/error'
 
 export type FeedbackCategory = 'bug' | 'suggestion' | 'balance' | 'translation' | 'other'
 
@@ -13,7 +14,7 @@ export interface FeedbackPayload {
 }
 
 interface OpenPayload {
-  entity: any
+  entity: Record<string, unknown>
 }
 
 interface UseFeedbackOptions {
@@ -39,25 +40,26 @@ const ENTITY_TYPE_MAP: Record<string, string> = {
   base_skills: 'base_skills',
 }
 
-function resolveEntityType(entityKey: string, entity: any): string | null {
+function resolveEntityType(entityKey: string, entity: Record<string, unknown>): string | null {
   if (ENTITY_TYPE_MAP[entityKey]) return ENTITY_TYPE_MAP[entityKey]
-  const raw = String(entity?.entity_type ?? '')
+  const raw = String(entity.entity_type ?? '')
   if (raw && ENTITY_TYPE_MAP[raw]) return ENTITY_TYPE_MAP[raw]
   return null
 }
 
-function resolveEntityName(entity: any): string | null {
+function resolveEntityName(entity: unknown): string | null {
   if (!entity || typeof entity !== 'object') return null
+  const e = entity as Record<string, unknown>
   const candidates = [
-    (entity as any).name,
-    (entity as any).title,
-    (entity as any).translation?.name,
-    (entity as any).code,
+    e.name,
+    e.title,
+    (e.translation as Record<string, unknown> | undefined)?.name,
+    e.code,
   ]
   for (const candidate of candidates) {
     if (typeof candidate === 'string' && candidate.trim().length) return candidate
   }
-  if (entity.id !== undefined && entity.id !== null) return `#${entity.id}`
+  if (e.id !== undefined && e.id !== null) return `#${e.id}`
   return null
 }
 
@@ -68,7 +70,7 @@ export function useFeedback(options: UseFeedbackOptions) {
 
   const modalOpen = ref(false)
   const saving = ref(false)
-  const currentEntity = ref<any>(null)
+  const currentEntity = ref<Record<string, unknown> | null>(null)
   const entityType = ref<string | null>(null)
   const error = ref<string | null>(null)
 
@@ -124,9 +126,9 @@ export function useFeedback(options: UseFeedbackOptions) {
         status: 'open',
       }
 
-      const lang = currentEntity.value?.language_code_resolved ?? currentEntity.value?.language_code
+      const lang = currentEntity.value.language_code_resolved ?? currentEntity.value.language_code
       if (typeof lang === 'string' && lang.length) body.language_code = lang
-      const version = currentEntity.value?.version_number ?? currentEntity.value?.revision
+      const version = currentEntity.value.version_number ?? currentEntity.value.revision
       if (Number.isFinite(version)) body.version_number = Number(version)
 
       await apiFetch('/content_feedback', {
@@ -137,8 +139,8 @@ export function useFeedback(options: UseFeedbackOptions) {
       toast?.add?.({ title: options.entityLabel, description: t('common.saved') || 'Saved', color: 'success' })
       await options.crud.fetchList?.()
       close()
-    } catch (err: any) {
-      error.value = err?.data?.message ?? err?.message ?? String(err)
+    } catch (err: unknown) {
+      error.value = getErrorMessage(err)
       toast?.add?.({
         title: options.entityLabel,
         description: error.value,

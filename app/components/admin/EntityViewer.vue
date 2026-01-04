@@ -55,15 +55,16 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 
 interface DiffEntry {
   op: 'add' | 'remove' | 'replace'
   path: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 const props = defineProps<{
-  entity: Record<string, any> | null | undefined
+  entity: Record<string, unknown> | null | undefined
   highlightDiff?: DiffEntry[] | null
   languageCode?: string | null
 }>()
@@ -71,7 +72,7 @@ const props = defineProps<{
 const normalizedEntity = computed(() => props.entity ?? {})
 const isEmpty = computed(() => Object.keys(normalizedEntity.value).length === 0)
 
-const flatEntity = computed<Record<string, any>>(() => flattenEntity(normalizedEntity.value))
+const flatEntity = computed<Record<string, unknown>>(() => flattenEntity(normalizedEntity.value))
 
 const diffMap = computed<Record<string, DiffEntry['op']>>(() => {
   const entries = Array.isArray(props.highlightDiff) ? props.highlightDiff : []
@@ -120,7 +121,7 @@ function badgeLabel(op: DiffEntry['op']) {
   return '~'
 }
 
-function formatValue(value: any) {
+function formatValue(value: unknown) {
   if (value === null || value === undefined) return '—'
   if (typeof value === 'string') return value
   if (typeof value === 'number' || typeof value === 'boolean') return String(value)
@@ -132,7 +133,7 @@ function formatValue(value: any) {
   }
 }
 
-function flattenEntity(input: any, prefix = '', target: Record<string, any> = {}) {
+function flattenEntity(input: unknown, prefix = '', target: Record<string, unknown> = {}) {
   if (input === null || input === undefined) {
     if (prefix) target[prefix] = input
     return target
@@ -158,7 +159,7 @@ function flattenEntity(input: any, prefix = '', target: Record<string, any> = {}
     return target
   }
 
-  const entries = Object.entries(input)
+  const entries = Object.entries(input as Record<string, unknown>)
   if (entries.length === 0 && prefix) {
     target[prefix] = {}
     return target

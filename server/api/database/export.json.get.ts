@@ -15,10 +15,10 @@ async function getUserPermissions(userId: number) {
     .groupBy('ur.user_id')
     .executeTakeFirst()
   const roles = row?.roles
-  let rolesArr: any[] = []
-  if (Array.isArray(roles)) rolesArr = roles
-  else if (roles) { try { rolesArr = JSON.parse(String(roles)) } catch {} }
-  return mergePermissions(rolesArr)
+  let rolesArr: Record<string, unknown>[] = []
+  if (Array.isArray(roles)) rolesArr = roles as Record<string, unknown>[]
+  else if (roles) { try { rolesArr = JSON.parse(String(roles)) } catch { /* ignore */ } }
+  return mergePermissions(rolesArr as { permissions?: unknown }[])
 }
 
 export default defineEventHandler(async (event) => {
@@ -26,20 +26,20 @@ export default defineEventHandler(async (event) => {
   let userId: number | undefined
   try {
     const user = await getUserFromEvent(event)
-    userId = (user as any).id
+    userId = (user as { id: number }).id
     const perms = await getUserPermissions(userId!)
     if (!(perms.canManageUsers || perms.canAccessAdmin)) {
       throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
     }
 
     // Aggregate exports for all entities
-    const data: Record<string, any> = {}
+    const data: Record<string, unknown> = {}
     const counts: Record<string, number> = {}
 
     const collect = async (key: string, args: Parameters<typeof exportEntities>[0]) => {
       const res = await exportEntities(args)
       const tableName = Object.keys(res.data || {})[0]
-      const arr = (res.data as any)[tableName] || []
+      const arr = (res.data as Record<string, unknown>)[tableName] || []
       data[key] = arr
       counts[key] = Array.isArray(arr) ? arr.length : 0
     }

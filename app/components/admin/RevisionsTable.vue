@@ -37,7 +37,7 @@
         </UButton>
         <UButton
           size="xs"
-          :disabled="!isEditor || selectedIds.value.length === 0"
+          :disabled="!isEditor || !hasSelectedItems"
           :title="!isEditor ? $t('ui.messages.noPermission') : ''"
           @click="bulkApprove"
         >
@@ -47,7 +47,7 @@
           size="xs"
           color="error"
           variant="soft"
-          :disabled="!isEditor || selectedIds.value.length === 0"
+          :disabled="!isEditor || !hasSelectedItems"
           :title="!isEditor ? $t('ui.messages.noPermission') : ''"
           @click="bulkReject"
         >
@@ -185,17 +185,17 @@
 </template>
 
 <script setup lang="ts">
-import { useRevisions } from '@/composables/admin/useRevisions'
-import JsonModal from '@/components/admin/JsonModal.vue'
-import { formatDate } from '@/utils/date'
-import { useCurrentUser } from '@/composables/users/useCurrentUser'
-import PaginationControls from '@/components/common/PaginationControls.vue'
+import { useRevisions } from '~/composables/admin/useRevisions'
+import JsonModal from '~/components/admin/JsonModal.vue'
+import { formatDate } from '~/utils/date'
+import { useCurrentUser } from '~/composables/users/useCurrentUser'
+import PaginationControls from '~/components/common/PaginationControls.vue'
 import { useDebounceFn } from '@vueuse/core'
-import { useTableSelection } from '@/composables/common/useTableSelection'
-import AdminTableBridge from '@/components/admin/AdminTableBridge.vue'
-import type { ColumnDefinition } from '@/components/common/CommonDataTable.vue'
-import type { EntityRow } from '@/components/manage/view/EntityTable.vue'
-import { mapRevisionsToRows } from '@/utils/manage/entityRows'
+import { useTableSelection } from '~/composables/common/useTableSelection'
+import AdminTableBridge from '~/components/admin/AdminTableBridge.vue'
+import type { ColumnDefinition } from '~/components/common/CommonDataTable.vue'
+import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
+import { mapRevisionsToRows } from '~/utils/manage/entityRows'
 
 const { t } = useI18n()
 
@@ -215,10 +215,8 @@ const entityTypeItems = [
 const {
   items,
   pending,
-  error,
   meta,
   fetchList,
-  fetchOne,
   setStatus,
   bulkSetStatus,
   lastQuery,
@@ -304,9 +302,9 @@ async function bulkReject() {
 }
 
 const diffOpen = ref(false)
-const currentDiff = ref<any>({})
-function onViewDiff(r:any) {
-  currentDiff.value = r?.diff || {}
+const currentDiff = ref<Record<string, unknown>>({})
+function onViewDiff(r: Record<string, unknown> | null) {
+  currentDiff.value = (r?.diff as Record<string, unknown>) || {}
   diffOpen.value = true
 }
 

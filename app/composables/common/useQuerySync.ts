@@ -4,7 +4,10 @@ import { useRoute, useRouter } from '#imports'
 
 type RouteQueryValue = string | string[] | null | undefined
 
-export interface UseQuerySyncOptions<TState extends Record<string, any>> {
+// Query state value types that can be synced to URL
+type QueryStateValue = string | number | boolean | string[] | number[] | Date | null | undefined
+
+export interface UseQuerySyncOptions<TState extends Record<string, QueryStateValue>> {
   defaults: TState
   parse?: Partial<{ [K in keyof TState]: (value: RouteQueryValue) => TState[K] }>
   serialize?: Partial<{ [K in keyof TState]: (value: TState[K]) => RouteQueryValue }>
@@ -14,14 +17,14 @@ export interface UseQuerySyncOptions<TState extends Record<string, any>> {
   serializeState?: (state: TState, defaults: TState) => Record<string, RouteQueryValue>
 }
 
-export interface UseQuerySyncReturn<TState extends Record<string, any>> {
+export interface UseQuerySyncReturn<TState extends Record<string, QueryStateValue>> {
   state: TState
   update: (patch: Partial<TState>, options?: { replace?: boolean }) => Promise<void>
   reset: (options?: { replace?: boolean }) => Promise<void>
   read: () => TState
 }
 
-export function useQuerySync<TState extends Record<string, any>>(
+export function useQuerySync<TState extends Record<string, QueryStateValue>>(
   options: MaybeRefOrGetter<UseQuerySyncOptions<TState>>,
 ): UseQuerySyncReturn<TState> {
   const route = useRoute()
@@ -95,7 +98,7 @@ export function useQuerySync<TState extends Record<string, any>>(
   }
 
   async function syncToRoute(current: TState, overrideReplace?: boolean) {
-    if (!process.client) return
+    if (!import.meta.client) return
     const query = buildQuery(current)
     const serialized = stableStringify(query)
     if (serialized === lastSerialized) return
@@ -128,7 +131,7 @@ export function useQuerySync<TState extends Record<string, any>>(
     applyState(next)
   })
 
-  if (process.client) {
+  if (import.meta.client) {
     watch(
       () => route.query,
       () => {
@@ -157,7 +160,7 @@ export function useQuerySync<TState extends Record<string, any>>(
   return { state, update, reset, read }
 }
 
-function defaultParse(raw: RouteQueryValue, fallback: any) {
+function defaultParse<T extends QueryStateValue>(raw: RouteQueryValue, fallback: T): T {
   if (raw == null) return fallback
   const value = Array.isArray(raw) ? raw[0] : raw
 
@@ -183,7 +186,7 @@ function defaultParse(raw: RouteQueryValue, fallback: any) {
   return value ?? fallback
 }
 
-function defaultSerialize(value: any, fallback: any): RouteQueryValue {
+function defaultSerialize(value: QueryStateValue, _fallback: QueryStateValue): RouteQueryValue {
   if (value == null) return undefined
 
   if (Array.isArray(value)) {
@@ -231,8 +234,8 @@ function unwrapClonable<T>(value: T): T {
   }
 
   if (value && typeof value === 'object') {
-    const out: Record<string, any> = {}
-    for (const [key, entry] of Object.entries(value as Record<string, any>)) {
+    const out: Record<string, unknown> = {}
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
       out[key] = unwrapClonable(entry)
     }
     return out as T
@@ -255,7 +258,7 @@ function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(plain))
 }
 
-function isEqual(a: any, b: any): boolean {
+function isEqual(a: QueryStateValue, b: QueryStateValue): boolean {
   if (Array.isArray(a) && Array.isArray(b)) {
     if (a.length !== b.length) return false
     return a.every((item, index) => item === b[index])
@@ -272,9 +275,9 @@ function isEmpty(value: RouteQueryValue): boolean {
   return value === ''
 }
 
-function stableStringify(value: Record<string, any>): string {
+function stableStringify(value: Record<string, QueryStateValue>): string {
   const sortedKeys = Object.keys(value).sort()
-  const normalized: Record<string, any> = {}
+  const normalized: Record<string, QueryStateValue> = {}
   for (const key of sortedKeys) {
     const entry = value[key]
     normalized[key] = Array.isArray(entry) ? [...entry] : entry

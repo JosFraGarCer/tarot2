@@ -36,8 +36,8 @@ export function getFallbackStatus(entity: FallbackAwareEntity | null | undefined
   if (!resolved) return 'missing'
 
   // If entity explicitly indicates fallback fields without flag, treat as partial
-  if ('translationStatus' in entity && typeof (entity as any).translationStatus === 'object') {
-    const status = (entity as any).translationStatus ?? {}
+  if ('translationStatus' in entity && typeof (entity.translationStatus) === 'object') {
+    const status = (entity.translationStatus as Record<string, unknown>) ?? {}
     if (status.isFallback === true) return 'partial'
     if (status.hasTranslation === false) return 'missing'
   }

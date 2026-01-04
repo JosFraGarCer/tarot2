@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     const payload = safeParseOrThrow(tagLinksAttachSchema, raw)
 
     const { entity_type, entity_ids, tag_ids } = payload
-    const currentUserId = (event.context as any).user?.id ?? null
+    const currentUserId = (event.context.user as { id: number } | undefined)?.id ?? null
 
     await globalThis.db.transaction().execute(async (trx) => {
       for (const entityId of entity_ids) {

@@ -6,7 +6,7 @@ export interface UseFormSectionSaveResult {
   message?: string | null
 }
 
-export type UseFormSectionSaveHandler<T> = (state: T) => Promise<UseFormSectionSaveResult | void> | UseFormSectionSaveResult | void
+export type UseFormSectionSaveHandler<T> = (state: T) => Promise<UseFormSectionSaveResult | undefined> | UseFormSectionSaveResult | undefined
 export type UseFormSectionValidator<T> = (state: T) => Promise<void> | void
 
 export interface UseFormSectionOptions<T> {
@@ -37,29 +37,30 @@ function cloneDeep<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
-function isPlainObject(value: unknown): value is Record<string, any> {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Object.prototype.toString.call(value) === '[object Object]'
 }
 
-function assignState<T extends Record<string, any>>(target: T, source: Record<string, any>) {
+function assignState<T extends Record<string, unknown>>(target: T, source: Record<string, unknown>) {
   for (const key of Object.keys(target)) {
     if (!(key in source)) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete target[key as keyof T]
     }
   }
   for (const key of Object.keys(source)) {
     const incoming = source[key]
     if (Array.isArray(incoming)) {
-      ;(target as Record<string, any>)[key] = incoming.slice()
+      ;(target as Record<string, unknown>)[key] = incoming.slice()
     } else if (isPlainObject(incoming)) {
-      ;(target as Record<string, any>)[key] = cloneDeep(incoming)
+      ;(target as Record<string, unknown>)[key] = cloneDeep(incoming)
     } else {
-      ;(target as Record<string, any>)[key] = incoming
+      ;(target as Record<string, unknown>)[key] = incoming
     }
   }
 }
 
-function isDeepEqual(a: any, b: any): boolean {
+function isDeepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true
   if (typeof a !== typeof b) return false
   if (a === null || b === null) return a === b
@@ -71,24 +72,26 @@ function isDeepEqual(a: any, b: any): boolean {
     return true
   }
   if (typeof a === 'object') {
-    const aKeys = Object.keys(a)
-    const bKeys = Object.keys(b)
+    const aObj = a as Record<string, unknown>
+    const bObj = b as Record<string, unknown>
+    const aKeys = Object.keys(aObj)
+    const bKeys = Object.keys(bObj)
     if (aKeys.length !== bKeys.length) return false
     for (const key of aKeys) {
-      if (!isDeepEqual(a[key], b[key])) return false
+      if (!isDeepEqual(aObj[key], bObj[key])) return false
     }
     return true
   }
   return a === b
 }
 
-function normalizeResult(result: UseFormSectionSaveResult | void): UseFormSectionSaveResult {
+function normalizeResult(result: UseFormSectionSaveResult | undefined): UseFormSectionSaveResult {
   if (!result) return { success: true }
   if (typeof result.success === 'boolean') return result
   return { success: true }
 }
 
-export function useFormSection<T extends Record<string, any>>(
+export function useFormSection<T extends Record<string, unknown>>(
   initialValue: MaybeRefOrGetter<T>,
   options: UseFormSectionOptions<T> = {},
 ): UseFormSectionReturn<T> {
@@ -103,13 +106,13 @@ export function useFormSection<T extends Record<string, any>>(
   const error = computed(() => errorMessage.value)
 
   function reset() {
-    assignState(state as Record<string, any>, cloneDeep(snapshot.value))
+    assignState(state as Record<string, unknown>, cloneDeep(snapshot.value))
     errorMessage.value = null
   }
 
   function patch(values: Partial<T>) {
     if (!values) return
-    assignState(state as Record<string, any>, { ...(state as Record<string, any>), ...values })
+    assignState(state as Record<string, unknown>, { ...(state as Record<string, unknown>), ...values })
   }
 
   async function save(handler?: UseFormSectionSaveHandler<T>): Promise<UseFormSectionSaveResult> {
@@ -135,10 +138,10 @@ export function useFormSection<T extends Record<string, any>>(
         return result
       }
       snapshot.value = cloneDeep(payload)
-      assignState(state as Record<string, any>, cloneDeep(snapshot.value))
+      assignState(state as Record<string, unknown>, cloneDeep(snapshot.value))
       return { success: true }
-    } catch (error: any) {
-      const message = error?.message || 'Save failed'
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Save failed'
       errorMessage.value = message
       return { success: false, message }
     } finally {
@@ -152,7 +155,7 @@ export function useFormSection<T extends Record<string, any>>(
       if (!isDeepEqual(next, snapshot.value)) {
         snapshot.value = cloneDeep(next)
         if (!dirty.value) {
-          assignState(state as Record<string, any>, cloneDeep(snapshot.value))
+          assignState(state as Record<string, unknown>, cloneDeep(snapshot.value))
         }
       }
     },

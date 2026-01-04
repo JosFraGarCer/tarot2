@@ -6,9 +6,46 @@ import {
   facetCreateSchema,
   facetUpdateSchema,
 } from '../../schemas/facet'
+import type { DB, CardStatus, Json } from '../../database/types'
+import type { Kysely, SelectQueryBuilder } from 'kysely'
+import type { z } from 'zod'
 
-function sanitize<T extends Record<string, any>>(input: T): Record<string, any> {
-  const output: Record<string, any> = {}
+// Inferred types from Zod schemas
+type FacetQuery = z.infer<typeof facetQuerySchema>
+type FacetCreate = z.infer<typeof facetCreateSchema>
+type FacetUpdate = z.infer<typeof facetUpdateSchema>
+
+// Tag type - exported for use in other modules
+export interface FacetTagInfo {
+  id: number
+  name: string
+  language_code_resolved: string
+}
+
+// Row type returned by buildSelect query
+export interface FacetRow {
+  id: number
+  code: string
+  arcana_id: number
+  status: CardStatus
+  is_active: boolean
+  created_by: number | null
+  image: string | null
+  legacy_effects: boolean
+  effects: Json | null
+  created_at: Date
+  modified_at: Date
+  name: string | null
+  short_text: string | null
+  description: string | null
+  language_code_resolved: string
+  arcana: string | null
+  create_user: string | null
+  tags: FacetTagInfo[]
+}
+
+function sanitize<T extends Record<string, unknown>>(input: T): Record<string, unknown> {
+  const output: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) {
       output[key] = value
@@ -17,20 +54,22 @@ function sanitize<T extends Record<string, any>>(input: T): Record<string, any> 
   return output
 }
 
-function buildSelect(db: any, lang: string) {
+// Returns a SelectQueryBuilder - using 'any' for complex joined table type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, FacetRow> {
   return db
     .selectFrom('facet as f')
     .leftJoin('users as u', 'u.id', 'f.created_by')
-    .leftJoin('facet_translations as t_req', (join: any) =>
+    .leftJoin('facet_translations as t_req', (join) =>
       join.onRef('t_req.facet_id', '=', 'f.id').on('t_req.language_code', '=', lang),
     )
-    .leftJoin('facet_translations as t_en', (join: any) =>
+    .leftJoin('facet_translations as t_en', (join) =>
       join.onRef('t_en.facet_id', '=', 'f.id').on('t_en.language_code', '=', sql`'en'`),
     )
-    .leftJoin('arcana_translations as t_req_ar', (join: any) =>
+    .leftJoin('arcana_translations as t_req_ar', (join) =>
       join.onRef('t_req_ar.arcana_id', '=', 'f.arcana_id').on('t_req_ar.language_code', '=', lang),
     )
-    .leftJoin('arcana_translations as t_en_ar', (join: any) =>
+    .leftJoin('arcana_translations as t_en_ar', (join) =>
       join.onRef('t_en_ar.arcana_id', '=', 'f.arcana_id').on('t_en_ar.language_code', '=', sql`'en'`),
     )
     .select([
@@ -86,8 +125,8 @@ export const facetCrud = createCrudHandlers({
     languageKey: 'language_code',
     defaultLang: 'en',
   },
-  buildListQuery: ({ db, query, lang }) => {
-    const tagsLower = query.tags?.map((tag: string) => tag.toLowerCase())
+  buildListQuery: ({ db, query, lang }: { db: Kysely<DB>; query: FacetQuery; lang: string }) => {
+    const tagsLower = query.tags?.map((tag) => tag.toLowerCase())
     const tagIds = query.tag_ids
 
     let base = buildSelect(db, lang)
@@ -153,24 +192,24 @@ export const facetCrud = createCrudHandlers({
             ]),
           ),
       },
-      logMeta: ({ rows }) => ({
+      logMeta: ({ rows }: { rows: FacetRow[] }) => ({
         arcana_id: query.arcana_id ?? null,
         tag_ids: tagIds ?? null,
         tags: tagsLower ?? null,
         count_tags: rows.reduce(
-          (acc: number, row: any) => acc + (Array.isArray(row?.tags) ? row.tags.length : 0),
+          (acc, row) => acc + (Array.isArray(row?.tags) ? row.tags.length : 0),
           0,
         ),
       }),
     }
   },
-  selectOne: ({ db, lang }, id) =>
+  selectOne: ({ db, lang }: { db: Kysely<DB>; lang: string }, id: number) =>
     buildSelect(db, lang)
       .where('f.id', '=', id)
       .executeTakeFirst(),
   mutations: {
-    buildCreatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+    buildCreatePayload: (input: FacetCreate, ctx) => {
+      const userId = (ctx.event.context.user as { id: number } | undefined)?.id ?? null
       const baseData = sanitize({
         code: input.code,
         arcana_id: input.arcana_id,
@@ -189,8 +228,8 @@ export const facetCrud = createCrudHandlers({
       })
       return { baseData, translationData, lang: input.lang }
     },
-    buildUpdatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+    buildUpdatePayload: (input: FacetUpdate, ctx) => {
+      const userId = (ctx.event.context.user as { id: number } | undefined)?.id ?? null
       const baseData = sanitize({
         code: input.code,
         arcana_id: input.arcana_id,

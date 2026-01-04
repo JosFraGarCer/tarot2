@@ -27,7 +27,7 @@
 const open = defineModel<boolean>({ default: false })
 
 const props = withDefaults(defineProps<{
-  value?: any
+  value?: unknown
   title?: string
   description?: string
   copyLabel?: string

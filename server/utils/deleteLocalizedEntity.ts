@@ -36,7 +36,7 @@ export async function deleteLocalizedEntity(options: DeleteLocalizedEntityOption
   const languageKey = options.languageKey ?? 'language_code'
   const defaultLang = (options.defaultLang ?? 'en').toLowerCase()
   const requestedLang = (lang || defaultLang).toLowerCase()
-  const logger = event.context.logger ?? (globalThis as any).logger
+  const logger = event.context.logger ?? (globalThis as unknown as { logger: { info: (data: unknown, msg: string) => void } }).logger
   const scope = `entity.delete.${String(baseTable)}`
 
   let deletedBase = false

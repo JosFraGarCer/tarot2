@@ -64,11 +64,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { AdminUserEntity } from '@/types/admin'
 
-const props = defineProps<{
+defineProps<{
   users: AdminUserEntity[]
+}>()
+
+defineEmits<{
+  (e: 'edit', user: AdminUserEntity): void
+  (e: 'delete', user: AdminUserEntity): void
 }>()
 
 const { t, te } = useI18n()

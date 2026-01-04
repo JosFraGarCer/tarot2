@@ -1,8 +1,8 @@
 <!-- app/components/manage/modal/PreviewModal.vue -->
 <!-- app/components/manage/Modal/PreviewModal.vue -->
 <script setup lang="ts">
+import { computed } from 'vue'
 import Preview from '~/components/manage/Preview.vue'
-
 
 const props = defineProps<{
   open: boolean
@@ -19,11 +19,16 @@ const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
 }>()
 
+const isOpen = computed({
+  get: () => props.open,
+  set: (v) => emit('update:open', v)
+})
+
 const close = () => emit('update:open', false)
 </script>
 
 <template>
-  <UModal :open="props.open" description="preview" :title="title" @update:open="(v:boolean) => emit('update:open', v)">
+  <UModal v-model:open="isOpen" description="preview" :title="title">
     <template #header>
       <div class="flex items-center justify-between w-full">
         <h3 class="text-base font-semibold">{{ title }}</h3>

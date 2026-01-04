@@ -102,6 +102,26 @@ import { useContentFeedback } from '@/composables/admin/useContentFeedback'
 import { useCurrentUser } from '@/composables/users/useCurrentUser'
 import { useApiFetch } from '@/utils/fetcher'
 import { formatDate } from '@/utils/date'
+import { getErrorMessage } from '@/utils/error'
+
+// Revision and feedback types
+interface Revision {
+  id: number
+  version_number?: number
+  status?: string
+  language_code?: string | null
+  diff?: Record<string, unknown> | unknown[]
+  notes?: string | null
+  created_at?: string
+}
+
+interface FeedbackItem {
+  id: number
+  status?: string
+  detail?: string | null
+  comment?: string | null
+}
+
 const { t } = useI18n()
 
 const route = useRoute()
@@ -126,12 +146,12 @@ const baseEntityMap: Record<string, string> = {
 const entityType = computed(() => baseEntityMap[entity.value] || entity.value)
 const entityId = id
 
-const { items, pending, error, fetchByEntity, fetchList, fetchOne, setStatus } = useRevisions()
+const { items, pending, error: _error, fetchByEntity, fetchList: _fetchList, fetchOne: _fetchOne, setStatus: _setStatus } = useRevisions()
 const revisions = items
-const selectedRevision = ref<any | null>(null)
+const selectedRevision = ref<Revision | null>(null)
 const selectedIds = ref<number[]>([])
 
-const entityData = ref<any>({})
+const entityData = ref<Record<string, unknown>>({})
 const language = ref<string | undefined>(undefined)
 
 const activeTab = ref<'revisions' | 'feedback'>('revisions')
@@ -157,17 +177,17 @@ async function loadEntity() {
   // try language if available
   try {
     const params = language.value ? { lang: language.value } : undefined
-    const res = await apiFetch<any>(`/${entity.value}/${id.value}`, {
+    const res = await apiFetch<{ data?: Record<string, unknown> }>(`/${entity.value}/${id.value}`, {
       method: 'GET',
       params,
     })
-    entityData.value = res?.data ?? res ?? {}
-  } catch (e) {
+    entityData.value = res?.data ?? {}
+  } catch (_e) {
     entityData.value = {}
   }
 }
 
-function select(r:any) {
+function select(r: Revision) {
   selectedRevision.value = r
   language.value = r?.language_code || language.value
 }
@@ -180,12 +200,12 @@ function toggleSelect(id:number, v:boolean) {
 
 const highlightOps = computed(() => {
   const diff = selectedRevision.value?.diff
-  return Array.isArray(diff) ? diff : ([] as any[])
+  return Array.isArray(diff) ? diff : ([] as unknown[])
 })
 
 const diffOpen = ref(false)
-const currentDiff = ref<any>({})
-function viewDiff(r:any) {
+const currentDiff = ref<Record<string, unknown> | unknown[]>({})
+function viewDiff(r: Revision) {
   currentDiff.value = r?.diff || {}
   diffOpen.value = true
 }
@@ -202,27 +222,27 @@ async function refreshRevisions() {
 async function refreshFeedback() {
   try {
     await fetchFeedback({ entity_type: entityType.value, entity_id: Number(entityId.value), page: 1, pageSize: 50 })
-  } catch (e) {
+  } catch (_e) {
     // Fallback to original entity routing type if backend mapping fails
     await fetchFeedback({ entity_type: entity.value, entity_id: Number(id.value), page: 1, pageSize: 50 })
   }
 }
 
-async function onResolveFeedback(f:any) {
+async function onResolveFeedback(f: FeedbackItem) {
   await resolveFeedback(f.id)
   await refreshFeedback()
 }
-async function onReopenFeedback(f:any) {
+async function onReopenFeedback(f: FeedbackItem) {
   await updateFeedback(f.id, { status: 'open' })
   await refreshFeedback()
 }
-async function onDeleteFeedback(f:any) {
+async function onDeleteFeedback(f: FeedbackItem) {
   await removeFeedback(f.id)
   await refreshFeedback()
 }
 const notesOpen = ref(false)
-const notesItem = ref<any | null>(null)
-function onNotes(f:any) { notesItem.value = f; notesOpen.value = true }
+const notesItem = ref<FeedbackItem | null>(null)
+function onNotes(f: FeedbackItem) { notesItem.value = f; notesOpen.value = true }
 async function saveNotes(nextDetail:string) {
   if (!notesItem.value) return
   await updateFeedback(notesItem.value.id, { detail: nextDetail })
@@ -242,8 +262,8 @@ async function revertRevision(revId:number) {
     useToast().add({ title: t('features.admin.revisionsHistory.revertSuccess','Revision reverted successfully'), color: 'success' })
     await loadEntity()
     await refreshRevisions()
-  } catch (e:any) {
-    useToast().add({ title: t('features.admin.revisionsHistory.revertError','Error reverting revision'), description: e?.data?.message || e?.message, color: 'error' })
+  } catch (e: unknown) {
+    useToast().add({ title: t('features.admin.revisionsHistory.revertError','Error reverting revision'), description: getErrorMessage(e), color: 'error' })
   }
 }
 

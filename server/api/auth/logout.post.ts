@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   const logger = event.context.logger ?? globalThis.logger
   const requestId = event.context.requestId ?? null
-  const userId = (event.context as any)?.user?.id ?? null
+  const userId = (event.context.user as { id?: number } | undefined)?.id ?? null
 
   // Fallback limiter if middleware layer is bypassed
   enforceRateLimit(event, {

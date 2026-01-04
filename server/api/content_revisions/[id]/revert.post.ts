@@ -14,6 +14,24 @@ const paramsSchema = z.object({
 
 const DISALLOWED_FIELDS = new Set(['id', 'created_at', 'modified_at', 'updated_by', 'created_by'])
 
+// User context type
+interface UserContext {
+  id?: number
+  permissions?: Record<string, boolean>
+}
+
+// Revision row type from database
+interface RevisionRow {
+  id: number
+  entity_type: string
+  entity_id: number
+  version_number: number
+  language_code: string | null
+  prev_snapshot: Record<string, unknown> | null
+  next_snapshot: Record<string, unknown> | null
+  content_version_id: number | null
+}
+
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   const logger = event.context.logger ?? globalThis.logger
@@ -21,7 +39,7 @@ export default defineEventHandler(async (event) => {
 
   logger?.info?.({ scope: 'content_revisions.revert.start', requestId }, 'Content revision revert started')
 
-  const user = (event.context as any).user
+  const user = event.context.user as UserContext | undefined
   const permissions = user?.permissions ?? {}
   const canRevert = permissions.canRevert ?? permissions.canPublish ?? permissions.canReview ?? false
   if (!canRevert) forbidden('Permission required to revert revisions')
@@ -44,14 +62,15 @@ export default defineEventHandler(async (event) => {
 
   if (!revision) notFound('Content revision not found')
 
-  const entityType = String((revision as any).entity_type ?? '')
-  const entityId = Number((revision as any).entity_id)
-  const snapshot = (revision as any).prev_snapshot as Record<string, any> | null
+  const rev = revision as RevisionRow
+  const entityType = String(rev.entity_type ?? '')
+  const entityId = Number(rev.entity_id)
+  const snapshot = rev.prev_snapshot
 
   if (!entityType || !Number.isFinite(entityId)) badRequest('Invalid entity reference')
   if (!snapshot || typeof snapshot !== 'object') badRequest('No prev_snapshot available to revert')
 
-  const patch: Record<string, any> = {}
+  const patch: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(snapshot)) {
     if (!DISALLOWED_FIELDS.has(key)) {
       patch[key] = value
@@ -87,7 +106,7 @@ export default defineEventHandler(async (event) => {
       .where('entity_id', '=', entityId)
       .executeTakeFirst()
 
-    const nextVersion = Number((maxVersionRow as any)?.vmax ?? 0) + 1
+    const nextVersion = Number((maxVersionRow as { vmax?: number } | undefined)?.vmax ?? 0) + 1
 
     const inserted = await trx
       .insertInto('content_revisions')
@@ -96,12 +115,12 @@ export default defineEventHandler(async (event) => {
         entity_id: entityId,
         version_number: nextVersion,
         status: 'reverted',
-        language_code: (revision as any).language_code ?? null,
+        language_code: rev.language_code ?? null,
         diff: { reverted_from_revision_id: id },
         notes: body.notes ?? `Reverted from revision ${id}`,
         prev_snapshot: null,
-        next_snapshot: (revision as any).next_snapshot ?? null,
-        content_version_id: (revision as any).content_version_id ?? null,
+        next_snapshot: rev.next_snapshot ?? null,
+        content_version_id: rev.content_version_id ?? null,
         created_by: user?.id ?? null,
       })
       .returning('id')

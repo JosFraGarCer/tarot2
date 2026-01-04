@@ -14,13 +14,13 @@ async function getUserPermissions(userId: number) {
     .groupBy('ur.user_id')
     .executeTakeFirst()
   const roles = row?.roles
-  let rolesArr: any[] = []
-  if (Array.isArray(roles)) rolesArr = roles
-  else if (roles) { try { rolesArr = JSON.parse(String(roles)) } catch {} }
-  return mergePermissions(rolesArr)
+  let rolesArr: Record<string, unknown>[] = []
+  if (Array.isArray(roles)) rolesArr = roles as Record<string, unknown>[]
+  else if (roles) { try { rolesArr = JSON.parse(String(roles)) } catch { /* ignore */ } }
+  return mergePermissions(rolesArr as { permissions?: unknown }[])
 }
 
-function sqlEscape(val: any): string {
+function sqlEscape(val: unknown): string {
   if (val === null || val === undefined) return 'NULL'
   if (typeof val === 'number' && Number.isFinite(val)) return String(val)
   if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE'
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
   let userId: number | undefined
   try {
     const user = await getUserFromEvent(event)
-    userId = (user as any).id
+    userId = (user as { id: number }).id
     const perms = await getUserPermissions(userId!)
     if (!(perms.canManageUsers || perms.canAccessAdmin)) {
       throw createError({ statusCode: 403, statusMessage: 'Forbidden' })
@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
       chunks.push(`\n-- ${table}`)
       chunks.push(`DELETE FROM ${table};`)
       if (!rows || rows.length === 0) continue
-      for (const row of rows as any[]) {
+      for (const row of rows as Record<string, unknown>[]) {
         const cols = Object.keys(row)
         const values = cols.map((c) => sqlEscape(row[c]))
         chunks.push(`INSERT INTO ${table} ("${cols.join('", "')}") VALUES (${values.join(', ')});`)

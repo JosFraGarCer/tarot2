@@ -50,7 +50,7 @@ const props = withDefaults(defineProps<{
   cancelLabel: string
   loading?: boolean
   confirmColor?: ButtonColor
-  ui?: Record<string, any>
+  ui?: Record<string, unknown>
 }>(), {
   description: undefined,
   loading: false,

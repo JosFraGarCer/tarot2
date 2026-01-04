@@ -161,7 +161,7 @@ export type EntityRow = {
   username?: string | null
   roles?: string[]
   permissions?: Record<string, boolean>
-  raw?: any
+  raw?: Record<string, unknown>
 }
 
 const props = defineProps<{
@@ -241,7 +241,7 @@ function onUpdateSelected() {
 
 function formatDate(value: unknown) {
   if (!value) return ''
-  const date = value instanceof Date ? value : new Date(value as any)
+  const date = value instanceof Date ? value : new Date(value as string | number)
   if (Number.isNaN(date.getTime())) return ''
   const localeCode = typeof locale === 'string' ? locale : locale.value
   try {

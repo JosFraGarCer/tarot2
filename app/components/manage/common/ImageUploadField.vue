@@ -37,12 +37,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { normalizeFileValue } from '@/composables/common/useImagePreview'
-// import type { ImageFieldConfig } from '@/types/forms'
+
+type ImageFieldConfig = {
+  label: string
+  dropLabel: string
+  removeLabel: string
+  previewAlt: string
+  description: string
+  required: boolean
+  disabled: boolean
+  hint?: string
+}
 
 const props = withDefaults(defineProps<{
   modelValue?: File | null
   preview?: string | null
-  field: Required
+  field: ImageFieldConfig
   enabled?: boolean
   disabled?: boolean
 }>(), {
@@ -56,21 +66,14 @@ const emit = defineEmits<{ (e: 'update:modelValue', v: File | null): void; (e: '
 
 const internalModel = computed({
   get: () => props.modelValue ?? null,
-  set: (value) => {
+  set: (value: unknown) => {
     const file = normalizeFileValue(value)
     emit('update:modelValue', file)
   }
 })
 
-const onUpdate = (value: any) => {
-  const file = normalizeFileValue(value)
-  emit('update:modelValue', file)
-}
-
 const onRemove = () => {
   emit('update:modelValue', null)
   emit('remove')
 }
-
-
 </script>

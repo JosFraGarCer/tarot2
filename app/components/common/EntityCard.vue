@@ -192,7 +192,7 @@ const translationMeta = computed<EntityTranslationStatus | null>(() => {
     return null
   }
 
-  const baseRecord = base as Record<string, any>
+  const baseRecord = base as Record<string, unknown>
   const resolvedCandidate = resolved || String(baseRecord.language_code_resolved ?? baseRecord.language_code ?? '')
   const translationPresent = base.hasTranslation ?? Boolean(resolvedCandidate)
 

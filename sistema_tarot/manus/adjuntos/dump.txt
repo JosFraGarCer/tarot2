@@ -1,0 +1,76 @@
+
+
+-- public.world_card_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.world_card_translations;
+
+CREATE TABLE public.world_card_translations (
+	id serial4 NOT NULL,
+	card_id int4 NOT NULL,
+	language_code varchar(5) NOT NULL,
+	"name" text NOT NULL,
+	short_text text NULL,
+	description text NULL,
+	CONSTRAINT world_card_lang_unique UNIQUE (card_id, language_code),
+	CONSTRAINT world_card_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT world_card_translations_card_id_fkey FOREIGN KEY (card_id) REFERENCES public.world_card(id) ON DELETE CASCADE
+);
+
+
+-- public.world_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.world_translations;
+
+CREATE TABLE public.world_translations (
+	id serial4 NOT NULL,
+	world_id int4 NOT NULL,
+	language_code varchar(5) NOT NULL,
+	"name" text NOT NULL,
+	short_text text NULL,
+	description text NULL,
+	CONSTRAINT world_lang_unique UNIQUE (world_id, language_code),
+	CONSTRAINT world_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT world_translations_world_id_fkey FOREIGN KEY (world_id) REFERENCES public.world(id) ON DELETE CASCADE
+);
+
+
+-- public.base_skills definition
+
+-- Drop table
+
+-- DROP TABLE public.base_skills;
+
+CREATE TABLE public.base_skills (
+	id serial4 NOT NULL,
+	code varchar(50) NOT NULL,
+	facet_id int4 NOT NULL,
+	image varchar(255) NULL,
+	is_active bool DEFAULT true NOT NULL,
+	sort int4 DEFAULT 0 NOT NULL,
+	CONSTRAINT base_skills_code_key UNIQUE (code),
+	CONSTRAINT base_skills_pkey PRIMARY KEY (id),
+	CONSTRAINT fk_base_skills_facet FOREIGN KEY (facet_id) REFERENCES public.facet(id) ON DELETE CASCADE
+);
+
+
+-- public.base_skills_translations definition
+
+-- Drop table
+
+-- DROP TABLE public.base_skills_translations;
+
+CREATE TABLE public.base_skills_translations (
+	id serial4 NOT NULL,
+	base_skill_id int4 NOT NULL,
+	locale varchar(10) NOT NULL,
+	"name" varchar(100) NOT NULL,
+	short_text varchar(255) NULL,
+	description text NULL,
+	CONSTRAINT base_skills_translations_pkey PRIMARY KEY (id),
+	CONSTRAINT fk_base_skills_translations_base_skill FOREIGN KEY (base_skill_id) REFERENCES public.base_skills(id) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX idx_base_skills_translations_unique ON public.base_skills_translations USING btree (base_skill_id, locale);

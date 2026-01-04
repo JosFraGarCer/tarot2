@@ -1,4 +1,6 @@
 // app/components/common/entityDisplay.ts
+import type { FallbackStatus } from '~/utils/fallbackUtils'
+
 export type ReleaseStage = 'dev' | 'alpha' | 'beta' | 'candidate' | 'release' | 'revision'
 
 export type StatusCode = 'draft' | 'review' | 'approved' | 'archived' | (string & {})
@@ -31,8 +33,6 @@ export interface EntityMetadataItem {
   icon?: string | null
   tooltip?: string | boolean
 }
-
-import type { FallbackStatus } from '~/utils/fallbackUtils'
 
 export interface EntityTranslationStatus {
   hasTranslation?: boolean | null

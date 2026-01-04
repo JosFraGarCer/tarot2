@@ -2,10 +2,42 @@
 import { sql } from 'kysely'
 import { createCrudHandlers } from '../../utils/createCrudHandlers'
 import { arcanaQuerySchema, arcanaCreateSchema, arcanaUpdateSchema } from '../../schemas/arcana'
-import type { DB } from '../../database/types'
+import type { DB, CardStatus } from '../../database/types'
+import type { Kysely, SelectQueryBuilder } from 'kysely'
+import type { z } from 'zod'
 
-function sanitizeBaseData(input: Record<string, any>) {
-  const output: Record<string, any> = {}
+// Inferred types from Zod schemas
+type ArcanaQuery = z.infer<typeof arcanaQuerySchema>
+type ArcanaCreate = z.infer<typeof arcanaCreateSchema>
+type ArcanaUpdate = z.infer<typeof arcanaUpdateSchema>
+
+// Tag type for arcana entities
+export interface ArcanaTagInfo {
+  id: number
+  name: string
+  language_code_resolved: string
+}
+
+// Row type returned by buildSelect query
+export interface ArcanaRow {
+  id: number
+  code: string
+  status: CardStatus
+  is_active: boolean
+  created_by: number | null
+  image: string | null
+  created_at: Date
+  modified_at: Date
+  name: string | null
+  short_text: string | null
+  description: string | null
+  language_code_resolved: string
+  create_user: string | null
+  tags: ArcanaTagInfo[]
+}
+
+function sanitize<T extends Record<string, unknown>>(input: T): Record<string, unknown> {
+  const output: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) {
       output[key] = value
@@ -14,14 +46,16 @@ function sanitizeBaseData(input: Record<string, any>) {
   return output
 }
 
-function buildSelect(db: any, lang: string) {
+// Returns a SelectQueryBuilder - using 'any' for complex joined table type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, ArcanaRow> {
   return db
     .selectFrom('arcana as a')
     .leftJoin('users as u', 'u.id', 'a.created_by')
-    .leftJoin('arcana_translations as t_req', (join: any) =>
+    .leftJoin('arcana_translations as t_req', (join) =>
       join.onRef('t_req.arcana_id', '=', 'a.id').on('t_req.language_code', '=', lang),
     )
-    .leftJoin('arcana_translations as t_en', (join: any) =>
+    .leftJoin('arcana_translations as t_en', (join) =>
       join.onRef('t_en.arcana_id', '=', 'a.id').on('t_en.language_code', '=', sql`'en'`),
     )
     .select([
@@ -73,8 +107,8 @@ export const arcanaCrud = createCrudHandlers({
     languageKey: 'language_code',
     defaultLang: 'en',
   },
-  buildListQuery: ({ db, lang, query }) => {
-    const tagsLower = query.tags?.map((tag: string) => tag.toLowerCase())
+  buildListQuery: ({ db, lang, query }: { db: Kysely<DB>; lang: string; query: ArcanaQuery }) => {
+    const tagsLower = query.tags?.map((tag) => tag.toLowerCase())
     const tagIds = query.tag_ids
     let base = buildSelect(db, lang)
 
@@ -126,21 +160,21 @@ export const arcanaCrud = createCrudHandlers({
           created_by: 'a.created_by',
         },
       },
-      logMeta: ({ rows }) => ({
+      logMeta: ({ rows }: { rows: ArcanaRow[] }) => ({
         tag_ids: tagIds ?? null,
         tags: tagsLower ?? null,
-        count_tags: rows.reduce((acc, row: any) => acc + (Array.isArray(row?.tags) ? row.tags.length : 0), 0),
+        count_tags: rows.reduce((acc, row) => acc + (Array.isArray(row?.tags) ? row.tags.length : 0), 0),
       }),
     }
   },
-  selectOne: ({ db, lang }, id) =>
+  selectOne: ({ db, lang }: { db: Kysely<DB>; lang: string }, id: number) =>
     buildSelect(db, lang)
       .where('a.id', '=', id)
       .executeTakeFirst(),
   mutations: {
-    buildCreatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
-      const baseData = sanitizeBaseData({
+    buildCreatePayload: (input: ArcanaCreate, ctx) => {
+      const userId = (ctx.event.context.user as { id: number } | undefined)?.id ?? null
+      const baseData = sanitize({
         code: input.code,
         image: input.image ?? null,
         status: input.status,
@@ -148,7 +182,7 @@ export const arcanaCrud = createCrudHandlers({
         created_by: userId,
         updated_by: userId,
       })
-      const translationData = sanitizeBaseData({
+      const translationData = sanitize({
         name: input.name,
         short_text: input.short_text ?? null,
         description: input.description ?? null,
@@ -159,16 +193,16 @@ export const arcanaCrud = createCrudHandlers({
         lang: input.lang,
       }
     },
-    buildUpdatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
-      const baseData = sanitizeBaseData({
+    buildUpdatePayload: (input: ArcanaUpdate, ctx) => {
+      const userId = (ctx.event.context.user as { id: number } | undefined)?.id ?? null
+      const baseData = sanitize({
         code: input.code,
         image: input.image ?? null,
         status: input.status,
         is_active: input.is_active,
         updated_by: userId,
       })
-      const translationData = sanitizeBaseData({
+      const translationData = sanitize({
         name: input.name,
         short_text: input.short_text ?? null,
         description: input.description ?? null,

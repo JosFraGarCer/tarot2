@@ -2,33 +2,23 @@
 <!-- app/components/manage/common/EntityActionsNew.vue -->
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useI18n } from '#imports'
-import { useCardStatus } from '~/utils/status'
 
 const props = defineProps<{
   entity: { id: number; name?: string; code?: string; language_code?: string | null }
   entityLabel: string
   entityType: string
-  onEdit?: (entity: any) => void
+  onEdit?: (entity: Record<string, unknown>) => void
   vertical?: boolean
   noTags?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', entity: any): void
-  (e: 'editform', entity: any): void
-  (e: 'feedback', entity: any): void
-  (e: 'tags', entity: any): void
-  (e: 'delete', entity: any): void
+  (e: 'edit', entity: Record<string, unknown>): void
+  (e: 'editform', entity: Record<string, unknown>): void
+  (e: 'feedback', entity: Record<string, unknown>): void
+  (e: 'tags', entity: Record<string, unknown>): void
+  (e: 'delete', entity: Record<string, unknown>): void
 }>()
-
-const { t, locale } = useI18n()
-const localeCode = computed(() => (typeof locale === 'string' ? locale : locale.value))
-const statusUtil = useCardStatus()
-
-const statusMenu = computed(() => [
-  statusUtil.options().map(o => ({ label: t(o.labelKey), value: o.value }))
-])
 
 const containerClass = computed(() =>
   props.vertical

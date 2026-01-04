@@ -165,10 +165,18 @@ import { useI18n, useRouter, useToast } from '#imports'
 import { ZodError } from 'zod'
 import { useApiFetch } from '@/utils/fetcher'
 import { useEntityFormPreset } from '~/composables/manage/useEntityFormPreset'
+import { getErrorMessage } from '@/utils/error'
 
 interface ParentOption {
   label: string
   value: number
+}
+
+// Tag item from API
+interface TagItem {
+  id?: number
+  code?: string
+  name?: string
 }
 
 const { t, te, locale } = useI18n()
@@ -220,12 +228,13 @@ const isFormValid = computed(() => {
   return Boolean(form.code?.trim() && form.category?.trim() && form.name?.trim())
 })
 
-function unwrapTagList(raw: any): any[] {
+function unwrapTagList(raw: unknown): TagItem[] {
   if (!raw) return []
-  if (Array.isArray(raw)) return raw
-  if (Array.isArray(raw.data)) return raw.data
-  if (Array.isArray(raw.items)) return raw.items
-  if (Array.isArray(raw.results)) return raw.results
+  if (Array.isArray(raw)) return raw as TagItem[]
+  const obj = raw as Record<string, unknown>
+  if (Array.isArray(obj.data)) return obj.data as TagItem[]
+  if (Array.isArray(obj.items)) return obj.items as TagItem[]
+  if (Array.isArray(obj.results)) return obj.results as TagItem[]
   return []
 }
 
@@ -242,15 +251,15 @@ async function loadParentOptions() {
     })
     const entries = unwrapTagList(response)
     parentOptions.value = entries
-      .map((item: any) => {
+      .map((item) => {
         const id = Number(item?.id)
         if (!Number.isFinite(id)) return null
         const label = item?.name || item?.code || `#${id}`
         return { value: id, label } as ParentOption
       })
       .filter((option): option is ParentOption => Boolean(option))
-  } catch (error: any) {
-    console.error('Failed to load parent tags', error)
+  } catch (_err) {
+    // Failed to load parent tags
   } finally {
     loadingParents.value = false
   }
@@ -306,9 +315,9 @@ async function handleSubmit() {
     if (createSchema) {
       createSchema.parse(payload)
     }
-  } catch (error: any) {
-    if (error instanceof ZodError) {
-      const flat = error.flatten()
+  } catch (err: unknown) {
+    if (err instanceof ZodError) {
+      const flat = err.flatten()
       const mapped: Record<string, string> = {}
       for (const [key, messages] of Object.entries(flat.fieldErrors)) {
         if (messages && messages.length) mapped[key] = messages[0]
@@ -317,7 +326,7 @@ async function handleSubmit() {
       formError.value = flat.formErrors?.[0] || tt('errors.validation_failed', 'Please review the highlighted fields and try again.')
       return
     }
-    formError.value = error?.message ?? String(error)
+    formError.value = getErrorMessage(err)
     return
   }
 
@@ -336,8 +345,8 @@ async function handleSubmit() {
     })
 
     router.push('/manage')
-  } catch (error: any) {
-    formError.value = error?.data?.message || error?.message || tt('errors.update_failed', 'Unable to save the tag right now.')
+  } catch (err: unknown) {
+    formError.value = getErrorMessage(err, tt('errors.update_failed', 'Unable to save the tag right now.'))
   } finally {
     submitLoading.value = false
   }

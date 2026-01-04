@@ -1,11 +1,11 @@
 // server/utils/translatableUpsert.ts
 import type { H3Event } from 'h3'
-import type { Kysely, Transaction } from 'kysely'
+import type { Kysely, Transaction, Updateable, Insertable } from 'kysely'
 import { sql } from 'kysely'
 import type { DB } from '../database/types'
 import { markLanguageFallback } from './language'
 
-export interface TranslatableUpsertOptions<TEntityRow = any> {
+export interface TranslatableUpsertOptions<TEntityRow = unknown> {
   event: H3Event
   db?: Kysely<DB>
   id?: number | null
@@ -16,13 +16,13 @@ export interface TranslatableUpsertOptions<TEntityRow = any> {
   foreignKey: string
   languageKey?: string
   idColumn?: string
-  baseData?: Record<string, any>
-  translationData?: Record<string, any> | null
+  baseData?: Record<string, unknown>
+  translationData?: Record<string, unknown> | null
   select: (db: Kysely<DB>, id: number, lang: string) => Promise<TEntityRow>
   loggerScope?: string
 }
 
-export interface TranslatableUpsertResult<TEntityRow = any> {
+export interface TranslatableUpsertResult<TEntityRow = unknown> {
   id: number
   lang: string
   wasCreated: boolean
@@ -31,9 +31,9 @@ export interface TranslatableUpsertResult<TEntityRow = any> {
   row: TEntityRow
 }
 
-function pruneUndefined<T extends Record<string, any>>(source: T | undefined | null): Record<string, any> {
+function pruneUndefined<T extends Record<string, unknown>>(source: T | undefined | null): Record<string, unknown> {
   if (!source) return {}
-  const out: Record<string, any> = {}
+  const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(source)) {
     if (value !== undefined) out[key] = value
   }
@@ -46,7 +46,7 @@ async function upsertTranslation(
     languageKey: string
     entityId: number
     lang: string
-    payload: Record<string, any>
+    payload: Record<string, unknown>
   },
 ): Promise<'updated' | 'inserted' | 'skipped'> {
   const { translationTable, foreignKey, languageKey, entityId, lang, payload } = options
@@ -63,8 +63,8 @@ async function upsertTranslation(
   if (existing) {
     await trx
       .updateTable(translationTable)
-      .set(cleaned)
-      .where('id', '=', (existing as any).id as number)
+      .set(cleaned as unknown as Updateable<DB[keyof DB]>)
+      .where('id', '=', (existing as Record<string, unknown>).id as number)
       .execute()
     return 'updated'
   }
@@ -75,16 +75,16 @@ async function upsertTranslation(
       [foreignKey]: entityId,
       [languageKey]: lang,
       ...cleaned,
-    })
+    } as unknown as Insertable<DB[keyof DB]>)
     .execute()
 
   return 'inserted'
 }
 
-export async function translatableUpsert<TEntityRow = any>(
+export async function translatableUpsert<TEntityRow = unknown>(
   opts: TranslatableUpsertOptions<TEntityRow>,
 ): Promise<TranslatableUpsertResult<TEntityRow>> {
-  const db = opts.db ?? globalThis.db
+  const db = opts.db ?? (globalThis as unknown as { db: Kysely<DB> }).db
   if (!db) throw new Error('Database instance not available')
 
   const lang = (opts.lang ?? 'en').toLowerCase()
@@ -93,7 +93,7 @@ export async function translatableUpsert<TEntityRow = any>(
   const languageKey = opts.languageKey ?? 'language_code'
   const baseData = pruneUndefined(opts.baseData)
   const translationData = pruneUndefined(opts.translationData)
-  const logger = opts.event.context.logger ?? (globalThis as any).logger
+  const logger = opts.event.context.logger ?? (globalThis as Record<string, unknown>).logger as { info?: (obj: unknown, msg?: string) => void } | undefined
   const scope = opts.loggerScope ?? 'translatable.upsert'
 
   let entityId = opts.id ?? null
@@ -109,17 +109,17 @@ export async function translatableUpsert<TEntityRow = any>(
       }
       const inserted = await trx
         .insertInto(opts.baseTable)
-        .values(baseData)
-        .returning(idColumn)
+        .values(baseData as unknown as Insertable<DB[keyof DB]>)
+        .returning(idColumn as unknown as keyof DB[keyof DB])
         .executeTakeFirst()
       if (!inserted) throw new Error(`Failed to insert ${String(opts.baseTable)}`)
-      entityId = Number((inserted as any)[idColumn])
+      entityId = Number((inserted as Record<string, unknown>)[idColumn])
       wasCreated = true
     } else if (Object.keys(baseData).length) {
       await trx
         .updateTable(opts.baseTable)
-        .set(baseData)
-        .where(idColumn, '=', entityId)
+        .set(baseData as unknown as Updateable<DB[keyof DB]>)
+        .where(idColumn as unknown as never, '=', entityId)
         .execute()
     }
 

@@ -153,8 +153,8 @@ export interface Tag {
   modified_at?: string
   created_by?: number | null
   updated_by?: number | null
-  created_by_user?: any
-  updated_by_user?: any
+  created_by_user?: UserSummary | null
+  updated_by_user?: UserSummary | null
 }
 
 export interface TagCreate {

@@ -1,8 +1,8 @@
 // app/composables/auth/useAuth.ts
-// /app/composables/auth/useAuth.ts
 import { computed } from 'vue'
 import { useUserStore } from '~/stores/user'
 import type { LoginResponse, MeResponse, UserDTO } from '@/types/api'
+import { getErrorMessage } from '@/utils/error'
 
 export function useAuth() {
   const store = useUserStore()
@@ -26,11 +26,8 @@ export function useAuth() {
       store.setToken(token)
 
       return user
-    } catch (err: any) {
-      const msg =
-        err?.data?.message ||
-        err?.message ||
-        'Login failed. Please check your credentials.'
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, 'Login failed. Please check your credentials.')
       store.setError(msg)
       throw err
     } finally {
@@ -46,8 +43,8 @@ export function useAuth() {
       await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
       // ⚠️ el backend aún no limpia cookie (ver SECURITY.md)
       store.logout()
-    } catch (err: any) {
-      const msg = err?.data?.message || err?.message || 'Logout failed'
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, 'Logout failed')
       store.setError(msg)
       throw err
     } finally {
@@ -67,9 +64,9 @@ export function useAuth() {
       } else {
         store.logout()
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       store.logout()
-      store.setError(err?.data?.message || err?.message || 'Session expired')
+      store.setError(getErrorMessage(err, 'Session expired'))
     } finally {
       store.setLoading(false)
     }

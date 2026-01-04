@@ -1,7 +1,7 @@
 // app/composables/manage/useFormState.ts
 import { computed, reactive, ref, toRaw } from 'vue'
 
-export interface UseFormStateOptions<T extends Record<string, any>> {
+export interface UseFormStateOptions<T extends Record<string, unknown>> {
   /**
    * Initial form value. Can be a plain object or a factory that returns one.
    */
@@ -17,7 +17,7 @@ export interface PatchOptions {
   markDirty?: boolean
 }
 
-export interface ResetOptions<T extends Record<string, any>> {
+export interface ResetOptions<T extends Record<string, unknown>> {
   to?: T
   updateInitial?: boolean
 }
@@ -26,7 +26,7 @@ export interface MarkCleanOptions {
   updateInitial?: boolean
 }
 
-export interface FormStateControls<T extends Record<string, any>> {
+export interface FormStateControls<T extends Record<string, unknown>> {
   values: T
   dirty: ReturnType<typeof ref<boolean>>
   isDirty: ReturnType<typeof computed<boolean>>
@@ -39,7 +39,7 @@ export interface FormStateControls<T extends Record<string, any>> {
   toObject: () => T
 }
 
-function resolveInitial<T extends Record<string, any>>(initial?: T | (() => T)): T {
+function resolveInitial<T extends Record<string, unknown>>(initial?: T | (() => T)): T {
   if (typeof initial === 'function') {
     return (initial as () => T)()
   }
@@ -47,8 +47,8 @@ function resolveInitial<T extends Record<string, any>>(initial?: T | (() => T)):
 }
 
 function clone<T>(value: T): T {
-  const raw = toRaw(value as any)
-  const structuredCloneFn = (globalThis as any)?.structuredClone as (<K>(val: K) => K) | undefined
+  const raw = toRaw(value)
+  const structuredCloneFn = (globalThis as unknown as { structuredClone: <K>(val: K) => K }).structuredClone
   if (structuredCloneFn) {
     try {
       return structuredCloneFn(raw)
@@ -65,27 +65,28 @@ function clone<T>(value: T): T {
     return raw.map(item => clone(item)) as unknown as T
   }
 
-  const out: Record<string, any> = {}
+  const out: Record<string, unknown> = {}
   for (const key of Object.keys(raw)) {
-    out[key] = clone((raw as Record<string, any>)[key])
+    out[key] = clone((raw as Record<string, unknown>)[key])
   }
   return out as T
 }
 
-function assignInto<T extends Record<string, any>>(target: T, source: T) {
+function assignInto<T extends Record<string, unknown>>(target: T, source: T) {
   for (const key of Object.keys(target)) {
     if (!(key in source)) {
-      delete (target as any)[key]
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- Sync object keys
+      delete (target as Record<string, unknown>)[key]
     }
   }
   Object.assign(target, source)
 }
 
-export function useFormState<T extends Record<string, any>>(options: UseFormStateOptions<T> = {}): FormStateControls<T> {
+export function useFormState<T extends Record<string, unknown>>(options: UseFormStateOptions<T> = {}): FormStateControls<T> {
   const initialResolved = clone(resolveInitial(options.initialValue))
-  const initialSnapshot = ref<T>(clone(initialResolved))
+  const initialSnapshot = ref<T>(clone(initialResolved)) as unknown as { value: T }
 
-  const values = reactive<T>(clone(initialSnapshot.value))
+  const values = reactive<T>(clone(initialSnapshot.value) as T) as T
   const dirty = ref(false)
 
   function replace(next: T, replaceOptions: ReplaceOptions = {}) {

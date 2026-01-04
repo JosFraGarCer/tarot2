@@ -366,6 +366,7 @@ import { useFormSection } from '~/composables/common/useFormSection'
 import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
 import { useApiFetch } from '~/utils/fetcher'
 import { useCardStatus } from '~/utils/status'
+import { getErrorMessage, isNotFoundError as checkNotFound } from '~/utils/error'
 
 interface BasicFormState {
   name: string
@@ -385,7 +386,7 @@ interface TranslationFormState {
 }
 
 interface MetadataFormState {
-  metadata: Record<string, any> | null
+  metadata: Record<string, unknown> | null
 }
 
 type TranslationStatusValue = 'complete' | 'partial' | 'missing'
@@ -422,8 +423,8 @@ const capabilities = useEntityCapabilities(() => props.kind ?? null)
 const statusUtil = useCardStatus()
 
 const loading = ref(true)
-const error = ref<any>(null)
-const entity = ref<Record<string, any> | null>(null)
+const error = ref<unknown>(null)
+const entity = ref<Record<string, unknown> | null>(null)
 
 const translationLoading = ref(false)
 const metadataModalOpen = ref(false)
@@ -470,7 +471,7 @@ const basicSection = useFormSection<BasicFormState>(
         emit('saved')
         await refreshEntity()
         return { success: true }
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message = resolveErrorMessage(err)
         toast.add({ title: tt('ui.notifications.error', 'Error'), description: message, color: 'error' })
         return { success: false, message }
@@ -504,7 +505,7 @@ const translationSection = useFormSection<TranslationFormState>(
         emit('saved')
         await refreshEntity()
         return { success: true }
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message = resolveErrorMessage(err)
         toast.add({ title: tt('ui.notifications.error', 'Error'), description: message, color: 'error' })
         return { success: false, message }
@@ -532,7 +533,7 @@ const metadataSection = useFormSection<MetadataFormState>(
         emit('saved')
         await refreshEntity()
         return { success: true }
-      } catch (err: any) {
+      } catch (err: unknown) {
         const message = resolveErrorMessage(err)
         toast.add({ title: tt('ui.notifications.error', 'Error'), description: message, color: 'error' })
         return { success: false, message }
@@ -574,15 +575,15 @@ const summaryMetadata = computed(() => {
   if (!entity.value) return []
   const items: Array<{ label: string; value: string }> = []
   if (entity.value.created_at) {
-    items.push({ label: tt('ui.fields.createdAt', 'Created'), value: new Date(entity.value.created_at).toLocaleString() })
+    items.push({ label: tt('ui.fields.createdAt', 'Created'), value: new Date(entity.value.created_at as string).toLocaleString() })
   }
   if (entity.value.modified_at) {
-    items.push({ label: tt('ui.fields.modifiedAt', 'Updated'), value: new Date(entity.value.modified_at).toLocaleString() })
+    items.push({ label: tt('ui.fields.modifiedAt', 'Updated'), value: new Date(entity.value.modified_at as string).toLocaleString() })
   }
   return items
 })
 
-const headerTitle = computed(() => entity.value?.name || entity.value?.code || `#${props.id}`)
+const headerTitle = computed(() => (entity.value?.name as string) || (entity.value?.code as string) || `#${props.id}`)
 const kindLabel = computed(() => tt(`entities.${props.kind}`, props.kind))
 const errorMessage = computed(() => error.value ? resolveErrorMessage(error.value) : null)
 function normalizeNeighbor(value: number | string | null | undefined): number | null {
@@ -631,7 +632,7 @@ watchEffect(() => {
   basicBaseline.value = clone(basic)
   if (!basicSection.dirty.value) basicSection.patch(basic)
 
-  const metadataValue = entity.value.metadata ?? {}
+  const metadataValue = (entity.value.metadata as Record<string, unknown>) ?? {}
   metadataBaseline.value = { metadata: clone(metadataValue) }
   if (!metadataSection.dirty.value) metadataSection.patch({ metadata: clone(metadataValue) })
 
@@ -650,14 +651,14 @@ async function loadEntity() {
   loading.value = true
   error.value = null
   try {
-    const response = await apiFetch(`${props.kind}/${props.id}`, {
+    const response = await apiFetch<{ data: unknown }>(`${props.kind}/${props.id}`, {
       method: 'GET',
       params: { lang: localeValue.value },
       ...apiBaseOptions(),
     })
-    const data = response?.data ?? response ?? null
+    const data = (response?.data ?? response ?? null) as Record<string, unknown> | null
     entity.value = data
-  } catch (err: any) {
+  } catch (err: unknown) {
     error.value = err
   } finally {
     loading.value = false
@@ -677,20 +678,20 @@ async function ensureTranslation(lang: string) {
 
   translationLoading.value = true
   try {
-    const response = await apiFetch(`${props.kind}/${props.id}`, {
+    const response = await apiFetch<{ data: unknown }>(`${props.kind}/${props.id}`, {
       method: 'GET',
       params: { lang },
       ...apiBaseOptions(),
     })
-    const data = response?.data ?? {}
+    const data = (response?.data ?? {}) as Record<string, unknown>
     const state = buildTranslationState(data, lang)
     translationCache[lang] = clone(state)
     translationMeta[lang] = buildTranslationMeta(
       Boolean(state.name?.trim()),
-      Boolean((data as any)?.language_is_fallback),
+      Boolean(data?.language_is_fallback),
     )
     translationBaseline.value = clone(state)
-  } catch (err: any) {
+  } catch (err: unknown) {
     const notFound = isNotFoundError(err)
     if (!notFound) {
       const message = resolveErrorMessage(err)
@@ -720,12 +721,13 @@ function saveMetadata() {
 async function reloadTranslation() {
   const lang = selectedTranslationLang.value
   if (!lang) return
+  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- Cache invalidation
   delete translationCache[lang]
   translationSection.reset()
   await ensureTranslation(lang)
 }
 
-function onMetadataEdited(value: any) {
+function onMetadataEdited(value: Record<string, unknown>) {
   metadataSection.patch({ metadata: value })
 }
 
@@ -752,7 +754,7 @@ function tt(key: string, fallback: string): string {
 }
 
 function resolveApiBase(): string | undefined {
-  if (!process.server) return undefined
+  if (!import.meta.server) return undefined
   const url = useRequestURL()
   return `${url.origin}/api`
 }
@@ -774,15 +776,15 @@ function createEmptyBasicState(): BasicFormState {
   }
 }
 
-function buildBasicState(raw: Record<string, any>): BasicFormState {
+function buildBasicState(raw: Record<string, unknown>): BasicFormState {
   return {
-    name: raw.name ?? '',
-    code: raw.code ?? '',
-    short_text: raw.short_text ?? null,
-    description: raw.description ?? null,
-    status: raw.status ?? 'draft',
+    name: (raw.name as string) ?? '',
+    code: (raw.code as string) ?? '',
+    short_text: (raw.short_text as string) ?? null,
+    description: (raw.description as string) ?? null,
+    status: (raw.status as string) ?? 'draft',
     is_active: Boolean(raw.is_active ?? true),
-    image: raw.image ?? null,
+    image: (raw.image as string) ?? null,
   }
 }
 
@@ -795,12 +797,12 @@ function createEmptyTranslationState(lang: string): TranslationFormState {
   }
 }
 
-function buildTranslationState(raw: Record<string, any>, lang: string): TranslationFormState {
+function buildTranslationState(raw: Record<string, unknown>, lang: string): TranslationFormState {
   return {
     lang,
-    name: raw.name ?? '',
-    short_text: raw.short_text ?? null,
-    description: raw.description ?? null,
+    name: (raw.name as string) ?? '',
+    short_text: (raw.short_text as string) ?? null,
+    description: (raw.description as string) ?? null,
   }
 }
 
@@ -815,7 +817,7 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
-function diffState<T extends Record<string, any>>(current: T, baseline: T, exclude: string[] = []): Partial<T> {
+function diffState<T extends Record<string, unknown>>(current: T, baseline: T, exclude: string[] = []): Partial<T> {
   const result: Partial<T> = {}
   for (const key of Object.keys(current)) {
     if (exclude.includes(key)) continue
@@ -826,7 +828,7 @@ function diffState<T extends Record<string, any>>(current: T, baseline: T, exclu
   return result
 }
 
-function deepEqual(a: any, b: any): boolean {
+function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true
   if (typeof a !== typeof b) return false
   if (a === null || b === null) return a === b
@@ -834,19 +836,25 @@ function deepEqual(a: any, b: any): boolean {
     if (a.length !== b.length) return false
     return a.every((item, index) => deepEqual(item, b[index]))
   }
-  if (typeof a === 'object' && typeof b === 'object') {
-    const aKeys = Object.keys(a)
-    const bKeys = Object.keys(b)
+  if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
+    const aObj = a as Record<string, unknown>
+    const bObj = b as Record<string, unknown>
+    const aKeys = Object.keys(aObj)
+    const bKeys = Object.keys(bObj)
     if (aKeys.length !== bKeys.length) return false
     for (const key of aKeys) {
-      if (!deepEqual(a[key], b[key])) return false
+      if (!deepEqual(aObj[key], bObj[key])) return false
     }
     return true
   }
   return false
 }
 
-function resolveErrorMessage(err: any): string {
-  return err?.data?.message || err?.message || tt('ui.notifications.errorGeneric', 'Unexpected error')
+function resolveErrorMessage(err: unknown): string {
+  return getErrorMessage(err, tt('ui.notifications.errorGeneric', 'Unexpected error'))
+}
+
+function isNotFoundError(err: unknown): boolean {
+  return checkNotFound(err)
 }
 </script>

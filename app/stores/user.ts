@@ -1,7 +1,7 @@
 // app/stores/user.ts
-// /app/stores/user.ts
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import type { MeResponse, UserDTO } from '@/types/api'
+import { getErrorMessage, hasStatusCode } from '@/utils/error'
 
 interface UserState {
   user: UserDTO | null
@@ -56,25 +56,25 @@ export const useUserStore = defineStore('user', {
           credentials: 'include',
         })
 
-        const payload = (res as any)?.data ?? (res as any)
+        const payload = res?.data ?? null
 
         if (payload) {
-          this.setUser(payload as UserDTO)
-          return payload as UserDTO
+          this.setUser(payload)
+          return payload
         }
 
         this.logout()
         return null
-      } catch (err: any) {
+      } catch (err: unknown) {
         this.logout()
 
         // 401 sin cookie es esperado en invitados → no lo tratamos como error fatal
-        if (err?.status === 401 || err?.data?.statusCode === 401) {
+        if (hasStatusCode(err, 401)) {
           this.error = null
           return null
         }
 
-        const message = err?.data?.message || err?.message || 'Session expired'
+        const message = getErrorMessage(err, 'Session expired')
         this.error = message
         return null
       } finally {

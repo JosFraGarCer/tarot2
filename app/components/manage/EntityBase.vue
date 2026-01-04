@@ -51,7 +51,7 @@
 
     <ClientOnly>
       <template #fallback>
-        <div class="h-48 w-full"></div>
+        <div class="h-48 w-full"/>
       </template>
       <div v-if="viewMode === 'tabla'">
         <ManageTableBridge
@@ -72,7 +72,7 @@
           :page-size-items="pageSizeItems || defaultPageSizes"
           density="regular"
           @update:page="onPageChange"
-          @update:pageSize="onPageSizeChange"
+          @update:page-size="onPageSizeChange"
           @row:click="handleRowClick"
           @row:dblclick="handleRowDblClick"
         >
@@ -245,7 +245,7 @@
           :key="(crud?.resourcePath || 'entity') + ':tarjeta'"
           :crud="crud"
           :label="label"
-          :entity=entity
+          :entity="entity"
           :no-tags="noTags"
           :card-type="cardType"
           @edit="onEdit"
@@ -262,7 +262,7 @@
           :key="(crud?.resourcePath || 'entity') + ':classic'"
           :crud="crud"
           :label="label"
-          :entity=entity
+          :entity="entity"
           :no-tags="noTags"
           :card-type="cardType"
           @edit="onEdit"
@@ -279,7 +279,7 @@
           :key="(crud?.resourcePath || 'entity') + ':carta'"
           :crud="crud"
           :label="label"
-          :entity=entity
+          :entity="entity"
           :no-tags="noTags"
           :card-type="cardType"
           :template-key="templateKey"
@@ -347,7 +347,7 @@
       :loading="saving || isUploadingImage"
       :form="modalFormState || {}" 
       :entity-label="entityLabel"
-      :entity= entity
+      :entity="entity"
       :schema="crud.schema"
       :image-file="imageFile"
       :image-preview="imagePreview"
@@ -413,8 +413,8 @@
 
     <EntitySlideover
       v-if="slideoverOpen"
-      v-model:open="slideoverOpen"
       :id="slideoverEntityId"
+      v-model:open="slideoverOpen"
       :kind="resolvedSlideoverKind"
       :neighbors="slideoverNeighbors"
       @close="slideoverOpen = false"
@@ -443,7 +443,7 @@ import { useImageUpload } from '~/composables/manage/useImageUpload'
 import { useEntityDeletion } from '~/composables/manage/useEntityDeletion'
 import { useOptimisticStatus } from '~/composables/manage/useOptimisticStatus'
 import { useEntityModals } from '~/composables/manage/useEntityModals'
-import type { TableColumn } from '@nuxt/ui'
+import type { TableColumn as _TableColumn } from '@nuxt/ui'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 import { useManageFilters } from '~/composables/manage/useManageFilters'
 import { useManageColumns } from '~/composables/manage/useManageColumns'
@@ -456,19 +456,27 @@ import { useEntityTags } from '~/composables/manage/useEntityTags'
 import FeedbackModal from '~/components/manage/modal/FeedbackModal.vue'
 import { useFeedback } from '~/composables/manage/useFeedback'
 import EntitySlideover from '~/components/manage/EntitySlideover.vue'
-import { provideEntityCapabilities, provideEntityCapabilitiesDefaults, resolveEntityCapabilities, useEntityCapabilities, type EntityCapabilities } from '~/composables/common/useEntityCapabilities'
+import {
+  provideEntityCapabilities,
+  provideEntityCapabilitiesDefaults,
+  resolveEntityCapabilities,
+  useEntityCapabilities,
+  type EntityCapabilities,
+} from '~/composables/common/useEntityCapabilities'
 import { useTableSelection } from '@/composables/common/useTableSelection'
+import type { AnyManageCrud } from '~/types/manage'
+import { mapEntityToRow } from '~/utils/manage/entityRows'
 
 type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
 const props = withDefaults(defineProps<{
   label: string
-  useCrud: () => any
+  useCrud: () => AnyManageCrud
   viewMode: ManageViewMode
   entity: string
   templateKey?: string
   filtersConfig?: EntityFilterConfig
-  columns?: any[]
+  columns?: unknown[]
   cardType?: boolean
   noTags?: boolean
   pageSizeItems?: Array<{ label: string; value: number }>
@@ -486,13 +494,13 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ (e: 'create'): void }>()
 
 const { t } = useI18n()
-const toast = useToast?.() as any
+const toast = useToast?.() || { add: console.log }
 
 const crud = props.useCrud()
 
 const resolvedFilterConfig = computed(() => props.filtersConfig ?? (crud?.filterConfig ?? {}))
 
-const { initializeDefaults, resetFilters } = useManageFilters(crud as any, {
+const { initializeDefaults, resetFilters } = useManageFilters(crud, {
   config: resolvedFilterConfig.value,
   fetchOnReset: true,
 })
@@ -502,9 +510,9 @@ void crud.fetchList()
 
 const previewOpen = ref(false)
 const previewEntityRow = ref<EntityRow | null>(null)
-const previewRawEntity = ref<any | null>(null)
+const previewRawEntity = ref<unknown | null>(null)
 
-function openPreviewFromEntity(entity: any) {
+function openPreviewFromEntity(entity: unknown) {
   if (!entity) return
   const row = mapEntityToRow(entity, {
     resourcePath: crud.resourcePath || '',
@@ -516,7 +524,7 @@ function openPreviewFromEntity(entity: any) {
   previewOpen.value = true
 }
 
-function setPreviewOpen(value: boolean) {
+function _setPreviewOpen(value: boolean) {
   previewOpen.value = value
   if (!value) {
     previewEntityRow.value = null
@@ -536,8 +544,10 @@ function normalizeSlideoverKind(kind: string | null | undefined): SlideoverKind 
 
 function toSlideoverKind(kind: string | null | undefined): string | null {
   if (!kind) return null
-  const normalized = kind
-    .toString()
+  // Handle cases where kind might not be a string despite types
+  const str = typeof kind === 'string' ? kind : String(kind)
+  
+  const normalized = str
     .trim()
     .replace(/\s+/g, '_')
     .replace(/[-]+/g, '_')
@@ -623,7 +633,10 @@ const slideoverNeighbors = computed(() => {
 
   const items = Array.isArray(crud?.items?.value) ? crud.items.value : []
   const ids = items
-    .map((item: any) => Number(item?.id ?? item?.raw?.id))
+    .map((item: unknown) => {
+      const r = item as Record<string, unknown>
+      return Number(r?.id ?? (r?.raw as Record<string, unknown>)?.id)
+    })
     .filter((value) => Number.isFinite(value) && value > 0)
 
   if (!ids.length) return { prev: null as number | null, next: null as number | null }
@@ -640,7 +653,7 @@ const resolvedColumns = useManageColumns({ entity: props.entity, crud })
 const displayedColumns = computed(() => (Array.isArray(props.columns) && props.columns.length ? props.columns : resolvedColumns.value))
 
 // Expose a refresh helper compatible with legacy template usage
-async function refresh() {
+async function _refresh() {
   return await crud.fetchList?.()
 }
 
@@ -691,14 +704,14 @@ const {
   deleteModalOpen,
   deleteTranslationModalOpen,
   deleteTranslationLoading,
-  deleteTarget,
+  deleteTarget: _deleteTarget,
   pendingDeleteTranslationItem,
   saving: deletingSaving,
   cancelDeleteDialogs,
   confirmDeleteEntity,
   confirmDeleteTranslation,
   onDelete,
-} = useEntityDeletion(crud as any, t, toast, () => localeCode.value, { translatable: props.translatable })
+} = useEntityDeletion(crud, t, toast, () => localeCode.value, { translatable: props.translatable })
 
 // Locale
 const { locale } = useI18n()
@@ -714,23 +727,22 @@ const {
   isModalOpen,
   isEditing,
   saving,
+  et,
   modalFormState,
   manage,
-  et,
   onEdit,
   onCreateClick,
   handleSubmit,
   handleCancel,
-} = useEntityModals(crud as any, { localeCode: () => localeCode.value, t, toast, imagePreview, translatable: props.translatable })
+} = useEntityModals(crud, { localeCode: () => localeCode.value, t, toast, imagePreview, translatable: props.translatable })
 
 // map saving for delete dialogs
 const savingDelete = computed(() => deletingSaving.value)
 
 // Pagination composable
-const { page, pageSize, totalItems, totalPages, defaultPageSizes, onPageChange, onPageSizeChange } = useEntityPagination(crud as any)
+const { page, pageSize, totalItems, totalPages, defaultPageSizes, onPageChange, onPageSizeChange } = useEntityPagination(crud)
 
-
-const { onBatchUpdate, onFeedback: notifyFeedback, onTags: notifyTags } = useManageActions(crud as any, {
+const { onBatchUpdate, onFeedback: notifyFeedback, onTags: notifyTags } = useManageActions(crud, {
   entityLabel: props.label,
   toast,
 })
@@ -747,15 +759,15 @@ const {
 } = useEntityTags({
   entityKey: props.entity,
   entityLabel: props.label,
-  crud: crud as any,
+  crud,
   toast,
 })
 
 const tagsModalTitle = computed(() => `${t('ui.fields.tags') || 'Tags'} ${props.label}`)
 
-async function onTags(entity: any) {
+async function onTags(entity: unknown) {
   notifyTags?.(entity)
-  await openTagsModal({ entity })
+  await openTagsModal({ entity: entity as Record<string, unknown> })
 }
 
 function handleTagsModalOpenChange(value: boolean) {
@@ -776,7 +788,7 @@ const {
 } = useFeedback({
   entityKey: props.entity,
   entityLabel: props.label,
-  crud: crud as any,
+  crud,
   toast,
 })
 
@@ -786,28 +798,30 @@ function handleFeedbackOpenChange(value: boolean) {
   }
 }
 
-async function handleFeedbackSubmit(payload: { entityId?: number | string; entityType?: string; data: any }) {
+async function handleFeedbackSubmit(payload: { entityId?: number | string; entityType?: string; data: Record<string, unknown> }) {
   await submitFeedback(payload.data)
 }
 
-async function onFeedback(entity: any) {
+async function onFeedback(entity: unknown) {
   notifyFeedback?.(entity)
-  openFeedbackModal({ entity })
+  openFeedbackModal({ entity: entity as Record<string, unknown> })
 }
 
-function onPreview(entity: any) {
+function onPreview(entity: unknown) {
   openPreviewFromEntity(entity, { t, locale: localeCode.value })
 }
 function onCreateClickWrapper() {
   onCreateClick((e: 'create') => emit(e))
 }
 
-function handleRowClick(row: any) {
-  onEdit(row?.raw ?? row)
+function handleRowClick(row: unknown) {
+  const r = row as Record<string, unknown>
+  onEdit(r?.raw ?? r)
 }
 
-function handleRowDblClick(row: any) {
-  openFullEditor(row?.raw ?? row)
+function handleRowDblClick(row: unknown) {
+  const r = row as Record<string, unknown>
+  openFullEditor(r?.raw ?? r)
 }
 
 function handleBulkUpdate(selected: unknown) {
@@ -818,10 +832,11 @@ function handleBulkUpdate(selected: unknown) {
   onBatchUpdate(ids as number[])
 }
 
-function openFullEditor(payload: any) {
-  const raw = typeof payload === 'object' ? payload?.raw ?? payload : null
-  const id = typeof payload === 'number'
-    ? payload
+function openFullEditor(payload: unknown) {
+  const p = payload as Record<string, unknown>
+  const raw = (typeof p === 'object' ? p?.raw ?? p : null) as Record<string, unknown> | null
+  const id = typeof p === 'number'
+    ? p
     : Number(raw?.id ?? raw?.entity_id ?? raw?.uuid)
 
   if (!Number.isFinite(id) || id <= 0) {
@@ -830,7 +845,7 @@ function openFullEditor(payload: any) {
 
   slideoverEntityId.value = id
   const inferredKind = raw?.kind ?? raw?.entity_type ?? crudResourceKind.value ?? props.entity
-  slideoverKind.value = normalizeSlideoverKind(inferredKind ?? props.entity)
+  slideoverKind.value = normalizeSlideoverKind(inferredKind as string | null ?? props.entity)
 }
 
 async function handleEntitySaved() {
@@ -840,7 +855,10 @@ async function handleEntitySaved() {
 function handleSlideoverNavigate(id: number) {
   if (!Number.isFinite(id) || id <= 0) return
   const target = Array.isArray(crud?.items?.value)
-    ? crud.items.value.find((item: any) => Number(item?.id ?? item?.raw?.id) === Number(id))
+    ? crud.items.value.find((item: unknown) => {
+        const r = item as Record<string, unknown>
+        return Number(r?.id ?? (r?.raw as Record<string, unknown>)?.id) === Number(id)
+      })
     : null
   if (target) {
     openFullEditor(target)
@@ -850,18 +868,19 @@ function handleSlideoverNavigate(id: number) {
 }
 
 // Optimistic status update
-const { onChangeStatus } = useOptimisticStatus(crud as any, t, toast)
+const { onChangeStatus: _onChangeStatus } = useOptimisticStatus(crud, t, toast)
 
 // Translation actions
-async function onTranslate(entity: any, payload?: { name: string; short_text?: string|null; description?: string|null }) {
+async function _onTranslate(entity: unknown, payload?: { name: string; short_text?: string|null; description?: string|null }) {
+  const e = entity as { id: number }
   const tr = useTranslationActions(crud.resourcePath)
   try {
     // If payload not provided, just no-op (UI modal not implemented here)
     if (!payload) return
-    await tr.upsert(entity.id, payload)
+    await tr.upsert(e.id, payload)
     await crud.fetchList?.()
     toast?.add?.({ title: t('common.saved') || 'Saved', color: 'success' })
-  } catch (e) {
+  } catch (_e) {
     toast?.add?.({ title: t('errors.update_failed') || 'Update failed', description: crud.actionError?.value || crud.listError?.value || '', color: 'error' })
   }
 }

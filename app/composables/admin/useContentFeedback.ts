@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n, useToast } from '#imports'
 import { useApiFetch } from '@/utils/fetcher'
+import { getErrorMessage } from '@/utils/error'
 
 interface FeedbackItem {
   id: number
@@ -17,7 +18,7 @@ interface FeedbackItem {
   created_at: string
   resolved_at: string | null
   detail?: string | null
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface FeedbackMeta {
@@ -25,7 +26,7 @@ interface FeedbackMeta {
   pageSize?: number
   totalItems?: number
   totalPages?: number
-  [key: string]: any
+  [key: string]: unknown
 }
 
 type FeedbackQuery = {
@@ -128,7 +129,7 @@ export function useContentFeedback() {
   function buildParams(query: FeedbackQuery = {}, track = true) {
     const nextPage = query.page ?? lastQuery.value.page ?? 1
     const nextPageSize = query.pageSize ?? lastQuery.value.pageSize ?? 20
-    const params: Record<string, any> = {
+    const params: Record<string, string | number | boolean | undefined> = {
       page: nextPage,
       pageSize: nextPageSize,
       lang: resolvedLocale.value,
@@ -257,8 +258,8 @@ export function useContentFeedback() {
       })
       meta.value = normalizedMeta
       return list
-    } catch (err: any) {
-      const message = err?.data?.message ?? err?.message ?? String(err)
+    } catch (err: unknown) {
+      const message = getErrorMessage(err)
       error.value = message
       toast?.add?.({ title: 'Error', description: message, color: 'error' })
       throw err
@@ -276,7 +277,7 @@ export function useContentFeedback() {
       })
       return response?.meta ?? null
     } catch (err) {
-      const message = (err as any)?.data?.message ?? (err as any)?.message ?? String(err)
+      const message = getErrorMessage(err)
       toast?.add?.({ title: 'Error', description: message, color: 'error' })
       throw err
     }
@@ -289,7 +290,7 @@ export function useContentFeedback() {
       })
       return response?.data ?? null
     } catch (err) {
-      const message = (err as any)?.data?.message ?? (err as any)?.message ?? String(err)
+      const message = getErrorMessage(err)
       toast?.add?.({ title: 'Error', description: message, color: 'error' })
       throw err
     }
@@ -318,7 +319,7 @@ export function useContentFeedback() {
       items.value = items.value.map((item) => (item.id === id ? { ...item, ...response?.data, ...payload } : item))
       return response?.data ?? null
     } catch (err) {
-      const message = (err as any)?.data?.message ?? (err as any)?.message ?? String(err)
+      const message = getErrorMessage(err)
       toast?.add?.({ title: 'Error', description: message, color: 'error' })
       throw err
     }
@@ -332,7 +333,7 @@ export function useContentFeedback() {
       items.value = items.value.filter((item) => item.id !== id)
       if (typeof meta.value.totalItems === 'number') meta.value.totalItems = Math.max(0, meta.value.totalItems - 1)
     } catch (err) {
-      const message = (err as any)?.data?.message ?? (err as any)?.message ?? String(err)
+      const message = getErrorMessage(err)
       toast?.add?.({ title: 'Error', description: message, color: 'error' })
       throw err
     }

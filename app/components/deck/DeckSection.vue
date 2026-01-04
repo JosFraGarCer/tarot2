@@ -53,6 +53,7 @@ import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
 import { useCardTemplates } from '~/composables/common/useCardTemplates'
 import { useDeckCrud } from '~/composables/deck/useDeckCrud'
 import { useEntityPagination } from '~/composables/manage/useEntityPagination'
+import type { AnyManageCrud } from '~/types/manage'
 import PaginationControls from '@/components/common/PaginationControls.vue'
 
 const props = defineProps<{ entity: string; labelKey: string; label?: string; limit?: number; paginate?: boolean }>()
@@ -86,7 +87,7 @@ const { pending: initialFetchPending } = useAsyncData(
   },
 )
 
-const pagination = manageCrud ? useEntityPagination(manageCrud as any) : null
+const pagination = manageCrud ? useEntityPagination(manageCrud as AnyManageCrud) : null
 
 const paginate = computed(() => props.paginate ?? false)
 const previewLimit = computed(() => props.limit ?? 6)

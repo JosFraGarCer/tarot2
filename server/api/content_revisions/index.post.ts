@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   try {
     const raw = await readBody(event)
     const payload = safeParseOrThrow(contentRevisionCreateSchema, raw)
-    const currentUserId = (event.context as any).user?.id ?? null
+    const currentUserId = (event.context.user as { id?: number } | undefined)?.id ?? null
 
     const inserted = await globalThis.db
       .insertInto('content_revisions')

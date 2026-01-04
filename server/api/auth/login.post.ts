@@ -62,11 +62,16 @@ export default defineEventHandler(async (event) => {
       .where('ur.user_id', '=', user.id)
       .executeTakeFirst()
 
-    const rolesArr: any[] = (() => {
-      const rolesVal = (rolesRow as any)?.roles
+    interface RoleRecord {
+      id: number
+      name: string
+      permissions?: Record<string, boolean | number | null | undefined>
+    }
+    const rolesArr: RoleRecord[] = (() => {
+      const rolesVal = (rolesRow as { roles?: RoleRecord[] | string } | undefined)?.roles
       if (Array.isArray(rolesVal)) return rolesVal
       try {
-        return JSON.parse(rolesVal as string)
+        return JSON.parse(rolesVal as string) as RoleRecord[]
       } catch {
         return []
       }

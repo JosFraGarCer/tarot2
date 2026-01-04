@@ -1,4 +1,4 @@
-DATABASE_URL="postgresql://bulu:Yhprum666@192.168.31.102:55432/tarot"
+DATABASE_URL="postgresql://bulu:Yhprum666@192.168.31.100:55432/tarot"
 SESSION_SECRET='dev-secret-change-me'
 JWT_SECRET="unasecretolargo_aleatorio_123"
 JWT_EXPIRES_IN=86400

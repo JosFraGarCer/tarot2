@@ -17,7 +17,6 @@ const loggerInstance = pino(
 )
 
 declare global {
-  // eslint-disable-next-line no-var
   var logger: Logger
 }
 

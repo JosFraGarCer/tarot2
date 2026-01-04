@@ -1,5 +1,6 @@
 <!-- app/components/common/MarkdownPreview.vue -->
 <script setup lang="ts">
+/* eslint-disable vue/no-v-html -- Markdown rendered to safe HTML */
 import MarkdownIt from 'markdown-it'
 import { computed } from 'vue'
 

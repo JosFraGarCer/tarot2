@@ -25,11 +25,11 @@ export function useEntityPreviewFetch() {
     const endpoint = entityPreviewMap[entityType] || `/${entityType}`
     if (!endpoint || !Number.isFinite(entityId)) return null
     try {
-      const response = await apiFetch<{ success?: boolean; data: any }>(`${endpoint}/${entityId}`, {
+      const response = await apiFetch<{ success?: boolean; data: unknown }>(`${endpoint}/${entityId}`, {
         method: 'GET',
         params: lang ? { lang } : undefined,
       })
-      return response?.data ?? response ?? null
+      return (response?.data ?? response ?? null) as Record<string, unknown> | null
     } catch {
       return null
     }

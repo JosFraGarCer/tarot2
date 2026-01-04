@@ -1,12 +1,11 @@
 // server/api/tag/[id].get.ts
-import { defineEventHandler } from 'h3'
+import { defineEventHandler, createError } from 'h3'
 import { sql } from 'kysely'
 import { parseQuery } from '../../utils/parseQuery'
 import { createResponse } from '../../utils/response'
 import { getRequestedLanguage } from '../../utils/i18n'
 import { markLanguageFallback } from '../../utils/language'
 import { tagLangQuerySchema } from '../../schemas/tag'
-import { createError } from 'h3'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

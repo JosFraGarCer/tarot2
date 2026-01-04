@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   try {
     const raw = await readBody(event)
     const payload = safeParseOrThrow(contentVersionCreateSchema, raw)
-    const currentUserId = (event.context as any).user?.id ?? null
+    const currentUserId = (event.context.user as { id?: number } | undefined)?.id ?? null
 
     // Ensure semver uniqueness before insert for friendlier error message
     const existing = await globalThis.db

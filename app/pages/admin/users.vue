@@ -5,8 +5,8 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'default' })
-
 import ManageUsers from '@/components/admin/users/ManageUsers.vue'
+
+definePageMeta({ layout: 'default' })
 </script>
 

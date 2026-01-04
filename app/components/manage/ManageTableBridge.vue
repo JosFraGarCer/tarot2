@@ -22,7 +22,7 @@
       :page-size-items="pageSizeItems"
       @update:selected="handleSelectedUpdate"
       @update:page="value => emit('update:page', value)"
-      @update:pageSize="value => emit('update:pageSize', value)"
+      @update:page-size="value => emit('update:pageSize', value)"
       @update:sort="value => emit('update:sort', value)"
       @row:click="row => emit('row:click', row?.original ?? row)"
       @row:dblclick="row => emit('row:dblclick', row?.original ?? row)"
@@ -83,10 +83,10 @@ interface SelectionAdapter {
   setSelected?: (ids: Iterable<string | number>) => void
 }
 
-type LegacyColumn = TableColumn<any> & { accessorKey?: string; id?: string; header?: string }
+type LegacyColumn = TableColumn<EntityRow> & { accessorKey?: string; id?: string; header?: string }
 
 const props = withDefaults(defineProps<{
-  items?: any[]
+  items?: unknown[]
   columns: Array<ColumnDefinition | LegacyColumn>
   meta?: Partial<ListMeta> | null
   loading?: boolean
@@ -131,8 +131,8 @@ const emit = defineEmits<{
   (e: 'update:page', value: number): void
   (e: 'update:pageSize', value: number): void
   (e: 'update:sort', value: TableSort): void
-  (e: 'row:click', value: any): void
-  (e: 'row:dblclick', value: any): void
+  (e: 'row:click', value: Record<string, unknown>): void
+  (e: 'row:dblclick', value: Record<string, unknown>): void
 }>()
 
 const { t } = useI18n()

@@ -8,9 +8,10 @@ export function useTranslationActions(resourcePath: string) {
   const $fetch = useApiFetch
 
   async function upsert(id: number, fields: { name: string; short_text?: string | null; description?: string | null }, lang?: string) {
+    const localeVal = typeof locale === 'string' ? locale : (locale.value as string)
     const res = await $fetch(`${resourcePath}/${id}`, {
       method: 'PATCH',
-      params: { lang: lang ?? String((locale as any).value ?? locale) },
+      params: { lang: lang ?? localeVal },
       body: fields,
     })
     return res

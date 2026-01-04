@@ -3,7 +3,7 @@ import { $fetch as ofetch, type FetchContext, type FetchRequest, type FetchOptio
 import { tryUseNuxtApp } from '#app'
 import type { H3Event } from 'h3'
 
-interface CacheEntry<T = any> {
+interface CacheEntry<T = unknown> {
   data: T
   storedAt: number
   ttl: number
@@ -62,14 +62,15 @@ export function clearApiFetchCache(options: { pattern?: RegExp } = {}) {
 }
 
 function resolveTTL(options: FetchOptions): number {
-  const contextTTL = (options.context as any)?.cacheTTL
+  const context = options.context as Record<string, unknown> | undefined
+  const contextTTL = context?.cacheTTL
   if (typeof contextTTL === 'number' && Number.isFinite(contextTTL) && contextTTL > 0) {
     return contextTTL
   }
   return DEFAULT_TTL
 }
 
-function getCachedData<T = any>(key: string, store: Map<string, CacheEntry>, etags: Map<string, string>): T | undefined {
+function getCachedData<T = unknown>(key: string, store: Map<string, CacheEntry>, etags: Map<string, string>): T | undefined {
   const entry = store.get(key)
   if (!entry) return undefined
   const current = now()
@@ -82,13 +83,14 @@ function getCachedData<T = any>(key: string, store: Map<string, CacheEntry>, eta
   return entry.data as T
 }
 
-function toStable(value: any): any {
+function toStable(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map((entry) => toStable(entry))
   }
   if (value && typeof value === 'object') {
-    const sorted = Object.keys(value).sort().reduce<Record<string, any>>((acc, key) => {
-      acc[key] = toStable(value[key])
+    const obj = value as Record<string, unknown>
+    const sorted = Object.keys(obj).sort().reduce<Record<string, unknown>>((acc, key) => {
+      acc[key] = toStable(obj[key])
       return acc
     }, {})
     return sorted
@@ -115,10 +117,11 @@ export const useApiFetch = ofetch.create({
   retry: false,
   onRequest({ request, options }: FetchContext) {
     const nuxtApp = tryUseNuxtApp()
-    const event = (options.context as any)?.__requestEvent as H3Event | undefined ?? nuxtApp?.ssrContext?.event
+    const context = options.context as Record<string, unknown> | undefined
+    const event = (context?.__requestEvent as H3Event | undefined) ?? nuxtApp?.ssrContext?.event
     const { etags, responses } = getStores(event)
     const logger = (nuxtApp?.$logger || event?.context.logger)
-    const requestId = (options.context as any)?.requestId ?? event?.context.requestId
+    const requestId = context?.requestId ?? event?.context.requestId
 
     const method = (options.method ?? 'GET').toString().toUpperCase()
     const cacheKey = buildCacheKey(request, options)
@@ -159,19 +162,20 @@ export const useApiFetch = ofetch.create({
       url: typeof request === 'string' ? request : ('url' in request ? request.url : String(request)),
       cacheKey,
       requestId,
-      ssr: process.server,
+      ssr: import.meta.server,
     })
   },
   onResponse({ request, response, options }: FetchContext) {
     const method = (options.method ?? 'GET').toString().toUpperCase()
-    const cacheKey = (options.context as any)?.__cacheKey ?? buildCacheKey(request, options)
-    const event = (options.context as any)?.__requestEvent as H3Event | undefined
+    const context = options.context as Record<string, unknown> | undefined
+    const cacheKey = (context?.__cacheKey as string) ?? buildCacheKey(request, options)
+    const event = context?.__requestEvent as H3Event | undefined
     const { etags, responses } = getStores(event)
     const nuxtApp = tryUseNuxtApp()
     const logger = (nuxtApp?.$logger || event?.context.logger)
-    const startedAt = (options.context as any)?.__fetchStartedAt as number | undefined
+    const startedAt = context?.__fetchStartedAt as number | undefined
     const duration = startedAt ? Date.now() - startedAt : undefined
-    const requestId = (options.context as any)?.requestId ?? event?.context.requestId
+    const requestId = context?.requestId ?? event?.context.requestId
     if (method !== 'GET') return
 
     if (response.status === 304) {
@@ -208,8 +212,9 @@ export const useApiFetch = ofetch.create({
   onResponseError({ request, response, options }: FetchContext) {
     if (!response) return
     if (response.status !== 304) return
-    const cacheKey = (options.context as any)?.__cacheKey ?? buildCacheKey(request, options)
-    const event = (options.context as any)?.__requestEvent as H3Event | undefined
+    const context = options.context as Record<string, unknown> | undefined
+    const cacheKey = (context?.__cacheKey as string) ?? buildCacheKey(request, options)
+    const event = context?.__requestEvent as H3Event | undefined
     const { etags, responses } = getStores(event)
     const cached = getCachedData(cacheKey, responses, etags)
     if (cached !== undefined) {

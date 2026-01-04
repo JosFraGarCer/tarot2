@@ -52,8 +52,9 @@
 </template>
 
 <script setup lang="ts">
-const { t, te } = useI18n()
 import { formatDate } from '~/utils/date'
+
+const { t, te } = useI18n()
 
 function tt(key: string, fallback: string) {
   return te(key) ? t(key) : fallback
@@ -64,7 +65,7 @@ function releaseLabel(stage: string) {
   return te(key) ? t(key) : stage
 }
 
-function stringifyMeta(meta: any) {
+function stringifyMeta(meta: unknown) {
   try {
     return JSON.stringify(meta)
   } catch {
@@ -73,13 +74,10 @@ function stringifyMeta(meta: any) {
 }
 
 // Props and emits
-defineProps<{ versions: Array<{ id:number; version_semver:string; description:string|null; metadata:Record<string, any>; created_at:string; release: string }> }>()
+type VersionItem = { id:number; version_semver:string; description:string|null; metadata:Record<string, unknown>; created_at:string; release: string }
+defineProps<{ versions: Array<VersionItem> }>()
 
 defineEmits<{
-  (e:'view', v:any): void
-  (e:'delete', v:any): void
-  (e:'edit', v:any): void
-  (e:'meta', v:any): void
+  (e:'view' | 'delete' | 'edit' | 'meta', v:VersionItem): void
 }>()
-
 </script>

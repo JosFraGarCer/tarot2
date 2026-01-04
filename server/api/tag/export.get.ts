@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     scope: 'tag.export.end',
     requestId: event.context.requestId ?? null,
     timeMs: Date.now() - startedAt,
-    count: Array.isArray((result.data as any)?.tags) ? (result.data as any).tags.length : null,
+    count: Array.isArray((result.data as Record<string, unknown>)?.tags) ? ((result.data as Record<string, unknown>).tags as unknown[]).length : null,
   }, 'Tag export completed')
 
   return result

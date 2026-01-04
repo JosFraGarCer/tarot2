@@ -82,6 +82,26 @@ import CartaRow from '~/components/manage/CartaRow.vue'
 import { useContentFeedback } from '~/composables/admin/useContentFeedback'
 import ConfirmDeleteModal from '~/components/common/ConfirmDeleteModal.vue'
 import { useApiFetch } from '@/utils/fetcher'
+import { getErrorMessage } from '@/utils/error'
+
+// Feedback and card types
+interface FeedbackDetail {
+  id: number
+  entity_type?: string
+  entity_id?: number
+  comment?: string | null
+  status?: string
+  category?: string | null
+  language_code?: string | null
+  created_at?: string
+}
+
+interface CardData {
+  id: number
+  code?: string
+  name?: string
+  [key: string]: unknown
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -93,31 +113,30 @@ useSeoMeta({ title: `${t('navigation.menu.admin') || 'Admin'} · ${t('features.a
 const id = computed(() => Number(route.params.id))
 
 const loading = ref(true)
-const error = ref<any>(null)
-const feedback = ref<any>(null)
-const card = ref<any>(null)
+const error = ref<string | null>(null)
+const feedback = ref<FeedbackDetail | null>(null)
+const card = ref<CardData | null>(null)
 
 async function load() {
   loading.value = true
   error.value = null
   try {
     const res = await fetchOne(id.value)
-    feedback.value = res
+    feedback.value = res as FeedbackDetail
 
     // If feedback refers to a base card translation, fetch the base card
     if (feedback.value?.entity_type === 'base_card_translations') {
       try {
-        const cardRes = await apiFetch<{ success?: boolean; data?: any }>(`/base_card/by-translation/${feedback.value.entity_id}`, {
+        const cardRes = await apiFetch<{ success?: boolean; data?: CardData }>(`/base_card/by-translation/${feedback.value.entity_id}`, {
           method: 'GET',
         })
-        card.value = cardRes?.data ?? cardRes ?? null
-      } catch (e) {
+        card.value = cardRes?.data ?? null
+      } catch (_e) {
         // ignore card load error; show feedback anyway
-        console.error(e)
       }
     }
-  } catch (e: any) {
-    error.value = e?.data?.message || e?.message || String(e)
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e)
   } finally {
     loading.value = false
   }
@@ -137,7 +156,7 @@ async function onResolve() {
   toast.add({ title: t('ui.notifications.success') || 'Success', description: t('system.status.resolved') || 'resolved', color: 'success' })
   await load()
 }
-async function onDelete() {
+async function _onDelete() {
   if (!feedback.value) return
   // handled via modal
 }

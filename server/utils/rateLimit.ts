@@ -34,9 +34,10 @@ export function getClientIp(event: H3Event): string | null {
 }
 
 export function enforceRateLimit(event: H3Event, options: RateLimitOptions): void {
-  const logger = event.context.logger ?? (globalThis as any).logger
+  const logger = event.context.logger ?? (globalThis as Record<string, unknown>).logger as { warn?: (obj: unknown, msg?: string) => void } | undefined
   const ip = getClientIp(event) ?? 'unknown'
-  const userKey = (event.context as any)?.user?.id ?? 'anon'
+  const contextUser = event.context.user as { id?: string | number } | undefined
+  const userKey = contextUser?.id ?? 'anon'
   const baseKey = `${options.identifier}:${userKey}:${ip}`
   const now = Date.now()
 

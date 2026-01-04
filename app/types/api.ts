@@ -25,7 +25,7 @@ export interface UserDTO {
 export interface ApiEnvelope<T> {
   success: boolean
   data: T
-  meta: any | null
+  meta: Record<string, unknown> | null
 }
 
 export type LoginData = { token: string; user: UserDTO }

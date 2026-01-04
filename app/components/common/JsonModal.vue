@@ -98,7 +98,7 @@ const open = defineModel<boolean>({ default: false })
 
 const props = withDefaults(
   defineProps<{
-    value?: any
+    value?: Record<string, unknown> | unknown[] | string | number | boolean | null
     title?: string
     description?: string
     copyLabel?: string
@@ -120,8 +120,8 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  (e: 'save', value: any): void
-  (e: 'update:value', value: any): void
+  (e: 'save', value: unknown): void
+  (e: 'update:value', value: unknown): void
 }>()
 
 const { t } = useI18n()
@@ -182,7 +182,7 @@ watch(open, (value) => {
 const shortcutCleanup = ref<(() => void) | null>(null)
 
 function startListening() {
-  if (!process.client || shortcutCleanup.value) return
+  if (!import.meta.client || shortcutCleanup.value) return
   const stop = useEventListener(window, 'keydown', (event: KeyboardEvent) => {
     if (!(event.metaKey || event.ctrlKey)) return
     if (event.key === 's') {
@@ -240,7 +240,7 @@ async function handleSave() {
 }
 
 function handleDownload() {
-  if (!props.allowDownload || !process.client) return
+  if (!props.allowDownload || !import.meta.client) return
   try {
     const blob = new Blob([isEditing.value ? editorValue.value : prettyValue.value], { type: 'application/json;charset=utf-8' })
     const url = URL.createObjectURL(blob)

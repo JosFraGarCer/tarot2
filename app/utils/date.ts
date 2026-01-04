@@ -1,6 +1,6 @@
 // app/utils/date.ts
 
-export function formatDate(input?: string | Date): string {
+export function formatDate(input?: string | Date | null): string {
   try {
     if (!input) return ''
     const date = typeof input === 'string' ? new Date(input) : input

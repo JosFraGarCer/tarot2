@@ -85,7 +85,7 @@ const props = withDefaults(defineProps<{
   cardInfo?: string
   status?: string | null
   active?: boolean
-  tags?: Array<any>
+  tags?: Array<unknown>
   legacyEffects?: boolean
   effectsMarkdown?: string | null
   effects?: Record<string, unknown> | null
@@ -110,9 +110,6 @@ const { resolveTemplate } = useCardTemplates()
 const cardStatus = useCardStatus()
 const {
   resolveImage,
-  imageFallback,
-  statusColor,
-  statusVariant,
   statusLabelKey
 } = useCardViewHelpers({
   entity: computed(() => props.entity || ''),
@@ -148,23 +145,25 @@ const statusMeta = computed(() => {
 
 const statusLabel = computed(() => {
   if (!props.status) return ''
-  return t(statusLabelKey(props.status as any))
+  return t(statusLabelKey(props.status))
 })
 
 const showStatusRow = computed(() => active.value !== undefined || statusMeta.value !== null)
 
 const resolvedTags = computed(() => props.tags?.filter(tag => tag !== undefined && tag !== null) ?? [])
 
-function tagKey(tag: any, idx: number) {
+function tagKey(tag: unknown, idx: number) {
   if (tag && typeof tag === 'object') {
-    return tag.id ?? tag.code ?? tag.name ?? tag.label ?? idx
+    const t = tag as Record<string, unknown>
+    return t.id ?? t.code ?? t.name ?? t.label ?? idx
   }
   return `${idx}-${String(tag)}`
 }
 
-function tagLabel(tag: any) {
+function tagLabel(tag: unknown) {
   if (tag && typeof tag === 'object') {
-    return tag.name ?? tag.label ?? tag.code ?? String(tag.id ?? '')
+    const t = tag as Record<string, unknown>
+    return String(t.name ?? t.label ?? t.code ?? t.id ?? '')
   }
   return String(tag)
 }

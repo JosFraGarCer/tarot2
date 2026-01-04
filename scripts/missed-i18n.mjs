@@ -22,7 +22,7 @@ const SCAN_DIRS = [
 
 // regex que captura claves t('...'), $t("..."), v-t="'...", y también tt('...', fallback)
 // Captura claves dinámicas como las usadas en labelKey: 'ui.status.draft' y label: 'fields.name'
-const KEY_REGEX = /(?:\$t|t|i18n\.t|tt)\(\s*['"`]([a-zA-Z][a-zA-Z0-9_\-]*(?:\.[a-zA-Z][a-zA-Z0-9_\-]*)*)['"`]\s*(?:,\s*['"`][^'"`]*['"`]\s*)?\)|v-t=['"`]([a-zA-Z][a-zA-Z0-9_\-]*(?:\.[a-zA-Z][a-zA-Z0-9_\-]*)*)['"`]|labelKey:\s*['"`]([a-zA-Z][a-zA-Z0-9_\-]*(?:\.[a-zA-Z][a-zA-Z0-9_\-]*)*)['"`]|label:\s*['"`]([a-zA-Z][a-zA-Z0-9_\-]*(?:\.[a-zA-Z][a-zA-Z0-9_\-]*)*)['"`]/g
+const KEY_REGEX = /(?:\$t|t|i18n\.t|tt)\(\s*['"`]([a-zA-Z][a-zA-Z0-9_-]*(?:\.[a-zA-Z][a-zA-Z0-9_-]*)*)['"`]\s*(?:,\s*['"`][^'"`]*['"`]\s*)?\)|v-t=['"`]([a-zA-Z][a-zA-Z0-9_-]*(?:\.[a-zA-Z][a-zA-Z0-9_-]*)*)['"`]|labelKey:\s*['"`]([a-zA-Z][a-zA-Z0-9_-]*(?:\.[a-zA-Z][a-zA-Z0-9_-]*)*)['"`]|label:\s*['"`]([a-zA-Z][a-zA-Z0-9_-]*(?:\.[a-zA-Z][a-zA-Z0-9_-]*)*)['"`]/g
 
 // 🔍 Recorrer directorios
 function getAllFiles(dir) {

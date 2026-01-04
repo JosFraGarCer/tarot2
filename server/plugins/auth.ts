@@ -55,7 +55,7 @@ export async function verifyToken(token: string) {
       algorithms: ['HS256'],
     })
     return payload
-  } catch (err) {
+  } catch {
     throw createError({
       statusCode: 401,
       statusMessage: 'Invalid or expired token',
@@ -103,6 +103,17 @@ export async function getUserFromEvent(event: H3Event) {
     throw createError({ statusCode: 403, statusMessage: 'User inactive' })
 
   return user
+}
+
+export async function tryGetUserId(event: H3Event): Promise<number | null> {
+  try {
+    const user = await getUserFromEvent(event)
+    return user?.id ?? null
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    event.context.logger?.debug?.({ scope: 'auth.tryGetUserId', error: message })
+    return null
+  }
 }
 
 export default defineNitroPlugin(() => {})

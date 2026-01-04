@@ -198,6 +198,10 @@ import { useI18n, useToast } from '#imports'
 
 import { useUser } from '~/composables/useUser'
 import { useAuth } from '@/composables/auth/useAuth'
+import { getErrorMessage } from '@/utils/error'
+
+// File input type - can be File, Event, FileList, or object with file property
+type FileInput = File | Event | FileList | { file?: File | null } | null | undefined
 
 definePageMeta({
   layout: 'default'
@@ -226,7 +230,7 @@ const avatarUploading = ref(false)
 const avatarError = ref('')
 const avatarFile = ref<File | null>(null)
 
-const extractFile = (input: any): File | null => {
+const extractFile = (input: FileInput): File | null => {
   if (!input) {
     return null
   }
@@ -282,7 +286,7 @@ const extractFile = (input: any): File | null => {
   return null
 }
 
-const normalizeFileInput = (value: any): File | null => extractFile(value)
+const normalizeFileInput = (value: FileInput): File | null => extractFile(value)
 
 watch(user, (value) => {
   if (!value) {
@@ -307,7 +311,7 @@ watch(avatarFile, async (file) => {
   await handleAvatarUpload(file)
 })
 
-const errorMessage = computed(() => (error.value as any)?.data?.message || (error.value as Error)?.message || t('ui.notifications.error'))
+const errorMessage = computed(() => error.value ? getErrorMessage(error.value, t('ui.notifications.error')) : t('ui.notifications.error'))
 
 const avatarSrc = computed(() => {
   const image = user.value?.image
@@ -354,7 +358,7 @@ const formatDate = (value: string) => {
       dateStyle: 'medium',
       timeStyle: 'short'
     }).format(new Date(value))
-  } catch (error) {
+  } catch {
     return value
   }
 }
@@ -425,7 +429,7 @@ const savePassword = async () => {
   }
 }
 
-const saveStatus = async () => {
+const _saveStatus = async () => {
   if (!user.value) {
     return
   }
@@ -490,8 +494,8 @@ const handleAvatarUpload = async (payload: unknown) => {
       title: t('domains.user.avatarUpdated'),
       color: 'success'
     })
-  } catch (error) {
-    const message = (error as any)?.data?.message || (error as Error)?.message || t('domains.user.avatarUploadError')
+  } catch (err) {
+    const message = getErrorMessage(err, t('domains.user.avatarUploadError'))
     avatarError.value = message
     toast.add({
       title: t('ui.notifications.error'),
@@ -517,8 +521,8 @@ const removeAvatar = async () => {
       title: t('domains.user.avatarRemoved'),
       color: 'success'
     })
-  } catch (error) {
-    const message = (error as any)?.data?.message || (error as Error)?.message || t('domains.user.avatarRemoveError')
+  } catch (err) {
+    const message = getErrorMessage(err, t('domains.user.avatarRemoveError'))
     avatarError.value = message
     toast.add({
       title: t('ui.notifications.error'),

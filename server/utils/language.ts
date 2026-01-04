@@ -18,13 +18,14 @@ function resolveFallbackFlag(record: LanguageAware, requestedLang?: string | nul
 
 function applyFallbackFlag(record: unknown, lang?: string | null) {
   if (!record || typeof record !== 'object') return
-  if ('language_code_resolved' in (record as any) || 'language_code' in (record as any)) {
+  const r = record as Record<string, unknown>
+  if ('language_code_resolved' in r || 'language_code' in r) {
     const fallback = resolveFallbackFlag(record as LanguageAware, lang)
     ;(record as LanguageAware).language_is_fallback = fallback
   }
 
-  if ((record as any)?.tags && Array.isArray((record as any).tags)) {
-    for (const tag of (record as any).tags) {
+  if (Array.isArray(r.tags)) {
+    for (const tag of r.tags) {
       applyFallbackFlag(tag, lang)
     }
   }
@@ -41,5 +42,5 @@ export function markLanguageFallback<T>(data: T, lang?: string | null): T {
 }
 
 export function getLoggerFromEvent(event?: H3Event | null) {
-  return event?.context.logger ?? (globalThis as any).logger
+  return event?.context.logger ?? (globalThis as Record<string, unknown>).logger as { info?: (obj: unknown, msg?: string) => void; warn?: (obj: unknown, msg?: string) => void; error?: (obj: unknown, msg?: string) => void } | undefined
 }

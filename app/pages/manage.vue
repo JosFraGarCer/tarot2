@@ -54,6 +54,7 @@ import { useI18n } from '#imports'
 import ViewControls from '~/components/manage/ViewControls.vue'
 import ManageEntity from '~/components/manage/EntityBase.vue'
 import { useManageView } from '~/composables/manage/useManageView'
+import type { AnyManageCrud } from '~/types/manage'
 
 // Composables CRUD
 import { useWorldCrud } from '~/composables/manage/useWorld'
@@ -87,7 +88,7 @@ type EntityKey = 'cardType' | 'baseCard' | 'world' | 'arcana' | 'facet' | 'skill
 // Configuración por entidad
 const entityConfigs: Record<EntityKey, {
   label: string
-  useCrud: () => any
+  useCrud: () => AnyManageCrud
   filters: Record<string, string>
   cardType: boolean
   noTags: boolean

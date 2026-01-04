@@ -37,15 +37,26 @@ export default defineEventHandler(async (event) => {
 
     if (!user || user.status === 'suspended') return
 
+    const userRow = user as {
+      id: number
+      username: string
+      email: string
+      status: string
+      image: string | null
+      created_at: Date | string
+      modified_at: Date | string
+      roles: unknown
+    }
+
     const rolesArr = (() => {
-      const val = (user as any).roles
-      if (Array.isArray(val)) return val
+      const val = userRow.roles
+      if (Array.isArray(val)) return val as Record<string, unknown>[]
       try { return JSON.parse(val as string) } catch { return [] }
     })()
 
-    const permissions = mergePermissions(rolesArr)
+    const permissions = mergePermissions(rolesArr as { permissions?: unknown }[])
 
-    event.context.user = { ...user, roles: rolesArr, permissions }
+    event.context.user = { ...userRow, roles: rolesArr, permissions }
   } catch (err) {
     console.warn('[auth.hydrate] Failed to decode user:', err)
   }

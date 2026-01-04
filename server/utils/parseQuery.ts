@@ -8,14 +8,14 @@ interface ParseQueryOptions {
   scope?: string
 }
 
-export function parseQuery<TSchema extends ZodSchema<any, any, any>>(
+export function parseQuery<TSchema extends ZodSchema<unknown>>(
   event: H3Event,
   schema: TSchema,
   options: ParseQueryOptions = {},
 ): ReturnType<TSchema['parse']> {
   const raw = getQuery(event)
   const parsed = safeParseOrThrow(schema, raw)
-  const logger = event.context.logger ?? (globalThis as any).logger
+  const logger = event.context.logger ?? (globalThis as Record<string, unknown>).logger as { [key: string]: (obj: unknown, msg?: string) => void } | undefined
   const level = options.logLevel ?? 'debug'
   const scope = options.scope ?? 'query.parse'
 

@@ -63,11 +63,22 @@ export default defineEventHandler(async (event) => {
       .groupBy('u.id')
       .execute()
 
-    const u = rows[0] as any
-    const rolesArr: any[] = Array.isArray(u.roles) ? u.roles : (() => {
-      try { return JSON.parse(u.roles as string) } catch { return [] }
-    })()
-    const permissions = mergePermissions(rolesArr)
+    const u = rows[0] as {
+      id: number
+      username: string
+      email: string
+      image: string | null
+      status: string
+      created_at: Date | string
+      modified_at: Date | string
+      roles: unknown
+    }
+    const rolesArr: Record<string, unknown>[] = Array.isArray(u.roles)
+      ? u.roles as Record<string, unknown>[]
+      : (() => {
+          try { return JSON.parse(u.roles as string) } catch { return [] }
+        })()
+    const permissions = mergePermissions(rolesArr as { permissions?: unknown }[])
 
     const out = { ...u, roles: rolesArr, permissions }
 

@@ -1,14 +1,15 @@
-// app/composables/manage/useEntityModals.ts
 import { reactive, ref } from 'vue'
+import type { useToast } from '#imports'
 import type { AnyManageCrud } from '@/types/manage'
 import { useFormState } from '~/composables/manage/useFormState'
+import { useApiFetch } from '~/utils/fetcher'
 
 export function useEntityModals(
   crud: AnyManageCrud,
   opts: {
     localeCode: () => string
     t?: (k: string) => string
-    toast?: any
+    toast?: ReturnType<typeof useToast>
     imagePreview?: { value: string | null }
     translatable?: boolean
   }
@@ -20,9 +21,9 @@ export function useEntityModals(
   const isEditing = ref(false)
   const saving = ref(false)
 
-  const form = useFormState<Record<string, any>>({ initialValue: () => ({}) })
+  const form = useFormState<Record<string, unknown>>({ initialValue: () => ({}) })
   const modalFormState = form.values
-  const manage = reactive<{ englishItem: Record<string, any> | null }>({ englishItem: null })
+  const manage = reactive<{ englishItem: Record<string, unknown> | null }>({ englishItem: null })
 
   function et(key: 'create' | 'edit') {
     return key === 'edit' ? (t?.('ui.actions.edit') || 'Edit') : (t?.('ui.actions.create') || 'Create')
@@ -30,32 +31,31 @@ export function useEntityModals(
 
   async function preloadEnglishItem(id: number | string) {
     try {
-      const $fetch = useApiFetch
-      const res: any = await $fetch(`${crud.resourcePath}/${id}`, { method: 'GET', params: { lang: 'en' } })
+      const res = await useApiFetch<Record<string, unknown>>(`${crud.resourcePath}/${id}`, { method: 'GET', params: { lang: 'en' } })
       manage.englishItem = res?.data ?? null
     } catch {
       manage.englishItem = null
     }
   }
 
-  function onEdit(entity: any) {
+  function onEdit(entity: Record<string, unknown>) {
     if (!entity) return
     isEditing.value = true
-    form.replace(entity as Record<string, any>, { markDirty: false, updateInitial: true })
-    if (imagePreview) imagePreview.value = (entity.image || entity.thumbnail_url || null) as any
+    form.replace(entity, { markDirty: false, updateInitial: true })
+    if (imagePreview) imagePreview.value = (entity.image || entity.thumbnail_url || null) as string | null
     const isTranslatable = opts?.translatable !== false
     if (isTranslatable && localeCode() !== 'en') {
-      preloadEnglishItem(entity.id).catch(() => {})
-      const resolved = String(entity?.language_code_resolved || entity?.language_code || '')
+      preloadEnglishItem(entity.id as string | number).catch(() => {})
+      const resolved = String(entity.language_code_resolved || entity.language_code || '')
       if (resolved && resolved !== String(localeCode())) {
-        if ('name' in modalFormState) (modalFormState as any).name = ''
-        if ('short_text' in modalFormState) (modalFormState as any).short_text = ''
-        if ('description' in modalFormState) (modalFormState as any).description = ''
+        if ('name' in modalFormState) modalFormState.name = ''
+        if ('short_text' in modalFormState) modalFormState.short_text = ''
+        if ('description' in modalFormState) modalFormState.description = ''
         if ('effects' in modalFormState) {
           try {
-            const eff = (modalFormState as any).effects || {}
+            const eff = (modalFormState.effects as Record<string, unknown>) || {}
             eff[String(localeCode())] = []
-            ;(modalFormState as any).effects = eff
+            modalFormState.effects = eff
           } catch {}
         }
       }
@@ -68,7 +68,7 @@ export function useEntityModals(
   function onCreateClick(emit?: (e: 'create') => void) {
     emit?.('create')
     isEditing.value = false
-    form.reset({ to: {} as Record<string, any>, updateInitial: true })
+    form.reset({ to: {}, updateInitial: true })
     if (imagePreview) imagePreview.value = null
     manage.englishItem = null
     isModalOpen.value = true
@@ -77,7 +77,7 @@ export function useEntityModals(
   async function handleSubmit() {
     try {
       saving.value = true
-      const payload: Record<string, any> = form.toObject()
+      const payload: Record<string, unknown> = form.toObject()
       if ('is_active' in payload) payload.is_active = !!payload.is_active
       if ('image' in payload) {
         const v = payload.image
@@ -86,18 +86,19 @@ export function useEntityModals(
         if (!looksUrl) delete payload.image
       }
       for (const k in payload) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- Remove empty values
         if (payload[k] === '' || payload[k] === null) delete payload[k]
       }
       if (isEditing.value && payload.id != null) {
-        await crud.update?.(payload.id, payload as any)
+        await crud.update?.(payload.id as string | number, payload)
       } else {
-        await crud.create?.(payload as any)
+        await crud.create?.(payload)
       }
       await crud.fetchList?.()
       form.markClean({ updateInitial: true })
       isModalOpen.value = false
       toast?.add?.({ title: (t?.('common.saved') ?? 'Saved') as string, color: 'success' })
-    } catch (e) {
+    } catch {
       toast?.add?.({
         title: (t?.('errors.update_failed') ?? 'Save failed') as string,
         description: crud.actionError?.value || crud.listError?.value || '',
@@ -133,6 +134,3 @@ export function useEntityModals(
     formControls: form,
   }
 }
-
-// Nuxt composable import (kept here to avoid circulars in call sites)
-import { useApiFetch } from '~/utils/fetcher'

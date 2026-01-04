@@ -116,7 +116,7 @@ const local = reactive<FeedbackPayload>({
   attachment: ''
 })
 
-const commentRef = ref<any>(null)
+const commentRef = ref<unknown>(null)
 
 function close() {
   emit('update:open', false)
@@ -134,10 +134,10 @@ watch(
     if (v) {
       reset()
       nextTick(() => {
-        const el = (commentRef?.value?.$el as HTMLElement | undefined)
-          ?.querySelector?.('textarea') as HTMLTextAreaElement | undefined
+        const cmp = commentRef.value as { $el?: HTMLElement; focus?: () => void } | null
+        const el = cmp?.$el?.querySelector?.('textarea') as HTMLTextAreaElement | undefined
         if (el) el.focus()
-        else if (typeof commentRef?.value?.focus === 'function') commentRef.value.focus()
+        else if (typeof cmp?.focus === 'function') cmp.focus()
       })
     }
   }

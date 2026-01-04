@@ -49,14 +49,16 @@ import type { TableColumn } from '@nuxt/ui'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 import EntityTableWrapper from '~/components/manage/EntityTableWrapper.vue'
 
+import type { ManageCrud } from '@/types/manage'
+
 const props = withDefaults(defineProps<{
-  crud: any
-  columns: TableColumn<EntityRow>[]
-  label: string
-  onEdit?: (row: any) => void
-  onDelete?: (row: any) => void
+  crud: ManageCrud
+  columns?: TableColumn<EntityRow>[]
+  label?: string
+  onEdit?: (row: Record<string, unknown>) => void
+  onDelete?: (row: Record<string, unknown>) => void
   onExport?: (ids: number[]) => void
-  onBatchUpdate?: (payload: any) => void
+  onBatchUpdate?: (payload: unknown) => void
   onCreate?: () => void
   onResetFilters?: () => void
 }>(), {
@@ -77,9 +79,9 @@ const totalUsers = computed(() => {
   return typeof total === 'number' ? total : rows.value.length
 })
 
-const activeUsers = computed(() => rows.value.filter((row: any) => row?.status === 'active').length)
+const activeUsers = computed(() => rows.value.filter((row) => row?.status === 'active').length)
 
-const pendingInvites = computed(() => rows.value.filter((row: any) => row?.status === 'pending' || row?.status === 'invited').length)
+const pendingInvites = computed(() => rows.value.filter((row) => row?.status === 'pending' || row?.status === 'invited').length)
 </script>
 
 <style scoped>

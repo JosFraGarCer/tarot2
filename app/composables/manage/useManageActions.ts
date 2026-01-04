@@ -1,17 +1,17 @@
 // app/composables/manage/useManageActions.ts
 import type { AnyManageCrud } from '@/types/manage'
-import type { UseToast } from '#imports'
+import type { useToast } from '#imports'
 
 export interface ManageActionsOptions {
   entityLabel: string
-  toast?: ReturnType<UseToast> | null
+  toast?: ReturnType<typeof useToast> | null
 }
 
 export interface ManageActionsApi {
   onExport: (ids: number[]) => void
   onBatchUpdate: (ids: number[]) => void
-  onFeedback: (entity?: any) => void
-  onTags: (entity?: any) => void
+  onFeedback: (entity?: Record<string, unknown>) => void
+  onTags: (entity?: Record<string, unknown>) => void
 }
 
 export function useManageActions(crud: AnyManageCrud, options: ManageActionsOptions): ManageActionsApi {
@@ -33,11 +33,11 @@ export function useManageActions(crud: AnyManageCrud, options: ManageActionsOpti
     notify(ids.length ? `Batch update ${ids.length}` : 'Batch update triggered')
   }
 
-  function onFeedback(entity?: any) {
+  function onFeedback(entity?: Record<string, unknown>) {
     notify(`Feedback requested${entity?.id ? ` (#${entity.id})` : ''}`)
   }
 
-  function onTags(entity?: any) {
+  function onTags(entity?: Record<string, unknown>) {
     notify(`Tags edit${entity?.id ? ` (#${entity.id})` : ''}`)
   }
 

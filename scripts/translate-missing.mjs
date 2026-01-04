@@ -54,7 +54,6 @@ const translations = {
   'fields.card_type_id': { en: 'Card Type', es: 'Tipo de carta' },
   'fields.effects': { en: 'Effects', es: 'Efectos' },
   'fields.legacy_effects': { en: 'Legacy Effects', es: 'Efectos Legacy' },
-  'fields.parent_id': { en: 'Parent', es: 'Padre' },
 
   // Tag fields
   'fields.tag.name': { en: 'Tag Name', es: 'Nombre de etiqueta' },
@@ -305,7 +304,6 @@ function generateTranslation(key, locale) {
       footer: 'Footer',
       sidebar: 'Sidebar',
       main: 'Main',
-      content: 'Content',
       section: 'Section',
       group: 'Group',
       item: 'Item',
@@ -338,10 +336,6 @@ function generateTranslation(key, locale) {
       cancelled: 'Cancelled',
       aborted: 'Aborted',
       failed: 'Failed',
-      success: 'Success',
-      error: 'Error',
-      warning: 'Warning',
-      info: 'Info',
       debug: 'Debug',
       trace: 'Trace',
       log: 'Log',
@@ -373,7 +367,6 @@ function generateTranslation(key, locale) {
       map: 'Map',
       region: 'Region',
       zone: 'Zone',
-      area: 'Area',
       district: 'District',
       neighborhood: 'Neighborhood',
       city: 'City',
@@ -442,7 +435,6 @@ function generateTranslation(key, locale) {
       footer: 'Pie de página',
       sidebar: 'Barra lateral',
       main: 'Principal',
-      content: 'Contenido',
       section: 'Sección',
       group: 'Grupo',
       item: 'Elemento',
@@ -475,10 +467,6 @@ function generateTranslation(key, locale) {
       cancelled: 'Cancelado',
       aborted: 'Abortado',
       failed: 'Fallido',
-      success: 'Éxito',
-      error: 'Error',
-      warning: 'Advertencia',
-      info: 'Información',
       debug: 'Depurar',
       trace: 'Traza',
       log: 'Registro',
@@ -510,7 +498,6 @@ function generateTranslation(key, locale) {
       map: 'Mapa',
       region: 'Región',
       zone: 'Zona',
-      area: 'Área',
       district: 'Distrito',
       neighborhood: 'Barrio',
       city: 'Ciudad',
@@ -729,14 +716,8 @@ function generateTranslation(key, locale) {
       'Busy': 'Ocupado',
       'Loading': 'Cargando',
       'Processing': 'Procesando',
-      'Complete': 'Completo',
       'Incomplete': 'Incompleto',
-      'Success': 'Éxito',
       'Failure': 'Fallo',
-      'Error': 'Error',
-      'Warning': 'Advertencia',
-      'Info': 'Información',
-      'Debug': 'Depuración',
       'Trace': 'Traza',
       'Verbose': 'Detallado',
       'Quiet': 'Silencioso',
@@ -782,8 +763,7 @@ function generateTranslation(key, locale) {
       'Centi': 'Centi',
       'Deci': 'Deci',
       'Deca': 'Deca',
-      'Hecto': 'Hecto',
-      'Kilo': 'Kilo'
+      'Hecto': 'Hecto'
     }
     
     return simpleTranslations[titleCase] || titleCase
@@ -833,5 +813,5 @@ if (!enModified && !esModified) {
 } else {
   console.log('\n✨ Traducciones completadas!')
   console.log('\n📝 Nota: Algunas traducciones pueden necesitar revisión manual.')
-  console.log('   Ejecuta "grep -c \"TODO: Translate\" i18n/locales/*.json" para verificar.')
+  console.log('   Ejecuta "grep -c \'TODO: Translate\' i18n/locales/*.json" para verificar.')
 }

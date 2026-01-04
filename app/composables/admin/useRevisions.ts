@@ -2,10 +2,11 @@
 import { computed, ref } from 'vue'
 import { useI18n, useToast } from '#imports'
 import { useApiFetch } from '@/utils/fetcher'
+import { getErrorMessage } from '@/utils/error'
 
-type RevisionStatus = 'draft' | 'approved' | 'rejected' | 'published' | string
+export type RevisionStatus = 'draft' | 'approved' | 'rejected' | 'published' | string
 
-type RevisionItem = {
+export type RevisionItem = {
   id: number
   entity_type: string
   entity_id: number
@@ -15,22 +16,23 @@ type RevisionItem = {
   content_version_id: number | null
   created_by: number | null
   created_at: string
+  author_name?: string | null
   notes?: string | null
-  diff?: any
-  prev_snapshot?: any
-  next_snapshot?: any
-  [key: string]: any
+  diff?: Record<string, unknown>
+  prev_snapshot?: Record<string, unknown>
+  next_snapshot?: Record<string, unknown>
+  [key: string]: unknown
 }
 
-type RevisionMeta = {
+export type RevisionMeta = {
   page?: number
   pageSize?: number
   totalItems?: number
   totalPages?: number
-  [key: string]: any
+  [key: string]: unknown
 }
 
-type RevisionQuery = {
+export type RevisionQuery = {
   page?: number
   pageSize?: number
   search?: string
@@ -60,7 +62,7 @@ export function useRevisions() {
     const nextPage = query.page ?? lastQuery.value.page ?? 1
     const nextPageSize = query.pageSize ?? lastQuery.value.pageSize ?? 20
 
-    const params: Record<string, any> = {
+    const params: Record<string, unknown> = {
       page: nextPage,
       pageSize: nextPageSize,
       lang: resolvedLocale.value,
@@ -141,8 +143,8 @@ export function useRevisions() {
         totalItems: response?.meta?.totalItems ?? list.length,
       }
       return list
-    } catch (err: any) {
-      const message = err?.data?.message ?? err?.message ?? String(err)
+    } catch (err: unknown) {
+      const message = getErrorMessage(err)
       error.value = message
       toast?.add?.({ title: 'Error', description: message, color: 'error' })
       throw err
@@ -168,8 +170,8 @@ export function useRevisions() {
         method: 'GET',
       })
       return response?.data ?? null
-    } catch (err: any) {
-      const message = err?.data?.message ?? err?.message ?? String(err)
+    } catch (err: unknown) {
+      const message = getErrorMessage(err)
       toast?.add?.({ title: 'Error', description: message, color: 'error' })
       throw err
     }
@@ -192,8 +194,8 @@ export function useRevisions() {
       })
       items.value = items.value.map((item) => (item.id === id ? { ...item, ...response?.data, ...payload } : item))
       return response?.data ?? null
-    } catch (err: any) {
-      const message = err?.data?.message ?? err?.message ?? String(err)
+    } catch (err: unknown) {
+      const message = getErrorMessage(err)
       toast?.add?.({ title: 'Error', description: message, color: 'error' })
       throw err
     }
@@ -206,8 +208,8 @@ export function useRevisions() {
       })
       items.value = items.value.filter((item) => item.id !== id)
       if (typeof meta.value.totalItems === 'number') meta.value.totalItems = Math.max(0, meta.value.totalItems - 1)
-    } catch (err: any) {
-      const message = err?.data?.message ?? err?.message ?? String(err)
+    } catch (err: unknown) {
+      const message = getErrorMessage(err)
       toast?.add?.({ title: 'Error', description: message, color: 'error' })
       throw err
     }

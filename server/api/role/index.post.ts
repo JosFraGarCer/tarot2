@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       .values({
         name: body.name,
         description: body.description ?? null,
-        permissions: body.permissions as any,
+        permissions: body.permissions,
       })
       .returning(['id', 'name', 'description', 'permissions', 'created_at'])
       .executeTakeFirstOrThrow()
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     const out = {
       ...created,
       permissions: (() => {
-        const val = (created as any).permissions
+        const val = (created as { permissions: unknown }).permissions
         if (val && typeof val === 'string') {
           try { return JSON.parse(val) } catch { return {} }
         }

@@ -57,7 +57,7 @@ export function useEntityTransfer(options: UseEntityTransferOptions) {
       if (options.responseType === 'blob') {
         blob = response instanceof Blob ? response : new Blob([response])
       } else {
-        const payload = (response as any)?.data ?? response
+        const payload = (response as { data?: unknown })?.data ?? response
         blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
       }
       const timestamp = new Date().toISOString().slice(0, 10)
@@ -69,8 +69,9 @@ export function useEntityTransfer(options: UseEntityTransferOptions) {
         color: 'success',
       })
       return true
-    } catch (error: any) {
-      const message = error?.data?.message ?? error?.message ?? String(error)
+    } catch (error: unknown) {
+      const e = error as { data?: { message?: string }; message?: string }
+      const message = e?.data?.message ?? e?.message ?? String(error)
       toast?.add?.({
         title: options.entityLabel,
         description: message,
@@ -108,8 +109,9 @@ export function useEntityTransfer(options: UseEntityTransferOptions) {
 
       await options.onImported?.()
       return true
-    } catch (error: any) {
-      const message = error?.data?.message ?? error?.message ?? String(error)
+    } catch (error: unknown) {
+      const e = error as { data?: { message?: string }; message?: string }
+      const message = e?.data?.message ?? e?.message ?? String(error)
       importError.value = message
       toast?.add?.({
         title: options.entityLabel,

@@ -1,0 +1,62 @@
+# Archivos del sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Archivos temporales
+*.tmp
+*.temp
+*~
+*.swp
+*.swo
+
+# Archivos de respaldo
+*.bak
+*.backup
+*_backup
+*_old
+
+# Logs
+*.log
+logs/
+
+# Archivos de configuración local
+.env
+.env.local
+.env.*.local
+
+# Directorios de dependencias (si se añaden herramientas)
+node_modules/
+vendor/
+.venv/
+venv/
+
+# Archivos de IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos de compilación (para futuras herramientas)
+dist/
+build/
+out/
+
+# Archivos de caché
+.cache/
+*.cache
+
+# Archivos específicos del proyecto
+drafts/
+notas_personales/
+*.draft
+*.borrador
+
+# Archivos de prueba temporal
+test_*
+prueba_*
+ejemplo_temporal*

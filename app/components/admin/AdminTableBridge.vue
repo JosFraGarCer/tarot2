@@ -22,7 +22,7 @@
       :sort="sortState"
       @update:selected="handleSelectedUpdate"
       @update:page="value => emit('update:page', value)"
-      @update:pageSize="value => emit('update:pageSize', value)"
+      @update:page-size="value => emit('update:pageSize', value)"
       @update:sort="value => emit('update:sort', value)"
       @row:click="row => emit('row:click', row?.original ?? row)"
       @row:dblclick="row => emit('row:dblclick', row?.original ?? row)"
@@ -92,7 +92,7 @@ type SelectionAdapter = {
 }
 
 const props = withDefaults(defineProps<{
-  items: EntityRow[]
+  items?: EntityRow[]
   columns?: Array<ColumnDefinition>
   meta?: Partial<ListMeta> | null
   loading?: boolean
@@ -127,12 +127,9 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:selected', value: Array<string | number>): void
-  (e: 'update:page', value: number): void
-  (e: 'update:pageSize', value: number): void
+  (e: 'update:page' | 'update:pageSize', value: number): void
   (e: 'update:sort', value: TableSort): void
-  (e: 'row:click', value: any): void
-  (e: 'row:dblclick', value: any): void
-  (e: 'row:preview', value: any): void
+  (e: 'row:click' | 'row:dblclick' | 'row:preview', value: EntityRow): void
 }>()
 
 const slots = useSlots()
@@ -203,9 +200,9 @@ const hasBulkActionsSlot = computed(() => Boolean(slots['bulk-actions']))
 const drawerOpen = ref(false)
 const previewEntity = ref<EntityRow | null>(null)
 
-const previewRaw = computed(() => previewEntity.value?.raw ?? null)
-const previewKind = computed(() => previewEntity.value?.raw?.entity_type ?? entityKind.value ?? null)
-const previewLang = computed(() => previewEntity.value?.lang ?? previewEntity.value?.raw?.language_code ?? null)
+const previewRaw = computed(() => (previewEntity.value?.raw as Record<string, unknown> | null) ?? null)
+const previewKind = computed(() => (previewEntity.value?.raw as Record<string, unknown>)?.entity_type as string | null ?? entityKind.value ?? null)
+const previewLang = computed(() => previewEntity.value?.lang ?? (previewEntity.value?.raw as Record<string, unknown>)?.language_code as string | null ?? null)
 
 watch(() => props.items, (next) => {
   if (!drawerOpen.value || !previewEntity.value) return

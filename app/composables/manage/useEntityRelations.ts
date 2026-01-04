@@ -16,7 +16,7 @@ function unwrapLocale(locale: RelationFetchOptions['locale']): string {
 
 async function fetchRelation(endpoint: string, locale: string): Promise<Option[]> {
   try {
-    const response = await $fetch<any>(`/api${endpoint}`, {
+    const response = await $fetch<Record<string, unknown>>(`/api${endpoint}`, {
       method: 'GET',
       params: {
         pageSize: 100,
@@ -24,16 +24,19 @@ async function fetchRelation(endpoint: string, locale: string): Promise<Option[]
         lang: locale,
       },
     })
-    const rows: any[] = Array.isArray(response?.data)
-      ? response.data
-      : Array.isArray((response as any)?.results)
-        ? (response as any).results
+    const rows: unknown[] = Array.isArray(response?.data)
+      ? (response.data as unknown[])
+      : Array.isArray(response?.results)
+        ? (response.results as unknown[])
         : []
 
-    return rows.map((item) => ({
-      label: item?.name ?? item?.title ?? item?.code ?? `#${item?.id ?? ''}`,
-      value: item?.id ?? item?.value ?? item?.code,
-    }))
+    return rows.map((item: unknown) => {
+      const i = item as Record<string, unknown>
+      return {
+        label: (i?.name as string) ?? (i?.title as string) ?? (i?.code as string) ?? `#${i?.id ?? ''}`,
+        value: (i?.id as number) ?? (i?.value as number) ?? (i?.code as number),
+      }
+    })
       .filter((option) => option.label && option.value !== undefined)
   } catch (error) {
     console.warn(`[useEntityRelations] Failed to fetch ${endpoint}`, error)

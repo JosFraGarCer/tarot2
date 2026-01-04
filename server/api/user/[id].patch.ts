@@ -78,20 +78,31 @@ export default defineEventHandler(async (event) => {
 
     if (!result) notFound('User not found')
 
-    const rolesArr: any[] = Array.isArray((result as any).roles)
-      ? ((result as any).roles as any[])
+    const userResult = result as {
+      id: number
+      username: string
+      email: string
+      image: string | null
+      status: string
+      created_at: Date | string
+      modified_at: Date | string
+      roles: unknown
+    }
+
+    const rolesArr: Record<string, unknown>[] = Array.isArray(userResult.roles)
+      ? (userResult.roles as Record<string, unknown>[])
       : (() => {
           try {
-            return JSON.parse((result as any).roles as string)
+            return JSON.parse(userResult.roles as string)
           } catch {
             return []
           }
         })()
-    const permissions = mergePermissions(rolesArr)
+    const permissions = mergePermissions(rolesArr as { permissions?: unknown }[])
 
-    const user = { ...(result as any), roles: rolesArr, permissions }
+    const user = { ...userResult, roles: rolesArr, permissions }
 
-    globalThis.logger?.info('User updated', { id, username: (result as any).username, timeMs: Date.now() - startedAt })
+    globalThis.logger?.info('User updated', { id, username: userResult.username, timeMs: Date.now() - startedAt })
     return createResponse(user, null)
   } catch (error) {
     globalThis.logger?.error('Failed to update user', {

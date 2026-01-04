@@ -26,8 +26,8 @@
           <UTextarea
             :id="noteFieldId"
             ref="noteFieldRef"
-            class="w-full"
             v-model="newNote"
+            class="w-full"
             :rows="5"
             :placeholder="$t('features.admin.feedback.notes.addNote','Add note')"
             aria-describedby="noteHelpId"
@@ -114,6 +114,4 @@ watch(() => props.open, (value) => {
 function handleOpenUpdate(value: boolean) {
   emit('update:open', value)
 }
-
-const UButton = resolveComponent('UButton') as any
 </script>

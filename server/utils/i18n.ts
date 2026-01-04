@@ -1,4 +1,5 @@
 // server/utils/i18n.ts
+import type { Kysely } from 'kysely'
 import type { DB } from '../database/types'
 
 export type I18nEntityKey =
@@ -44,10 +45,10 @@ export async function getLanguageWithFallback<T extends {
   const ids = missing.map((r) => r.id)
   const { table, fk } = TRANSLATION_MAP[entity]
 
-  const fallbacks = await globalThis.db
-    .selectFrom(table as any)
-    .select([fk as any, 'language_code', 'name', 'short_text', 'description'])
-    .where(fk as any, 'in', ids)
+  const fallbacks = await (globalThis as unknown as { db: Kysely<DB> }).db
+    .selectFrom(table as unknown as keyof DB)
+    .select([fk as unknown as keyof DB, 'language_code', 'name', 'short_text', 'description'] as unknown as never)
+    .where(fk as unknown as keyof DB, 'in', ids)
     .where('language_code', '=', 'en')
     .execute()
 

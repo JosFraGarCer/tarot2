@@ -1,7 +1,7 @@
 // server/utils/entityCrudHelpers.ts
 import type { H3Event } from 'h3'
 import { createError, getQuery, readBody } from 'h3'
-import { sql, type Expression, type SelectQueryBuilder } from 'kysely'
+import { sql, type Expression, type SelectQueryBuilder, type ExpressionBuilder } from 'kysely'
 import { z } from 'zod'
 import { createResponse } from './response'
 
@@ -13,7 +13,9 @@ export interface CrudHelperOptions {
   translationForeignKey?: string
   translationFields?: string[]
   languageKey?: string
-  where?: Expression<boolean> | ((eb: any) => any)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  where?: Expression<boolean> | ((eb: ExpressionBuilder<any, any>) => Expression<boolean>)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extraJoins?: (qb: SelectQueryBuilder<any, any, any>) => SelectQueryBuilder<any, any, any>
   userId?: number | null
 }
@@ -21,7 +23,6 @@ export interface CrudHelperOptions {
 const defaultTextColumnNames = new Set(['name', 'short_text', 'description', 'story', 'title', 'subtitle'])
 
 async function detectTranslationsConfig(opts: CrudHelperOptions) {
-  const idField = opts.idField ?? 'id'
   if (opts.translationsTable === false) {
     return { hasTranslations: false as const }
   }
@@ -38,7 +39,7 @@ async function detectTranslationsConfig(opts: CrudHelperOptions) {
       .where(sql`t.table_schema`, '=', sql`'public'`)
       .where(sql`t.table_name`, '=', tTable)
       .executeTakeFirst()
-    const has = !!exists && Number((exists as any).c) > 0
+    const has = !!exists && Number((exists as { c?: unknown }).c) > 0
     if (!has) return { hasTranslations: false as const }
   } catch {
     // Best-effort: assume exists; if later queries fail, caller will handle
@@ -56,8 +57,8 @@ async function detectTranslationsConfig(opts: CrudHelperOptions) {
         .where(sql`c.table_name`, '=', tTable)
         .execute()
       const detected: string[] = []
-      for (const r of rows as any[]) {
-        const col = r.column_name as string
+      for (const r of rows as { column_name: string; data_type: string }[]) {
+        const col = r.column_name
         const dt = String(r.data_type || '').toLowerCase()
         if (col === 'id' || col === languageKey || col === fk) continue
         if (dt.includes('character') || dt.includes('text')) detected.push(col)
@@ -72,9 +73,9 @@ async function detectTranslationsConfig(opts: CrudHelperOptions) {
   return { hasTranslations: true as const, tTable, languageKey, fk, fields: fields ?? [] }
 }
 
-function parseIdsParam(q: Record<string, any> | undefined, key = 'ids'): number[] | null {
+function parseIdsParam(q: Record<string, unknown> | undefined, key = 'ids'): number[] | null {
   if (!q) return null
-  const raw = (q as any)[key]
+  const raw = q[key]
   if (raw == null) return null
   if (Array.isArray(raw)) {
     const arr = raw.flatMap((v) => Number(v)).filter((n) => Number.isFinite(n))
@@ -89,7 +90,9 @@ function parseIdsParam(q: Record<string, any> | undefined, key = 'ids'): number[
         const nums = arr.map((v) => Number(v)).filter((n) => Number.isFinite(n))
         return nums.length ? nums : null
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
   }
   const parts = s.split(',').map((v) => Number(v)).filter((n) => Number.isFinite(n))
   return parts.length ? parts : null
@@ -113,20 +116,20 @@ export async function exportEntities(opts: CrudHelperOptions) {
 
     const baseRows = await baseQ.execute()
 
-    const translationsByEntity: Record<string | number, Record<string, any>> = {}
+    const translationsByEntity: Record<string | number, Record<string, unknown>> = {}
     if (tr.hasTranslations) {
-      const entityIds = baseRows.map((r: any) => r[idField]).filter((v) => v != null)
+      const entityIds = baseRows.map((r) => (r as Record<string, unknown>)[idField]).filter((v) => v != null)
       if (entityIds.length) {
         const rows = await globalThis.db
           .selectFrom(sql`${sql.ref(tr.tTable!)} as tt`)
           .selectAll('tt')
           .where(sql`tt.${sql.ref(tr.fk!)}`, 'in', entityIds)
           .execute()
-        for (const r of rows as any[]) {
-          const eid = r[tr.fk!]
-          const lang = r[tr.languageKey!]
+        for (const r of rows as Record<string, unknown>[]) {
+          const eid = r[tr.fk!] as string | number
+          const lang = r[tr.languageKey!] as string
           translationsByEntity[eid] ||= {}
-          const pack: Record<string, any> = {}
+          const pack: Record<string, unknown> = {}
           for (const f of tr.fields!) {
             if (f in r) pack[f] = r[f]
           }
@@ -135,10 +138,10 @@ export async function exportEntities(opts: CrudHelperOptions) {
       }
     }
 
-    const payload = (baseRows as any[]).map((row) => {
-      const out: any = { ...row }
+    const payload = (baseRows as Record<string, unknown>[]).map((row) => {
+      const out: Record<string, unknown> = { ...row }
       if (tr.hasTranslations) {
-        out.translations = translationsByEntity[(row as any)[idField]] ?? {}
+        out.translations = translationsByEntity[row[idField] as string | number] ?? {}
       }
       return out
     })
@@ -177,18 +180,18 @@ export async function importEntities(opts: CrudHelperOptions) {
 
     await globalThis.db.transaction().execute(async (trx) => {
       for (let i = 0; i < parsed.length; i++) {
-        const item = parsed[i] as any
+        const item = parsed[i] as Record<string, unknown>
         try {
           // Separate base and translations
-          const translations = tr.hasTranslations ? (item.translations ?? {}) : null
-          const base: Record<string, any> = { ...item }
-          if (tr.hasTranslations) delete (base as any).translations
+          const translations = tr.hasTranslations ? (item.translations as Record<string, Record<string, unknown>> | undefined) : null
+          const base: Record<string, unknown> = { ...item }
+          if (tr.hasTranslations) delete base.translations
 
           // Determine existing row
           let entityId: number | null = null
           if (item[idField] != null) {
             const ex = await trx.selectFrom(sql`${sql.ref(table)}`).select([sql`${sql.ref(idField)} as id`]).where(sql`${sql.ref(idField)}`, '=', item[idField]).executeTakeFirst()
-            if (ex) entityId = Number((ex as any).id)
+            if (ex) entityId = Number((ex as { id: unknown }).id)
           }
           if (entityId == null && 'code' in item) {
             try {
@@ -197,11 +200,12 @@ export async function importEntities(opts: CrudHelperOptions) {
                 .select([sql`t.${sql.ref(idField)} as id`])
                 .where(sql`t.code`, '=', item.code)
                 .executeTakeFirst()
-              if (ex2) entityId = Number((ex2 as any).id)
+              if (ex2) entityId = Number((ex2 as { id: unknown }).id)
             } catch { /* code column might not exist */ }
           }
 
           // Remove immutable fields
+          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
           delete base[idField]
           delete base.created_at
           delete base.modified_at
@@ -211,7 +215,7 @@ export async function importEntities(opts: CrudHelperOptions) {
           if (entityId == null) {
             if (opts.userId != null && !('created_by' in base)) base.created_by = opts.userId
             const ins = await trx.insertInto(sql`${sql.ref(table)}`).values(base).returning(sql`${sql.ref(idField)} as id`).executeTakeFirst()
-            entityId = Number((ins as any).id)
+            entityId = Number((ins as { id: unknown }).id)
             created++
           } else {
             await trx.updateTable(sql`${sql.ref(table)}`).set(base).where(sql`${sql.ref(idField)}`, '=', entityId).execute()
@@ -222,7 +226,7 @@ export async function importEntities(opts: CrudHelperOptions) {
             const langs = Object.keys(translations)
             for (const lang of langs) {
               const tvaluesFull = translations[lang] || {}
-              const tvalues: Record<string, any> = {}
+              const tvalues: Record<string, unknown> = {}
               for (const f of tr.fields!) {
                 if (f in tvaluesFull) tvalues[f] = tvaluesFull[f]
               }
@@ -236,7 +240,7 @@ export async function importEntities(opts: CrudHelperOptions) {
                 await trx
                   .updateTable(sql`${sql.ref(tr.tTable!)}`)
                   .set(tvalues)
-                  .where('id', '=', (exists as any).id)
+                  .where('id', '=', (exists as { id: unknown }).id)
                   .execute()
               } else {
                 await trx
@@ -250,8 +254,9 @@ export async function importEntities(opts: CrudHelperOptions) {
               }
             }
           }
-        } catch (e: any) {
-          errors.push({ index: i, message: e?.message ?? String(e) })
+        } catch (e: unknown) {
+          const err = e as Error
+          errors.push({ index: i, message: err?.message ?? String(err) })
         }
       }
     })
@@ -277,7 +282,7 @@ export async function batchUpdateEntities(opts: CrudHelperOptions) {
     const parsed = schema.parse(body)
 
     const ids: number[] = parsed.ids
-    const patch: Record<string, any> = { ...parsed }
+    const patch: Record<string, unknown> = { ...parsed }
     delete patch.ids
 
     if (Object.keys(patch).length === 0) {

@@ -47,12 +47,12 @@ export default defineEventHandler(async (event) => {
       {
         page,
         pageSize,
-        search: (q as any).search ?? search ?? search2,
+        search: (search ?? search2),
         status, // no-op for users, but keeps signature consistent
         applySearch: (qb, s) =>
           qb.where((eb) => eb.or([sql`u.username ilike ${'%' + s + '%'}`, sql`u.email ilike ${'%' + s + '%'}`])),
         countDistinct: 'u.id',
-        sort: { field: (q as any).sort ?? 'created_at', direction: (q as any).direction ?? 'desc' },
+        sort: { field: ((q as Record<string, unknown>).sort as string) ?? 'created_at', direction: ((q as Record<string, unknown>).direction as 'asc' | 'desc') ?? 'desc' },
         defaultSort: { field: 'created_at', direction: 'desc' },
         sortColumnMap: {
           username: 'u.username',
@@ -67,19 +67,31 @@ export default defineEventHandler(async (event) => {
 
     const rows = await query.execute()
 
-    const data = rows.map((u: any) => {
-      const rolesArr: any[] = Array.isArray(u.roles) ? u.roles : (() => {
-        try { return JSON.parse(u.roles as string) } catch { return [] }
-      })()
-      const permissions = mergePermissions(rolesArr)
+    const data = rows.map((u: unknown) => {
+      const user = u as {
+        id: number
+        username: string
+        email: string
+        image: string | null
+        status: string
+        created_at: Date | string
+        modified_at: Date | string
+        roles: unknown
+      }
+      const rolesArr: Record<string, unknown>[] = Array.isArray(user.roles)
+        ? user.roles as Record<string, unknown>[]
+        : (() => {
+            try { return JSON.parse(user.roles as string) } catch { return [] }
+          })()
+      const permissions = mergePermissions(rolesArr as { permissions?: unknown }[])
       return {
-        id: u.id,
-        username: u.username,
-        email: u.email,
-        image: u.image,
-        status: u.status,
-        created_at: u.created_at,
-        modified_at: u.modified_at,
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        image: user.image,
+        status: user.status,
+        created_at: user.created_at,
+        modified_at: user.modified_at,
         roles: rolesArr,
         permissions,
       }
@@ -89,12 +101,12 @@ export default defineEventHandler(async (event) => {
       page: p,
       pageSize: ps,
       count: data.length,
-      search: ((q as any).search ?? search ?? search2) ?? null,
+      search: (search ?? search2) ?? null,
       sort: resolvedSortField ?? 'created_at',
       direction: resolvedSortDirection ?? 'desc',
       timeMs: Date.now() - startedAt,
     })
-    return createPaginatedResponse(data, totalItems, p, ps, ((q as any).search ?? search ?? search2) ?? null)
+    return createPaginatedResponse(data, totalItems, p, ps, (search ?? search2) ?? null)
   } catch (error) {
     globalThis.logger?.error('Failed to fetch users', {
       error: error instanceof Error ? error.message : String(error),

@@ -117,7 +117,7 @@ watch(
 
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement
-  const [file] = target.files ?? []
+  const [file] = target.files ? Array.from(target.files) : []
   selectedFile.value = file ?? null
   localError.value = null
 }

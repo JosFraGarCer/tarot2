@@ -95,25 +95,26 @@ import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 import type { ManageCrud } from '@/types/manage'
 import { useTableSelection } from '@/composables/common/useTableSelection'
 import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
+import { mapEntityToRow } from '~/utils/manage/entityRows'
 
 const props = defineProps<{
   crud: ManageCrud
   label: string
-  columns?: any[]
+  columns?: unknown[]
   noTags?: boolean
   entity?: string
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', entity: any): void
+  (e: 'edit', entity: Record<string, unknown>): void
   (e: 'full-edit', id: number): void
-  (e: 'delete', entity: any): void
+  (e: 'delete', entity: Record<string, unknown>): void
   (e: 'export', ids: number[]): void
   (e: 'batchUpdate', ids: number[]): void
   (e: 'create'): void
   (e: 'reset-filters'): void
-  (e: 'feedback', entity: any): void
-  (e: 'tags', entity: any): void
+  (e: 'feedback', entity: Record<string, unknown>): void
+  (e: 'tags', entity: Record<string, unknown>): void
 }>()
 
 const selection = useTableSelection(() => props.crud.items.value.map(item => item?.id ?? item?.uuid ?? item?.code))
@@ -133,173 +134,16 @@ const allowTags = computed(() => {
 
 const tableRows = computed<EntityRow[]>(() => {
   const raw = props.crud.items.value
-  return raw.map((entity) => normalizeEntity(entity))
+  return raw.map((entity) => mapEntityToRow(entity, {
+    resourcePath: resourcePath.value,
+    label: props.label,
+    entity: props.entity,
+  }))
 })
 
 const tableLoading = computed<boolean>(() => {
   return props.crud.loading.value
 })
-
-function normalizeEntity(entity: any): EntityRow {
-  const resourcePathValue = resourcePath.value
-  const isUserEntity = resourcePathValue.includes('/user')
-  if (isUserEntity) {
-    const rolesArray = Array.isArray(entity?.roles) ? entity.roles : []
-    const roleNames = rolesArray
-      .map((role: any) => role?.name)
-      .filter((val: any): val is string => typeof val === 'string' && val.length > 0)
-
-    const id = Number(entity?.id ?? 0) || 0
-    const name = entity?.username ?? entity?.email ?? `#${id || '—'}`
-    const image = resolveImage(entity)
-    const permissions = typeof entity?.permissions === 'object' && entity?.permissions !== null
-      ? entity.permissions as Record<string, boolean>
-      : {}
-
-    return {
-      id,
-      name,
-      short_text: entity?.email ?? '',
-      description: null,
-      status: typeof entity?.status === 'string' ? entity.status : null,
-      statusKind: 'user',
-      img: image,
-      email: entity?.email ?? null,
-      username: entity?.username ?? null,
-      roles: roleNames,
-      permissions,
-      created_at: entity?.created_at ?? null,
-      updated_at: entity?.modified_at ?? null,
-      raw: entity,
-    }
-  }
-
-  const id = Number(entity?.id ?? entity?.uuid ?? entity?.code ?? 0)
-  const name = entity?.name
-    ?? entity?.title
-    ?? entity?.label
-    ?? entity?.code
-    ?? `#${entity?.id ?? '—'}`
-  const shortText = entity?.short_text ?? entity?.summary ?? ''
-  const description = entity?.description ?? entity?.long_text ?? ''
-  const status = entity?.status ?? entity?.state ?? null
-  const isActive = entity?.is_active ?? entity?.isActive ?? null
-  const image = resolveImage(entity)
-  const tags = Array.isArray(entity?.tags)
-    ? entity.tags.map((t: any) => t?.name ?? t?.label ?? t?.code ?? '').filter(Boolean).join(', ')
-    : null
-
-  return {
-    id: Number.isFinite(id) && id > 0 ? id : Number(entity?.id) || 0,
-    name,
-    short_text: shortText,
-    description,
-    status: typeof status === 'string' ? status : null,
-    is_active: typeof isActive === 'boolean' ? isActive : null,
-    img: image,
-    code: entity?.code ?? null,
-    lang: entity?.language_code_resolved ?? entity?.language_code ?? entity?.lang ?? null,
-    card_type: (
-      // snake_case direct fields
-      entity?.card_type_name
-      ?? entity?.card_type_code
-      ?? entity?.card_type_label
-      ?? entity?.card_type_title
-      // snake_case relation
-      ?? entity?.card_type?.name
-      ?? entity?.card_type?.code
-      ?? entity?.card_type?.label
-      ?? entity?.card_type?.title
-      // camelCase direct fields
-      ?? entity?.cardType_name
-      ?? entity?.cardType_code
-      ?? entity?.cardType_label
-      ?? entity?.cardType_title
-      // camelCase relation
-      ?? entity?.cardType?.name
-      ?? entity?.cardType?.code
-      ?? entity?.cardType?.label
-      ?? entity?.cardType?.title
-      // generic 'type' relation sometimes used for base cards
-      ?? entity?.type?.name
-      ?? entity?.type?.code
-      ?? entity?.type?.label
-      ?? entity?.type?.title
-      // direct string field
-      ?? entity?.card_type
-      ?? null
-    ),
-    arcana: (
-      entity?.arcana_name
-      ?? entity?.arcana_code
-      ?? entity?.arcana_label
-      ?? entity?.arcana_title
-      ?? entity?.arcana?.name
-      ?? entity?.arcana?.code
-      ?? entity?.arcana?.label
-      ?? entity?.arcana?.title
-      // alternative keys
-      ?? entity?.Arcana?.name
-      ?? entity?.Arcana?.code
-      ?? entity?.Arcana?.label
-      ?? entity?.Arcana?.title
-      // direct string field
-      ?? entity?.arcana
-      ?? null
-    ),
-    facet: (
-      entity?.facet_name
-      ?? entity?.facet_code
-      ?? entity?.facet_label
-      ?? entity?.facet_title
-      ?? entity?.facet?.name
-      ?? entity?.facet?.code
-      ?? entity?.facet?.label
-      ?? entity?.facet?.title
-      // camelCase variants
-      ?? entity?.Facet?.name
-      ?? entity?.Facet?.code
-      ?? entity?.Facet?.label
-      ?? entity?.Facet?.title
-      ?? entity?.facetRel?.name
-      ?? entity?.facetRel?.code
-      ?? entity?.facetRel?.label
-      ?? entity?.facetRel?.title
-      // direct string field
-      ?? entity?.facet
-      ?? null
-    ),
-    parent: entity?.parent_name ?? entity?.parent_code ?? null,
-    category: entity?.category ?? null,
-    tags,
-    updated_at: entity?.updated_at ?? null,
-    raw: entity,
-  }
-}
-
-function resolveImage(entity: any): string | null {
-  const src = entity?.image || entity?.thumbnail_url || entity?.img || null
-  if (!src || typeof src !== 'string') return null
-  if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/') || src.startsWith('data:') || src.startsWith('blob:'))
-    return src
-
-  const resourcePathValue = resourcePath.value
-  if (resourcePathValue.includes('/user')) {
-    return src.startsWith('img/') ? `/${src}` : `/img/${src}`
-  }
-
-  if (entity?.entity_type) return `/img/${entity.entity_type}/${src}`
-
-  const entityKey = props.label?.toLowerCase?.() ?? ''
-
-  if (entityKey.includes('card type')) return `/img/cardType/${src}`
-  if (entityKey.includes('world')) return `/img/world/${src}`
-  if (entityKey.includes('facet')) return `/img/facet/${src}`
-  if (entityKey.includes('skill')) return `/img/skill/${src}`
-  if (entityKey.includes('arcana')) return `/img/arcana/${src}`
-
-  return `/img/${src}`
-}
 
 function onUpdateSelected(ids: number[]) {
   selection.setSelected(ids)
@@ -311,11 +155,11 @@ const isTagEntity = computed(() => {
   return resourcePath.value.includes('/tag')
 })
 
-const canFeedback = (_entity: any) => true
-const canTags = (_entity: any) => allowTags.value && !isTagEntity.value
+const canFeedback = (_entity: unknown) => true
+const canTags = (_entity: unknown) => allowTags.value && !isTagEntity.value
 
 function handleFullEdit(row: EntityRow) {
-  const raw = row.raw ?? row
+  const raw = (row.raw ?? row) as Record<string, unknown>
   const id = Number(row.id ?? raw?.id)
   if (!Number.isFinite(id) || id <= 0) return
   emit('full-edit', id)

@@ -1,6 +1,6 @@
 // app/composables/manage/useEntityFormPreset.ts
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
-import { z } from 'zod'
+import type { z } from 'zod'
 
 import { useEntityCapabilities, type EntityCapabilities } from '~/composables/common/useEntityCapabilities'
 import { arcanaCreateSchema, arcanaUpdateSchema } from '~/schemas/entities/arcana'
@@ -14,7 +14,7 @@ import { worldCreateSchema, worldUpdateSchema } from '~/schemas/entities/world'
 export type EntityFormFieldType = 'text' | 'textarea' | 'select' | 'toggle' | 'number' | 'image' | 'effects'
 
 export interface EntityFormFieldOption {
-  value: any
+  value: string | number | boolean | null
   label?: string
   labelKey?: string
 }
@@ -41,7 +41,7 @@ export interface EntityFormPresetSchema {
 export interface EntityFormPreset {
   schema: EntityFormPresetSchema | null
   fields: Record<string, EntityFormField>
-  defaults: Record<string, any>
+  defaults: Record<string, unknown>
 }
 
 type EntityFormPresetBuilder = (capabilities: EntityCapabilities) => EntityFormPreset
@@ -51,7 +51,7 @@ type CorePresetConfig = {
   relation?: { key: string; relation: string; label: string; required?: boolean; options?: EntityFormFieldOption[] }
   supportsEffects?: boolean
   supportsImage?: boolean
-  defaults?: Record<string, any>
+  defaults?: Record<string, unknown>
   extraFields?: Record<string, EntityFormField>
 }
 
@@ -91,16 +91,16 @@ function cloneDefaultValue<T>(value: T): T {
   try {
     return structuredClone(value)
   } catch {
-    const out: Record<string, any> = {}
-    for (const key of Object.keys(value as Record<string, any>)) {
-      out[key] = cloneDefaultValue((value as Record<string, any>)[key])
+    const out: Record<string, unknown> = {}
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      out[key] = cloneDefaultValue((value as Record<string, unknown>)[key])
     }
     return out as T
   }
 }
 
-function pruneUndefinedDefaults(defaults: Record<string, any>): Record<string, any> {
-  const out: Record<string, any> = {}
+function pruneUndefinedDefaults(defaults: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(defaults)) {
     if (value !== undefined) {
       out[key] = cloneDefaultValue(value)

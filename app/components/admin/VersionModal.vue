@@ -81,8 +81,8 @@ function tt(key: string, fallback: string) { return te(key) ? t(key) : fallback 
 
 const open = defineModel<boolean>({ default: false })
 
-const props = defineProps<{ value?: any | null }>()
-const emit = defineEmits<{ (e:'save', payload: { id?: number; version_semver: string; description?: string | null; metadata?: Record<string, any>; release: ReleaseStage }): void }>()
+const props = defineProps<{ value?: Record<string, unknown> | null }>()
+const emit = defineEmits<{ (e:'save', payload: { id?: number; version_semver: string; description?: string | null; metadata?: Record<string, unknown>; release: ReleaseStage }): void }>()
 
 type ReleaseStage = 'dev' | 'alfa' | 'beta' | 'candidate' | 'release' | 'revision'
 
@@ -94,13 +94,13 @@ const releaseItems = computed(() => releaseStages.map((stage) => ({
 
 const isEdit = computed(() => Boolean(props.value && props.value.id))
 
-const form = reactive<{ id?: number; version_semver: string; description?: string | null; metadata?: Record<string, any> | null; metadataText: string; release: ReleaseStage }>({
-  id: props.value?.id,
-  version_semver: props.value?.version_semver || '',
-  description: props.value?.description || '',
-  metadata: props.value?.metadata || {},
+const form = reactive<{ id?: number; version_semver: string; description?: string | null; metadata?: Record<string, unknown> | null; metadataText: string; release: ReleaseStage }>({
+  id: props.value?.id as number | undefined,
+  version_semver: (props.value?.version_semver as string) || '',
+  description: (props.value?.description as string) || '',
+  metadata: (props.value?.metadata as Record<string, unknown>) || {},
   metadataText: JSON.stringify(props.value?.metadata ?? {}, null, 2),
-  release: props.value?.release || 'alfa'
+  release: (props.value?.release as ReleaseStage) || 'alfa'
 })
 
 const titleId = `version-modal-title`
@@ -118,12 +118,12 @@ const modalDescription = computed(() => tt('domains.version.modalDescription', '
 const triggerButton = ref<HTMLElement | null>(null)
 
 watch(() => props.value, (v) => {
-  form.id = v?.id
-  form.version_semver = v?.version_semver || ''
-  form.description = v?.description || ''
-  form.metadata = v?.metadata || {}
+  form.id = v?.id as number | undefined
+  form.version_semver = (v?.version_semver as string) || ''
+  form.description = (v?.description as string) || ''
+  form.metadata = (v?.metadata as Record<string, unknown>) || {}
   form.metadataText = JSON.stringify(form.metadata ?? {}, null, 2)
-  form.release = v?.release || 'alfa'
+  form.release = (v?.release as ReleaseStage) || 'alfa'
 })
 
 const saving = ref(false)
@@ -134,12 +134,12 @@ async function submit() {
   validateSemver()
   if (semverError.value) return
   // parse metadata JSON
-  let parsed: Record<string, any> | undefined
+  let parsed: Record<string, unknown> | undefined
   metaError.value = null
   if (form.metadataText && form.metadataText.trim()) {
     try {
       parsed = JSON.parse(form.metadataText)
-    } catch (e: any) {
+    } catch (_e: unknown) {
       metaError.value = tt('versions.invalidMetadata', 'Invalid JSON in metadata')
       return
     }

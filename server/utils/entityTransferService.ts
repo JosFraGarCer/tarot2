@@ -10,6 +10,13 @@ interface TransferOptions extends CrudHelperOptions {
   scope?: string
 }
 
+interface ImportResultData {
+  created?: number
+  updated?: number
+  errors?: unknown[]
+  [key: string]: unknown
+}
+
 function resolveCount(payload: unknown): number | null {
   if (!payload || typeof payload !== 'object') return null
   const values = Object.values(payload)
@@ -21,7 +28,7 @@ function resolveCount(payload: unknown): number | null {
 
 export async function exportEntityData(options: TransferOptions) {
   const { event, entity, scope } = options
-  const logger = event.context.logger ?? (globalThis as any).logger
+  const logger = event.context.logger ?? (globalThis as Record<string, unknown>).logger as { info?: (obj: unknown, msg?: string) => void; error?: (obj: unknown, msg?: string) => void } | undefined
   const startedAt = Date.now()
 
   try {
@@ -36,32 +43,34 @@ export async function exportEntityData(options: TransferOptions) {
     }, 'Entity export completed')
 
     return result
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const e = error as Record<string, unknown>
     logger?.error?.({
       scope: scope ?? `${entity}.export`,
       entity,
-      error: error?.message ?? String(error),
+      error: e?.message ?? String(error),
       timeMs: Date.now() - startedAt,
     }, 'Entity export failed')
 
     throw createError({
-      statusCode: error?.statusCode ?? 500,
-      statusMessage: error?.statusMessage ?? 'Failed to export entities',
+      statusCode: (e?.statusCode as number) ?? 500,
+      statusMessage: (e?.statusMessage as string) ?? 'Failed to export entities',
     })
   }
 }
 
 export async function importEntityData(options: TransferOptions) {
   const { event, entity, scope } = options
-  const logger = event.context.logger ?? (globalThis as any).logger
+  const logger = event.context.logger ?? (globalThis as Record<string, unknown>).logger as { info?: (obj: unknown, msg?: string) => void; error?: (obj: unknown, msg?: string) => void } | undefined
   const startedAt = Date.now()
 
   try {
     const result = await importEntities(options)
+    const data = result.data as ImportResultData
     const meta = {
-      created: (result.data as any)?.created ?? null,
-      updated: (result.data as any)?.updated ?? null,
-      errors: Array.isArray((result.data as any)?.errors) ? (result.data as any).errors.length : null,
+      created: data?.created ?? null,
+      updated: data?.updated ?? null,
+      errors: Array.isArray(data?.errors) ? data.errors.length : null,
     }
 
     logger?.info?.({
@@ -72,17 +81,18 @@ export async function importEntityData(options: TransferOptions) {
     }, 'Entity import completed')
 
     return result
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const e = error as Record<string, unknown>
     logger?.error?.({
       scope: scope ?? `${entity}.import`,
       entity,
-      error: error?.message ?? String(error),
+      error: e?.message ?? String(error),
       timeMs: Date.now() - startedAt,
     }, 'Entity import failed')
 
     throw createError({
-      statusCode: error?.statusCode ?? 500,
-      statusMessage: error?.statusMessage ?? 'Failed to import entities',
+      statusCode: (e?.statusCode as number) ?? 500,
+      statusMessage: (e?.statusMessage as string) ?? 'Failed to import entities',
     })
   }
 }

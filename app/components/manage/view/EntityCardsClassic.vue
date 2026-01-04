@@ -39,7 +39,7 @@
         </UCard>
       </div>
     </template>
-    <UCard v-else v-for="item in crud.items?.value ?? crud.items" :key="item.id" class="flex flex-col gap-3 h-full text-sm">
+    <UCard v-for="item in crud.items?.value ?? crud.items" v-else :key="item.id" class="flex flex-col gap-3 h-full text-sm">
       <div class="flex justify-between items-start gap-3">
         <div class="flex items-start gap-3 flex-1">
           <img
@@ -152,11 +152,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', entity: any): void
-  (e: 'delete', entity: any): void
-  (e: 'feedback', entity: any): void
-  (e: 'tags', entity: any): void
-  (e: 'preview', entity: any): void
+  (e: 'edit', entity: Record<string, unknown>): void
+  (e: 'delete', entity: Record<string, unknown>): void
+  (e: 'feedback', entity: Record<string, unknown>): void
+  (e: 'tags', entity: Record<string, unknown>): void
+  (e: 'preview', entity: Record<string, unknown>): void
   (e: 'create'): void
   (e: 'reset-filters'): void
 }>()
@@ -165,10 +165,7 @@ const { t, locale } = useI18n()
 
 const {
   resolveImage,
-  imageFallback,
-  titleOf,
-  isActive,
-  langBadge
+  imageFallback
 } = useCardViewHelpers({
   entity: computed(() => props.entity),
   locale
@@ -195,14 +192,14 @@ const showCardType = computed(() => {
 
 const isTagEntity = computed(() => props.entity === 'tag')
 
-function onPreviewClick(item: any) {
+function onPreviewClick(item: unknown) {
   if (!allowPreview.value) return
-  emit('preview', item)
+  emit('preview', item as Record<string, unknown>)
 }
-function onEditClick(item: any) { emit('edit', item) }
-function onDeleteClick(item: any) { emit('delete', item) }
-function onFeedbackClick(item: any) { emit('feedback', item) }
-function onTagsClick(item: any) { emit('tags', item) }
+function onEditClick(item: unknown) { emit('edit', item as Record<string, unknown>) }
+function onDeleteClick(item: unknown) { emit('delete', item as Record<string, unknown>) }
+function onFeedbackClick(item: unknown) { emit('feedback', item as Record<string, unknown>) }
+function onTagsClick(item: unknown) { emit('tags', item as Record<string, unknown>) }
 function onCreateFromEmpty() { emit('create') }
 function onResetFiltersFromEmpty() { emit('reset-filters') }
 </script>

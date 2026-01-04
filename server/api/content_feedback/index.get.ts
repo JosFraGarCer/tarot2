@@ -6,6 +6,7 @@ import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
 import { contentFeedbackQuerySchema } from '../../schemas/content-feedback'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic query builder requires flexible types
 function applyEntityRelation<QB extends SelectQueryBuilder<any, any, any>>(qb: QB, relationRaw: string | undefined): QB {
   if (!relationRaw) return qb
   const key = relationRaw.replace(/\s+/g, '').toLowerCase()

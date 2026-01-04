@@ -7,7 +7,7 @@ export interface ContentVersion {
   id: number
   version_semver: string
   description: string | null
-  metadata: Record<string, any> | null
+  metadata: Record<string, unknown> | null
   created_at: string
   created_by: number | null
   created_by_name?: string | null
@@ -37,7 +37,7 @@ export interface ContentVersionQuery {
 export interface SavePayload {
   version_semver: string
   description?: string | null
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   release: ReleaseStage
 }
 
@@ -57,7 +57,7 @@ export function useContentVersions() {
   }
 
   function buildParams(query: ContentVersionQuery) {
-    const params: Record<string, any> = {
+    const params: Record<string, unknown> = {
       page: query.page,
       pageSize: query.pageSize,
     }
@@ -85,7 +85,7 @@ export function useContentVersions() {
         params: buildParams(normalized),
       })
 
-      const payload = Array.isArray(response) ? { data: response as any[], meta: undefined } : response
+      const payload = Array.isArray(response) ? { data: response as ContentVersion[], meta: undefined } : response
       const list = Array.isArray(payload?.data) ? payload!.data : []
 
       items.value = list
@@ -136,7 +136,7 @@ export function useContentVersions() {
   }
 
   async function publish(options: { id?: number; version_semver?: string; notes?: string | null }) {
-    const result = await apiFetch<{ data: any }>(`/content_versions/publish`, {
+    const result = await apiFetch<{ data: unknown }>(`/content_versions/publish`, {
       method: 'POST',
       body: options,
     })

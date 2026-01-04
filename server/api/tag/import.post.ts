@@ -32,9 +32,9 @@ export default defineEventHandler(async (event) => {
     scope: 'tag.import.end',
     requestId: event.context.requestId ?? null,
     timeMs: Date.now() - startedAt,
-    created: (result.data as any)?.created ?? null,
-    updated: (result.data as any)?.updated ?? null,
-    errors: Array.isArray((result.data as any)?.errors) ? (result.data as any).errors.length : null,
+    created: (result.data as Record<string, unknown>)?.created ?? null,
+    updated: (result.data as Record<string, unknown>)?.updated ?? null,
+    errors: Array.isArray((result.data as Record<string, unknown>)?.errors) ? ((result.data as Record<string, unknown>).errors as unknown[]).length : null,
   }, 'Tag import completed')
 
   return result

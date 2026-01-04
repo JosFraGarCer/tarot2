@@ -161,9 +161,9 @@ import { useEntityCapabilities, type EntityCapabilities } from '~/composables/co
 import { useEntityPreviewFetch, type EntityPreviewOptions } from '~/composables/common/useEntityPreviewFetch'
 
 const props = withDefaults(defineProps<{
-  open: boolean
+  open?: boolean
   entity?: EntityRow | null
-  rawEntity?: Record<string, any> | null
+  rawEntity?: Record<string, unknown> | null
   kind?: string | null
   capabilities?: Partial<EntityCapabilities> | null
   lang?: string | null
@@ -187,7 +187,7 @@ const internalOpen = computed({
   set: (value: boolean) => emit('update:open', value),
 })
 
-const resolvedKind = computed(() => props.kind || props.rawEntity?.entity_type || props.rawEntity?.kind || null)
+const resolvedKind = computed(() => props.kind || (props.rawEntity?.entity_type as string | undefined) || (props.rawEntity?.kind as string | undefined) || null)
 
 const descriptionId = computed(() => {
   const base = resolvedKind.value ? resolvedKind.value.replace(/[^a-z0-9-]/gi, '-').toLowerCase() : 'entity'
@@ -216,7 +216,7 @@ function resolveId(): number | null {
 
 const resolvedId = computed(resolveId)
 
-const resolvedLang = computed(() => props.lang || props.entity?.lang || props.rawEntity?.language_code || props.rawEntity?.lang || null)
+const resolvedLang = computed(() => props.lang || props.entity?.lang || (props.rawEntity?.language_code as string | undefined) || (props.rawEntity?.lang as string | undefined) || null)
 
 const previewOptions = reactive<EntityPreviewOptions>({
   kind: resolvedKind.value ?? '',
@@ -236,7 +236,7 @@ watch([resolvedKind, resolvedId, resolvedLang, () => props.open], ([kind, id, la
 
 const { data: previewData, pending: previewPending } = useEntityPreviewFetch(previewOptions)
 
-const snapshotEntity = computed(() => previewData.value ?? props.rawEntity ?? props.entity?.raw ?? null)
+const snapshotEntity = computed(() => (previewData.value ?? props.rawEntity ?? props.entity?.raw ?? null) as Record<string, unknown> | null)
 const displayEntity = computed(() => props.entity ?? null)
 
 const isLoading = computed(() => previewPending.value && !snapshotEntity.value)
@@ -244,32 +244,33 @@ const isLoading = computed(() => previewPending.value && !snapshotEntity.value)
 const resolvedCapabilities = useEntityCapabilities({
   kind: () => resolvedKind.value,
   overrides: () => props.capabilities ?? null,
+  crud: undefined
 })
 
 const capabilitiesOverrides = computed(() => props.capabilities ?? null)
 
 const displayTitle = computed(() => {
-  const primary = displayEntity.value?.name || snapshotEntity.value?.name || snapshotEntity.value?.title
+  const primary = (displayEntity.value?.name as string | undefined) || (snapshotEntity.value?.name as string | undefined) || (snapshotEntity.value?.title as string | undefined)
   if (primary) return primary
   if (resolvedId.value) return `#${resolvedId.value}`
   return tt('ui.common.untitled', 'Untitled')
 })
 
-const displaySubtitle = computed(() => displayEntity.value?.code || snapshotEntity.value?.code || null)
+const displaySubtitle = computed(() => (displayEntity.value?.code as string | undefined) || (snapshotEntity.value?.code as string | undefined) || null)
 
-const displayDescription = computed(() => snapshotEntity.value?.description || snapshotEntity.value?.summary || displayEntity.value?.description || null)
+const displayDescription = computed(() => (snapshotEntity.value?.description as string | undefined) || (snapshotEntity.value?.summary as string | undefined) || (displayEntity.value?.description as string | undefined) || null)
 
-const displayStatus = computed(() => snapshotEntity.value?.status || displayEntity.value?.status || null)
+const displayStatus = computed(() => (snapshotEntity.value?.status as string | undefined) || (displayEntity.value?.status as string | undefined) || null)
 
-const displayReleaseStage = computed(() => snapshotEntity.value?.release_stage || displayEntity.value?.release_stage || null)
+const displayReleaseStage = computed(() => (snapshotEntity.value?.release_stage as string | undefined) || (displayEntity.value?.release_stage as string | undefined) || null)
 
-const summaryTranslationStatus = computed(() => snapshotEntity.value?.translationStatus || displayEntity.value?.translationStatus || null)
+const summaryTranslationStatus = computed(() => (snapshotEntity.value?.translationStatus as string | undefined) || (displayEntity.value?.translationStatus as string | undefined) || null)
 
-const resolvedLanguage = computed(() => snapshotEntity.value?.language_code_resolved || snapshotEntity.value?.language_code || displayEntity.value?.lang || null)
-const fallbackLanguage = computed(() => snapshotEntity.value?.language_code || null)
+const resolvedLanguage = computed(() => (snapshotEntity.value?.language_code_resolved as string | undefined) || (snapshotEntity.value?.language_code as string | undefined) || (displayEntity.value?.lang as string | undefined) || null)
+const fallbackLanguage = computed(() => (snapshotEntity.value?.language_code as string | undefined) || null)
 
 const summaryTags = computed(() => {
-  if (Array.isArray(snapshotEntity.value?.tags)) return snapshotEntity.value.tags
+  if (Array.isArray(snapshotEntity.value?.tags)) return snapshotEntity.value?.tags as unknown[]
   const value = displayEntity.value?.tags
   if (Array.isArray(value)) return value
   if (typeof value === 'string') {
@@ -279,7 +280,7 @@ const summaryTags = computed(() => {
       .filter(Boolean)
   }
   if (typeof snapshotEntity.value?.tags === 'string') {
-    return snapshotEntity.value.tags
+    return (snapshotEntity.value.tags as string)
       .split(',')
       .map((tag: string) => tag.trim())
       .filter(Boolean)
@@ -289,8 +290,8 @@ const summaryTags = computed(() => {
 
 const summaryMetadata = computed(() => {
   const metadata: Array<{ label: string; value: string }> = []
-  const created = snapshotEntity.value?.created_at || props.rawEntity?.created_at || null
-  const updated = snapshotEntity.value?.updated_at || props.rawEntity?.updated_at || null
+  const created = (snapshotEntity.value?.created_at as string | undefined) || (props.rawEntity?.created_at as string | undefined) || null
+  const updated = (snapshotEntity.value?.updated_at as string | undefined) || (props.rawEntity?.updated_at as string | undefined) || null
 
   if (created) {
     metadata.push({ label: tt('ui.fields.createdAt', 'Created at'), value: formatDate(created) })
@@ -330,17 +331,18 @@ const standardFields = computed(() => {
 })
 
 const translationItems = computed(() => {
-  const source = snapshotEntity.value?.translations || props.rawEntity?.translations
+  const source = (snapshotEntity.value?.translations as unknown[]) || (props.rawEntity?.translations as unknown[])
   if (!Array.isArray(source)) return []
   return source
-    .map((entry: Record<string, any>, index: number) => {
+    .map((entryRaw: unknown, index: number) => {
+      const entry = entryRaw as Record<string, unknown>
       const lang = entry?.language_code || entry?.lang || `#${index + 1}`
       return {
         key: `${lang}-${index}`,
         lang: String(lang).toUpperCase(),
-        name: entry?.name || entry?.title || entry?.label || null,
-        description: entry?.description || entry?.summary || null,
-        status: entry?.status || entry?.translation_status || null,
+        name: (entry?.name as string) || (entry?.title as string) || (entry?.label as string) || null,
+        description: (entry?.description as string) || (entry?.summary as string) || null,
+        status: (entry?.status as string) || (entry?.translation_status as string) || null,
       }
     })
     .filter((item) => Boolean(item.lang))

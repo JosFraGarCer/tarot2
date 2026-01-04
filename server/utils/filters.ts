@@ -8,6 +8,7 @@ export interface BuildFiltersOptions {
   page?: number
   pageSize?: number
   search?: string
+  q?: string // alias for search
   status?: string
   statusColumn?: string
   // Custom search applier (for COALESCE across translations)
@@ -49,7 +50,7 @@ export async function buildFilters<TB extends keyof DB, O>(
   resolvedSortDirection?: 'asc' | 'desc'
 }> {
   // 🔸 Normaliza alias de búsqueda (?search= o ?q=)
-  const normalizedSearchRaw = (options.search ?? (options as any).q ?? '').toString().trim()
+  const normalizedSearchRaw = (options.search ?? options.q ?? '').toString().trim()
   const search = normalizedSearchRaw.length > 0 ? normalizedSearchRaw : ''
   options.search = search
 

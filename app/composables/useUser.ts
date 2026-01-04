@@ -1,8 +1,7 @@
 // app/composables/useUser.ts
-// /app/composables/useUser.ts
 import { ref, computed } from 'vue'
 import { useUserStore } from '~/stores/user'
-import type { MeResponse } from '@/types/api'
+import type { MeResponse, UserDTO, ApiEnvelope } from '@/types/api'
 
 export function useUser() {
   const store = useUserStore()
@@ -22,31 +21,31 @@ export function useUser() {
       })
       if (res?.data) store.setUser(res.data)
       else store.logout()
-    } catch (err: any) {
-      error.value = err
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err : new Error(String(err))
       store.logout()
     } finally {
       loading.value = false
     }
   }
 
-  async function updateCurrentUser(updates: Record<string, any>) {
+  async function updateCurrentUser(updates: Partial<UserDTO>) {
     if (!store.user?.id) throw new Error('User not loaded')
 
     loading.value = true
     error.value = null
 
     try {
-      const res = await $fetch(`/api/user/${store.user.id}`, {
+      const res = await $fetch<ApiEnvelope<UserDTO>>(`/api/user/${store.user.id}`, {
         method: 'PATCH',
         body: updates,
         credentials: 'include',
       })
-      const payload: any = (res as any).data ?? res
+      const payload = res.data ?? (res as unknown as UserDTO)
       store.setUser(payload)
       return payload
-    } catch (err: any) {
-      error.value = err
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err : new Error(String(err))
       throw err
     } finally {
       loading.value = false

@@ -1,6 +1,6 @@
 // server/api/tag/[id].patch.ts
 // PATCH: update partial fields for Tag entity
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readBody, createError } from 'h3'
 import { sql } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
 import { parseQuery } from '../../utils/parseQuery'
@@ -8,7 +8,6 @@ import { createResponse } from '../../utils/response'
 import { markLanguageFallback } from '../../utils/language'
 import { tagUpdateSchema, tagLangQuerySchema } from '../../schemas/tag'
 import { getRequestedLanguage } from '../../utils/i18n'
-import { createError } from 'h3'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
@@ -65,7 +64,7 @@ export default defineEventHandler(async (event) => {
             await trx
               .updateTable('tags_translations')
               .set(tpatch)
-              .where('id', '=', (existing as any).id)
+              .where('id', '=', (existing as { id: unknown }).id)
               .execute()
           }
         } else {

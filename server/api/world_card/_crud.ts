@@ -6,9 +6,53 @@ import {
   worldCardCreateSchema,
   worldCardUpdateSchema,
 } from '../../schemas/world-card'
+import type { DB, CardStatus, Json } from '../../database/types'
+import type { Kysely, SelectQueryBuilder } from 'kysely'
+import type { z } from 'zod'
 
-function sanitize<T extends Record<string, any>>(input: T): Record<string, any> {
-  const output: Record<string, any> = {}
+// Inferred types from Zod schemas
+type WorldCardQuery = z.infer<typeof worldCardQuerySchema>
+type WorldCardCreate = z.infer<typeof worldCardCreateSchema>
+type WorldCardUpdate = z.infer<typeof worldCardUpdateSchema>
+
+// Tag type for world_card entities
+export interface WorldCardTagInfo {
+  id: number
+  name: string
+  language_code_resolved: string
+}
+
+// Row type returned by buildSelect query
+export interface WorldCardRow {
+  id: number
+  code: string
+  world_id: number
+  base_card_id: number | null
+  is_override: boolean | null
+  status: CardStatus
+  is_active: boolean
+  created_by: number | null
+  image: string | null
+  legacy_effects: boolean
+  effects: Json | null
+  created_at: Date
+  modified_at: Date
+  name: string | null
+  short_text: string | null
+  description: string | null
+  language_code_resolved: string
+  world_code: string | null
+  world_name: string | null
+  world_language_code: string | null
+  base_card_code: string | null
+  base_card_name: string | null
+  base_card_language_code: string | null
+  create_user: string | null
+  tags: WorldCardTagInfo[]
+}
+
+function sanitize<T extends Record<string, unknown>>(input: T): Record<string, unknown> {
+  const output: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) {
       output[key] = value
@@ -17,28 +61,30 @@ function sanitize<T extends Record<string, any>>(input: T): Record<string, any> 
   return output
 }
 
-function buildSelect(db: any, lang: string) {
+// Returns a SelectQueryBuilder - using 'any' for complex joined table type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, WorldCardRow> {
   return db
     .selectFrom('world_card as wc')
     .leftJoin('users as u', 'u.id', 'wc.created_by')
     .leftJoin('world as w', 'w.id', 'wc.world_id')
-    .leftJoin('world_translations as wt_req', (join: any) =>
+    .leftJoin('world_translations as wt_req', (join) =>
       join.onRef('wt_req.world_id', '=', 'w.id').on('wt_req.language_code', '=', lang),
     )
-    .leftJoin('world_translations as wt_en', (join: any) =>
+    .leftJoin('world_translations as wt_en', (join) =>
       join.onRef('wt_en.world_id', '=', 'w.id').on('wt_en.language_code', '=', sql`'en'`),
     )
     .leftJoin('base_card as bc', 'bc.id', 'wc.base_card_id')
-    .leftJoin('base_card_translations as bc_req', (join: any) =>
+    .leftJoin('base_card_translations as bc_req', (join) =>
       join.onRef('bc_req.card_id', '=', 'bc.id').on('bc_req.language_code', '=', lang),
     )
-    .leftJoin('base_card_translations as bc_en', (join: any) =>
+    .leftJoin('base_card_translations as bc_en', (join) =>
       join.onRef('bc_en.card_id', '=', 'bc.id').on('bc_en.language_code', '=', sql`'en'`),
     )
-    .leftJoin('world_card_translations as t_req', (join: any) =>
+    .leftJoin('world_card_translations as t_req', (join) =>
       join.onRef('t_req.card_id', '=', 'wc.id').on('t_req.language_code', '=', lang),
     )
-    .leftJoin('world_card_translations as t_en', (join: any) =>
+    .leftJoin('world_card_translations as t_en', (join) =>
       join.onRef('t_en.card_id', '=', 'wc.id').on('t_en.language_code', '=', sql`'en'`),
     )
     .select([
@@ -101,8 +147,8 @@ export const worldCardCrud = createCrudHandlers({
     languageKey: 'language_code',
     defaultLang: 'en',
   },
-  buildListQuery: ({ db, query, lang }) => {
-    const tagsLower = query.tags?.map((tag: string) => tag.toLowerCase())
+  buildListQuery: ({ db, query, lang }: { db: Kysely<DB>; query: WorldCardQuery; lang: string }) => {
+    const tagsLower = query.tags?.map((tag) => tag.toLowerCase())
     const tagIds = query.tag_ids
 
     let base = buildSelect(db, lang)
@@ -173,25 +219,25 @@ export const worldCardCrud = createCrudHandlers({
             ]),
           ),
       },
-      logMeta: ({ rows }) => ({
+      logMeta: ({ rows }: { rows: WorldCardRow[] }) => ({
         world_id: query.world_id ?? null,
         base_card_id: query.base_card_id ?? null,
         tag_ids: tagIds ?? null,
         tags: tagsLower ?? null,
         count_tags: rows.reduce(
-          (acc: number, row: any) => acc + (Array.isArray(row?.tags) ? row.tags.length : 0),
+          (acc, row) => acc + (Array.isArray(row?.tags) ? row.tags.length : 0),
           0,
         ),
       }),
     }
   },
-  selectOne: ({ db, lang }, id) =>
+  selectOne: ({ db, lang }: { db: Kysely<DB>; lang: string }, id: number) =>
     buildSelect(db, lang)
       .where('wc.id', '=', id)
       .executeTakeFirst(),
   mutations: {
-    buildCreatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+    buildCreatePayload: (input: WorldCardCreate, ctx) => {
+      const userId = (ctx.event.context.user as { id: number } | undefined)?.id ?? null
       const baseData = sanitize({
         code: input.code,
         world_id: input.world_id,
@@ -212,8 +258,8 @@ export const worldCardCrud = createCrudHandlers({
       })
       return { baseData, translationData, lang: input.lang }
     },
-    buildUpdatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+    buildUpdatePayload: (input: WorldCardUpdate, ctx) => {
+      const userId = (ctx.event.context.user as { id: number } | undefined)?.id ?? null
       const baseData = sanitize({
         code: input.code,
         world_id: input.world_id,

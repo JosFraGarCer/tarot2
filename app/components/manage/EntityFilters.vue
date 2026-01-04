@@ -1,5 +1,5 @@
 <!-- app/components/manage/EntityFilters.vue -->
-<!-- /app/components/manage/filters/ManageEntityFilters.vue -->
+<!-- eslint-disable vue/no-mutating-props -->
 <template>
   <div class="flex flex-col gap-3">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -85,6 +85,7 @@
 </template>
 
 <script setup lang="ts">
+/* eslint-disable vue/no-mutating-props -- crud.filters is a shared reactive object */
 import { computed, ref, watch } from 'vue'
 import { useI18n, useLazyAsyncData } from '#imports'
 import { useApiFetch } from '~/utils/fetcher'
@@ -132,7 +133,7 @@ function resolveKey(name: FilterKey): string {
   if (typeof raw === 'string' && raw.length) return raw
   if (raw === true) return name
   if (name === 'is_active') {
-    const legacy = (activeConfig.value as any)?.isActive
+    const legacy = (activeConfig.value as Record<string, unknown>)?.isActive
     if (legacy) return 'is_active'
   }
   return name
@@ -155,29 +156,29 @@ const show = computed(() => {
     facet: Boolean(activeConfig.value?.facet),
     type: typeEnabled && (typeKeyValue?.includes?.('card_type') ? allowCardType.value : true),
     status: Boolean(activeConfig.value?.status),
-    is_active: Boolean(activeConfig.value?.is_active ?? (activeConfig.value as any)?.isActive),
+    is_active: Boolean(activeConfig.value?.is_active ?? (activeConfig.value as Record<string, unknown>)?.isActive),
     parent: Boolean(activeConfig.value?.parent ?? activeConfig.value?.parent_id),
   }
 })
 
 interface FilterBindingOptions {
   multi?: boolean
-  coerce?: (value: any) => any
-  normalize?: (value: any) => any
+  coerce?: (value: unknown) => unknown
+  normalize?: (value: unknown) => unknown
 }
 
-function normalizeArrayValue(raw: any): any[] {
+function normalizeArrayValue(raw: unknown): unknown[] {
   if (Array.isArray(raw)) return raw
   if (raw === null || raw === undefined) return []
   return [raw]
 }
 
-function coerceArrayIds(list: any[]): number[] {
+function coerceArrayIds(list: unknown[]): number[] {
   return list
     .map((item) => {
       if (item === null || item === undefined) return undefined
       if (typeof item === 'object') {
-        const candidate = (item as any).value ?? (item as any).id
+        const candidate = (item as Record<string, unknown>).value ?? (item as Record<string, unknown>).id
         if (candidate === null || candidate === undefined) return undefined
         return candidate
       }
@@ -188,14 +189,15 @@ function coerceArrayIds(list: any[]): number[] {
     .filter((v) => typeof v === 'number' && Number.isFinite(v)) as number[]
 }
 
-function coerceSingleId(value: any) {
+function coerceSingleId(value: unknown) {
   if (value === null || value === undefined || value === '') return null
-  const candidate = typeof value === 'object' ? (value?.value ?? value?.id) : value
+  const v = value as Record<string, unknown> | unknown
+  const candidate = typeof v === 'object' && v !== null ? (v as Record<string, unknown>)?.value ?? (v as Record<string, unknown>)?.id : v
   const num = Number(candidate)
   return Number.isFinite(num) ? num : null
 }
 
-function coerceBoolean(value: any) {
+function coerceBoolean(value: unknown) {
   if (value === null || value === undefined || value === '' || value === 'all') return null
   if (value === true || value === 'true') return true
   if (value === false || value === 'false') return false
@@ -219,7 +221,7 @@ function useFilterBinding(keyRef: { value: string }, options: FilterBindingOptio
       const value = raw ?? null
       return normalize ? normalize(value) : value
     },
-    set(value: any) {
+    set(value: unknown) {
       const key = keyRef.value
       if (!key || !props.crud.filters) return
       const mapped = (() => {
@@ -236,12 +238,12 @@ function useFilterBinding(keyRef: { value: string }, options: FilterBindingOptio
 
 const tagValue = useFilterBinding(tagsKey, {
   multi: true,
-  coerce: (value: any[]) => coerceArrayIds(value),
+  coerce: (value: unknown) => coerceArrayIds(value as unknown[]),
 })
 
 const facetValue = useFilterBinding(facetKey, {
   multi: true,
-  coerce: (value: any[]) => coerceArrayIds(value),
+  coerce: (value: unknown) => coerceArrayIds(value as unknown[]),
 })
 
 const typeIsRole = computed(() => typeKey.value?.includes('role'))
@@ -256,7 +258,7 @@ const typeValue = computed({
     }
     return normalizeArrayValue(raw)
   },
-  set(value: any) {
+  set(value: unknown) {
     const key = typeKey.value
     if (!key || !props.crud.filters) return
     if (typeIsRole.value) {
@@ -271,7 +273,7 @@ const typeValue = computed({
 const statusValue = useFilterBinding(statusKey)
 const isActiveValue = useFilterBinding(isActiveKey, {
   coerce: coerceBoolean,
-  normalize: (value: any) => {
+  normalize: (value: unknown) => {
     if (value === true) return 'true'
     if (value === false) return 'false'
     return 'all'
@@ -280,7 +282,7 @@ const isActiveValue = useFilterBinding(isActiveKey, {
 
 const parentValue = useFilterBinding(parentKey, {
   coerce: coerceSingleId,
-  normalize: (value: any) => (value === undefined ? null : value),
+  normalize: (value: unknown) => (value === undefined ? null : value),
 })
 
 const isActiveOptions = computed(() => ([
@@ -299,11 +301,12 @@ const statusOptions = computed(() => (
   ]
 ))
 
-function unwrapRows(raw: any): any[] {
-  if (!raw) return []
-  if (Array.isArray(raw)) return raw
-  if (Array.isArray(raw.data)) return raw.data
-  if (Array.isArray(raw.results)) return raw.results
+function unwrapRows(raw: unknown): Record<string, unknown>[] {
+  if (!raw || typeof raw !== 'object') return []
+  if (Array.isArray(raw)) return raw as Record<string, unknown>[]
+  const r = raw as Record<string, unknown>
+  if (Array.isArray(r.data)) return r.data as Record<string, unknown>[]
+  if (Array.isArray(r.results)) return r.results as Record<string, unknown>[]
   return []
 }
 
@@ -409,21 +412,21 @@ watch(() => show.value.parent, (enabled) => {
   }
 }, { immediate: true })
 
-const tagOptions = computed(() => unwrapRows(tagData.value).map((item: any) => ({
-  label: item.name ?? item.code ?? `#${item.id}`,
+const tagOptions = computed(() => unwrapRows(tagData.value).map((item) => ({
+  label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
   value: item.id,
 })))
 
 const typeOptions = computed(() => {
   const key = typeKey.value || ''
   if (key.includes('role')) {
-    return unwrapRows(roleData.value).map((item: any) => ({
-      label: item.name ?? `#${item.id}`,
+    return unwrapRows(roleData.value).map((item) => ({
+      label: (item.name as string) ?? `#${item.id}`,
       value: item.id,
     }))
   }
-  return unwrapRows(cardTypeData.value).map((item: any) => ({
-    label: item.name ?? item.code ?? `#${item.id}`,
+  return unwrapRows(cardTypeData.value).map((item) => ({
+    label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
     value: item.id,
   }))
 })
@@ -431,22 +434,22 @@ const typeOptions = computed(() => {
 const facetOptions = computed(() => {
   const key = facetKey.value
   if (key.includes('arcana')) {
-    return unwrapRows(arcanaData.value).map((item: any) => ({
-      label: item.name ?? item.code ?? `#${item.id}`,
+    return unwrapRows(arcanaData.value).map((item) => ({
+      label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
       value: item.id,
     }))
   }
   if (key.includes('facet')) {
-    return unwrapRows(facetData.value).map((item: any) => ({
-      label: item.name ?? item.code ?? `#${item.id}`,
+    return unwrapRows(facetData.value).map((item) => ({
+      label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
       value: item.id,
     }))
   }
   return []
 })
 
-const parentOptions = computed(() => unwrapRows(parentData.value).map((item: any) => ({
-  label: item.name ?? item.code ?? `#${item.id}`,
+const parentOptions = computed(() => unwrapRows(parentData.value).map((item) => ({
+  label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
   value: item.id,
 })))
 

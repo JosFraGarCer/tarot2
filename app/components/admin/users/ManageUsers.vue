@@ -271,19 +271,19 @@
       <template #body>
         <UForm class="space-y-4" @submit.prevent="saveUser">
           <UFormField :label="tt('common.username', 'Username')">
-            <UInput class="w-full" v-model="form.username" autocomplete="off" />
+            <UInput v-model="form.username" class="w-full" autocomplete="off" />
           </UFormField>
           <UFormField :label="tt('common.email', 'Email')">
-            <UInput class="w-full" v-model="form.email" type="email" autocomplete="off" />
+            <UInput v-model="form.email" class="w-full" type="email" autocomplete="off" />
           </UFormField>
           <UFormField :label="tt('common.password', 'Password')" :description="passwordDescription">
-            <UInput class="w-full" v-model="form.password" type="password" autocomplete="new-password" />
+            <UInput v-model="form.password" class="w-full" type="password" autocomplete="new-password" />
           </UFormField>
           <div class="flex flex-wrap items-start gap-4">
             <UFormField :label="tt('common.roles', 'Roles')" class="w-full sm:flex-1">
               <USelectMenu
-                 class="w-full"
-                v-model="form.role_ids"
+                 v-model="form.role_ids"
+                class="w-full"
                 :items="roleOptions"
                 value-key="value"
                 option-attribute="label"
@@ -294,8 +294,8 @@
             </UFormField>
             <UFormField :label="tt('ui.fields.status', 'Status')" class="w-full sm:w-48">
               <USelectMenu
-               class="w-full"
-                v-model="form.status"
+               v-model="form.status"
+                class="w-full"
                 :items="statusValueOptions"
                 value-key="value"
                 option-attribute="label"
@@ -393,7 +393,10 @@ const roleOptions = computed(() => {
         ? raw.results
         : []
   const allOption = { label: tt('ui.filters.all', 'All'), value: null }
-  const mapped = rows.map((role: any) => ({ label: role?.name ?? `#${role?.id ?? ''}`, value: role?.id }))
+  const mapped = rows.map((role: unknown) => {
+    const r = role as Record<string, unknown>
+    return { label: (r?.name as string) ?? `#${r?.id ?? ''}`, value: r?.id }
+  })
   return [allOption, ...mapped]
 })
 
@@ -557,7 +560,7 @@ const canSubmit = computed(() => {
 
 const deleteOpen = ref(false)
 const deleting = ref(false)
-const userToDelete = ref<any>(null)
+const userToDelete = ref<{ id: number; username?: string; email?: string } | null>(null)
 
 const deleteDescription = computed(() => tt('features.admin.users.deleteDescription', 'This action will permanently remove the user and revoke their access.'))
 
@@ -576,14 +579,19 @@ function openCreate() {
   modalOpen.value = true
 }
 
-function openEdit(row: any) {
-  const user = row?.raw ?? row
+function openEdit(row: unknown) {
+  const r = row as Record<string, unknown>
+  const user = (r?.raw ?? r) as Record<string, unknown>
   if (!user) return
   editingId.value = Number(user.id)
-  form.username = user.username ?? ''
-  form.email = user.email ?? ''
+  form.username = (user.username as string) ?? ''
+  form.email = (user.email as string) ?? ''
   form.password = ''
-  form.role_ids = Array.isArray(user.roles) ? user.roles.map((role: any) => role?.id).filter((id: any) => typeof id === 'number') : []
+  form.role_ids = Array.isArray(user.roles)
+    ? user.roles
+        .map((role: unknown) => (role as Record<string, unknown>)?.id)
+        .filter((id: unknown) => typeof id === 'number') as number[]
+    : []
   form.status = typeof user.status === 'string' ? user.status : 'active'
   // no is_active
   modalOpen.value = true
@@ -594,19 +602,20 @@ function closeModal() {
   modalOpen.value = false
 }
 
-function formatError(err: any): string {
+function formatError(err: unknown): string {
   if (!err) return tt('ui.notifications.error', 'Error')
-  const status = err?.statusCode || err?.status || err?.response?.status
-  if (status === 400 || status === 422) return err?.data?.message || tt('errors.validation', 'Please review the fields and try again.')
+  const e = err as { statusCode?: number; status?: number; response?: { status?: number }; data?: { message?: string }; message?: string }
+  const status = e?.statusCode || e?.status || e?.response?.status
+  if (status === 400 || status === 422) return e?.data?.message || tt('errors.validation', 'Please review the fields and try again.')
   if (status === 403) return tt('errors.forbidden', 'You do not have permission to perform this action.')
-  return err?.data?.message || err?.message || String(err)
+  return e?.data?.message || e?.message || String(err)
 }
 
 const saveUser = async () => {
   if (!canSubmit.value) return
   saving.value = true
   try {
-    const basePayload: any = {
+    const basePayload: Record<string, unknown> = {
       username: form.username.trim(),
       email: form.email.trim(),
       status: form.status,
@@ -627,20 +636,21 @@ const saveUser = async () => {
 
     modalOpen.value = false
     await fetchList()
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   } finally {
     saving.value = false
   }
 }
 
-function openDelete(row: any) {
-  userToDelete.value = row?.raw ?? row
+function openDelete(row: unknown) {
+  const r = row as Record<string, unknown>
+  userToDelete.value = r?.raw ?? r
   if (!userToDelete.value) return
   deleteOpen.value = true
 }
 
-function handleRowClick(row: any) {
+function handleRowClick(row: unknown) {
   openEdit(row)
 }
 
@@ -653,7 +663,7 @@ const confirmDelete = async () => {
     deleteOpen.value = false
     userToDelete.value = null
     await fetchList()
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   } finally {
     deleting.value = false
@@ -673,18 +683,19 @@ async function handleSetStatus(id: number, status: string) {
     await update(id, { status })
     toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.statusUpdated', 'User status updated'), color: 'success' })
     await fetchList()
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   }
 }
 
-async function handleResetPassword(user: any) {
-  const target = user?.raw ?? user
-  if (!target?.id) return
+async function handleResetPassword(user: unknown) {
+  const target = (user as { raw?: unknown })?.raw ?? user
+  const t = target as { id: number }
+  if (!t?.id) return
   try {
-    await useApiFetch(`/user/${target.id}/reset-password`, { method: 'POST' })
+    await useApiFetch(`/user/${t.id}/reset-password`, { method: 'POST' })
     toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.passwordReset', 'Password reset email sent'), color: 'success' })
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   }
 }
@@ -697,7 +708,7 @@ async function bulkSuspend() {
     toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.bulkSuspended', 'Selected users suspended'), color: 'success' })
     clearSelection()
     await fetchList()
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   }
 }
@@ -710,7 +721,7 @@ async function bulkActivate() {
     toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.bulkActivated', 'Selected users activated'), color: 'success' })
     clearSelection()
     await fetchList()
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   }
 }
@@ -723,7 +734,7 @@ async function bulkResetPasswords() {
     toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.bulkPasswordReset', 'Password reset emails sent'), color: 'success' })
     clearSelection()
     await fetchList()
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   }
 }
@@ -736,7 +747,7 @@ async function bulkRemove() {
     toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('features.admin.users.bulkDeleted', 'Selected users removed'), color: 'success' })
     clearSelection()
     await fetchList()
-  } catch (err: any) {
+  } catch (err: unknown) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: formatError(err), color: 'error' })
   }
 }

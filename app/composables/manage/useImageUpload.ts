@@ -5,7 +5,7 @@ export function useImageUpload() {
   const isUploadingImage = ref(false)
   const imageFile = ref<File | null>(null)
   const imagePreview = ref<string | null>(null)
-  const modalImageFieldConfig = ref<Record<string, any> | undefined>(undefined)
+  const modalImageFieldConfig = ref<Record<string, unknown> | undefined>(undefined)
 
   function handleImageFile(file: File | null) {
     imageFile.value = file

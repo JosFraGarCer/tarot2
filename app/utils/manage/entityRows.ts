@@ -1,10 +1,25 @@
 // app/utils/manage/entityRows.ts
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
+import type { ManageEntity as _ManageEntity } from '~/types/manage'
 
 export interface EntityRowOptions {
   resourcePath: string
   label: string
   entity?: string | null
+}
+
+// Helper type for nested entity objects that may have name/code/label/title
+interface NestedEntity {
+  name?: string
+  code?: string
+  label?: string
+  title?: string
+}
+
+// Helper to safely access nested entity properties
+function nested(value: unknown): NestedEntity | null {
+  if (value && typeof value === 'object') return value as NestedEntity
+  return null
 }
 
 function normalizeId(input: unknown): number {
@@ -29,9 +44,9 @@ function pickNumber(...candidates: Array<unknown>): number | null {
   return null
 }
 
-function resolveImage(entity: any, options: EntityRowOptions): string | null {
-  const src = entity?.image || entity?.thumbnail_url || entity?.img || null
-  if (!src || typeof src !== 'string') return null
+function resolveImage(entity: Record<string, unknown>, options: EntityRowOptions): string | null {
+  const src = pickString(entity.image, entity.thumbnail_url, entity.img)
+  if (!src) return null
   if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/') || src.startsWith('data:') || src.startsWith('blob:'))
     return src
 
@@ -41,7 +56,7 @@ function resolveImage(entity: any, options: EntityRowOptions): string | null {
     return src.startsWith('img/') ? `/${src}` : `/img/${src}`
   }
 
-  if (entity?.entity_type) return `/img/${entity.entity_type}/${src}`
+  if (typeof entity.entity_type === 'string') return `/img/${entity.entity_type}/${src}`
 
   const normalizedLabel = label?.toLowerCase?.() ?? ''
   const normalizedEntity = entityKey?.toLowerCase?.() ?? ''
@@ -55,96 +70,106 @@ function resolveImage(entity: any, options: EntityRowOptions): string | null {
   return `/img/${src}`
 }
 
-function resolveTranslationStatus(entity: any): string | null {
+function resolveTranslationStatus(entity: Record<string, unknown>): string | null {
+  const statusObj = entity.translation_status as Record<string, unknown> | undefined
   return pickString(
-    entity?.translation_status_label,
-    entity?.translation_status,
-    entity?.translationStatus,
-    entity?.translation_status?.status,
+    entity.translation_status_label,
+    entity.translation_status,
+    entity.translationStatus,
+    statusObj?.status,
   )
 }
 
-function resolveReleaseStage(entity: any): string | null {
+function resolveReleaseStage(entity: Record<string, unknown>): string | null {
+  const releaseObj = entity.release as Record<string, unknown> | undefined
   return pickString(
-    entity?.release_stage,
-    entity?.releaseStage,
-    entity?.release?.stage,
-    entity?.release?.status,
+    entity.release_stage,
+    entity.releaseStage,
+    releaseObj?.stage,
+    releaseObj?.status,
   )
 }
 
-function resolveTags(entity: any): string | null {
-  if (Array.isArray(entity?.tags)) {
+function resolveTags(entity: Record<string, unknown>): string | null {
+  if (Array.isArray(entity.tags)) {
     const values = entity.tags
-      .map((tag: any) => pickString(tag?.name, tag?.label, tag?.code))
+      .map((tag: unknown) => {
+        const t = nested(tag)
+        return pickString(t?.name, t?.label, t?.code)
+      })
       .filter((value): value is string => Boolean(value))
     return values.length ? values.join(', ') : null
   }
-  return pickString(entity?.tags)
+  return pickString(entity.tags)
 }
 
-export function mapEntityToRow(entity: any, options: EntityRowOptions): EntityRow {
+export function mapEntityToRow(entity: unknown, options: EntityRowOptions): EntityRow {
+  const row = entity as Record<string, unknown>
   const { resourcePath, entity: entityKey } = options
   const normalizedEntity = entityKey?.toLowerCase?.() ?? ''
   const isUserEntity = resourcePath.includes('/user') || normalizedEntity === 'user'
 
   if (isUserEntity) {
-    const rolesArray = Array.isArray(entity?.roles) ? entity.roles : []
+    const rolesArray = Array.isArray(row.roles) ? row.roles : []
     const roleNames = rolesArray
-      .map((role: any) => role?.name)
-      .filter((val: any): val is string => typeof val === 'string' && val.length > 0)
+      .map((role: unknown) => nested(role)?.name)
+      .filter((val): val is string => typeof val === 'string' && val.length > 0)
 
-    const id = normalizeId(entity?.id)
-    const name = pickString(entity?.username, entity?.email, `#${id || '—'}`) ?? `#${id || '—'}`
-    const image = resolveImage(entity, options)
-    const permissions = typeof entity?.permissions === 'object' && entity?.permissions !== null
-      ? entity.permissions as Record<string, boolean>
+    const id = normalizeId(row.id)
+    const name = pickString(row.username, row.email, `#${id || '—'}`) ?? `#${id || '—'}`
+    const image = resolveImage(row, options)
+    const permissions = typeof row.permissions === 'object' && row.permissions !== null
+      ? row.permissions as Record<string, boolean>
       : {}
 
     return {
       id,
       name,
-      short_text: entity?.email ?? '',
+      short_text: (row.email as string) ?? '',
       description: null,
-      status: typeof entity?.status === 'string' ? entity.status : null,
+      status: typeof row.status === 'string' ? row.status : null,
       statusKind: 'user',
-      userStatus: typeof entity?.status === 'string' ? entity.status : null,
+      userStatus: typeof row.status === 'string' ? row.status : null,
       img: image,
-      email: entity?.email ?? null,
-      username: entity?.username ?? null,
+      email: (row.email as string) ?? null,
+      username: (row.username as string) ?? null,
       roles: roleNames,
       permissions,
-      created_at: entity?.created_at ?? null,
-      updated_at: entity?.modified_at ?? null,
-      translationStatus: resolveTranslationStatus(entity),
-      release_stage: resolveReleaseStage(entity),
-      releaseStage: resolveReleaseStage(entity),
-      revisionCount: pickNumber(entity?.revision_count, entity?.revisions_count),
-      raw: entity,
+      created_at: (row.created_at as string) ?? null,
+      updated_at: (row.modified_at as string) ?? null,
+      translationStatus: resolveTranslationStatus(row),
+      release_stage: resolveReleaseStage(row),
+      releaseStage: resolveReleaseStage(row),
+      revisionCount: pickNumber(row.revision_count, row.revisions_count),
+      raw: row,
     }
   }
 
-  const id = normalizeId(entity?.id ?? entity?.uuid ?? entity?.code)
+  const id = normalizeId(row.id ?? row.uuid ?? row.code)
   const name = pickString(
-    entity?.name,
-    entity?.title,
-    entity?.label,
-    entity?.code,
-    entity?.slug,
-    `#${entity?.id ?? '—'}`,
-  ) ?? `#${entity?.id ?? '—'}`
+    row.name,
+    row.title,
+    row.label,
+    row.code,
+    row.slug,
+    `#${row.id ?? '—'}`,
+  ) ?? `#${row.id ?? '—'}`
 
-  const shortText = pickString(entity?.short_text, entity?.summary, entity?.subtitle) ?? ''
-  const description = pickString(entity?.description, entity?.long_text, entity?.details) ?? ''
-  const status = pickString(entity?.status, entity?.state)
-  const isActive = typeof entity?.is_active === 'boolean'
-    ? entity.is_active
-    : (typeof entity?.isActive === 'boolean' ? entity.isActive : null)
-  const image = resolveImage(entity, options)
-  const tags = resolveTags(entity)
+  const shortText = pickString(row.short_text, row.summary, row.subtitle) ?? ''
+  const description = pickString(row.description, row.long_text, row.details) ?? ''
+  const status = pickString(row.status, row.state)
+  const isActive = typeof row.is_active === 'boolean'
+    ? row.is_active
+    : (typeof row.isActive === 'boolean' ? row.isActive : null)
+  const image = resolveImage(row, options)
+  const tags = resolveTags(row)
 
-  const translationStatus = resolveTranslationStatus(entity)
-  const releaseStage = resolveReleaseStage(entity)
+  const translationStatus = resolveTranslationStatus(row)
+  const releaseStage = resolveReleaseStage(row)
+
+  const cardTypeObj = row.card_type as Record<string, unknown> | undefined
+  const cardTypeObj2 = row.cardType as Record<string, unknown> | undefined
+  const typeObj = row.type as Record<string, unknown> | undefined
 
   return {
     id,
@@ -155,86 +180,89 @@ export function mapEntityToRow(entity: any, options: EntityRowOptions): EntityRo
     statusKind: normalizedEntity === 'cardtype' ? 'card' : undefined,
     is_active: isActive,
     img: image,
-    code: entity?.code ?? null,
-    lang: pickString(entity?.language_code_resolved, entity?.language_code, entity?.lang, entity?.locale),
+    code: (row.code as string) ?? null,
+    lang: pickString(row.language_code_resolved, row.language_code, row.lang, row.locale),
     card_type: pickString(
-      entity?.card_type_name,
-      entity?.card_type_code,
-      entity?.card_type_label,
-      entity?.card_type_title,
-      entity?.card_type?.name,
-      entity?.card_type?.code,
-      entity?.card_type?.label,
-      entity?.card_type?.title,
-      entity?.cardType_name,
-      entity?.cardType_code,
-      entity?.cardType_label,
-      entity?.cardType_title,
-      entity?.cardType?.name,
-      entity?.cardType?.code,
-      entity?.cardType?.label,
-      entity?.cardType?.title,
-      entity?.type?.name,
-      entity?.type?.code,
-      entity?.type?.label,
-      entity?.type?.title,
-      entity?.card_type,
+      row.card_type_name,
+      row.card_type_code,
+      row.card_type_label,
+      row.card_type_title,
+      cardTypeObj?.name,
+      cardTypeObj?.code,
+      cardTypeObj?.label,
+      cardTypeObj?.title,
+      row.cardType_name,
+      row.cardType_code,
+      row.cardType_label,
+      row.cardType_title,
+      cardTypeObj2?.name,
+      cardTypeObj2?.code,
+      cardTypeObj2?.label,
+      cardTypeObj2?.title,
+      typeObj?.name,
+      typeObj?.code,
+      typeObj?.label,
+      typeObj?.title,
+      row.card_type,
     ),
     arcana: pickString(
-      entity?.arcana_name,
-      entity?.arcana_code,
-      entity?.arcana_label,
-      entity?.arcana_title,
-      entity?.arcana?.name,
-      entity?.arcana?.code,
-      entity?.arcana?.label,
-      entity?.arcana?.title,
-      entity?.Arcana?.name,
-      entity?.Arcana?.code,
-      entity?.Arcana?.label,
-      entity?.Arcana?.title,
-      entity?.arcana,
+      row.arcana_name,
+      row.arcana_code,
+      row.arcana_label,
+      row.arcana_title,
+      nested(row.arcana)?.name,
+      nested(row.arcana)?.code,
+      nested(row.arcana)?.label,
+      nested(row.arcana)?.title,
+      nested(row.Arcana)?.name,
+      nested(row.Arcana)?.code,
+      nested(row.Arcana)?.label,
+      nested(row.Arcana)?.title,
+      row.arcana,
     ),
     facet: pickString(
-      entity?.facet_name,
-      entity?.facet_code,
-      entity?.facet_label,
-      entity?.facet_title,
-      entity?.facet?.name,
-      entity?.facet?.code,
-      entity?.facet?.label,
-      entity?.facet?.title,
-      entity?.Facet?.name,
-      entity?.Facet?.code,
-      entity?.Facet?.label,
-      entity?.Facet?.title,
-      entity?.facetRel?.name,
-      entity?.facetRel?.code,
-      entity?.facetRel?.label,
-      entity?.facetRel?.title,
-      entity?.facet,
+      row.facet_name,
+      row.facet_code,
+      row.facet_label,
+      row.facet_title,
+      nested(row.facet)?.name,
+      nested(row.facet)?.code,
+      nested(row.facet)?.label,
+      nested(row.facet)?.title,
+      nested(row.Facet)?.name,
+      nested(row.Facet)?.code,
+      nested(row.Facet)?.label,
+      nested(row.Facet)?.title,
+      nested(row.facetRel)?.name,
+      nested(row.facetRel)?.code,
+      nested(row.facetRel)?.label,
+      nested(row.facetRel)?.title,
+      row.facet,
     ),
-    parent: pickString(entity?.parent_name, entity?.parent_code, entity?.parent?.name, entity?.parent?.code),
-    category: pickString(entity?.category, entity?.category_name, entity?.category_label),
+    parent: pickString(row.parent_name, row.parent_code, nested(row.parent)?.name, nested(row.parent)?.code),
+    category: pickString(row.category, row.category_name, row.category_label),
     tags,
     translationStatus,
     release_stage: releaseStage,
     releaseStage,
-    revisionCount: pickNumber(entity?.revision_count, entity?.revisions_count),
-    updated_at: entity?.updated_at ?? entity?.modified_at ?? null,
-    created_at: entity?.created_at ?? null,
-    raw: entity,
+    revisionCount: pickNumber(row.revision_count, row.revisions_count),
+    updated_at: (row.updated_at as string) ?? (row.modified_at as string) ?? null,
+    created_at: (row.created_at as string) ?? null,
+    raw: row,
   }
 }
 
-export function mapEntitiesToRows(entities: any[], options: EntityRowOptions): EntityRow[] {
+export function mapEntitiesToRows(entities: unknown[], options: EntityRowOptions): EntityRow[] {
   return entities.map(entity => mapEntityToRow(entity, options))
 }
 
-export function mapUserToRow(user: any): EntityRow {
+export function mapUserToRow(user: Record<string, unknown>): EntityRow {
   const rolesArray = Array.isArray(user?.roles) ? user.roles : []
   const roleNames = rolesArray
-    .map((role: any) => (typeof role?.name === 'string' ? role.name : null))
+    .map((role: unknown) => {
+      const r = nested(role)
+      return typeof r?.name === 'string' ? r.name : null
+    })
     .filter((name): name is string => Boolean(name))
 
   return {
@@ -251,12 +279,12 @@ export function mapUserToRow(user: any): EntityRow {
   }
 }
 
-export function mapUsersToRows(users: any[]): EntityRow[] {
+export function mapUsersToRows(users: Record<string, unknown>[]): EntityRow[] {
   if (!Array.isArray(users)) return []
   return users.map(mapUserToRow)
 }
 
-export function mapFeedbackToRow(feedback: any): EntityRow {
+export function mapFeedbackToRow(feedback: Record<string, unknown>): EntityRow {
   const id = normalizeId(feedback?.id)
   const title = pickString(
     feedback?.title,
@@ -287,12 +315,12 @@ export function mapFeedbackToRow(feedback: any): EntityRow {
   }
 }
 
-export function mapFeedbackListToRows(feedback: any[]): EntityRow[] {
+export function mapFeedbackListToRows(feedback: Record<string, unknown>[]): EntityRow[] {
   if (!Array.isArray(feedback)) return []
   return feedback.map(entry => mapFeedbackToRow(entry))
 }
 
-export function mapRevisionToRow(revision: any): EntityRow {
+export function mapRevisionToRow(revision: Record<string, unknown>): EntityRow {
   const id = normalizeId(revision?.id)
   const entityType = pickString(
     revision?.entity_type,
@@ -338,7 +366,7 @@ export function mapRevisionToRow(revision: any): EntityRow {
   }
 }
 
-export function mapRevisionsToRows(revisions: any[]): EntityRow[] {
+export function mapRevisionsToRows(revisions: Record<string, unknown>[]): EntityRow[] {
   if (!Array.isArray(revisions)) return []
   return revisions.map(entry => mapRevisionToRow(entry))
 }

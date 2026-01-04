@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
     const patch: Record<string, unknown> = {}
     if (body.name !== undefined) patch.name = body.name
     if (body.description !== undefined) patch.description = body.description ?? null
-    if (body.permissions !== undefined) patch.permissions = body.permissions as any
+    if (body.permissions !== undefined) patch.permissions = body.permissions
 
     const updated = await globalThis.db
       .updateTable('roles')
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
     const out = {
       ...updated,
       permissions: (() => {
-        const val = (updated as any).permissions
+        const val = (updated as { permissions: unknown }).permissions
         if (val && typeof val === 'string') {
           try { return JSON.parse(val) } catch { return {} }
         }

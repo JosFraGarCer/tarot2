@@ -74,6 +74,17 @@ import { useDebounceFn } from '@vueuse/core'
 import { useToast } from '#imports'
 import { useCurrentUser } from '@/composables/users/useCurrentUser'
 import { useApiFetch } from '@/utils/fetcher'
+import { getErrorMessage, hasStatusCode } from '@/utils/error'
+
+// Content version type
+interface ContentVersion {
+  id: number
+  version_semver: string
+  description?: string | null
+  release?: string
+  metadata?: Record<string, unknown>
+  created_at?: string
+}
 
 const { t, te } = useI18n()
 const router = useRouter()
@@ -93,7 +104,7 @@ const statusOptions = [
 ]
 
 // Data from API
-const { items, pending, error, meta, fetchList, create, update, publish, remove } = useContentVersions()
+const { items, pending, error, meta, fetchList, create, update, publish: _publish, remove } = useContentVersions()
 const apiFetch = useApiFetch
 
 const filtered = computed(() => {
@@ -106,7 +117,7 @@ const filtered = computed(() => {
 
 // Modal state
 const modalOpen = ref(false)
-const selected = ref<any | null>(null)
+const selected = ref<ContentVersion | null>(null)
 const publishMode = ref(false)
 
 // Pagination state and options
@@ -134,7 +145,7 @@ function openPublish() {
 function reload() {
   fetchList({ search: search.value, status: status.value, page: page.value, pageSize: pageSize.value })
 }
-function onView(v: any) {
+function onView(v: ContentVersion) {
   router.push(localePath(`/admin/versions/${v.id}`))
 }
 function handlePageChange(next: number) {
@@ -143,11 +154,11 @@ function handlePageChange(next: number) {
 function handlePageSizeChange(next: number) {
   fetchList({ search: search.value, status: status.value, page: 1, pageSize: next })
 }
-async function onEdit(v:any) {
+async function onEdit(v: ContentVersion) {
   selected.value = v
   modalOpen.value = true
 }
-async function onDelete(v:any) {
+async function onDelete(v: ContentVersion) {
   const ok = confirm(tt('domains.version.deleteConfirm', 'Delete this version?'))
   if (!ok) return
   await remove(v.id)
@@ -156,11 +167,16 @@ async function onDelete(v:any) {
 }
 
 const toast = useToast()
-async function onSave(payload: { id?: number; version_semver: string; description?: string | null; metadata?: Record<string, any>; release: 'dev' | 'alfa' | 'beta' | 'candidate' | 'release' | 'revision' }) {
+interface PublishResponse {
+  totalEntities?: number
+  totalRevisionsPublished?: number
+}
+
+async function onSave(payload: { id?: number; version_semver: string; description?: string | null; metadata?: Record<string, unknown>; release: 'dev' | 'alfa' | 'beta' | 'candidate' | 'release' | 'revision' }) {
   try {
     if (publishMode.value) {
       // Guided publish: call publish endpoint with semver/notes in description field
-      const res = await apiFetch<{ success?: boolean; data?: any }>('/content_versions/publish', {
+      const res = await apiFetch<{ success?: boolean; data?: PublishResponse }>('/content_versions/publish', {
         method: 'POST',
         body: { version_semver: payload.version_semver, notes: payload.description || null },
       })
@@ -170,27 +186,26 @@ async function onSave(payload: { id?: number; version_semver: string; descriptio
       await reload()
     } else {
       // Ensure plain JSON (no Vue proxies)
-      const metaPlain = payload.metadata ? JSON.parse(JSON.stringify(payload.metadata)) : {}
+      const metaPlain = payload.metadata ? JSON.parse(JSON.stringify(payload.metadata)) as Record<string, unknown> : {}
       const desc = payload.description ?? null
       if (payload.id) await update(payload.id, { version_semver: payload.version_semver, description: desc, metadata: metaPlain, release: payload.release })
       else await create({ version_semver: payload.version_semver, description: desc, metadata: metaPlain, release: payload.release })
       toast.add({ title: tt('ui.notifications.success', 'Success'), description: tt('domains.version.saved', 'Version saved'), color: 'success' })
       await reload()
     }
-  } catch (e: any) {
-    const status = e?.statusCode || e?.response?.status
-    let friendly = e?.data?.message || e?.message || String(e)
-    if (status === 400) friendly = tt('domains.version.err400', 'Please review the fields and try again')
-    else if (status === 409) friendly = tt('domains.version.err409', 'A version with this number already exists')
-    else if (status >= 500) friendly = tt('domains.version.err500', 'Unexpected server error')
+  } catch (e: unknown) {
+    let friendly = getErrorMessage(e)
+    if (hasStatusCode(e, 400)) friendly = tt('domains.version.err400', 'Please review the fields and try again')
+    else if (hasStatusCode(e, 409)) friendly = tt('domains.version.err409', 'A version with this number already exists')
+    else if (hasStatusCode(e, 500)) friendly = tt('domains.version.err500', 'Unexpected server error')
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: friendly, color: 'error' })
   }
 }
 
 // Metadata modal handling
 const metaOpen = ref(false)
-const metaData = ref<any>(null)
-function onMeta(v:any) {
+const metaData = ref<Record<string, unknown> | null>(null)
+function onMeta(v: ContentVersion) {
   metaData.value = v?.metadata ?? {}
   metaOpen.value = true
 }

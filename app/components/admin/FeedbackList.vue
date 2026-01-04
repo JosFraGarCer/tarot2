@@ -202,7 +202,7 @@ type FeedbackListItem = {
 }
 
 const props = withDefaults(defineProps<{
-  items: FeedbackListItem[]
+  items?: FeedbackListItem[]
   isEditor?: boolean
   loading?: boolean
 }>(), {
@@ -212,15 +212,8 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
-  (e: 'view-json', payload: FeedbackListItem): void
-  (e: 'view', payload: FeedbackListItem): void
-  (e: 'notes', payload: FeedbackListItem): void
-  (e: 'reopen', payload: FeedbackListItem): void
-  (e: 'resolve', payload: FeedbackListItem): void
-  (e: 'delete', payload: FeedbackListItem): void
-  (e: 'bulk-resolve'): void
-  (e: 'bulk-reopen'): void
-  (e: 'bulk-delete'): void
+  (e: 'view-json' | 'view' | 'notes' | 'reopen' | 'resolve' | 'delete', payload: FeedbackListItem): void
+  (e: 'bulk-resolve' | 'bulk-reopen' | 'bulk-delete'): void
 }>()
 
 const selected = defineModel<number[]>('selected', { default: [] })
@@ -297,13 +290,14 @@ function onSelectedUpdate(ids: Array<string | number>) {
 
 const bridgeRef = ref<InstanceType<typeof AdminTableBridge> | null>(null)
 
-function resolveRow(row: any): EntityRow | null {
+function resolveRow(row: unknown): EntityRow | null {
   if (!row) return null
-  if ('original' in row && row.original) return row.original as EntityRow
+  const r = row as { original?: EntityRow }
+  if ('original' in r && r.original) return r.original
   return row as EntityRow
 }
 
-function resolveFeedback(row: any): FeedbackListItem {
+function resolveFeedback(row: unknown): FeedbackListItem {
   const entityRow = resolveRow(row)
   if (entityRow?.raw) return entityRow.raw as FeedbackListItem
   if (entityRow?.id != null) {

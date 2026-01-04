@@ -33,7 +33,7 @@ const resolverMap: Record<BadgeType, (value?: string | null) => ReturnType<typeo
 }
 
 const props = withDefaults(defineProps<{
-  type: BadgeType
+  type?: BadgeType
   value?: string | null
   size?: BadgeSize
   colorOverride?: BadgeColor

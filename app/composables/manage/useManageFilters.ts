@@ -33,7 +33,7 @@ export function useManageFilters(crud: AnyManageCrud, options: ManageFiltersOpti
   const fetchOnReset = options.fetchOnReset ?? true
 
   function initializeDefaults() {
-    const filters = crud?.filters as Record<string, any> | undefined
+    const filters = crud?.filters as Record<string, unknown> | undefined
     if (!filters) return
 
     for (const [key, current] of Object.entries(filters)) {
@@ -48,7 +48,7 @@ export function useManageFilters(crud: AnyManageCrud, options: ManageFiltersOpti
   }
 
   function resetFilters() {
-    const filters = crud?.filters as Record<string, any> | undefined
+    const filters = crud?.filters as Record<string, unknown> | undefined
     if (filters) {
       for (const key of Object.keys(filters)) {
         const current = filters[key]

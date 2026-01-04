@@ -1,11 +1,8 @@
 <!-- app/components/admin/RoleForm.vue -->
 // app/components/admin/RoleForm.vue
 <script setup lang="ts">
-// app/components/admin/RoleForm.vue
-import { reactive, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import type { Role } from '@/types/roles'
-import type { Permissions } from '@/types/permissions'
+import type { RoleDTO as Role } from '~/types/api'
+import type { Permissions } from '~/types/permissions'
 
 const props = defineProps<{ modelValue: boolean; role: Role | null }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'save', payload: { id: number; description?: string | null; permissions: Permissions }): void }>()
@@ -44,12 +41,17 @@ watch(() => props.modelValue, (open) => {
   }
 }, { immediate: true })
 
+const isOpen = computed({
+  get: () => props.modelValue,
+  set: (v) => emit('update:modelValue', v)
+})
+
 function close() { emit('update:modelValue', false) }
 function onSave() { if (props.role) emit('save', { id: props.role.id, description: form.description, permissions: form.permissions }) }
 </script>
 
 <template>
-  <UModal :model-value="modelValue" @update:model-value="v => emit('update:modelValue', v)">
+  <UModal v-model:open="isOpen">
     <div class="p-4 space-y-4 w-[520px] max-w-full">
       <div>
         <h2 class="text-lg font-semibold">{{ $t('roles.editRole') }} — {{ props.role?.name }}</h2>

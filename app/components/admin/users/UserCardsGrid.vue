@@ -73,7 +73,7 @@
 <script setup lang="ts">
 import type { AdminUserEntity } from '@/types/admin'
 
-const props = defineProps<{
+defineProps<{
   users: AdminUserEntity[]
 }>()
 

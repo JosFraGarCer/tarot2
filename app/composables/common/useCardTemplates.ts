@@ -1,12 +1,11 @@
 // app/composables/common/useCardTemplates.ts
-// app/composables/useCardTemplates.ts
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import CardClass from '~/components/card/Class.vue'
 import CardOrigin from '~/components/card/Origin.vue'
 
 export type CardTemplateKey = 'Class' | 'Origin'
 
-const registry: Record<CardTemplateKey, any> = {
+const registry: Record<CardTemplateKey, Component> = {
   Class: CardClass,
   Origin: CardOrigin
 }

@@ -26,7 +26,7 @@ interface UseEntityTagsOptions {
 }
 
 interface OpenPayload {
-  entity: any
+  entity: Record<string, unknown>
 }
 
 const ENTITY_TYPE_MAP: Record<string, TagLinkEntityType> = {
@@ -52,31 +52,35 @@ function normalizeId(value: unknown): number | null {
   return Number.isFinite(num) && num > 0 ? num : null
 }
 
-function extractTagIds(entity: any): number[] {
+function extractTagIds(entity: Record<string, unknown>): number[] {
   if (!entity) return []
   const tags = Array.isArray(entity.tags) ? entity.tags : []
   const ids = tags
-    .map((tag: any) => normalizeId(tag?.id ?? tag?.tag_id))
+    .map((tag: unknown) => {
+      const t = tag as Record<string, unknown>
+      return normalizeId(t?.id ?? t?.tag_id)
+    })
     .filter((val): val is number => Number.isFinite(val ?? NaN))
   return Array.from(new Set(ids))
 }
 
-function resolveEntityType(entityKey: string, entity: any): TagLinkEntityType | null {
+function resolveEntityType(entityKey: string, entity: Record<string, unknown>): TagLinkEntityType | null {
   const direct = ENTITY_TYPE_MAP[entityKey]
   if (direct) return direct
-  const raw = String(entity?.entity_type ?? '')
+  const raw = String(entity.entity_type ?? '')
   if (raw && TAG_LINK_ENTITY_TYPES.has(raw)) {
     return raw as TagLinkEntityType
   }
   return null
 }
 
-function unwrapTagRows(raw: any): any[] {
-  if (!raw) return []
-  if (Array.isArray(raw)) return raw
-  if (Array.isArray(raw.items)) return raw.items
-  if (Array.isArray(raw.data)) return raw.data
-  if (Array.isArray(raw.results)) return raw.results
+function unwrapTagRows(raw: unknown): Record<string, unknown>[] {
+  if (!raw || typeof raw !== 'object') return []
+  if (Array.isArray(raw)) return raw as Record<string, unknown>[]
+  const r = raw as Record<string, unknown>
+  if (Array.isArray(r.items)) return r.items as Record<string, unknown>[]
+  if (Array.isArray(r.data)) return r.data as Record<string, unknown>[]
+  if (Array.isArray(r.results)) return r.results as Record<string, unknown>[]
   return []
 }
 
@@ -88,7 +92,7 @@ export function useEntityTags(options: UseEntityTagsOptions) {
   const modalOpen = ref(false)
   const selection = ref<number[]>([])
   const originalSelection = ref<number[]>([])
-  const currentEntity = ref<any>(null)
+  const currentEntity = ref<Record<string, unknown> | null>(null)
   const entityType = ref<TagLinkEntityType | null>(null)
   const tagOptions = ref<TagOption[]>([])
   const optionsLoaded = ref(false)
@@ -115,18 +119,20 @@ export function useEntityTags(options: UseEntityTagsOptions) {
       })
       const rows = unwrapTagRows(response)
       tagOptions.value = rows
-        .map((item: any) => {
-          const id = normalizeId(item?.id)
+        .map((item) => {
+          const id = normalizeId(item.id)
           if (!id) return null
           return {
             value: id,
-            label: item?.name ?? item?.code ?? `#${id}`,
+            label: String(item.name ?? item.code ?? `#${id}`),
           }
         })
         .filter((item): item is TagOption => !!item)
       optionsLoaded.value = true
-    } catch (err: any) {
-      error.value = err?.data?.message ?? err?.message ?? String(err)
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      const data = e?.data as Record<string, unknown> | undefined
+      error.value = (data?.message as string) ?? (e?.message as string) ?? String(e)
       toast?.add?.({
         title: options.entityLabel,
         description: error.value,
@@ -226,8 +232,9 @@ export function useEntityTags(options: UseEntityTagsOptions) {
       })
       await options.crud.fetchList?.()
       close()
-    } catch (err: any) {
-      error.value = err?.data?.message ?? err?.message ?? String(err)
+    } catch (err: unknown) {
+      const e = err as { data?: { message?: string }; message?: string }
+      error.value = e?.data?.message ?? e?.message ?? String(err)
       toast?.add?.({
         title: options.entityLabel,
         description: error.value,
