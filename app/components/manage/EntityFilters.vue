@@ -5,7 +5,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-2">
         <UInput
-          v-model="crud.filters.search"
+          v-model="ctx.crud.filters.search"
           size="xs"
           :placeholder="t('ui.actions.search')"
           class="w-56"
@@ -18,7 +18,7 @@
           :items="tagOptions"
           multiple
           size="xs"
-          value-key="value"
+          value-key="id"
           class="w-56"
           :placeholder="tagsPlaceholder"
         />
@@ -28,7 +28,7 @@
           :items="facetOptions"
           multiple
           size="xs"
-          value-key="value"
+          value-key="id"
           class="w-40"
           :placeholder="facetPlaceholder"
         />
@@ -38,7 +38,7 @@
           :items="typeOptions"
           multiple
           size="xs"
-          value-key="value"
+          value-key="id"
           class="w-40"
           :placeholder="typePlaceholder"
         />
@@ -65,7 +65,7 @@
           v-model="parentValue"
           :items="parentOptions"
           size="xs"
-          value-key="value"
+          value-key="id"
           class="w-40"
           :placeholder="parentPlaceholder"
         />
@@ -76,8 +76,8 @@
           icon="i-heroicons-plus-20-solid"
           size="md"
           color="primary"
-          :label="`${t('ui.actions.create')} ${label}`"
-          @click="onCreate?.()"
+          :label="`${t('ui.actions.create')} ${ctx.label.value}`"
+          @click="ctx.onCreate"
         />
       </div>
     </div>
@@ -88,45 +88,22 @@
 /* eslint-disable vue/no-mutating-props -- crud.filters is a shared reactive object */
 import { computed, ref, watch } from 'vue'
 import { useI18n, useLazyAsyncData } from '#imports'
+import { useEntityBase } from '~/composables/manage/useEntityBaseContext'
 import { useApiFetch } from '~/utils/fetcher'
 import { useCardStatus } from '~/utils/status'
-import type { ManageCrud } from '@/types/manage'
 import type { EntityFilterConfig } from '~/composables/manage/useEntity'
-import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
-type FilterKey = 'search' | 'tags' | 'facet' | 'type' | 'status' | 'is_active' | 'parent'
-
-const props = withDefaults(defineProps<{
-  crud: ManageCrud
-  config?: EntityFilterConfig
-  label: string
-  noTags?: boolean
-  cardType?: boolean
-  onCreate?: () => void
-}>(), {
-  noTags: false,
-  cardType: false,
-  onCreate: undefined
-})
-
+const ctx = useEntityBase()
 const { t, locale } = useI18n()
 const localeValue = computed(() => (typeof locale === 'string' ? locale : locale.value) as string)
 const statusUtil = useCardStatus()
-const capabilities = useEntityCapabilities()
 
-const activeConfig = computed<EntityFilterConfig>(() => props.config ?? props.crud.filterConfig)
+const activeConfig = computed<EntityFilterConfig>(() => ctx.filtersConfig.value)
 
-const allowTags = computed(() => {
-  if (props.noTags === true) return false
-  if (props.noTags === false) return true
-  return capabilities.value.hasTags !== false
-})
+const allowTags = computed(() => ctx.noTags.value !== true)
+const allowCardType = computed(() => ctx.cardType.value !== false)
 
-const allowCardType = computed(() => {
-  if (props.cardType !== undefined) return Boolean(props.cardType)
-  const cap = capabilities.value.cardType
-  return cap === undefined ? true : Boolean(cap)
-})
+type FilterKey = 'search' | 'tags' | 'facet' | 'type' | 'status' | 'is_active' | 'parent'
 
 function resolveKey(name: FilterKey): string {
   const raw = activeConfig.value?.[name]
@@ -210,9 +187,7 @@ function useFilterBinding(keyRef: { value: string }, options: FilterBindingOptio
     get() {
       const key = keyRef.value
       if (!key) return multi ? [] : null
-      const raw = props.crud.filters?.[key]
-      
-      
+      const raw = ctx.crud.filters?.[key]
       
       if (multi) {
         const arr = normalizeArrayValue(raw)
@@ -223,7 +198,7 @@ function useFilterBinding(keyRef: { value: string }, options: FilterBindingOptio
     },
     set(value: unknown) {
       const key = keyRef.value
-      if (!key || !props.crud.filters) return
+      if (!key || !ctx.crud.filters) return
       const mapped = (() => {
         if (multi) {
           const arr = normalizeArrayValue(value)
@@ -231,7 +206,7 @@ function useFilterBinding(keyRef: { value: string }, options: FilterBindingOptio
         }
         return coerce ? coerce(value) : value
       })()
-      props.crud.filters[key] = mapped
+      ctx.crud.filters[key] = mapped
     }
   })
 }
@@ -252,7 +227,7 @@ const typeValue = computed({
   get() {
     const key = typeKey.value
     if (!key) return typeIsRole.value ? null : []
-    const raw = props.crud.filters?.[key]
+    const raw = ctx.crud.filters?.[key]
     if (typeIsRole.value) {
       return raw ?? null
     }
@@ -260,13 +235,13 @@ const typeValue = computed({
   },
   set(value: unknown) {
     const key = typeKey.value
-    if (!key || !props.crud.filters) return
+    if (!key || !ctx.crud.filters) return
     if (typeIsRole.value) {
-      props.crud.filters[key] = coerceSingleId(value)
+      ctx.crud.filters[key] = coerceSingleId(value)
       return
     }
     const arr = normalizeArrayValue(value)
-    props.crud.filters[key] = coerceArrayIds(arr)
+    ctx.crud.filters[key] = coerceArrayIds(arr)
   }
 })
 
@@ -414,7 +389,7 @@ watch(() => show.value.parent, (enabled) => {
 
 const tagOptions = computed(() => unwrapRows(tagData.value).map((item) => ({
   label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-  value: item.id,
+  id: item.id,
 })))
 
 const typeOptions = computed(() => {
@@ -422,12 +397,12 @@ const typeOptions = computed(() => {
   if (key.includes('role')) {
     return unwrapRows(roleData.value).map((item) => ({
       label: (item.name as string) ?? `#${item.id}`,
-      value: item.id,
+      id: item.id,
     }))
   }
   return unwrapRows(cardTypeData.value).map((item) => ({
     label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-    value: item.id,
+    id: item.id,
   }))
 })
 
@@ -436,13 +411,13 @@ const facetOptions = computed(() => {
   if (key.includes('arcana')) {
     return unwrapRows(arcanaData.value).map((item) => ({
       label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-      value: item.id,
+      id: item.id,
     }))
   }
   if (key.includes('facet')) {
     return unwrapRows(facetData.value).map((item) => ({
       label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-      value: item.id,
+      id: item.id,
     }))
   }
   return []
@@ -450,7 +425,7 @@ const facetOptions = computed(() => {
 
 const parentOptions = computed(() => unwrapRows(parentData.value).map((item) => ({
   label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-  value: item.id,
+  id: item.id,
 })))
 
 const facetPlaceholder = computed(() => {

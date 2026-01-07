@@ -2,34 +2,27 @@
 <!-- app/components/manage/common/EntityActionsNew.vue -->
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useEntityBase } from '~/composables/manage/useEntityBaseContext'
 
 const props = defineProps<{
   entity: { id: number; name?: string; code?: string; language_code?: string | null }
-  entityLabel: string
-  entityType: string
-  onEdit?: (entity: Record<string, unknown>) => void
   vertical?: boolean
-  noTags?: boolean
 }>()
 
-const emit = defineEmits<{
-  (e: 'edit', entity: Record<string, unknown>): void
-  (e: 'editform', entity: Record<string, unknown>): void
-  (e: 'feedback', entity: Record<string, unknown>): void
-  (e: 'tags', entity: Record<string, unknown>): void
-  (e: 'delete', entity: Record<string, unknown>): void
-}>()
+const ctx = useEntityBase()
 
 const containerClass = computed(() =>
   props.vertical
     ? 'flex flex-col gap-1'
     : 'flex flex-row gap-1 justify-end flex-wrap items-center'
 )
+
+const allowTags = computed(() => {
+  return ctx.capabilities.value.hasTags !== false && ctx.noTags.value !== true
+})
+
 function handleEditClick() {
-  const entity = props.entity
-  emit('edit', entity)
-  emit('editform', entity)
-  props.onEdit?.(entity)
+  ctx.onEdit(props.entity)
 }
 </script>
 
@@ -42,6 +35,7 @@ function handleEditClick() {
         size="xs"
         color="primary"
         variant="soft"
+        :aria-label="$t('ui.actions.quickEdit')"
         @click="handleEditClick"
       />
     </div>
@@ -53,18 +47,20 @@ function handleEditClick() {
         size="xs"
         color="warning"
         variant="soft"
-        @click="$emit('feedback', props.entity)"
+        aria-label="Feedback"
+        @click="ctx.onFeedback(props.entity)"
       />
     </div>
 
     <!-- Tags -->
-    <div v-if="!noTags" v-can="['canAssignTags','canEditContent']">
+    <div v-if="allowTags" v-can="['canAssignTags','canEditContent']">
       <UButton
         icon="i-heroicons-tag"
         size="xs"
         color="neutral"
         variant="soft"
-        @click="$emit('tags', props.entity)"
+        aria-label="Tags"
+        @click="ctx.onTags(props.entity)"
       />
     </div>
 
@@ -75,7 +71,8 @@ function handleEditClick() {
         size="xs"
         color="error"
         variant="soft"
-        @click="$emit('delete', props.entity)"
+        aria-label="Delete"
+        @click="ctx.onDelete(props.entity)"
       />
     </div>
   </div>

@@ -2,13 +2,13 @@
 <!-- /app/components/manage/views/EntityCarta.vue -->
 <template>
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-  <div v-for="item in crud.items?.value ?? crud.items" :key="item.id" class="flex flex-col items-center w-full">
+  <div v-for="item in ctx.crud.items?.value ?? ctx.crud.items" :key="item.id" class="flex flex-col items-center w-full">
     <div class="flex items-start justify-center w-fit">
       <!-- Card principal -->
       <div>
         <component
           :is="Resolved"
-          v-if="templateKey === 'Class'"
+          v-if="ctx.templateKey.value === 'Class'"
           class="shadow-lg shadow-gray-800"
           :type-label="showCardType ? resolveTypeLabel(item) : ''"
           :name="item.name"
@@ -20,7 +20,7 @@
         />
         <component
           :is="Resolved"
-          v-else-if="templateKey === 'Origin'"
+          v-else-if="ctx.templateKey.value === 'Origin'"
           class="shadow-lg shadow-gray-800"
           :title="item.name"
           :short-text="item.short_text"
@@ -36,14 +36,11 @@
       <div class="flex flex-col gap-1 self-start pt-1 pl-1">
         <EntityActions
           :entity="item"
-          :entity-label="label"
-          :entity-type="label"
-          :no-tags="!allowTags || isTagEntity"
           vertical
-          @edit="() => emit('edit', item)"
-          @feedback="() => emit('feedback', item)"
-          @tags="onTags(item)"
-          @delete="onDelete(item)"
+          @edit="ctx.onEdit(item)"
+          @feedback="ctx.onFeedback(item)"
+          @tags="ctx.onTags(item)"
+          @delete="ctx.onDelete(item)"
         />
       </div>
     </div>
@@ -82,77 +79,42 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from '#imports'
+import { useEntityBase } from '~/composables/manage/useEntityBaseContext'
 import { useCardTemplates } from '~/composables/common/useCardTemplates'
 import EntityActions from '~/components/manage/EntityActions.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
-import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
-import type { ManageCrud } from '@/types/manage'
 
-const props = defineProps<{
-  crud: ManageCrud
-  label: string
-  entity: string
-  templateKey?: string
-  noTags?: boolean
-  cardType?: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'edit', entity: Record<string, unknown>): void
-  (e: 'delete', entity: Record<string, unknown>): void
-  (e: 'feedback', entity: Record<string, unknown>): void
-  (e: 'tags', entity: Record<string, unknown>): void
-  (e: 'preview', entity: Record<string, unknown>): void
-}>()
-
+const ctx = useEntityBase()
 const { t, locale } = useI18n()
 
 const { resolveTemplate } = useCardTemplates()
-const templateKey = computed(() => props.templateKey ?? 'Class')
+const templateKey = computed(() => ctx.templateKey.value ?? 'Class')
 const Resolved = computed(() => resolveTemplate(templateKey.value as 'Class' | 'Origin'))
 
 const {
   resolveImage
 } = useCardViewHelpers({
-  entity: computed(() => props.entity),
+  entity: computed(() => ctx.entityKey.value),
   locale
 })
 
-const capabilities = useEntityCapabilities({
-  kind: () => props.entity ?? null,
-})
-
-const allowPreview = computed(() => capabilities.value.hasPreview !== false)
+const allowPreview = computed(() => ctx.capabilities.value.hasPreview !== false)
 
 const allowTags = computed(() => {
-  if (props.noTags === true) return false
-  if (props.noTags === false) return true
-  return capabilities.value.hasTags !== false
+  if (ctx.noTags.value === true) return false
+  if (ctx.noTags.value === false) return true
+  return ctx.capabilities.value.hasTags !== false
 })
 
 const showCardType = computed(() => {
-  const cap = capabilities.value.cardType
+  const cap = ctx.capabilities.value.cardType
   if (cap !== undefined) return Boolean(cap)
-  if (props.cardType !== undefined) return Boolean(props.cardType)
+  if (ctx.cardType.value !== undefined) return Boolean(ctx.cardType.value)
   return false
 })
 
-const isTagEntity = computed(() => props.entity === 'tag')
-
-function onTags(entity: unknown) {
-  if (!allowTags.value) return
-  emit('tags', entity as Record<string, unknown>)
-}
-
-function onDelete(entity: unknown) {
-  emit('delete', entity as Record<string, unknown>)
-}
-
-function _onPreview(entity: unknown) {
-  if (!allowPreview.value) return
-  emit('preview', entity as Record<string, unknown>)
-}
+const isTagEntity = computed(() => ctx.entityKey.value === 'tag')
 
 function resolveEffectsMarkdown(item: unknown): string | null {
   const i = item as Record<string, unknown>
@@ -209,7 +171,7 @@ function resolveTypeLabel(item: unknown): string {
   return (
     (i?.card_type_name as string)
     ?? (i?.card_type_code as string)
-    ?? props.entity
+    ?? ctx.entityKey.value
     ?? ''
   )
 }

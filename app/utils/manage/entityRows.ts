@@ -1,6 +1,36 @@
 // app/utils/manage/entityRows.ts
-import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
-import type { ManageEntity as _ManageEntity } from '~/types/manage'
+
+export type EntityRow = {
+  id: number
+  name: string
+  short_text?: string | null
+  description?: string | null
+  status?: string | null
+  statusKind?: 'card' | 'user' | 'feedback' | 'revision'
+  userStatus?: string | null
+  is_active?: boolean | null
+  img?: string | null
+  code?: string | null
+  lang?: string | null
+  card_type?: string | null
+  arcana?: string | null
+  facet?: string | null
+  parent?: string | null
+  category?: string | null
+  tags?: string | null
+  updated_at?: string | Date | null
+  created_at?: string | Date | null
+  email?: string | null
+  username?: string | null
+  roles?: string[]
+  permissions?: Record<string, boolean>
+  translationStatus?: string | null
+  release_stage?: string | null
+  releaseStage?: string | null
+  revisionCount?: number | null
+  version?: string | number | null
+  raw?: Record<string, unknown>
+}
 
 export interface EntityRowOptions {
   resourcePath: string
@@ -115,8 +145,8 @@ export function mapEntityToRow(entity: unknown, options: EntityRowOptions): Enti
       .map((role: unknown) => nested(role)?.name)
       .filter((val): val is string => typeof val === 'string' && val.length > 0)
 
-    const id = normalizeId(row.id)
-    const name = pickString(row.username, row.email, `#${id || '—'}`) ?? `#${id || '—'}`
+    const id = normalizeId(row?.id)
+    const name = pickString(row?.username, row?.email, `#${id || '—'}`) ?? `#${id || '—'}`
     const image = resolveImage(row, options)
     const permissions = typeof row.permissions === 'object' && row.permissions !== null
       ? row.permissions as Record<string, boolean>
@@ -265,16 +295,17 @@ export function mapUserToRow(user: Record<string, unknown>): EntityRow {
     })
     .filter((name): name is string => Boolean(name))
 
+  const id = normalizeId(user?.id)
   return {
-    id: normalizeId(user?.id),
-    name: pickString(user?.username, user?.email, `#${normalizeId(user?.id) || '—'}`) ?? `#${normalizeId(user?.id) || '—'}`,
+    id,
+    name: pickString(user?.username, user?.email, `#${id || '—'}`) ?? `#${id || '—'}`,
     email: typeof user?.email === 'string' ? user.email : null,
     username: typeof user?.username === 'string' ? user.username : null,
     roles: roleNames,
     status: typeof user?.status === 'string' ? user.status : null,
     img: resolveImage(user, { resourcePath: '/api/user', label: 'User', entity: 'user' }),
-    created_at: user?.created_at ?? null,
-    updated_at: user?.modified_at ?? user?.updated_at ?? null,
+    created_at: (user?.created_at as string | Date) ?? null,
+    updated_at: (user?.modified_at ?? user?.updated_at) as string | Date ?? null,
     raw: user,
   }
 }
@@ -296,8 +327,8 @@ export function mapFeedbackToRow(feedback: Record<string, unknown>): EntityRow {
   const status = pickString(feedback?.status)
   const lang = pickString(feedback?.language_code, feedback?.lang, feedback?.locale)
   const category = pickString(feedback?.type, feedback?.category)
-  const createdAt = feedback?.created_at ?? null
-  const updatedAt = feedback?.resolved_at ?? feedback?.updated_at ?? null
+  const createdAt = (feedback?.created_at as string | Date) ?? null
+  const updatedAt = (feedback?.resolved_at ?? feedback?.updated_at) as string | Date ?? null
 
   return {
     id,
@@ -345,10 +376,10 @@ export function mapRevisionToRow(revision: Record<string, unknown>): EntityRow {
   )
   const name = entityName ?? entityCode ?? `#${id || '—'}`
   const status = pickString(revision?.status)
-  const version = revision?.version_number ?? revision?.version ?? null
+  const version = (revision?.version_number ?? revision?.version) as string | number | null ?? null
   const lang = pickString(revision?.language_code, revision?.lang, revision?.locale)
-  const createdAt = revision?.created_at ?? null
-  const updatedAt = revision?.updated_at ?? revision?.modified_at ?? null
+  const createdAt = (revision?.created_at as string | Date) ?? null
+  const updatedAt = (revision?.updated_at ?? revision?.modified_at) as string | Date ?? null
 
   return {
     id,

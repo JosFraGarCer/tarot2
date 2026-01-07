@@ -2,7 +2,7 @@
 <!-- /app/components/manage/views/EntityCards.vue -->
 <template>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    <template v-if="crud.loading.value">
+    <template v-if="ctx.crud.loading.value">
       <UCard v-for="n in 6" :key="`skeleton-${n}`" class="space-y-3">
         <USkeleton class="h-36 w-full rounded-md" />
         <div class="space-y-2">
@@ -12,7 +12,7 @@
         </div>
       </UCard>
     </template>
-    <template v-else-if="(crud.items?.value ?? crud.items)?.length === 0">
+    <template v-else-if="(ctx.crud.items?.value ?? ctx.crud.items)?.length === 0">
       <div class="col-span-full">
         <UCard class="flex flex-col items-center justify-center gap-4 py-10 text-center">
           <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" />
@@ -21,14 +21,14 @@
             <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ t('common.tryAdjustFilters') }}</p>
           </div>
           <div class="flex flex-wrap items-center justify-center gap-2">
-            <UButton color="primary" icon="i-heroicons-plus" @click="onCreateFromEmpty">
-              {{ t('ui.actions.create') }} {{ label }}
+            <UButton color="primary" icon="i-heroicons-plus" @click="ctx.onCreate">
+              {{ t('ui.actions.create') }} {{ ctx.label.value }}
             </UButton>
             <UButton
               variant="ghost"
               color="neutral"
               icon="i-heroicons-arrow-path"
-              @click="onResetFiltersFromEmpty"
+              @click="ctx.resetFilters"
             >
               {{ t('common.resetFilters') }}
             </UButton>
@@ -36,7 +36,7 @@
         </UCard>
       </div>
     </template>
-    <UCard v-for="item in crud.items?.value ?? crud.items" v-else :key="item.id">
+    <UCard v-for="item in ctx.crud.items?.value ?? ctx.crud.items" v-else :key="item.id">
       <template #header>
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0 space-y-1">
@@ -49,7 +49,7 @@
                 color="neutral"
                 variant="ghost"
                 aria-label="Preview"
-                @click="onPreviewClick(item)"
+                @click="ctx.onPreview(item)"
               />
               <UBadge v-if="langBadge(item)" color="neutral" variant="subtle" size="sm">
                 {{ langBadge(item) }}
@@ -79,13 +79,10 @@
           </div>
           <EntityActions
             :entity="item"
-            :entity-label="label"
-            :entity-type="label"
-            :no-tags="!allowTags || isTagEntity"
-            @edit="onEditClick(item)"
-            @feedback="onFeedbackClick(item)"
-            @tags="onTagsClick(item)"
-            @delete="onDeleteClick(item)"
+            @edit="ctx.onEdit(item)"
+            @feedback="ctx.onFeedback(item)"
+            @tags="ctx.onTags(item)"
+            @delete="ctx.onDelete(item)"
           />
         </div>
       </template>
@@ -139,31 +136,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from '#imports'
+import { useEntityBase } from '~/composables/manage/useEntityBaseContext'
 import EntityActions from '~/components/manage/EntityActions.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
-import CartaRow from '~/components/manage/CartaRow.vue' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCardViewHelpers } from '~/composables/common/useCardViewHelpers'
-import type { ManageCrud } from '@/types/manage'
-import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
 
-const props = defineProps<{
-  crud: ManageCrud
-  label: string
-  entity: string
-  noTags?: boolean
-  cardType?: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'edit', entity: Record<string, unknown>): void
-  (e: 'delete', entity: Record<string, unknown>): void
-  (e: 'feedback', entity: Record<string, unknown>): void
-  (e: 'tags', entity: Record<string, unknown>): void
-  (e: 'preview', entity: Record<string, unknown>): void
-  (e: 'create'): void
-  (e: 'reset-filters'): void
-}>()
-
+const ctx = useEntityBase()
 const { t, locale } = useI18n()
 
 const {
@@ -172,31 +150,27 @@ const {
   isActive,
   langBadge
 } = useCardViewHelpers({
-  entity: computed(() => props.entity),
+  entity: computed(() => ctx.entityKey.value),
   locale
 })
 
-const capabilities = useEntityCapabilities({
-  kind: () => props.entity ?? null,
-})
-
-const allowPreview = computed(() => capabilities.value.hasPreview !== false)
+const allowPreview = computed(() => ctx.capabilities.value.hasPreview !== false)
 
 const allowTags = computed(() => {
-  if (props.noTags === true) return false
-  if (props.noTags === false) return true
-  return capabilities.value.hasTags !== false
+  if (ctx.noTags.value === true) return false
+  if (ctx.noTags.value === false) return true
+  return ctx.capabilities.value.hasTags !== false
 })
 
 const showCardType = computed(() => {
-  const cap = capabilities.value.cardType
+  const cap = ctx.capabilities.value.cardType
   if (cap !== undefined) return Boolean(cap)
-  if (props.cardType !== undefined) return Boolean(props.cardType)
+  if (ctx.cardType.value !== undefined) return Boolean(ctx.cardType.value)
   return false
 })
 
-const isUserEntity = computed(() => props.entity === 'user')
-const isTagEntity = computed(() => props.entity === 'tag')
+const isUserEntity = computed(() => ctx.entityKey.value === 'user')
+const isTagEntity = computed(() => ctx.entityKey.value === 'tag')
 
 function userRoles(item: unknown): string[] {
   const r = item as Record<string, unknown>
@@ -216,55 +190,5 @@ function formatDate(value: unknown) {
   } catch {
     return date.toISOString()
   }
-}
-
-function onPreviewClick(item: unknown) {
-  if (!allowPreview.value) return
-  emit('preview', item as Record<string, unknown>)
-}
-function onEditClick(item: unknown) { emit('edit', item as Record<string, unknown>) }
-function onDeleteClick(item: unknown) { emit('delete', item as Record<string, unknown>) }
-function onFeedbackClick(item: unknown) { emit('feedback', item as Record<string, unknown>) }
-function onTagsClick(item: unknown) { emit('tags', item as Record<string, unknown>) }
-function onCreateFromEmpty() { emit('create') }
-function onResetFiltersFromEmpty() { emit('reset-filters') }
-function _onCreateClick() { emit('create') }
-
-function _resolveEffectsMarkdown(item: Record<string, unknown>): string | null {
-  const effects = item?.effects
-  if (!effects || typeof effects !== 'object') return null
-  const localeCode = typeof locale === 'string' ? locale : locale.value
-  const normalizedLocale = String(localeCode || 'en').toLowerCase()
-  const localesToTry = [normalizedLocale]
-  if (!localesToTry.includes('en')) localesToTry.push('en')
-
-  if (!localesToTry.includes(item?.language_code_resolved)) {
-    const resolved = String(item?.language_code_resolved || '').toLowerCase()
-    if (resolved && !localesToTry.includes(resolved)) localesToTry.unshift(resolved)
-  }
-
-  const values = Object.values(effects as Record<string, unknown>)
-  for (const value of localesToTry
-    .map((code) => (effects as Record<string, unknown>)[code])
-    .concat(values)) {
-    const lines = toLines(value)
-    if (lines && lines.length) {
-      return lines
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0)
-        .join('\n\n')
-    }
-  }
-  return null
-}
-
-function toLines(value: unknown): string[] | null {
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === 'string')
-  }
-  if (typeof value === 'string') {
-    return value ? [value] : null
-  }
-  return null
 }
 </script>

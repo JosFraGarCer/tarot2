@@ -3,7 +3,7 @@ import { defineEventHandler } from 'h3'
 import { enforceRateLimit, getClientIp } from '../utils/rateLimit'
 
 const GLOBAL_LIMIT = {
-  max: 300,
+  max: 3000,
   windowMs: 5 * 60 * 1000,
 }
 
