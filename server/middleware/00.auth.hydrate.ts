@@ -1,16 +1,12 @@
-// server/middleware/00.auth.hydrate.ts
-// /server/middleware/00.auth.hydrate.ts
-import { defineEventHandler } from 'h3'
+import { defineEventHandler, getRequestIP, getCookie } from 'h3'
 import { sql } from 'kysely'
 import { verifyToken } from '../plugins/auth'
 import { mergePermissions } from '../utils/users'
+import { normalizeError } from '../../shared/utils/errors'
 
 export default defineEventHandler(async (event) => {
   try {
-    const token = event.node.req.headers.cookie
-      ?.split(';')
-      .find(c => c.trim().startsWith('auth_token='))
-      ?.split('=')[1]
+    const token = getCookie(event, 'auth_token')
 
     if (!token) return
 
@@ -19,25 +15,44 @@ export default defineEventHandler(async (event) => {
     if (!userId || isNaN(userId)) return
 
     // OPTIMIZACIÓN: Query ligera solo para validar estado activo
-    // Los roles completos no se cargan en cada request para evitar sobrecarga
     const user = await globalThis.db
       .selectFrom('users')
-      .select(['id', 'username', 'email', 'status', 'image', 'created_at', 'modified_at'])
+      .select(['id', 'username', 'email', 'image', 'status'])
       .where('id', '=', userId)
       .executeTakeFirst()
 
-    if (!user || user.status === 'suspended') return
+    if (!user || user.status !== 'active') {
+      return
+    }
 
-    // Mantenemos la estructura pero con roles vacíos por defecto en middleware
-    // Si un endpoint necesita roles, debe consultarlos explícitamente
-    const permissions: string[] = [] 
+    // Roles y Permisos (Lazy load o Caché en contexto si fuera necesario)
+    const rolesRow = await globalThis.db
+      .selectFrom('user_roles as ur')
+      .leftJoin('roles as r', 'r.id', 'ur.role_id')
+      .select(
+        sql`coalesce(json_agg(r.*), '[]'::json)`.as('roles')
+      )
+      .where('ur.user_id', '=', user.id)
+      .executeTakeFirst()
+
+    const rolesArr = (rolesRow as any)?.roles || []
+    const permissions = mergePermissions(rolesArr)
+
+    // Inyectar en el contexto de h3 (Nitro) siguiendo estándar Nuxt 5
+    event.context.user = {
+      ...user,
+      roles: rolesArr,
+      permissions
+    }
     
-    event.context.user = { 
-      ...user, 
-      roles: [], // Se evita el join masivo
-      permissions 
+    event.context.auth = {
+      authenticated: true,
+      userId: user.id,
+      ip: getRequestIP(event)
     }
   } catch (err) {
-    console.warn('[auth.hydrate] Failed to decode user:', err)
+    // Usar normalizador compartido
+    const error = normalizeError(err)
+    console.warn('[auth.hydrate] Failed to decode user:', error.error.message)
   }
 })

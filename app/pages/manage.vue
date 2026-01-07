@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useI18n } from '#imports'
+import { useI18n, useServerSeoMeta } from '#imports'
 import ViewControls from '~/components/manage/ViewControls.vue'
 import ManageEntity from '~/components/manage/EntityBase.vue'
 import { useManageView } from '~/composables/manage/useManageView'
@@ -67,6 +67,15 @@ import { useTagCrud } from '~/composables/manage/useTag'
 
 definePageMeta({ layout: 'default' })
 const { t } = useI18n()
+
+useServerSeoMeta({
+  title: () => `${t('navigation.menu.manage')} | Tarot`,
+  description: () => t('navigation.manage.description', 'Panel de gestión administrativa de entidades de Tarot.'),
+  ogTitle: () => `${t('navigation.menu.manage')} | Tarot`,
+  ogDescription: () => t('navigation.manage.description', 'Panel de gestión administrativa de entidades de Tarot.'),
+  twitterCard: 'summary_large_image',
+})
+
 const { viewMode, templateKey, templateOptions } = useManageView({ storageKey: 'manage' })
 
 // Selected tab

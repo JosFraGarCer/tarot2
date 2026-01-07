@@ -1,29 +1,25 @@
-// server/api/tag/[id].patch.ts
-// PATCH: update partial fields for Tag entity
-import { defineEventHandler, readBody, createError } from 'h3'
+import { defineEventHandler, readValidatedBody, createError } from 'h3'
 import { sql } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
-import { parseQuery } from '../../utils/parseQuery'
 import { createResponse } from '../../utils/response'
 import { markLanguageFallback } from '../../utils/language'
-import { tagUpdateSchema, tagLangQuerySchema } from '../../schemas/tag'
 import { getRequestedLanguage } from '../../utils/i18n'
+import { parseQuery } from '../../utils/parseQuery'
+import { tagUpdateSchema, tagLangQuerySchema } from '../../schemas/tag'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
-  const logger = event.context.logger ?? globalThis.logger
+  const logger = event.context.logger
   try {
     const idParam = event.context.params?.id
     const id = Number(idParam)
     if (!Number.isFinite(id)) throw createError({ statusCode: 400, statusMessage: 'Invalid id' })
 
-    logger?.info?.({ scope: 'tag.update.start', id, time: new Date().toISOString() })
+    logger?.info({ scope: 'tag.update.start', id }, 'Starting tag update')
 
-    const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.update.query' })
+    const query = await parseQuery(event, tagLangQuerySchema, { scope: 'tag.update.query' })
     const lang = getRequestedLanguage(query)
 
-    const raw = await readBody(event)
-    const body = safeParseOrThrow(tagUpdateSchema, raw)
+    const body = await readValidatedBody(event, tagUpdateSchema.parse)
 
     const result = await globalThis.db.transaction().execute(async (trx) => {
       // Update base tag fields if provided

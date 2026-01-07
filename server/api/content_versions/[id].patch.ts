@@ -1,7 +1,7 @@
 // server/api/content_versions/[id].patch.ts
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody } from "h3"
 import { sql } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
+import { readValidatedBody } from "h3"
 import { createResponse } from '../../utils/response'
 import { contentVersionUpdateSchema } from '../../schemas/content-version'
 import { badRequest, notFound, conflict } from '../../utils/error'
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     if (!Number.isFinite(id)) badRequest('Invalid id')
 
     const raw = await readBody(event)
-    const payload = safeParseOrThrow(contentVersionUpdateSchema, raw)
+    const payload = await readValidatedBody(event, contentVersionUpdateSchema.parse)
 
     const patch: Record<string, unknown> = {}
 

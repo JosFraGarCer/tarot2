@@ -1,8 +1,6 @@
-// server/api/auth/login.post.ts
-import { defineEventHandler, setCookie, readBody, createError } from 'h3'
+import { defineEventHandler, setCookie, readValidatedBody, createError } from 'h3'
 import { z } from 'zod'
 import bcrypt from 'bcrypt'
-import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
 import { createToken } from '../../plugins/auth'
 import { mergePermissions } from '../../utils/users'
@@ -19,7 +17,7 @@ export default defineEventHandler(async (event) => {
   let attemptedIdentifier: string | undefined
 
   try {
-    // Fallback limiter in case middleware chain is bypassed (e.g. unit tests)
+    // Fallback limiter
     enforceRateLimit(event, {
       scope: 'auth.login.rate_limit',
       identifier: `${event.node.req.method}:auth.login`,
@@ -27,8 +25,7 @@ export default defineEventHandler(async (event) => {
       windowMs: 60_000,
     })
 
-    const raw = await readBody(event)
-    const body = safeParseOrThrow(loginSchema, raw)
+    const body = await readValidatedBody(event, loginSchema.parse)
     const { identifier, password } = body
     attemptedIdentifier = identifier
 
@@ -42,7 +39,7 @@ export default defineEventHandler(async (event) => {
           eb('username', '=', identifier),
         ]),
       )
-      .where('status', '=', sql`'active'`)
+      .where('status', '=', 'active')
       .executeTakeFirst()
 
     if (!user)
@@ -94,19 +91,14 @@ export default defineEventHandler(async (event) => {
       path: '/',
     })
 
-    const ip =
-      (event.node.req.headers['x-forwarded-for'] as string | undefined)
-        ?.split(',')[0]
-        ?.trim() ||
-      event.node.req.socket?.remoteAddress ||
-      null
+    const ip = getRequestIP(event) || null
 
-    globalThis.logger?.info('User login', {
+    globalThis.logger?.info({
       id: user.id,
       identifier,
       ip,
       timeMs: Date.now() - startedAt,
-    })
+    }, 'User login')
 
     return createResponse(
       {
@@ -126,10 +118,10 @@ export default defineEventHandler(async (event) => {
       null,
     )
   } catch (error) {
-    globalThis.logger?.warn('Login failed', {
+    globalThis.logger?.warn({
       identifier: attemptedIdentifier,
       error: error instanceof Error ? error.message : String(error),
-    })
+    }, 'Login failed')
     throw error
   }
 })

@@ -1,8 +1,8 @@
 // server/api/role/[id].patch.ts
 // server/api/roles/[id].patch.ts
 // PATCH: update partial fields for Role entity
-import { defineEventHandler, readBody } from 'h3'
-import { safeParseOrThrow } from '../../utils/validate'
+import { defineEventHandler, readValidatedBody } from "h3"
+import { readValidatedBody } from "h3"
 import { createResponse } from '../../utils/response'
 import { notFound } from '../../utils/error'
 import { roleUpdateSchema } from '../../schemas/role'
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     const id = Number(idParam)
 
     const raw = await readBody(event)
-    const body = safeParseOrThrow(roleUpdateSchema, raw)
+    const body = await readValidatedBody(event, roleUpdateSchema.parse)
 
     const patch: Record<string, unknown> = {}
     if (body.name !== undefined) patch.name = body.name

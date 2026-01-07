@@ -2,7 +2,7 @@
 // /app/composables/manage/useWorld.ts
 import { useEntity, type EntityFilterConfig } from '~/composables/manage/useEntity'
 import type { ManageCrud } from '@/types/manage'
-import { worldCreateSchema, worldUpdateSchema } from '~/schemas/entities/world'
+import { worldCreateSchema, worldUpdateSchema } from '../../../shared/schemas/entities/world'
 import type { WorldList, WorldCreate, WorldUpdate } from '@/types/entities'
 
 const worldFilterConfig: EntityFilterConfig = {

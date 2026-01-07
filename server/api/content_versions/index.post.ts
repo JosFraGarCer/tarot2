@@ -1,7 +1,7 @@
 // server/api/content_versions/index.post.ts
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody } from "h3"
 import { sql } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
+import { readValidatedBody } from "h3"
 import { createResponse } from '../../utils/response'
 import { contentVersionCreateSchema } from '../../schemas/content-version'
 import { conflict } from '../../utils/error'
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
     const raw = await readBody(event)
-    const payload = safeParseOrThrow(contentVersionCreateSchema, raw)
+    const payload = await readValidatedBody(event, contentVersionCreateSchema.parse)
     const currentUserId = (event.context.user as { id?: number } | undefined)?.id ?? null
 
     // Ensure semver uniqueness before insert for friendlier error message

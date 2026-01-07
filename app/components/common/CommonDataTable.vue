@@ -68,11 +68,16 @@
       @row-dblclick="row => emit('row:dblclick', row)"
     >
       <template v-if="selectable" #select-header>
-        <UCheckbox v-model="allSelected" :aria-label="tt('ui.table.selectAll', 'Select all')" />
+        <UCheckbox 
+          v-model="allSelected" 
+          :id="`${id}-select-all`"
+          :aria-label="tt('ui.table.selectAll', 'Select all')" 
+        />
       </template>
       <template v-if="selectable" #select-cell="{ row }">
         <UCheckbox
           :model-value="selectedInternal.includes(rowKeyValue(row.original))"
+          :id="`${id}-select-${rowKeyValue(row.original)}`"
           :aria-label="tt('ui.table.selectRow', 'Select row')"
           @update:model-value="(value) => toggleRow(row.original, value)"
         />
@@ -180,7 +185,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, readonly } from 'vue'
-import { useSlots, useI18n } from '#imports'
+import { useSlots, useI18n, useId } from '#imports'
 import type { TableColumn } from '@nuxt/ui'
 import PaginationControls from '~/components/common/PaginationControls.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
@@ -204,6 +209,8 @@ export interface ColumnDefinition<T = TableRowData> {
   hidden?: boolean
   capability?: keyof EntityCapabilities | Array<keyof EntityCapabilities>
 }
+
+const id = useId()
 
 const props = withDefaults(defineProps<{
   items?: TableRowData[]

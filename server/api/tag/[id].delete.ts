@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
 
     logger?.info?.({ scope: 'tag.delete.start', id, time: new Date().toISOString() })
 
-    const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.delete.query' })
+    const query = await parseQuery(event, tagLangQuerySchema, { scope: 'tag.delete.query' })
     const lang = getRequestedLanguage(query)
 
     const result = await globalThis.db.transaction().execute(async (trx) => {

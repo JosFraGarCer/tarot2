@@ -1,34 +1,32 @@
-// server/api/tag/index.post.ts
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody } from 'h3'
 import { sql } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
-import { parseQuery } from '../../utils/parseQuery'
 import { createResponse } from '../../utils/response'
 import { markLanguageFallback } from '../../utils/language'
 import { getRequestedLanguage } from '../../utils/i18n'
+import { parseQuery } from '../../utils/parseQuery'
 import { tagCreateSchema, tagLangQuerySchema } from '../../schemas/tag'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
-  const logger = event.context.logger ?? globalThis.logger
+  const logger = event.context.logger
   try {
-    logger?.info?.({ scope: 'tag.create.start', time: new Date().toISOString() })
-    const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.create.query' })
+    logger?.info({ scope: 'tag.create.start' }, 'Starting tag creation')
+    const query = await parseQuery(event, tagLangQuerySchema, { scope: 'tag.create.query' })
     const lang = getRequestedLanguage(query)
-    const raw = await readBody(event)
-    const body = safeParseOrThrow(tagCreateSchema, raw)
+    const body = await readValidatedBody(event, tagCreateSchema.parse)
 
     // Create tag and its initial EN translation in a transaction
     const created = await globalThis.db.transaction().execute(async (trx) => {
+      const createdBy = body.created_by ?? null
       const tag = await trx
         .insertInto('tags')
         .values({
           code: body.code,
-          category: body.category ?? null,
+          category: body.category as any,
           parent_id: body.parent_id ?? null,
           sort: body.sort ?? 0,
           is_active: body.is_active ?? true,
-          created_by: body.created_by ?? null,
+          created_by: createdBy as any,
         })
         .returning(['id', 'code', 'category', 'parent_id', 'sort', 'is_active', 'created_by', 'created_at', 'modified_at'])
         .executeTakeFirstOrThrow()

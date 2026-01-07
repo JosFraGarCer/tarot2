@@ -104,6 +104,16 @@ export async function translatableUpsert<TEntityRow = unknown>(
   let translationUpdated = false
 
   await db.transaction().execute(async (trx) => {
+    // Lock base entity for update if it exists
+    if (entityId != null) {
+      await trx
+        .selectFrom(opts.baseTable)
+        .select(idColumn as any)
+        .where(idColumn as any, '=', entityId as any)
+        .forUpdate()
+        .executeTakeFirst()
+    }
+
     // Create or update base entity
     if (entityId == null) {
       if (!Object.keys(baseData).length) {
@@ -121,7 +131,7 @@ export async function translatableUpsert<TEntityRow = unknown>(
       let query = trx
         .updateTable(opts.baseTable)
         .set(baseData as unknown as Updateable<DB[keyof DB]>)
-        .where(idColumn as unknown as never, '=', entityId)
+        .where(idColumn as any, '=', entityId as any)
 
       if (opts.modifiedAt) {
         query = query.where('modified_at' as any, '=', opts.modifiedAt)
@@ -156,7 +166,7 @@ export async function translatableUpsert<TEntityRow = unknown>(
         await trx
           .updateTable(opts.baseTable)
           .set({ modified_at: sql`now()` } as any)
-          .where(idColumn as any, '=', entityId)
+          .where(idColumn as any, '=', entityId as any)
           .execute()
       }
     }

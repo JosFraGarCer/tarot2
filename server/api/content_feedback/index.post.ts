@@ -1,15 +1,15 @@
 // server/api/content_feedback/index.post.ts
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody } from "h3"
 import { sql } from 'kysely'
 import { createResponse } from '../../utils/response'
-import { safeParseOrThrow } from '../../utils/validate'
+import { readValidatedBody } from "h3"
 import { contentFeedbackCreateSchema } from '../../schemas/content-feedback'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
     const raw = await readBody(event)
-    const payload = safeParseOrThrow(contentFeedbackCreateSchema, raw)
+    const payload = await readValidatedBody(event, contentFeedbackCreateSchema.parse)
     const currentUserId = (event.context.user as { id?: number } | undefined)?.id ?? null
 
     const inserted = await globalThis.db

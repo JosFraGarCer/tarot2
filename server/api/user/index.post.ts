@@ -1,9 +1,6 @@
-// server/api/user/index.post.ts
-// server/api/users/index.post.ts
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody } from 'h3'
 import { sql } from 'kysely'
 import bcrypt from 'bcrypt'
-import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
 import { userCreateSchema } from '../../schemas/user'
 import { conflict } from '../../utils/error'
@@ -12,8 +9,7 @@ import { mergePermissions } from '../../utils/users'
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
-    const raw = await readBody(event)
-    const body = safeParseOrThrow(userCreateSchema, raw)
+    const body = await readValidatedBody(event, userCreateSchema.parse)
 
     const existing = await globalThis.db
       .selectFrom('users')
@@ -31,7 +27,7 @@ export default defineEventHandler(async (event) => {
         username: body.username,
         password_hash,
         image: body.image ?? null,
-        status: body.status ?? 'active',
+        status: (body.status ?? 'active') as any,
       })
       .returning(['id', 'email', 'username', 'image', 'status', 'created_at', 'modified_at'])
       .executeTakeFirstOrThrow()
@@ -59,7 +55,7 @@ export default defineEventHandler(async (event) => {
         'u.modified_at',
         sql`coalesce(json_agg(r.*) filter (where r.id is not null), '[]'::json)`.as('roles'),
       ])
-      .where('u.id', '=', created.id)
+      .where('u.id', '=', created.id as any)
       .groupBy('u.id')
       .execute()
 

@@ -1,7 +1,7 @@
 // server/api/content_revisions/index.post.ts
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody } from "h3"
 import { sql } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
+import { readValidatedBody } from "h3"
 import { createResponse } from '../../utils/response'
 import { contentRevisionCreateSchema } from '../../schemas/content-revision'
 
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
     const raw = await readBody(event)
-    const payload = safeParseOrThrow(contentRevisionCreateSchema, raw)
+    const payload = await readValidatedBody(event, contentRevisionCreateSchema.parse)
     const currentUserId = (event.context.user as { id?: number } | undefined)?.id ?? null
 
     const inserted = await globalThis.db

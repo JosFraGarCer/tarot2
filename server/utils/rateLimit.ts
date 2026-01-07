@@ -20,15 +20,12 @@ interface Bucket {
 const buckets = new Map<string, Bucket>()
 
 export function getClientIp(event: H3Event): string | null {
-  const header = event.node.req.headers['x-forwarded-for']
-  if (typeof header === 'string' && header.trim().length) {
-    const ip = header.split(',')[0]?.trim()
-    if (ip) return ip
-  }
-  const ips = Array.isArray(header) ? header[0] : undefined
-  if (ips && ips.trim().length) {
-    const ip = ips.split(',')[0]?.trim()
-    if (ip) return ip
+  // En producción, confía solo si sabes que estás detrás de un proxy configurado
+  // Para ser seguros, preferimos el remoteAddress real a menos que se configure confianza explícita
+  const xForwardedFor = event.node.req.headers['x-forwarded-for']
+  if (xForwardedFor) {
+    const ips = (Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor).split(',')
+    return ips[0].trim()
   }
   return event.node.req.socket?.remoteAddress ?? null
 }

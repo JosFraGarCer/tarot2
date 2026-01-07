@@ -1,7 +1,7 @@
 // server/api/tag_links/index.post.ts
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody } from "h3"
 import { createResponse } from '../../utils/response'
-import { safeParseOrThrow } from '../../utils/validate'
+import { readValidatedBody } from "h3"
 import { tagLinksAttachSchema } from '../../schemas/tag-link'
 import { touchEntityModifiedAt } from '../../utils/eagerTags'
 import type { DB } from '../../database/types'
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
     const raw = await readBody(event)
-    const payload = safeParseOrThrow(tagLinksAttachSchema, raw)
+    const payload = await readValidatedBody(event, tagLinksAttachSchema.parse)
 
     const { entity_type, entity_ids, tag_ids } = payload
     const currentUserId = (event.context.user as { id: number } | undefined)?.id ?? null

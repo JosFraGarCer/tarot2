@@ -1,7 +1,7 @@
 // server/api/role/index.post.ts
 // server/api/roles/index.post.ts
-import { defineEventHandler, readBody } from 'h3'
-import { safeParseOrThrow } from '../../utils/validate'
+import { defineEventHandler, readValidatedBody } from "h3"
+import { readValidatedBody } from "h3"
 import { createResponse } from '../../utils/response'
 import { roleCreateSchema } from '../../schemas/role'
 
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
     const raw = await readBody(event)
-    const body = safeParseOrThrow(roleCreateSchema, raw)
+    const body = await readValidatedBody(event, roleCreateSchema.parse)
 
     const created = await globalThis.db
       .insertInto('roles')

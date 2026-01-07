@@ -1,7 +1,6 @@
 // server/api/content_versions/index.get.ts
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getValidatedQuery } from 'h3'
 import { sql } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
 import { buildFilters } from '../../utils/filters'
 import { createPaginatedResponse } from '../../utils/response'
 import { contentVersionQuerySchema } from '../../schemas/content-version'
@@ -9,8 +8,7 @@ import { contentVersionQuerySchema } from '../../schemas/content-version'
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
-    const q = getQuery(event)
-    const parsed = safeParseOrThrow(contentVersionQuerySchema, q)
+    const parsed = await getValidatedQuery(event, contentVersionQuerySchema.parse)
     const { page, pageSize, search, version_semver, created_by, release, sort, direction } = parsed
 
     let base = globalThis.db

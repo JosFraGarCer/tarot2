@@ -1,15 +1,15 @@
 // server/utils/response.ts
+import { normalizeError } from '../../shared/utils/errors'
+import { pruneUndefined } from '../../shared/utils/validation'
+import type { ApiMeta, ApiResponse } from '../../shared/types/api'
 import { markLanguageFallback } from './language'
 
-export type ApiSuccess<T> = { success: true; data: T }
-export type ApiFail = { success: false; message: string }
-
-export function success<T>(data: T): ApiSuccess<T> {
+export function success<T>(data: T): ApiResponse<T> {
   return { success: true, data }
 }
 
-export function fail(message: string): ApiFail {
-  return { success: false, message }
+export function fail(message: string, statusCode = 400): ApiResponse<never> {
+  return normalizeError({ message, statusCode })
 }
 
 export type Meta = {
@@ -21,39 +21,29 @@ export type Meta = {
   search: string | null
 }
 
-export function withMeta<T>(data: T[], totalItems: number, page: number, pageSize: number, search?: string | null) {
+export function withMeta<T extends Record<string, any>>(data: T[], totalItems: number, page: number, pageSize: number, search?: string | null): ApiResponse<T[]> {
   const totalPages = Math.ceil(totalItems / pageSize)
-  return {
-    success: true as const,
-    data,
-    meta: {
-      page,
-      pageSize,
-      totalItems,
-      totalPages,
-      count: data.length,
-      search: search ?? null,
-    },
-  }
+  return createResponse(data, {
+    page,
+    pageSize,
+    totalItems,
+    totalPages,
+    count: data.length,
+    search: search ?? null,
+  })
 }
 
 // Universal serializer helpers
-export function createResponse<T>(data: T, meta?: Record<string, unknown> | null) {
+export function createResponse<T>(data: T, meta?: ApiMeta | null): ApiResponse<T> {
   return {
-    success: true as const,
+    success: true,
     data,
     meta: meta ?? null,
   }
 }
 
-export function createErrorResponse(message: string, statusCode = 400) {
-  return {
-    success: false as const,
-    error: {
-      message,
-      statusCode,
-    },
-  }
+export function createErrorResponse(message: string, statusCode = 400): ApiResponse<never> {
+  return normalizeError({ message, statusCode })
 }
 
 interface PaginatedResponseOptions {
@@ -62,13 +52,13 @@ interface PaginatedResponseOptions {
   extraMeta?: Record<string, unknown>
 }
 
-export function createPaginatedResponse<T>(
+export function createPaginatedResponse<T extends Record<string, any>>(
   data: T[],
   totalItems: number,
   page: number,
   pageSize: number,
   options: PaginatedResponseOptions | string | null = null,
-) {
+): ApiResponse<T[]> {
   let search: string | null | undefined = null
   let lang: string | null | undefined
   let extraMeta: Record<string, unknown> | undefined
@@ -81,7 +71,7 @@ export function createPaginatedResponse<T>(
     extraMeta = options.extraMeta
   }
 
-  const normalizedData = lang ? markLanguageFallback(data, lang) : data
+  const normalizedData = (lang ? markLanguageFallback(data as any, lang) : data) as T[]
   const totalPages = Math.ceil(totalItems / pageSize)
   return createResponse(normalizedData, {
     page,

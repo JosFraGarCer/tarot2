@@ -1,7 +1,6 @@
 // server/api/content_revisions/index.get.ts
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getValidatedQuery } from 'h3'
 import { sql } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
 import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
 import { contentRevisionQuerySchema } from '../../schemas/content-revision'
@@ -9,8 +8,7 @@ import { contentRevisionQuerySchema } from '../../schemas/content-revision'
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
-    const q = getQuery(event)
-    const parsed = safeParseOrThrow(contentRevisionQuerySchema, q)
+    const parsed = await getValidatedQuery(event, contentRevisionQuerySchema.parse)
     const {
       page,
       pageSize,

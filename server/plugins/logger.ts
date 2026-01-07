@@ -1,4 +1,3 @@
-// server/plugins/logger.ts
 import { randomUUID } from 'crypto'
 import pino, { type Logger } from 'pino'
 
@@ -20,6 +19,14 @@ declare global {
   var logger: Logger
 }
 
+declare module 'h3' {
+  interface H3EventContext {
+    logger: Logger
+    requestId: string
+    __requestStartedAt: number
+  }
+}
+
 export default defineNitroPlugin((nitroApp) => {
   globalThis.logger = loggerInstance
 
@@ -29,8 +36,8 @@ export default defineNitroPlugin((nitroApp) => {
 
     const child = loggerInstance.child({
       requestId,
-      method: event.node.req.method,
-      url: event.node.req.url,
+      method: event.method,
+      url: event.path,
     })
 
     event.context.requestId = requestId

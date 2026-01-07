@@ -1,9 +1,5 @@
-// server/api/user/[id].patch.ts
-// server/api/users/[id].patch.ts
-// PATCH: update partial fields for User entity
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody } from 'h3'
 import bcrypt from 'bcrypt'
-import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
 import { notFound } from '../../utils/error'
 import { userUpdateSchema } from '../../schemas/user'
@@ -14,8 +10,7 @@ export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
     const id = event.context.params?.id as string
-    const raw = await readBody(event)
-    const body = safeParseOrThrow(userUpdateSchema, raw)
+    const body = await readValidatedBody(event, userUpdateSchema.parse)
 
     const result = await globalThis.db.transaction().execute(async (trx) => {
       // Build update payload
@@ -32,20 +27,20 @@ export default defineEventHandler(async (event) => {
       if (Object.keys(update).length > 0) {
         const upd = await trx
           .updateTable('users')
-          .set(update)
-          .where('id', '=', id)
+          .set(update as any)
+          .where('id', '=', id as any)
           .returning(['id'])
           .executeTakeFirst()
         if (!upd) return null
       } else {
         // Ensure the user exists
-        const exists = await trx.selectFrom('users').select('id').where('id', '=', id).executeTakeFirst()
+        const exists = await trx.selectFrom('users').select('id').where('id', '=', id as any).executeTakeFirst()
         if (!exists) return null
       }
 
       if (Array.isArray(body.role_ids)) {
         // Replace roles
-        await trx.deleteFrom('user_roles').where('user_id', '=', id).execute()
+        await trx.deleteFrom('user_roles').where('user_id', '=', id as any).execute()
         if (body.role_ids.length > 0) {
           await trx
             .insertInto('user_roles')
@@ -69,7 +64,7 @@ export default defineEventHandler(async (event) => {
           'u.modified_at',
           sql`coalesce(json_agg(r.*) filter (where r.id is not null), '[]'::json)`.as('roles'),
         ])
-        .where('u.id', '=', id)
+        .where('u.id', '=', id as any)
         .groupBy('u.id')
         .executeTakeFirst()
 

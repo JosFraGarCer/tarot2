@@ -64,7 +64,7 @@ export function useEntityPreviewFetch(options: EntityPreviewOptions) {
     return `entity-preview:${key.value}`
   })
 
-  const { data, pending, error, refresh } = useAsyncData(asyncKey, async () => {
+  const { data, pending, error, refresh } = useAsyncData(asyncKey as any, async () => {
     const cacheEntry = resolveCache()
     if (cacheEntry) {
       return cacheEntry.data
@@ -87,7 +87,13 @@ export function useEntityPreviewFetch(options: EntityPreviewOptions) {
   }, {
     server: true,
     immediate: options.immediate ?? true,
-    lazy: false,
+    lazy: true,
+    deep: false, // Nuxt 5 recommendation: shallow reactivity for API data
+    getCachedData: (key) => {
+      // Integration with Nuxt 5/Future payload cache
+      const cacheEntry = resolveCache()
+      return cacheEntry?.data
+    }
   })
 
   const refreshPreview = async () => {

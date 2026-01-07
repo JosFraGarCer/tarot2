@@ -1,6 +1,7 @@
 // app/composables/common/useQuerySync.ts
-import { reactive, watch, watchEffect, toValue, isReactive, isRef, toRaw, unref, type MaybeRefOrGetter } from 'vue'
+import { computed, watch, watchEffect, toValue, isReactive, isRef, toRaw, unref, reactive, type MaybeRefOrGetter } from 'vue'
 import { useRoute, useRouter } from '#imports'
+import { deepClone } from '../../../shared/utils/validation'
 
 type RouteQueryValue = string | string[] | null | undefined
 
@@ -31,7 +32,7 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
   const router = useRouter()
 
   const resolvedOptions = () => toValue(options)
-  const defaults = deepClone(resolvedOptions().defaults)
+  const defaults = deepClone(resolvedOptions().defaults) as TState
   const state = reactive(deepClone(defaults)) as TState
 
   let skipNextRouteSync = false
@@ -39,16 +40,22 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
   let lastSerialized = ''
 
   function readRoute(): TState {
-    const { parse = {}, queryKeyMap = {}, parseState } = resolvedOptions()
+    const opts = resolvedOptions()
+    const parse = opts.parse ?? {}
+    const queryKeyMap = opts.queryKeyMap ?? {}
+    const parseState = opts.parseState
     const query = route.query || {}
-    const next = deepClone(defaults)
+    const next = deepClone(defaults) as TState
 
     for (const key in defaults) {
       const queryKey = (queryKeyMap[key as keyof TState] ?? key) as string
       const raw = query[queryKey]
       if (raw === undefined) continue
-      const parser = parse[key as keyof TState]
-      const parsed = parser ? (parser as any)(raw as RouteQueryValue) : defaultParse(raw as RouteQueryValue, defaults[key])
+      const parser = (parse as Record<string, any>)[key]
+      const parsed = parser 
+        ? (parser as (value: RouteQueryValue) => TState[Extract<keyof TState, string>])(raw as RouteQueryValue) 
+        : defaultParse(raw as RouteQueryValue, (defaults as any)[key])
+      
       if (parsed !== undefined) {
         (next as any)[key] = parsed
       }
@@ -74,15 +81,22 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
   }
 
   function buildQuery(current: TState): Record<string, RouteQueryValue> {
-    const { defaults: baseDefaults, serialize = {}, queryKeyMap = {}, serializeState } = resolvedOptions()
+    const opts = resolvedOptions()
+    const baseDefaults = opts.defaults as TState
+    const serialize = opts.serialize ?? {}
+    const queryKeyMap = opts.queryKeyMap ?? {}
+    const serializeState = opts.serializeState
     const result: Record<string, RouteQueryValue> = {}
 
     for (const key in current) {
       const queryKey = (queryKeyMap[key as keyof TState] ?? key) as string
-      const serializer = serialize[key as keyof TState]
+      const serializer = (serialize as Record<string, any>)[key]
       const value = current[key]
-      const serialized = serializer ? (serializer as any)(value) : defaultSerialize(value, baseDefaults[key])
-      const defaultValue = baseDefaults[key]
+      const defaultValue = (baseDefaults as any)[key]
+      
+      const serialized = serializer 
+        ? (serializer as (value: TState[Extract<keyof TState, string>]) => RouteQueryValue)(value) 
+        : defaultSerialize(value, defaultValue)
 
       if (isEqual(value, defaultValue)) continue
       if (isEmpty(serialized)) continue
@@ -165,25 +179,25 @@ function defaultParse<T extends QueryStateValue>(raw: RouteQueryValue, fallback:
   const value = Array.isArray(raw) ? raw[0] : raw
 
   if (Array.isArray(fallback)) {
-    if (Array.isArray(raw)) return raw
+    if (Array.isArray(raw)) return raw as unknown as T
     if (typeof value === 'string') {
-      return value.split(',').map(item => item.trim()).filter(Boolean)
+      return value.split(',').map(item => item.trim()).filter(Boolean) as unknown as T
     }
     return fallback
   }
 
   if (typeof fallback === 'number') {
     const num = Number(value)
-    return Number.isFinite(num) ? num : fallback
+    return (Number.isFinite(num) ? num : fallback) as unknown as T
   }
 
   if (typeof fallback === 'boolean') {
-    if (value === 'true' || value === true) return true
-    if (value === 'false' || value === false) return false
+    if (value === 'true' || (value as unknown) === true) return true as unknown as T
+    if (value === 'false' || (value as unknown) === false) return false as unknown as T
     return fallback
   }
 
-  return value ?? fallback
+  return (value as unknown as T) ?? fallback
 }
 
 function defaultSerialize(value: QueryStateValue, _fallback: QueryStateValue): RouteQueryValue {
@@ -244,24 +258,6 @@ function unwrapClonable<T>(value: T): T {
   return value
 }
 
-function deepClone<T>(value: T): T {
-  const plain = unwrapClonable(value)
-
-  if (typeof structuredClone === 'function') {
-    try {
-      return structuredClone(plain)
-    } catch {
-      // Fallback below
-    }
-  }
-
-  try {
-    return JSON.parse(JSON.stringify(plain))
-  } catch {
-    return plain // Return as-is if unclonable (e.g. function/symbol) to avoid crash
-  }
-}
-
 function isEqual(a: QueryStateValue, b: QueryStateValue): boolean {
   if (Array.isArray(a) && Array.isArray(b)) {
     if (a.length !== b.length) return false
@@ -281,9 +277,9 @@ function isEmpty(value: RouteQueryValue): boolean {
   return value === ''
 }
 
-function stableStringify(value: Record<string, QueryStateValue>): string {
+function stableStringify(value: Record<string, RouteQueryValue>): string {
   const sortedKeys = Object.keys(value).sort()
-  const normalized: Record<string, QueryStateValue> = {}
+  const normalized: Record<string, RouteQueryValue> = {}
   for (const key of sortedKeys) {
     const entry = value[key]
     normalized[key] = Array.isArray(entry) ? ([...entry] as any) : entry

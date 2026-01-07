@@ -1,7 +1,6 @@
 // server/api/content_feedback/index.get.ts
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getValidatedQuery } from 'h3'
 import { sql, type SelectQueryBuilder } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
 import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
 import { contentFeedbackQuerySchema } from '../../schemas/content-feedback'
@@ -29,8 +28,7 @@ function applyEntityRelation<QB extends SelectQueryBuilder<any, any, any>>(qb: Q
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
-    const q = getQuery(event)
-    const parsed = safeParseOrThrow(contentFeedbackQuerySchema, q)
+    const parsed = await getValidatedQuery(event, contentFeedbackQuerySchema.parse)
     const {
       page,
       pageSize,

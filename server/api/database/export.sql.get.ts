@@ -73,14 +73,17 @@ export default defineEventHandler(async (event) => {
     chunks.push('BEGIN;')
 
     for (const table of tables) {
-      const rows = await globalThis.db.selectFrom(sql`${sql.ref(table)} as t`).selectAll('t').execute()
+      const rows = await globalThis.db.selectFrom(sql.table(table)).selectAll().execute()
       chunks.push(`\n-- ${table}`)
       chunks.push(`DELETE FROM ${table};`)
       if (!rows || rows.length === 0) continue
+      
+      const cols = Object.keys(rows[0] as Record<string, unknown>)
+      const insertBase = `INSERT INTO ${table} ("${cols.join('", "')}") VALUES `
+      
       for (const row of rows as Record<string, unknown>[]) {
-        const cols = Object.keys(row)
         const values = cols.map((c) => sqlEscape(row[c]))
-        chunks.push(`INSERT INTO ${table} ("${cols.join('", "')}") VALUES (${values.join(', ')});`)
+        chunks.push(`${insertBase}(${values.join(', ')});`)
       }
     }
 

@@ -22,7 +22,7 @@ interface CrudContext<TQuery> {
 
 interface ListBuilder<TQuery, TRow> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  baseQuery: SelectQueryBuilder<DB, any, any>
+  baseQuery: SelectQueryBuilder<any, any, any>
   filters?: Partial<BuildFiltersOptions>
   transformRows?: (rows: TRow[], ctx: CrudContext<TQuery>) => Promise<TRow[]> | TRow[]
   logMeta?: (params: {
@@ -36,12 +36,12 @@ interface ListBuilder<TQuery, TRow> {
 }
 
 interface MutationsPayload<TCreate, TUpdate> {
-  buildCreatePayload: (input: TCreate, ctx: CrudContext<unknown>) => {
+  buildCreatePayload: (input: TCreate, ctx: CrudContext<TCreate>) => {
     baseData?: Record<string, unknown>
     translationData?: Record<string, unknown> | null
     lang?: string | null
   }
-  buildUpdatePayload: (input: TUpdate, ctx: CrudContext<unknown>) => {
+  buildUpdatePayload: (input: TUpdate, ctx: CrudContext<TUpdate>) => {
     baseData?: Record<string, unknown>
     translationData?: Record<string, unknown> | null
     lang?: string | null
@@ -104,9 +104,13 @@ export function createCrudHandlers<
   TCreateSchema extends ZodTypeAny,
   TUpdateSchema extends ZodTypeAny,
   TRow = Record<string, unknown>,
->(config: CrudHandlersConfig<TQuerySchema, TCreateSchema, TUpdateSchema, unknown, unknown, unknown, TRow>): CrudHandlers {
-  const db = globalThis.db as Kysely<DB>
-  if (!db) throw new Error('Global database instance not available')
+  TQuery = z.infer<TQuerySchema>,
+  TCreate = z.infer<TCreateSchema>,
+  TUpdate = z.infer<TUpdateSchema>,
+>(config: CrudHandlersConfig<TQuerySchema, TCreateSchema, TUpdateSchema, TQuery, TCreate, TUpdate, TRow>): CrudHandlers {
+  const getDb = (event?: H3Event) => {
+    return event?.context.db || (globalThis as any).db as Kysely<DB>
+  }
 
   const translation = config.translation === undefined ? {
     table: `${String(config.baseTable)}_translations` as keyof DB,
@@ -125,9 +129,10 @@ export function createCrudHandlers<
   const list = defineEventHandler(async (event) => {
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as unknown as { logger: { info: (data: unknown, msg: string) => void } }).logger
-    const query = parseQuery(event, config.schema.query, { scope: `${config.logScope ?? config.entity}.list.query` })
+    const query = parseQuery(event, config.schema.query, { scope: `${config.logScope ?? config.entity}.list.query` }) as TQuery
     const lang = resolveLangFromQuery(query as Record<string, unknown>)
-    const ctx: CrudContext<unknown> = { event, db, query, lang }
+    const db = getDb(event)
+    const ctx: CrudContext<TQuery> = { event, db, query, lang }
 
     const builder = await config.buildListQuery(ctx)
     const filters: BuildFiltersOptions = {
@@ -156,16 +161,16 @@ export function createCrudHandlers<
       pageSize,
       count: Array.isArray(data) ? data.length : 0,
       totalItems,
-      search: filters.search ?? null,
-      sort: resolvedSortField ?? null,
+      search: (filters.search as string | null) ?? null,
+      sort: (resolvedSortField as string | null) ?? null,
       direction: resolvedSortDirection ?? null,
       lang,
       ...metaFromBuilder,
       timeMs: Date.now() - startedAt,
     }, 'List handler completed')
 
-    return createPaginatedResponse(data as unknown[], totalItems, page, pageSize, {
-      search: filters.search ?? null,
+    return createPaginatedResponse(data as Record<string, any>[], totalItems, page, pageSize, {
+      search: (filters.search as string | null) ?? null,
       lang,
       extraMeta: metaFromBuilder,
     })
@@ -183,10 +188,11 @@ export function createCrudHandlers<
     }
 
     const raw = await readBody(event)
-    const body = config.schema.create.parse(raw)
+    const body = config.schema.create.parse(raw) as TCreate
     const user = event.context.user
     const lang = (body as Record<string, unknown>).lang ? String((body as Record<string, unknown>).lang).toLowerCase() : 'en'
-    const ctx: CrudContext<unknown> = { event, db, query: body, lang }
+    const db = getDb(event)
+    const ctx: CrudContext<TCreate> = { event, db, query: body, lang }
 
     const { baseData, translationData } = config.mutations.buildCreatePayload(body, ctx)
     
@@ -204,7 +210,7 @@ export function createCrudHandlers<
         baseData: baseDataWithUser as Record<string, unknown>,
         translationData: translationData as Record<string, unknown> | null,
         lang,
-        select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body, lang: langCode }, id),
+        select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body as any, lang: langCode }, id),
       })
       logger?.info?.({
         scope: `${config.logScope ?? config.entity}.create`,
@@ -227,7 +233,7 @@ export function createCrudHandlers<
     }
 
     const id = Number((insert as Record<string, unknown>)[idColumn])
-    const row = await config.selectOne({ event, db, query: body, lang }, id)
+    const row = await config.selectOne({ event, db, query: body as any, lang }, id)
     logger?.info?.({ scope: `${config.logScope ?? config.entity}.create`, entity: config.entity, id, timeMs: Date.now() - startedAt }, 'Entity created')
     return createResponse(row ? markLanguageFallback(row, lang) : row, null)
   })
@@ -241,7 +247,8 @@ export function createCrudHandlers<
     }
     const query = parseQuery(event, deleteSchema, { scope: `${config.logScope ?? config.entity}.detail.query` })
     const lang = resolveLangFromQuery(query as Record<string, unknown>)
-    const ctx: CrudContext<unknown> = { event, db, query, lang }
+    const db = getDb(event)
+    const ctx: CrudContext<any> = { event, db, query, lang }
     const row = await config.selectOne(ctx, paramsId)
     if (!row) {
       throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
@@ -267,11 +274,12 @@ export function createCrudHandlers<
     }
 
     const raw = await readBody(event)
-    const body = config.schema.update.parse(raw)
+    const body = config.schema.update.parse(raw) as TUpdate
     const user = event.context.user
     const lang = (body as Record<string, unknown>).lang ? String((body as Record<string, unknown>).lang).toLowerCase() : 'en'
     const modifiedAt = (body as Record<string, unknown>).modified_at ? String((body as Record<string, unknown>).modified_at) : null
-    const ctx: CrudContext<unknown> = { event, db, query: body, lang }
+    const db = getDb(event)
+    const ctx: CrudContext<TUpdate> = { event, db, query: body, lang }
     const { baseData, translationData } = config.mutations.buildUpdatePayload(body, ctx)
     
     // Add updated_by if column exists
@@ -290,7 +298,7 @@ export function createCrudHandlers<
         translationData: translationData as Record<string, unknown> | null,
         lang,
         modifiedAt,
-        select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body, lang: langCode }, id),
+        select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body as any, lang: langCode }, id),
       })
       logger?.info?.({
         scope: `${config.logScope ?? config.entity}.update`,
@@ -321,7 +329,7 @@ export function createCrudHandlers<
         })
       }
     }
-    const row = await config.selectOne({ event, db, query: body, lang }, paramsId)
+    const row = await config.selectOne({ event, db, query: body as any, lang }, paramsId)
     if (!row) {
       throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
     }
@@ -338,6 +346,7 @@ export function createCrudHandlers<
     }
     const query = parseQuery(event, deleteSchema, { scope: `${config.logScope ?? config.entity}.delete.query` })
     const lang = resolveLangFromQuery(query as Record<string, unknown>)
+    const db = getDb(event)
 
     if (translation) {
       const result = await deleteLocalizedEntity({
@@ -362,7 +371,7 @@ export function createCrudHandlers<
       return createResponse(result, null)
     }
 
-    await db.deleteFrom(config.baseTable).where(idColumn, '=', paramsId).execute()
+    await db.deleteFrom(config.baseTable).where(idColumn as any, '=', paramsId).execute()
     logger?.info?.({ scope: `${config.logScope ?? config.entity}.delete`, entity: config.entity, id: paramsId, timeMs: Date.now() - startedAt }, 'Entity deleted')
     return createResponse({ id: paramsId }, null)
   })

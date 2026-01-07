@@ -1,8 +1,7 @@
 // server/api/role/index.get.ts
 // server/api/roles/index.get.ts
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getValidatedQuery } from 'h3'
 // sql import removed - not currently used
-import { safeParseOrThrow } from '../../utils/validate'
 import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
 import { roleQuerySchema } from '../../schemas/role'
@@ -10,8 +9,8 @@ import { roleQuerySchema } from '../../schemas/role'
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
-    const q = getQuery(event)
-    const { page, pageSize, q: search, search: search2 } = safeParseOrThrow(roleQuerySchema, q)
+    const parsed = await getValidatedQuery(event, roleQuerySchema.parse)
+    const { page, pageSize, q: search, search: search2 } = parsed
 
     const base = globalThis.db
       .selectFrom('roles as r')
@@ -32,7 +31,7 @@ export default defineEventHandler(async (event) => {
         // search over name and description
         searchColumns: ['r.name', 'r.description'],
         countDistinct: 'r.id',
-        sort: { field: ((q as Record<string, unknown>).sort as string) ?? 'created_at', direction: ((q as Record<string, unknown>).direction as 'asc' | 'desc') ?? 'desc' },
+        sort: { field: (parsed.sort as string) ?? 'created_at', direction: (parsed.direction as 'asc' | 'desc') ?? 'desc' },
         defaultSort: { field: 'created_at', direction: 'desc' },
         sortColumnMap: {
           name: 'r.name',

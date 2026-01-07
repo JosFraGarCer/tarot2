@@ -1,7 +1,6 @@
 // app/utils/badges.ts
-import type { BadgeColor } from '@nuxt/ui'
 
-type SupportedColor = Exclude<BadgeColor, 'info' | 'success'> | 'success'
+type SupportedColor = 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'neutral'
 
 type BadgeVariant = 'soft' | 'subtle'
 
@@ -198,7 +197,7 @@ export function translationStatusColor(status?: string | null): BadgeResult {
   return resolveMeta(status, TRANSLATION_MAP, TRANSLATION_FALLBACK)
 }
 
-export function userStatusColor(status?: string | null): BadgeResult {
+export function resolveUserStatusBadge(status?: string | null): BadgeResult {
   return resolveMeta(status, USER_STATUS_MAP, USER_FALLBACK)
 }
 

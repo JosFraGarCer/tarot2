@@ -1,8 +1,6 @@
-// server/api/content_revisions/[id]/revert.post.ts
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody, getValidatedQuery } from 'h3'
 import { sql } from 'kysely'
 import { z } from 'zod'
-import { safeParseOrThrow } from '../../../utils/validate'
 import { badRequest, forbidden, notFound } from '../../../utils/error'
 import { createResponse } from '../../../utils/response'
 import { contentRevisionRevertSchema } from '../../../schemas/content-revision'
@@ -51,8 +49,8 @@ export default defineEventHandler(async (event) => {
     windowMs: 60_000,
   })
 
-  const { id } = safeParseOrThrow(paramsSchema, event.context.params ?? {})
-  const body = safeParseOrThrow(contentRevisionRevertSchema, await readBody(event))
+  const { id } = await getValidatedQuery(event, paramsSchema.parse)
+  const body = await readValidatedBody(event, contentRevisionRevertSchema.parse)
 
   const revision = await globalThis.db
     .selectFrom('content_revisions')

@@ -2,7 +2,7 @@
 // /app/composables/manage/useTag.ts
 import { useEntity } from '~/composables/manage/useEntity'
 import type { EntityCrud } from '~/composables/manage/useEntity'
-import { tagCreateSchema, tagUpdateSchema } from '~/schemas/entities/tag'
+import { tagCreateSchema, tagUpdateSchema } from '../../../shared/schemas/entities/tag'
 import type { Tag, TagCreate, TagUpdate } from '@/types/entities/entities'
 
 export type TagCrud = EntityCrud<Tag, TagCreate, TagUpdate>

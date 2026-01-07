@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
       scope: 'tag.list.start',
       time: new Date().toISOString(),
     })
-    const query = parseQuery(event, tagQuerySchema, { scope: 'tag.list.query' })
+    const query = await parseQuery(event, tagQuerySchema, { scope: 'tag.list.query' })
     const lang = getRequestedLanguage(query)
     const searchTerm = query.search ?? query.q ?? null
 

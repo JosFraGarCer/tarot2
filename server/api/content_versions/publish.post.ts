@@ -1,7 +1,7 @@
 // server/api/content_versions/publish.post.ts
-import { defineEventHandler, readBody } from 'h3'
+import { defineEventHandler, readValidatedBody } from "h3"
 import { sql } from 'kysely'
-import { safeParseOrThrow } from '../../utils/validate'
+import { readValidatedBody } from "h3"
 import { createResponse } from '../../utils/response'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { contentVersionPublishSchema } from '../../schemas/content-version'
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
     windowMs: 60_000,
   })
 
-  const payload = safeParseOrThrow(contentVersionPublishSchema, await readBody(event))
+  const payload = await readValidatedBody(event, contentVersionPublishSchema.parse)
 
   const publishedAt = new Date().toISOString()
   const userId = user?.id ?? null

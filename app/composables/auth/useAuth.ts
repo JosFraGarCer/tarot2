@@ -1,11 +1,17 @@
 // app/composables/auth/useAuth.ts
 import { computed } from 'vue'
+import { useState, useId } from '#imports'
 import { useUserStore } from '~/stores/user'
-import type { LoginResponse, MeResponse, UserDTO } from '@/types/api'
-import { getErrorMessage } from '@/utils/error'
+import type { LoginResponse, UserDTO } from '../../../shared/types/api'
+import { normalizeError } from '../../../shared/utils/errors'
 
 export function useAuth() {
   const store = useUserStore()
+  
+  // Estado compartido determinista para Nuxt 5
+  // Evita Hydration Mismatch sincronizando el estado del usuario entre SSR y Cliente
+  const authId = useId()
+  const sharedUser = useState<UserDTO | null>(`auth-user-${authId}`, () => null)
 
   /** 🔐 Login user (by email or username) */
   async function login(identifier: string, password: string): Promise<UserDTO> {
@@ -16,20 +22,49 @@ export function useAuth() {
       const res = await $fetch<LoginResponse>('/api/auth/login', {
         method: 'POST',
         body: { identifier, password },
-        credentials: 'include',
       })
 
-      const { token, user } = res.data
+      const { user } = res.data
       if (!user) throw new Error('Invalid login response')
 
       store.setUser(user)
-      store.setToken(token)
+      sharedUser.value = user
 
       return user
     } catch (err: unknown) {
-      const msg = getErrorMessage(err, 'Login failed. Please check your credentials.')
-      store.setError(msg)
+      const error = normalizeError(err)
+      store.setError(error.error.message)
       throw err
+    } finally {
+      store.setLoading(false)
+    }
+  }
+
+  /** 👤 Fetch current user session (Nuxt 5 Hydration optimized) */
+  async function fetchCurrentUser(): Promise<void> {
+    // Si ya tenemos el usuario en el estado compartido (hidratado del servidor), no re-fetch
+    if (sharedUser.value) {
+      store.setUser(sharedUser.value)
+      return
+    }
+
+    store.setLoading(true)
+    store.setError(null)
+    try {
+      const res = await $fetch<{ user: UserDTO }>('/api/auth/session')
+
+      if (res?.user) {
+        store.setUser(res.user)
+        sharedUser.value = res.user
+      } else {
+        store.logout()
+        sharedUser.value = null
+      }
+    } catch (err: unknown) {
+      store.logout()
+      sharedUser.value = null
+      const error = normalizeError(err)
+      store.setError(error.error.message)
     } finally {
       store.setLoading(false)
     }

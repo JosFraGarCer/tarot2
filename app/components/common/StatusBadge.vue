@@ -19,7 +19,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from '#imports'
-import { statusColor, releaseColor, translationStatusColor, userStatusColor } from '@/utils/badges'
+import { statusColor, releaseColor, translationStatusColor } from '@/utils/badges'
+import { userStatusColor } from '@/utils/userStatus'
 
 type BadgeType = 'status' | 'release' | 'translation' | 'user'
 type BadgeSize = 'xs' | 'sm'

@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   const logger = event.context.logger ?? globalThis.logger
   try {
-    const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.detail.query' })
+    const query = await parseQuery(event, tagLangQuerySchema, { scope: 'tag.detail.query' })
     const lang = getRequestedLanguage(query)
     const idParam = event.context.params?.id
     const id = Number(idParam)

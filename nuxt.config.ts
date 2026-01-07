@@ -1,6 +1,18 @@
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
+  future: {
+    compatibilityVersion: 5,
+  },
+  experimental: {
+    componentIslands: true,
+    localLayerAliases: true,
+  },
   devtools: { enabled: false },
   // Development server
   devServer: {
@@ -9,6 +21,19 @@ export default defineNuxtConfig({
   },
 
   ssr: true,
+
+  routeRules: {
+    // API Caching: Cache session for 5 seconds to avoid spam during hydration
+    '/api/auth/session': { cache: { maxAge: 5 } },
+    // Global Security: Add basic security headers via Nitro
+    '/**': {
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
+      }
+    }
+  },
 
   // App configuration
   app: {
@@ -36,8 +61,15 @@ export default defineNuxtConfig({
     vueI18n: './i18n.config.ts',
   },
 
-  css: ['@/assets/css/main.css'],
+  css: [resolve(__dirname, './app/assets/css/main.css')],
 
+  runtimeConfig: {
+    databaseUrl: process.env.DATABASE_URL || '',
+    jwtSecret: process.env.JWT_SECRET || 'default-insecure-secret-for-dev-only',
+    public: {
+      apiBase: '/api'
+    }
+  },
   modules: [
     '@nuxt/eslint',
     '@nuxt/image',

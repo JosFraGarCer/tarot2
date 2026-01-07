@@ -193,3 +193,46 @@ Riesgo: Si el esquema de la DB cambia (ej: una columna pasa de opcional a obliga
 Si el usuario tiene el navegador en francés pero la app carga en español por defecto y luego cambia...
 
 Riesgo: El ClientOnly que habéis puesto en EntityViewsManager es la confesión de vuestra derrota. Estáis matando el SEO y el rendimiento de carga inicial porque no sabéis manejar el estado de los filtros en el servidor sin que explote la hidratación.
+
+---
+
+Me pongo el sombrero de desarrollador senior amargado que ha visto demasiados proyectos "modernos" colapsar bajo su propio peso. Aquí tienes mi revisión ácida de **Tarot2**, enfocada en lo que me da pesadillas y los casos extremos que probablemente estás ignorando.
+
+# # Informe de "Basura Técnica" - Tarot2
+
+## 1. El "Dios Composable": `useEntityBaseContext.ts`
+Es un punto único de fallo catastrófico. Has movido la lógica de un "God Component" (`EntityBase.vue`) a un "God Composable". 
+- **Crítica:** Si ese archivo falla o se corrompe, toda la gestión de entidades (Arcana, Skills, etc.) muere. La reactividad ahí dentro debe ser un nido de avispas.
+- **Caso extremo:** ¿Qué pasa si un usuario abre dos pestañas de edición de entidades diferentes? ¿Hay colisiones de estado en el `provide/inject` si no se limpian correctamente los contextos?
+
+## 2. Dependencia de "Magia" en `FormModal.vue`
+Incluso si has empezado a quitar la introspección de Zod, la arquitectura de formularios sigue siendo frágil.
+- **Crítica:** Confiar en que los `presets` pasen exactamente lo que el backend espera es un acto de fe, no de ingeniería.
+- **Caso extremo:** **Race conditions en el autocompletado.** Si un preset carga opciones de un endpoint y el usuario cierra el modal antes de que lleguen, ¿hay fugas de memoria o errores de "unmounted component" intentando actualizar estado inexistente?
+
+## 3. El Abismo de las Traducciones (`_translations`)
+Tu sistema de traducción en el backend parece un "pactar con el diablo".
+- **Crítica:** `translatableUpsert.ts` es probablemente el código más peligroso que tienes. Un error en el mapeo de `entity_id` y acabas inyectando textos de una Skill en una Arcana.
+- **Caso extremo:** **Idiomas incompletos.** Si una entidad tiene 5 campos traducibles y el usuario solo edita 2 en "ES", ¿qué pasa con los otros 3? ¿Heredan de "EN" o se quedan `null` rompiendo la UI que espera strings?
+
+## 4. La Mentira del "SSR Safe"
+Dices que es SSR Safe, pero usas `localStorage` y eventos de ventana en la mitad de los composables.
+- **Crítica:** Nuxt 4 es estricto. Cualquier `useTableSelection` que toque el DOM o el `window` antes del `onMounted` va a escupir warnings de hidratación que ignoras sistemáticamente.
+- **Caso extremo:** Un bot de búsqueda (Google) entrando en una ruta de `Manage`. Si tu middleware de auth o tus filtros no manejan el estado de carga inicial en servidor, el bot verá una página rota o un bucle de redirecciones.
+
+## 5. El "N+1" Disfrazado en `eagerTags.ts`
+Has hecho un parche para los tags, pero ¿qué pasa con las relaciones profundas?
+- **Crítica:** Si `world_card` tiene overrides que dependen de `world` que a su vez depende de `arcana`, tu "batch fetching" se queda corto.
+- **Caso extremo:** **Bulk Actions masivas.** Seleccionas 100 entidades y pides un cambio. Tu `createCrudHandlers` probablemente intenta procesarlas en un bucle que bloquea el event loop de Node, o satura el pool de conexiones de Postgres.
+
+## 6. Seguridad de "Capa de Papel"
+Confías ciegamente en `01.auth.guard.ts`.
+- **Crítica:** La validación de permisos (`can.ts`) es solo visual en el frontend. Si no has blindado CADA endpoint en `server/api` con chequeos de roles específicos para esa entidad, un usuario con un JWT válido puede hacer un `DELETE` manual a `/api/arcana/1`.
+- **Caso extremo:** **Escalada de privilegios vía JSON payload.** ¿El backend filtra los campos que el usuario NO debería poder editar (como `owner_id` o `created_at`) o simplemente hace un spread del `body` en el `update` de Kysely?
+
+## 7. Casos Extremos "Invisibles"
+- **Z-Index Wars:** Tienes `UModal`, `USlideover` y `EntityInspectorDrawer`. ¿Qué pasa si el Drawer abre un Modal de confirmación y este a su vez un Tooltip? ¿Está el focus trap preparado para no volverse loco?
+- **Validación de Enums:** Si en la DB cambias un valor de `card_status`, tu frontend (Zod) se romperá silenciosamente hasta que alguien intente editar una carta vieja. No tienes un contrato de sincronización real entre la DB y los esquemas TS.
+- **I18n Keys perdidas:** Tienes scripts para buscar llaves faltantes, pero no para buscar llaves **huérfanas**. Tu archivo de traducciones debe estar lleno de basura de hace 6 meses.
+
+**¿Quieres que audite algún archivo específico para humillar a su autor (posiblemente tú) o prefieres que ataque una de estas áreas primero?**

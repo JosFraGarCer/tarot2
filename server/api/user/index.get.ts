@@ -1,9 +1,8 @@
 // server/api/user/index.get.ts
 // server/api/users/index.get.ts
-import { defineEventHandler, getQuery } from 'h3'
+import { defineEventHandler, getValidatedQuery } from 'h3'
 import { sql } from 'kysely'
 import { createPaginatedResponse } from '../../utils/response'
-import { safeParseOrThrow } from '../../utils/validate'
 import { buildFilters } from '../../utils/filters'
 import { mergePermissions } from '../../utils/users'
 import { userQuerySchema } from '../../schemas/user'
@@ -11,11 +10,11 @@ import { userQuerySchema } from '../../schemas/user'
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   try {
-    const q = getQuery(event)
-    const { page, pageSize, q: search, search: search2, status, is_active, role_id } = safeParseOrThrow(
-      userQuerySchema,
-      q,
+    const parsedQuery = await getValidatedQuery(
+      event,
+      userQuerySchema.parse,
     )
+    const { page, pageSize, q: search, search: search2, status, is_active, role_id } = parsedQuery
 
     let base = globalThis.db
       .selectFrom('users as u')
@@ -52,7 +51,7 @@ export default defineEventHandler(async (event) => {
         applySearch: (qb, s) =>
           qb.where((eb) => eb.or([sql`u.username ilike ${'%' + s + '%'}`, sql`u.email ilike ${'%' + s + '%'}`])),
         countDistinct: 'u.id',
-        sort: { field: ((q as Record<string, unknown>).sort as string) ?? 'created_at', direction: ((q as Record<string, unknown>).direction as 'asc' | 'desc') ?? 'desc' },
+        sort: { field: (parsedQuery.sort as string) ?? 'created_at', direction: (parsedQuery.direction as 'asc' | 'desc') ?? 'desc' },
         defaultSort: { field: 'created_at', direction: 'desc' },
         sortColumnMap: {
           username: 'u.username',

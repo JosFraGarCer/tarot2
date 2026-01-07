@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
     time: new Date().toISOString(),
   }, 'Tag batch update started')
 
-  const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.batch.query' })
+  const query = await parseQuery(event, tagLangQuerySchema, { scope: 'tag.batch.query' })
   const lang = getRequestedLanguage(query)
 
   const body = tagBatchSchema.parse(await readBody(event))

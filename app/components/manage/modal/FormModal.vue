@@ -182,9 +182,16 @@ const openInternal = computed({
   set: v => emit('update:open', v)
 })
 
-// We use props.form directly to maintain reactivity with useFormState in the parent
-// since props.form is a reactive object passed by reference.
-const form = props.form as Record<string, any>
+// We use a local reactive copy to avoid direct prop mutation
+const localForm = reactive({ ...props.form })
+
+// Sync local form with parent changes
+watch(() => props.form, (newVal) => {
+  Object.assign(localForm, newVal)
+}, { deep: true })
+
+// Sync back to parent via events if needed or use internal logic
+const form = localForm as Record<string, any>
 
 const { arcanaOptions, cardTypeOptions, facetOptions, loadAll } = useEntityRelations()
 

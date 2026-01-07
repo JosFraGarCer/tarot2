@@ -242,6 +242,7 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
   const authInterval = 1000 * 60 * 5 // Check every 5 mins
 
   const checkAuthStatus = async () => {
+    if (!import.meta.client) return
     try {
       // Intentamos un fetch ligero para ver si la sesión sigue viva
       await $fetch('/api/auth/session', { method: 'GET' })
@@ -269,7 +270,9 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
 
   let authTimer: any = null
   onMounted(() => {
-    authTimer = setInterval(checkAuthStatus, authInterval)
+    if (import.meta.client) {
+      authTimer = setInterval(checkAuthStatus, authInterval)
+    }
   })
   onUnmounted(() => {
     if (authTimer) clearInterval(authTimer)
