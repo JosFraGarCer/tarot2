@@ -28,7 +28,7 @@
         :resource-path="ctx.crud.resourcePath"
         :entity-label="ctx.label.value"
         :entity-key="ctx.entityKey.value"
-        :page-size-items="ctx.pageSizeItems.value || ctx.pagination.defaultPageSizes"
+        :page-size-items="ctx.pageSizeItems.value || []"
         density="regular"
         @update:page="ctx.onPageChange"
         @update:page-size="ctx.onPageSizeChange"

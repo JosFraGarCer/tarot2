@@ -13,7 +13,7 @@
       :page-size="ctx.pagination.pageSize.value"
       :total-items="ctx.pagination.totalItems.value"
       :total-pages="ctx.pagination.totalPages.value"
-      :page-size-items="ctx.pageSizeItems.value || ctx.pagination.defaultPageSizes"
+      :page-size-items="ctx.pageSizeItems.value || []"
       @update:page="ctx.onPageChange"
       @update:page-size="ctx.onPageSizeChange"
     />

@@ -1,8 +1,9 @@
 // app/composables/manage/useEntityPagination.ts
-import { computed } from 'vue'
+import { computed, toValue } from 'vue'
 import type { AnyManageCrud } from '@/types/manage'
 
 function _toOptions(values: number[]) {
+  if (!Array.isArray(values)) return []
   return values
     .filter((value) => Number.isFinite(value) && value > 0)
     .sort((a, b) => a - b)
@@ -19,7 +20,7 @@ export function useEntityPagination(crud: AnyManageCrud) {
     return Math.max(1, Math.ceil((totalItems.value || 0) / size))
   })
 
-  const defaultPageSizes = crud.pageSizeOptions
+  const defaultPageSizes = computed(() => _toOptions(toValue(crud.pageSizeOptions)))
 
   function onPageChange(newPage: number) {
     crud.pagination.value.page = newPage

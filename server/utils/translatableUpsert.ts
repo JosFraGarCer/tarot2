@@ -4,6 +4,7 @@ import type { Kysely, Transaction, Updateable, Insertable } from 'kysely'
 import { sql } from 'kysely'
 import type { DB } from '../database/types'
 import { markLanguageFallback } from './language'
+import { createError } from 'h3'
 
 export interface TranslatableUpsertOptions<TEntityRow = unknown> {
   event: H3Event
@@ -18,6 +19,7 @@ export interface TranslatableUpsertOptions<TEntityRow = unknown> {
   idColumn?: string
   baseData?: Record<string, unknown>
   translationData?: Record<string, unknown> | null
+  modifiedAt?: string | null
   select: (db: Kysely<DB>, id: number, lang: string) => Promise<TEntityRow>
   loggerScope?: string
 }
@@ -116,11 +118,23 @@ export async function translatableUpsert<TEntityRow = unknown>(
       entityId = Number((inserted as Record<string, unknown>)[idColumn])
       wasCreated = true
     } else if (Object.keys(baseData).length) {
-      await trx
+      let query = trx
         .updateTable(opts.baseTable)
         .set(baseData as unknown as Updateable<DB[keyof DB]>)
         .where(idColumn as unknown as never, '=', entityId)
-        .execute()
+
+      if (opts.modifiedAt) {
+        query = query.where('modified_at' as any, '=', opts.modifiedAt)
+      }
+
+      const result = await query.executeTakeFirst()
+
+      if (opts.modifiedAt && Number(result.numUpdatedRows) === 0) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'Conflict: The entity has been modified by another user.',
+        })
+      }
     }
 
     // Translation upsert (requested lang)
@@ -165,8 +179,8 @@ export async function translatableUpsert<TEntityRow = unknown>(
 
   const row = await opts.select(db, entityId, lang)
   const normalized = Array.isArray(row)
-    ? row
-    : markLanguageFallback(row, lang)
+    ? markLanguageFallback(row as unknown as Record<string, unknown>[], lang)
+    : markLanguageFallback(row as unknown as Record<string, unknown>, lang)
 
   logger?.info?.(
     {
@@ -186,6 +200,6 @@ export async function translatableUpsert<TEntityRow = unknown>(
     wasCreated,
     translationInserted,
     translationUpdated,
-    row: normalized,
+    row: normalized as unknown as TEntityRow,
   }
 }

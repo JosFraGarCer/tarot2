@@ -87,10 +87,10 @@
 <script setup lang="ts">
 /* eslint-disable vue/no-mutating-props -- crud.filters is a shared reactive object */
 import { computed, ref, watch } from 'vue'
-import { useI18n, useLazyAsyncData } from '#imports'
+import { useI18n } from '#imports'
 import { useEntityBase } from '~/composables/manage/useEntityBaseContext'
-import { useApiFetch } from '~/utils/fetcher'
 import { useCardStatus } from '~/utils/status'
+import { useFilterOptions } from '~/composables/manage/useFilterOptions'
 import type { EntityFilterConfig } from '~/composables/manage/useEntity'
 
 const ctx = useEntityBase()
@@ -276,69 +276,6 @@ const statusOptions = computed(() => (
   ]
 ))
 
-function unwrapRows(raw: unknown): Record<string, unknown>[] {
-  if (!raw || typeof raw !== 'object') return []
-  if (Array.isArray(raw)) return raw as Record<string, unknown>[]
-  const r = raw as Record<string, unknown>
-  if (Array.isArray(r.data)) return r.data as Record<string, unknown>[]
-  if (Array.isArray(r.results)) return r.results as Record<string, unknown>[]
-  return []
-}
-
-const { data: tagData, execute: fetchTags } = useLazyAsyncData(
-  () => `manage-filter-tags::${String(localeValue.value)}`,
-  () => useApiFetch('/tag', {
-    method: 'GET',
-    params: { pageSize: 100, is_active: true, lang: String(localeValue.value) },
-  }),
-  { immediate: false, server: false }
-)
-
-const { data: cardTypeData, execute: fetchCardTypes } = useLazyAsyncData(
-  () => `manage-filter-card-types::${String(localeValue.value)}`,
-  () => useApiFetch('/card_type', {
-    method: 'GET',
-    params: { pageSize: 100, is_active: true, lang: String(localeValue.value) },
-  }),
-  { immediate: false, server: false }
-)
-
-const { data: roleData, execute: fetchRoles } = useLazyAsyncData(
-  () => `manage-filter-roles::${String(localeValue.value)}`,
-  () => useApiFetch('/role', {
-    method: 'GET',
-    params: { pageSize: 100, lang: String(localeValue.value) },
-  }),
-  { immediate: false, server: false }
-)
-
-const { data: arcanaData, execute: fetchArcana } = useLazyAsyncData(
-  () => `manage-filter-arcana::${String(localeValue.value)}`,
-  () => useApiFetch('/arcana', {
-    method: 'GET',
-    params: { pageSize: 100, is_active: true, lang: String(localeValue.value) },
-  }),
-  { immediate: false, server: false }
-)
-
-const { data: facetData, execute: fetchFacets } = useLazyAsyncData(
-  () => `manage-filter-facets::${String(localeValue.value)}`,
-  () => useApiFetch('/facet', {
-    method: 'GET',
-    params: { pageSize: 100, is_active: true, lang: String(localeValue.value) },
-  }),
-  { immediate: false, server: false }
-)
-
-const { data: parentData, execute: fetchParentTags } = useLazyAsyncData(
-  () => `manage-filter-tag-parents::${String(localeValue.value)}`,
-  () => useApiFetch('/tag', {
-    method: 'GET',
-    params: { pageSize: 100, parent_only: true, lang: String(localeValue.value) },
-  }),
-  { immediate: false, server: false }
-)
-
 const tagsLoaded = ref(false)
 const cardTypesLoaded = ref(false)
 const rolesLoaded = ref(false)
@@ -346,87 +283,73 @@ const arcanaLoaded = ref(false)
 const facetsLoaded = ref(false)
 const parentLoaded = ref(false)
 
-watch(() => show.value.tags, (enabled) => {
-  if (enabled && !tagsLoaded.value) {
+const {
+  fetchTags,
+  fetchCardTypes,
+  fetchRoles,
+  fetchArcana,
+  fetchFacets,
+  fetchParentTags,
+  tagOptions,
+  cardTypeOptions,
+  roleOptions,
+  arcanaOptions,
+  facetOptionsRaw,
+  parentOptions,
+} = useFilterOptions(() => localeValue.value)
+
+const loadNeededOptions = () => {
+  if (show.value.tags && !tagsLoaded.value) {
     tagsLoaded.value = true
     fetchTags()
   }
-}, { immediate: true })
-
-watch(() => show.value.type, (enabled) => {
-  if (!enabled) return
-  if (typeIsRole.value) {
-    if (!rolesLoaded.value) {
-      rolesLoaded.value = true
-      fetchRoles()
+  if (show.value.type) {
+    if (typeIsRole.value) {
+      if (!rolesLoaded.value) {
+        rolesLoaded.value = true
+        fetchRoles()
+      }
+    } else if (!cardTypesLoaded.value) {
+      cardTypesLoaded.value = true
+      fetchCardTypes()
     }
-    return
   }
-  if (!cardTypesLoaded.value) {
-    cardTypesLoaded.value = true
-    fetchCardTypes()
+  const fKey = facetKey.value
+  if (show.value.facet && fKey) {
+    if (fKey.includes('arcana') && !arcanaLoaded.value) {
+      arcanaLoaded.value = true
+      fetchArcana()
+    } else if (fKey.includes('facet') && !facetsLoaded.value) {
+      facetsLoaded.value = true
+      fetchFacets()
+    }
   }
-}, { immediate: true })
-
-watch(() => ({ enabled: show.value.facet, key: facetKey.value }), ({ enabled, key }) => {
-  if (!enabled || !key) return
-  if (key.includes('arcana') && !arcanaLoaded.value) {
-    arcanaLoaded.value = true
-    fetchArcana()
-  }
-  else if (key.includes('facet') && !facetsLoaded.value) {
-    facetsLoaded.value = true
-    fetchFacets()
-  }
-}, { immediate: true })
-
-watch(() => show.value.parent, (enabled) => {
-  if (enabled && !parentLoaded.value) {
+  if (show.value.parent && !parentLoaded.value) {
     parentLoaded.value = true
     fetchParentTags()
   }
-}, { immediate: true })
+}
 
-const tagOptions = computed(() => unwrapRows(tagData.value).map((item) => ({
-  label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-  id: item.id,
-})))
+watch([show, facetKey, typeIsRole], loadNeededOptions, { immediate: true })
 
 const typeOptions = computed(() => {
   const key = typeKey.value || ''
   if (key.includes('role')) {
-    return unwrapRows(roleData.value).map((item) => ({
-      label: (item.name as string) ?? `#${item.id}`,
-      id: item.id,
-    }))
+    return roleOptions.value
   }
-  return unwrapRows(cardTypeData.value).map((item) => ({
-    label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-    id: item.id,
-  }))
+  return cardTypeOptions.value
 })
 
 const facetOptions = computed(() => {
   const key = facetKey.value
   if (key.includes('arcana')) {
-    return unwrapRows(arcanaData.value).map((item) => ({
-      label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-      id: item.id,
-    }))
+    return arcanaOptions.value
   }
   if (key.includes('facet')) {
-    return unwrapRows(facetData.value).map((item) => ({
-      label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-      id: item.id,
-    }))
+    return facetOptionsRaw.value
   }
   return []
 })
-
-const parentOptions = computed(() => unwrapRows(parentData.value).map((item) => ({
-  label: (item.name as string) ?? (item.code as string) ?? `#${item.id}`,
-  id: item.id,
-})))
 
 const facetPlaceholder = computed(() => {
   const key = facetKey.value

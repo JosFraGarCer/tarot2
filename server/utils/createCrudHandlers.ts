@@ -45,6 +45,7 @@ interface MutationsPayload<TCreate, TUpdate> {
     baseData?: Record<string, unknown>
     translationData?: Record<string, unknown> | null
     lang?: string | null
+    modifiedAt?: string | null
   }
 }
 
@@ -142,7 +143,7 @@ export function createCrudHandlers<
 
     const rows = (await filteredQuery.execute()) as TRow[]
     const transformed = builder.transformRows ? await builder.transformRows(rows, ctx) : rows
-    const data = builder.skipFallbackMark ? transformed : (Array.isArray(transformed) ? markLanguageFallback(transformed, lang) : transformed)
+    const data = builder.skipFallbackMark ? transformed : (Array.isArray(transformed) ? markLanguageFallback(transformed as Record<string, unknown>[], lang) : markLanguageFallback(transformed as Record<string, unknown>, lang))
 
     const metaFromBuilder = builder.logMeta
       ? builder.logMeta({ rows, ctx, page, pageSize, totalItems })
@@ -175,10 +176,14 @@ export function createCrudHandlers<
     const logger = event.context.logger ?? (globalThis as unknown as { logger: { info: (data: unknown, msg: string) => void } }).logger
     const raw = await readBody(event)
     const body = config.schema.create.parse(raw)
+    const user = event.context.user
     const lang = (body as Record<string, unknown>).lang ? String((body as Record<string, unknown>).lang).toLowerCase() : 'en'
     const ctx: CrudContext<unknown> = { event, db, query: body, lang }
 
     const { baseData, translationData } = config.mutations.buildCreatePayload(body, ctx)
+    
+    // Add created_by if column exists in table (we assume it does based on schema)
+    const baseDataWithUser = { ...baseData, created_by: user?.id }
 
     if (translation) {
       const upsertResult = await translatableUpsert({
@@ -188,7 +193,7 @@ export function createCrudHandlers<
         foreignKey: translation.foreignKey,
         languageKey: translation.languageKey,
         defaultLang: translation.defaultLang,
-        baseData: baseData as Record<string, unknown>,
+        baseData: baseDataWithUser as Record<string, unknown>,
         translationData: translationData as Record<string, unknown> | null,
         lang,
         select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body, lang: langCode }, id),
@@ -205,8 +210,8 @@ export function createCrudHandlers<
 
     const insert = await db
       .insertInto(config.baseTable)
-      .values(baseData ?? {})
-      .returning(idColumn)
+      .values(baseDataWithUser as any)
+      .returning(idColumn as any)
       .executeTakeFirst()
 
     if (!insert) {
@@ -247,9 +252,14 @@ export function createCrudHandlers<
     }
     const raw = await readBody(event)
     const body = config.schema.update.parse(raw)
+    const user = event.context.user
     const lang = (body as Record<string, unknown>).lang ? String((body as Record<string, unknown>).lang).toLowerCase() : 'en'
+    const modifiedAt = (body as Record<string, unknown>).modified_at ? String((body as Record<string, unknown>).modified_at) : null
     const ctx: CrudContext<unknown> = { event, db, query: body, lang }
     const { baseData, translationData } = config.mutations.buildUpdatePayload(body, ctx)
+    
+    // Add updated_by if column exists
+    const baseDataWithUser = { ...baseData, updated_by: user?.id }
 
     if (translation) {
       const upsertResult = await translatableUpsert({
@@ -260,9 +270,10 @@ export function createCrudHandlers<
         foreignKey: translation.foreignKey,
         languageKey: translation.languageKey,
         defaultLang: translation.defaultLang,
-        baseData: baseData as Record<string, unknown>,
+        baseData: baseDataWithUser as Record<string, unknown>,
         translationData: translationData as Record<string, unknown> | null,
         lang,
+        modifiedAt,
         select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body, lang: langCode }, id),
       })
       logger?.info?.({
@@ -276,11 +287,23 @@ export function createCrudHandlers<
     }
 
     if (baseData && Object.keys(baseData).length) {
-      await db
+      let query = db
         .updateTable(config.baseTable)
-        .set(baseData)
-        .where(idColumn, '=', paramsId)
-        .execute()
+        .set(baseDataWithUser as any)
+        .where(idColumn as any, '=', paramsId)
+
+      if (modifiedAt) {
+        query = query.where('modified_at' as any, '=', modifiedAt)
+      }
+
+      const result = await query.executeTakeFirst()
+
+      if (modifiedAt && Number(result.numUpdatedRows) === 0) {
+        throw createError({
+          statusCode: 409,
+          statusMessage: 'Conflict: The entity has been modified by another user.',
+        })
+      }
     }
     const row = await config.selectOne({ event, db, query: body, lang }, paramsId)
     if (!row) {

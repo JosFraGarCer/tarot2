@@ -41,14 +41,14 @@ Este documento presenta un análisis exhaustivo de la experiencia de usuario e i
 - **Descubrimiento de contenido**: Difícil encontrar entidades relacionadas
 
 #### **Interactividad y Productividad**
-- **Sin atajos de teclado**: No hay shortcuts para acciones frecuentes
-- **Drag & Drop ausente**: No hay reordenación visual de elementos
-- **Bulk operations limitadas**: Pocas opciones para operaciones masivas
+- **Sin atajos de teclado**: No hay shortcuts para acciones frecuentes.
+- **Drag & Drop ausente**: No hay reordenación visual de elementos.
+- **Optimización de Formularios**: ✅ Completada la migración a presets declarativos, mejorando la velocidad de creación de nuevas entidades.
 
 #### **Visualización de Datos**
-- **Vistas limitadas**: Solo tabla y drawer, sin kanban o grid
-- **Filtros básicos**: Filtros simples sin sintaxis avanzada
-- **Sin dashboard**: Falta vista de métricas y estadísticas
+- **Visualización de Datos**: Tabla robusta, tarjetas clásicas y diseño de cartas (Refactorización de `EntityViewsManager` completada).
+- **Filtros Avanzados**: Implementación de `useFilterOptions` para desacoplamiento de lógica.
+- **Selection System**: Checkbox y bulk actions bien implementados.
 
 #### **Experiencia Móvil**
 - **Tablas no optimizadas**: Difícil usar en pantallas pequeñas
@@ -406,5 +406,5 @@ La implementación de estas mejoras posicionará a Tarot2 como una plataforma l�
 
 ---
 
-*Análisis realizado el 4 de enero de 2026*  
+*Análisis UX/UI actualizado el 7 de enero de 2026*  
 *Próxima revisión: Abril 2026*

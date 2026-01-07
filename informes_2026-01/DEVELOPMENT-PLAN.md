@@ -8,10 +8,15 @@ Este documento presenta un plan de desarrollo completo para implementar las func
 
 ## 🎯 **Funcionalidades a Implementar**
 
+### **Completado (Enero 2026)**
+1. **Refactorización Core**: Desacoplamiento de `EntityBase` y `FormModal`.
+2. **Optimización Backend**: Solución de consultas N+1 mediante `eagerTags`.
+3. **SSR Stability**: Corrección de hidratación en la página de usuario y paginación.
+
 ### **Prioridad Alta (2026 Q1-Q2)**
-1. **Command Palette (Cmd+K)** - UX/UI
-2. **Character Builder System** - TTRPG Core
-3. **AI Content Generation** - TTRPG Advanced
+4. **Command Palette (Cmd+K)** - UX/UI
+5. **Character Builder System** - TTRPG Core
+6. **AI Content Generation** - TTRPG Advanced
 
 ### **Prioridad Media (2026 Q3-Q4)**
 4. **Drag & Drop System** - UX/UI
@@ -482,5 +487,6 @@ const revenueProjections = {
 
 ---
 
-*Plan de desarrollo creado el 4 de enero de 2026*  
+*Plan de desarrollo actualizado el 7 de enero de 2026*
+  
 *Versión: 1.0*

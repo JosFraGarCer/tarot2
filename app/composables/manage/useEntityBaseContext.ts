@@ -1,4 +1,4 @@
-import { computed, ref, reactive, provide, inject, type Ref, unref, toValue } from 'vue'
+import { computed, ref, reactive, provide, inject, type Ref, unref, toValue, onMounted, onUnmounted } from 'vue'
 import { useI18n, useToast } from '#imports'
 import { normalizeSlideoverKind, type SlideoverKind } from '~/utils/manage/kinds'
 import {
@@ -20,6 +20,7 @@ import { useEntityModals } from '~/composables/manage/useEntityModals'
 import { useEntityTransfer } from '~/composables/manage/useEntityTransfer'
 import { useEntityTags } from '~/composables/manage/useEntityTags'
 import { useFeedback } from '~/composables/manage/useFeedback'
+import { useEntityFormPreset } from '~/composables/manage/useEntityFormPreset'
 import type { AnyManageCrud } from '~/types/manage'
 import type { EntityFilterConfig } from '~/composables/manage/useEntity'
 
@@ -189,6 +190,8 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
   const { isUploadingImage, imageFile, imagePreview, modalImageFieldConfig, handleImageFile, handleRemoveImage } = useImageUpload()
 
   // --- Forms ---
+  const { fields: presetFields, defaults: presetDefaults, schema: presetSchema } = useEntityFormPreset(resolvedEntityKind)
+  
   const {
     isModalOpen,
     isEditing,
@@ -200,7 +203,15 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     onCreateClick,
     handleSubmit,
     handleCancel,
-  } = useEntityModals(crud, { localeCode: () => localeCode.value, t, toast, imagePreview, translatable: toValue(options.translatable) })
+  } = useEntityModals(crud, { 
+    localeCode: () => localeCode.value, 
+    t, 
+    toast, 
+    imagePreview, 
+    translatable: toValue(options.translatable),
+    defaults: presetDefaults,
+    schema: presetSchema
+  })
 
   // --- Pagination ---
   const pagination = useEntityPagination(crud)
@@ -226,8 +237,34 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     feedback.open({ entity: record })
   }
 
-  // --- Event Handlers Wrapper ---
-  const onCreateClickWrapper = () => onCreateClick(() => options.emit('create'))
+  // --- Session/Auth Warning ---
+  const lastAuthCheck = ref(Date.now())
+  const authInterval = 1000 * 60 * 5 // Check every 5 mins
+
+  const checkAuthStatus = async () => {
+    try {
+      // Intentamos un fetch ligero para ver si la sesión sigue viva
+      await $fetch('/api/auth/session', { method: 'GET' })
+      lastAuthCheck.value = Date.now()
+    } catch (e: any) {
+      if (e.statusCode === 401 || e.statusCode === 403) {
+        toast.add({
+          title: t('auth.sessionExpired.title'),
+          description: t('auth.sessionExpired.description'),
+          color: 'error',
+          timeout: 0, // Persistent
+        })
+      }
+    }
+  }
+
+  let authTimer: any = null
+  onMounted(() => {
+    authTimer = setInterval(checkAuthStatus, authInterval)
+  })
+  onUnmounted(() => {
+    if (authTimer) clearInterval(authTimer)
+  })
 
   // --- Context Object (Flat) ---
   const context = {
@@ -321,6 +358,8 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     saving,
     et,
     modalFormState,
+    modalFields: presetFields, // Exposed from preset
+    formSchema: presetSchema,  // Exposed from preset
     manage,
     onEdit: (entity: unknown) => {
       const record = (entity as Record<string, any>) || {}

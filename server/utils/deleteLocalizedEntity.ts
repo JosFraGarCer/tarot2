@@ -44,22 +44,29 @@ export async function deleteLocalizedEntity(options: DeleteLocalizedEntityOption
 
   await db.transaction().execute(async (trx) => {
     if (requestedLang === defaultLang) {
+      // Check if entity exists first
+      const entity = await trx
+        .selectFrom(baseTable)
+        .select(idColumn as any)
+        .where(idColumn as any, '=', id)
+        .executeTakeFirst()
+
+      if (!entity) {
+        throw createError({ statusCode: 404, statusMessage: 'Entity not found' })
+      }
+
       // Delete base entity and all translations
       const res = await trx
         .deleteFrom(baseTable)
-        .where(idColumn, '=', id)
+        .where(idColumn as any, '=', id)
         .executeTakeFirst()
-
-      if (!res) {
-        throw createError({ statusCode: 404, statusMessage: 'Entity not found' })
-      }
 
       deletedBase = true
 
       if (options.onDeleteBase) {
         await options.onDeleteBase(trx, id)
       } else {
-        await trx.deleteFrom(translationTable).where(foreignKey, '=', id).execute()
+        await trx.deleteFrom(translationTable).where(foreignKey as any, '=', id).execute()
       }
 
       deletedTranslation = true
@@ -67,8 +74,8 @@ export async function deleteLocalizedEntity(options: DeleteLocalizedEntityOption
       // Delete only translation row
       const res = await trx
         .deleteFrom(translationTable)
-        .where(foreignKey, '=', id)
-        .where(languageKey, '=', requestedLang)
+        .where(foreignKey as any, '=', id)
+        .where(languageKey as any, '=', requestedLang)
         .executeTakeFirst()
 
       if (!res) {

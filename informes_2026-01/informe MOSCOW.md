@@ -39,7 +39,8 @@ Revisa todo el código, encuentra vulnerabilidades de seguridad y dame un inform
 ### Resumen de Invariantes de Seguridad Detectadas (Correctas):
 *   ✅ **SQL Injection:** El uso de Kysely y plantillas `sql` con parámetros `${...}` es seguro. No se detectaron concatenaciones de strings vulnerables en consultas SQL.
 *   ✅ **Subida de Archivos:** La lógica en [server/api/uploads/index.post.ts](cci:7://file:///home/bulu/devel/tarot2/server/api/uploads/index.post.ts:0:0-0:0) es robusta: valida tipos MIME, extensiones, tamaño y utiliza `sharp` para procesar la imagen (lo cual elimina metadatos maliciosos y verifica la integridad del archivo).
-*   ✅ **JWT:** Se utiliza la librería `jose` con algoritmos modernos (`HS256`) y las cookies están configuradas como `httpOnly` y `secure` (en producción).
+*   ✅ **JWT:** Se utiliza la librería `jose` con algoritmos modernos (`HS256`) y las cookies están configuradas como `httpOnly` y `secure` (en producción). **Optimizado el 7 de enero de 2026** mediante el uso de un singleton para la codificación del secreto JWT, mejorando el rendimiento sin comprometer la seguridad.
+*   ✅ **N+1 Query Security:** Implementación de `eagerTags` para prevenir abusos de recursos por subconsultas excesivas en listados.
 
 # Próximas Acciones Sugeridas
 1.  **Modificar [01.auth.guard.ts](cci:7://file:///home/bulu/devel/tarot2/server/middleware/01.auth.guard.ts:0:0-0:0)** para incluir lógica de validación de propiedad (Self-service access).

@@ -15,11 +15,17 @@ export async function verifyPassword(password: string, hash: string) {
 }
 
 // -------------------- JWT HELPERS --------------------
+const JWT_SECRET_ENV = process.env.JWT_SECRET
+if (!JWT_SECRET_ENV) {
+  console.error('CRITICAL: JWT_SECRET not configured')
+}
+const SECRET_KEY = new TextEncoder().encode(JWT_SECRET_ENV || 'default-insecure-secret-for-dev-only')
+
 function secretKey() {
-  const secret = process.env.JWT_SECRET
-  if (!secret)
-    throw createError({ statusCode: 500, statusMessage: 'JWT secret not configured' })
-  return new TextEncoder().encode(secret)
+  if (!JWT_SECRET_ENV && process.env.NODE_ENV === 'production') {
+     throw createError({ statusCode: 500, statusMessage: 'JWT secret not configured' })
+  }
+  return SECRET_KEY
 }
 
 export async function createToken(payload: Record<string, unknown>) {

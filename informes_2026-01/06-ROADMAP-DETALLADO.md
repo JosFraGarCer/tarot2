@@ -95,56 +95,21 @@ describe('useEntity', () => {
 - Tests de autenticación
 - Tests de middleware
 
-### Semana 5-6: Refactoring de Componentes
+### Semana 5-6: Refactoring de Componentes (Hito alcanzado: 7 de enero de 2026)
 
-#### Tarea 1.6: Refactoring EntityBase.vue
-**Duración**: 8 días
-**Recursos**: 2 desarrolladores frontend
-**Dependencias**: 1.2
-**Entregables**:
-- EntityBase.vue dividido en 4 componentes
-- EntityViewManager.vue (gestión de vistas)
-- EntityModalManager.vue (gestión de modales)
-- EntityActionsBar.vue (barra de acciones)
-- EntityFiltersPanel.vue (panel de filtros)
+#### Tarea 1.6: Refactoring EntityBase.vue (✅ Completado)
+**Estado**: Completado el 7 de enero de 2026.
+**Resultados**:
+- `EntityBase.vue` desacoplado: lógica movida a `useEntityBaseContext`.
+- Implementación de `EntityViewsManager.vue` para gestionar vistas.
+- Delegación de modales a `BaseFormModal`, `BasePreviewDrawer`, etc.
 
-**Plan de拆分**:
-```vue
-<!-- Antes: EntityBase.vue (887 líneas) -->
-<!-- Después: -->
-<template>
-  <EntityViewManager 
-    :view-mode="viewMode"
-    :items="items"
-    @view-change="handleViewChange"
-  />
-  
-  <EntityFiltersPanel
-    :filters="filters"
-    @filter-change="handleFilterChange"
-  />
-  
-  <EntityActionsBar
-    :selected-items="selectedItems"
-    @action="handleAction"
-  />
-  
-  <EntityModalManager
-    :modal-state="modalState"
-    @modal-action="handleModalAction"
-  />
-</template>
-```
-
-#### Tarea 1.7: Refactoring FormModal.vue
-**Duración**: 5 días
-**Recursos**: 1 desarrollador frontend
-**Dependencias**: 1.2
-**Entregables**:
-- FormModal.vue dividido en 3 componentes
-- DynamicFormRenderer.vue
-- FormValidationHelper.vue
-- FieldTypeRegistry.vue
+#### Tarea 1.7: Refactoring FormModal.vue (✅ Completado)
+**Estado**: Completado el 7 de enero de 2026.
+**Resultados**:
+- Eliminación de introspección dinámica frágil de Zod.
+- Implementación de **presets declarativos** para definición de campos.
+- Mejora en la robustez de validación y carga de imágenes.
 
 ### Semana 7-8: Documentación Básica
 
@@ -207,15 +172,11 @@ const memoizedHandleAction = useCallback((action: string, item: any) => {
 
 ### Semana 11-12: Performance - Backend
 
-#### Tarea 2.3: Optimización de Consultas
-**Duración**: 5 días
-**Recursos**: 1 desarrollador backend
-**Dependencias**: Ninguna
-**Entregables**:
-- Eliminación de consultas N+1
-- Implementación de cache Redis
-- Optimización de índices de BD
-- Query performance monitoring
+#### Tarea 2.3: Optimización de Consultas (✅ En progreso - Hito: Eager Tags)
+**Estado**: Optimizaciones críticas de N+1 completadas el 7 de enero de 2026.
+**Logros**:
+- Implementación de `eagerTags.ts` para carga masiva de etiquetas.
+- Refactorización de controladores CRUD (arcana, base_card, world, facet, skill, world_card).
 
 #### Tarea 2.4: Compresión y Caching
 **Duración**: 4 días
@@ -469,7 +430,7 @@ npm run test:unit
 
 ## Conclusión
 
-Este roadmap proporciona una ruta clara y ejecutable para llevar Tarot2 de su estado actual (8.25/10) a un nivel de excelencia técnica (9.5/10). La implementación exitosa de este plan resultará en:
+Este roadmap proporciona una ruta clara y ejecutable para llevar Tarot2 de su estado actual (**8.49/10**) a un nivel de excelencia técnica (9.5/10). La implementación exitosa de este plan resultará en:
 
 - **Mayor mantenibilidad** del código
 - **Mejor experiencia de desarrollador**
@@ -480,4 +441,4 @@ El timeline de 28 semanas es realista y permite implementar mejoras significativ
 
 ---
 
-*Roadmap detallado generado el 4 de enero de 2026*
+*Roadmap detallado actualizado el 7 de enero de 2026*

@@ -93,12 +93,10 @@ El frontend de Tarot2 está construido sobre Nuxt 4 con Vue 3, utilizando Nuxt U
 **Archivo**: `/app/components/manage/EntityBase.vue`
 
 **Características**:
-- Componente maestro de gestión
-- Múltiples vistas (tabla, tarjetas, clásica, carta)
-- Modal system integrado
-- Drawer para previsualización
-- Sistema de filtros avanzado
-- Acciones bulk y individuales
+- Orquestador principal de gestión (refactorizado para usar `useEntityBaseContext`).
+- Múltiples vistas (tabla, tarjetas, clásica, carta) gestionadas por `EntityViewsManager`.
+- Integración de modales mediante `BaseFormModal`, `BasePreviewDrawer`, etc.
+- Lógica delegada en composables especializados (`useEntityModals`, `useEntityPagination`).
 
 **Vistas implementadas**:
 - **Tabla**: Usando ManageTableBridge
@@ -110,13 +108,10 @@ El frontend de Tarot2 está construido sobre Nuxt 4 con Vue 3, utilizando Nuxt U
 **Archivo**: `/app/components/manage/modal/FormModal.vue`
 
 **Características**:
-- Formulario modal universal
-- Generación dinámica de campos desde Zod schemas
-- Soporte para relaciones de entidades
-- Upload de imágenes integrado
-- Editor Markdown para effects
-- Validación en tiempo real
-- Soporte para traducciones
+- Formulario modal universal (refactorizado para eliminar introspección frágil de Zod).
+- Uso de **presets declarativos** (`useEntityFormPreset`) para definir campos y esquemas.
+- Soporte para relaciones de entidades y carga de imágenes.
+- Editor Markdown integrado.
 
 **Tipos de campos soportados**:
 - Input text/textarea
@@ -150,16 +145,20 @@ El frontend de Tarot2 está construido sobre Nuxt 4 con Vue 3, utilizando Nuxt U
 
 ### 4. Composables Principales
 
-#### useEntity
-**Archivo**: `/app/composables/manage/useEntity.ts`
+#### useEntityBaseContext
+**Archivo**: `/app/composables/manage/useEntityBaseContext.ts`
 
 **Características**:
-- Composables CRUD genérico y reutilizable
-- SSR-safe con useAsyncData
-- Filtros reactivos y paginación
-- Cache y invalidación automática
-- Validación Zod opcional
-- Soporte para traducciones
+- Composable central que orquestra el estado y las acciones de `EntityBase`.
+- Integra CRUD, filtros, paginación, modales y selección.
+- Expone una API unificada para todos los subcomponentes.
+
+#### useFilterOptions
+**Archivo**: `/app/composables/manage/useFilterOptions.ts`
+
+**Características**:
+- Encapsula la obtención de opciones para filtros (tags, roles, arcanos, etc.).
+- Desacopla la lógica de datos de la interfaz de filtros.
 
 **Funcionalidades**:
 - Listado con filtros y paginación
@@ -263,11 +262,10 @@ El frontend de Tarot2 está construido sobre Nuxt 4 con Vue 3, utilizando Nuxt U
 
 ### ✅ Fortalezas
 
-1. **Arquitectura de Componentes Sólida**
-   - Separación clara de responsabilidades
-   - Componentes altamente reutilizables
-   - Patrones consistentes en toda la aplicación
-   - Type safety completo con TypeScript
+1. **Arquitectura de Componentes Refactorizada**
+   - **EntityBase desacoplado**: La lógica se ha movido a `useEntityBaseContext`.
+   - **Formularios basados en presets**: Eliminación de la dependencia frágil de introspección de esquemas.
+   - **Estructura clara**: Componentes específicos para cada responsabilidad (`EntityViewsManager`, `BaseFormModal`).
 
 2. **Sistema de Capabilities**
    - Granular permissions system
@@ -317,16 +315,10 @@ El frontend de Tarot2 está construido sobre Nuxt 4 con Vue 3, utilizando Nuxt U
 
 ### 🔍 Análisis de Complejidad
 
-#### Componentes Más Complejos
-1. **EntityBase.vue** (887 líneas)
-   - Múltiples responsabilidades
-   - Muchos slots y props
-   - Lógica compleja de estados
-
-2. **FormModal.vue** (420 líneas)
-   - Generación dinámica de formularios
-   - Múltiples tipos de campos
-   - Lógica de validación compleja
+#### Estado de la Refactorización
+1. **EntityBase.vue**: ✅ Refactorizado y simplificado. La lógica ahora reside en composables.
+2. **FormModal.vue**: ✅ Refactorizado. Ahora usa presets declarativos en lugar de introspección Zod.
+3. **Página /user**: ✅ Corregidos errores de hidratación SSR mediante `ClientOnly`.
 
 3. **CommonDataTable.vue** (448 líneas)
    - Muchas features integradas
@@ -394,4 +386,4 @@ El frontend de Tarot2 demuestra una arquitectura moderna y bien estructurada con
 
 ---
 
-*Auditoría realizada el 4 de enero de 2026*
+*Auditoría actualizada el 7 de enero de 2026 (Refactorización de EntityBase, FormModal y corrección de hidratación)*

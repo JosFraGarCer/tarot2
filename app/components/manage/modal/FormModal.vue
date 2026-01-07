@@ -142,7 +142,7 @@ const localeCode = computed(() =>
 
 // Configuración por defecto del campo de imagen
 const imageFieldConfig = computed(() => {
-  return props.imageFieldConfig || {
+  return (props.imageFieldConfig || {
     label: 'Image',
     dropLabel: 'Drop image or click to upload',
     removeLabel: 'Remove image',
@@ -150,7 +150,7 @@ const imageFieldConfig = computed(() => {
     description: '',
     required: false,
     disabled: false
-  }
+  }) as any
 })
 
 const emit = defineEmits<{
@@ -245,82 +245,8 @@ interface FieldConfig {
   options?: Array<{ label: string; value: unknown } | string>
 }
 
-// Build fields from Zod schema if provided; fallback to presets
-const schemaResolvedFields = computed<Record<string, FieldConfig>>(() => {
-  try {
-    const s = props.schema?.update || props.schema?.create
-    if (!s || typeof (s as unknown as { _def: unknown })._def === 'undefined') return {}
-    const obj = s as unknown as { _def: { shape?: () => Record<string, unknown> | Record<string, unknown> } }
-    const shapeDef = obj._def?.shape
-    const shape = typeof shapeDef === 'function' ? shapeDef() : shapeDef
-    if (!shape) return {}
-
-    function unwrap(t: unknown): unknown {
-      // unwrap Optional/Nullable/Effects
-      let current = t as { _def?: { typeName?: string; innerType?: unknown; schema?: unknown; inner?: unknown } }
-      while (current && (current._def?.typeName === 'ZodOptional' || current._def?.typeName === 'ZodNullable' || current._def?.typeName === 'ZodEffects')) {
-        current = (current._def?.innerType || current._def?.schema || current._def?.inner) as typeof current
-      }
-      return current
-    }
-
-    const fields: Record<string, FieldConfig> = {}
-    for (const key of Object.keys(shape)) {
-      const raw = (shape as Record<string, unknown>)[key]
-      const t = unwrap(raw) as { _def?: { typeName?: string; values?: unknown[]; options?: unknown[] } }
-      let field: FieldConfig = { label: key, placeholder: '', required: false, disabled: false }
-
-      // Heurística para relaciones por nombre
-      if (/(^|_)arcana_id$/.test(key)) field = { ...field, type: 'select', relation: 'arcana' }
-      else if (/(^|_)facet_id$/.test(key)) field = { ...field, type: 'select', relation: 'facet' }
-      else if (/(^|_)card_type_id$/.test(key)) field = { ...field, type: 'select', relation: 'card_type' }
-      else if (key === 'image') field = { ...field, type: 'upload' }
-      else if (t?._def?.typeName === 'ZodBoolean') field = { ...field, type: 'toggle' }
-      else if (t?._def?.typeName === 'ZodEnum' || t?._def?.typeName === 'ZodNativeEnum') {
-        const options = (t._def.values || t._def.options || []) as string[]
-        field = { ...field, type: 'select', relation: undefined, options }
-      } else {
-        field = { ...field, type: 'input' }
-      }
-
-      // Ensure known keys map to correct UI controls regardless of Zod internals
-      if (key === 'status') {
-        const options = (t?._def?.values || t?._def?.options || field.options || []) as string[]
-        field = { ...field, type: 'select', relation: undefined, options }
-      }
-      if (key === 'is_active') {
-        field = { ...field, type: 'toggle' }
-      }
-
-      // Ajustes por clave conocida
-      if (key === 'description') field.rows = 5
-      if (key === 'short_text') field.rows = 3
-      if (key === 'legacy_effects') field = { ...field, type: 'toggle', hidden: true }
-      if (key === 'effects') field = { ...field, type: 'effects' }
-
-      // Ocultar/ignorar campos que no se editan desde el formulario
-      if (['id', 'created_by', 'content_version_id', 'sort', 'language_code'].includes(key)) {
-        field.hidden = true
-      }
-
-      fields[key] = field
-    }
-    return fields
-  } catch (_e) {
-    // fallback silencioso a presets
-    return {}
-  }
-})
-
 const resolvedFields = computed(() => {
-  const fromSchema = schemaResolvedFields.value
-  if (fromSchema && Object.keys(fromSchema).length) return fromSchema
-  const label = normalizedLabel.value
-  const preset = entityFieldPresets[label]
-  if (!preset) {
-    console.warn(`⚠️ No preset found for entityLabel="${props.entityLabel}" → normalized="${label}`)
-  }
-  return (preset?.fields || {}) as Record<string, FieldConfig>
+  return (props.fields || {}) as Record<string, FieldConfig>
 })
 
 // 🔧 Estado local sincronizado con form.effects

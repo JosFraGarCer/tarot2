@@ -31,14 +31,29 @@ function applyFallbackFlag(record: unknown, lang?: string | null) {
   }
 }
 
-export function markLanguageFallback<T>(data: T, lang?: string | null): T {
-  if (!lang) return data
-  if (Array.isArray(data)) {
-    data.forEach((item) => applyFallbackFlag(item, lang))
-    return data
+export function markLanguageFallback<TRow extends Record<string, unknown>>(
+  rowOrRows: TRow | TRow[],
+  requestedLang: string,
+): TRow | TRow[] {
+  const mark = (row: TRow) => {
+    if (!row) return row
+    const isFallback =
+      row.language_code &&
+      String(row.language_code).toLowerCase() !== requestedLang.toLowerCase()
+    
+    // Apply the recursive logic for nested entities (like tags)
+    applyFallbackFlag(row, requestedLang)
+    
+    return {
+      ...row,
+      _isFallback: !!isFallback,
+    }
   }
-  applyFallbackFlag(data as unknown, lang)
-  return data
+
+  if (Array.isArray(rowOrRows)) {
+    return rowOrRows.map(mark)
+  }
+  return mark(rowOrRows)
 }
 
 export function getLoggerFromEvent(event?: H3Event | null) {

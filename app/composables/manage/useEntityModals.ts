@@ -12,6 +12,8 @@ export function useEntityModals(
     toast?: ReturnType<typeof useToast>
     imagePreview?: { value: string | null }
     translatable?: boolean
+    defaults?: Ref<Record<string, unknown>>
+    schema?: Ref<any>
   }
 ) {
   const { localeCode, t, toast, imagePreview } = opts
@@ -21,7 +23,9 @@ export function useEntityModals(
   const isEditing = ref(false)
   const saving = ref(false)
 
-  const form = useFormState<Record<string, unknown>>({ initialValue: () => ({}) })
+  const form = useFormState<Record<string, unknown>>({ 
+    initialValue: () => opts.defaults?.value ? structuredClone(toValue(opts.defaults)) : {} 
+  })
   const modalFormState = form.values
   const manage = reactive<{ englishItem: Record<string, unknown> | null }>({ englishItem: null })
 
@@ -31,7 +35,7 @@ export function useEntityModals(
 
   async function preloadEnglishItem(id: number | string) {
     try {
-      const res = await useApiFetch<Record<string, unknown>>(`${crud.resourcePath}/${id}`, { method: 'GET', params: { lang: 'en' } })
+      const res = await useApiFetch<{ data?: Record<string, unknown> }>(`${crud.resourcePath}/${id}`, { method: 'GET', params: { lang: 'en' } })
       manage.englishItem = res?.data ?? null
     } catch {
       manage.englishItem = null
@@ -68,7 +72,8 @@ export function useEntityModals(
   function onCreateClick(emit?: (e: 'create') => void) {
     emit?.('create')
     isEditing.value = false
-    form.reset({ to: {}, updateInitial: true })
+    const defaults = opts.defaults?.value ? structuredClone(toValue(opts.defaults)) : {}
+    form.reset({ to: defaults, updateInitial: true })
     if (imagePreview) imagePreview.value = null
     manage.englishItem = null
     isModalOpen.value = true

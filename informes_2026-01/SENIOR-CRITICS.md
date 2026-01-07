@@ -1,6 +1,10 @@
 # 🎭 Senior Dev Code Review: Tarot2 (Deep Dive)
 
 ```
+Eres un desarrollador senior que ODIA esta app y su equipo de desarrollo,   te encargan revisar su codigo. Que criticarias? ¿Qué casos extremos me estoy perdiendo?
+```
+
+```
  Do a git diff and pretend you're a senior dev doing a code review and you HATE this implementation. What would you criticize? What edge cases am I missing? 
 ```
 
@@ -106,3 +110,81 @@ In `@/app/components/manage/modal/FormModal.vue`, you're trying to be clever by 
 - **Evaluate error handling:** Pending.
 - **Review i18n:** Pending.
 - **Identify performance bottlenecks:** Pending.
+
+---
+
+💀 Crítica Senior: "Arquitectura de Cristal"
+1. El "God Composable" (useEntityBaseContext.ts)
+Has pasado de un componente monolítico a un composable monolítico. Felicidades, ahora el acoplamiento es invisible pero igual de letal. Si ese composable falla o se cuelga en el cliente, toda la gestión de entidades (Manage/Admin) muere. No hay graceful degradation.
+
+2. Backend "Copiar-Pegar" (createCrudHandlers)
+Confías demasiado en la abstracción createCrudHandlers. Es cómoda, sí, pero asume que todas las entidades se comportan igual. En el momento en que necesites una lógica de validación cruzada compleja (ej: "no puedes borrar X si Y está en estado Z pero solo si el usuario no es Admin"), tu abstracción unificada se convertirá en un espagueti de if/else dentro del core.
+
+3. El Peligro de las Traducciones (_translations)
+El sistema depende críticamente de tablas de traducción.
+
+¿Qué pasa si una fila en la tabla principal no tiene su entrada en _translations? El frontend probablemente recibirá un null y hará un white screen of death porque alguien olvidó un optional chaining.
+Race conditions: Si dos editores guardan la misma entidad en idiomas distintos al mismo tiempo, ¿cómo maneja translatableUpsert la integridad?
+⚠️ Casos Extremos (Lo que te estás perdiendo)
+🟦 1. El "Efecto Cascada" en Borrados
+Usas deleteLocalizedEntity. ¿Has probado a borrar una entidad que tiene miles de tag_links o que está referenciada en world_card_overrides?
+
+Riesgo: Un timeout en la DB que deje la mitad de los datos huérfanos porque no hay una transacción atómica robusta que limpie todo el grafo de dependencias.
+🟦 2. El Usuario "Pestañas Infinitas" (Concurrency)
+Un editor abre el FormModal de la carta "El Loco". Se va a comer. Otro editor entra, cambia la imagen y guarda. El primer editor vuelve, pulsa "Guardar".
+
+Resultado: El cambio del segundo editor desaparece. No tienes Optimistic Locking (versiones/timestamps) en el payload del PATCH. El último en llegar pisa todo.
+🟦 3. Hydration Mismatch en SSR
+Nuxt UI es genial hasta que deja de serlo. Con filtros complejos cargados de forma perezosa (useFilterOptions), es muy fácil que el servidor renderice un estado y el cliente otro si la API tarda 10ms más de la cuenta.
+
+Resultado: Botones que no clickan, selectores que se resetean solos y errores de "Hydration mismatch" en la consola que estás ignorando.
+🟦 4. Bulk Actions vs Límites de Memoria
+Si un usuario selecciona 500 filas y aplica una "Bulk Action", tu backend probablemente las procese en un bucle.
+
+Riesgo: Bloqueo del hilo de Node.js o superación del límite de parámetros de Postgres. Las acciones en lote deben estar limitadas o procesarse en colas/batches.
+🟦 5. El Infierno de los Roles Dinámicos
+Tu middleware 01.auth.guard.ts confía en las capabilities. ¿Qué pasa si le quitas un permiso a un usuario MIENTRAS tiene la sesión abierta y está a mitad de un formulario de edición largo?
+
+Riesgo: El frontend le deja seguir escribiendo, pero al dar a "Guardar", el backend le suelta un 403 y pierde 20 minutos de trabajo. No hay aviso previo de "Sesión expirada o permisos cambiados".
+
+---
+
+💀 Crítica Senior (Round 2): "El Maquillaje del Caos"
+
+```
+De nuevo, eres un desarrollador senior que ODIA esta app y su equipo de desarrollo, sabes que esas sabandijas se han esforzado en arreglar todo lo que has criticado. Otra vez  te encargan revisar su codigo, esta vez se van a enterar. Que criticarias? ¿Qué casos extremos me estoy perdiendo?
+```
+
+1. Falsa Sensación de Seguridad en useEntityBaseContext.ts
+Habéis metido un setInterval para comprobar la sesión cada 5 minutos. ¿En serio?
+
+El caso extremo que os falta: ¿Qué pasa si el usuario pierde la conexión a internet 10 segundos antes de darle a "Guardar"? Vuestra comprobación de los 5 minutos dirá que todo está OK, pero la petición de guardado fallará por timeout o red. No tenéis Auto-save en LocalStorage ni recuperación de borradores. Si la red cae, el trabajo se pierde.
+Drenaje de batería/recursos: Tenéis un temporizador global corriendo por cada entidad abierta. Multiplica eso por un usuario con 10 pestañas. Habéis creado un generador de tráfico innecesario al backend.
+2. El "Batching" de Juguete en el Frontend
+Habéis implementado un bucle con un setTimeout de 100ms en el cliente para simular batching. Esto es una aberración.
+
+Integridad parcial: Si el lote es de 500 y falla en el item 205 (por un 401, un 500 o cierre de pestaña), habéis dejado la base de datos en un estado inconsistente. ¿Dónde está el Revert o la Transacción Atómica Global para el lote?
+User Experience atroz: El usuario tiene que quedarse mirando una barrita de progreso mientras el navegador hace 10 peticiones secuenciales. Si cierra el navegador, el proceso se corta a la mitad. El batching SE HACE EN EL BACKEND con una sola petición y un worker.
+3. Optimistic Locking de "Cartón-Piedra"
+Habéis añadido modified_at al WHERE del UPDATE. Bien.
+
+El agujero: ¿Cómo manejáis las sub-entidades (tags, efectos, traducciones)? Si yo cambio solo un Tag de una carta, ¿se actualiza el modified_at de la tabla principal? Si la respuesta es NO (y vuestro esquema sugiere que no siempre), entonces el bloqueo optimista no sirve para nada en el 50% de las ediciones.
+Relaciones Fantasma: Si alguien borra un Tag mientras otro lo está asignando a una carta, vuestro translatableUpsert va a escupir un error de Foreign Key que el frontend no sabe manejar con elegancia.
+⚠️ Casos Extremos que os van a explotar (de verdad)
+🟦 1. La Carrera de Ratas en las Traducciones
+Tenéis lógica de fallback en el backend. ¿Qué pasa si el editor A borra la traducción al inglés (base) mientras el editor B está guardando la traducción al francés?
+
+Riesgo: deleteLocalizedEntity podría borrar la base y dejar a B intentando insertar una traducción para una entidad que ya no existe (id huérfano antes de que termine la transacción de B).
+🟦 2. El "JSON Bloat" en card_effects
+Usáis jsonb para metadatos y efectos.
+
+Caso extremo: Un usuario mete un JSON de 2MB (porque puede). Vuestro backend lo lee, lo parsea, lo valida con Zod y lo guarda.
+Resultado: Habéis bloqueado el Event Loop de Node.js durante 200ms parseando strings gigantes. Repite esto 5 veces por segundo y la app deja de responder. No hay límites de tamaño en los payloads JSON.
+🟦 3. El "Zod Introspection" ha muerto, pero el acoplamiento sigue vivo
+Habéis quitado la introspección mágica de Zod en los formularios, pero ahora obligáis a pasar los campos a mano en los presets.
+
+Riesgo: Si el esquema de la DB cambia (ej: una columna pasa de opcional a obligatoria) y os olvidáis de actualizar el preset del frontend, el formulario enviará datos "válidos" según el front que el backend rechazará. No hay Contratos de Tipos Compartidos (tRPC o similar), solo fe en que el equipo se acuerde de actualizar ambos sitios.
+🟦 4. Hydration Hell con Idiomas Dinámicos
+Si el usuario tiene el navegador en francés pero la app carga en español por defecto y luego cambia...
+
+Riesgo: El ClientOnly que habéis puesto en EntityViewsManager es la confesión de vuestra derrota. Estáis matando el SEO y el rendimiento de carga inicial porque no sabéis manejar el estado de los filtros en el servidor sin que explote la hidratación.

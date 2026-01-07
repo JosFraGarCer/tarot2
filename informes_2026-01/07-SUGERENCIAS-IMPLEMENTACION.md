@@ -126,95 +126,21 @@ export default defineConfig({
 
 ## 2. Refactoring de Componentes
 
-### 2.1 División de EntityBase.vue
+### 2.1 Refactorización de EntityBase.vue (✅ Realizado el 7 de enero de 2026)
 
-#### Nuevo Componente: EntityViewManager.vue
-```vue
-<!-- app/components/manage/EntityViewManager.vue -->
-<template>
-  <div class="entity-view-manager">
-    <ViewControls
-      :view-mode="viewMode"
-      :template-key="templateKey"
-      @update:view-mode="$emit('update:viewMode', $event)"
-      @update:template-key="$emit('update:templateKey', $event)"
-    />
+#### Arquitectura Desacoplada: EntityBaseContext
+Se ha implementado un composable maestro `useEntityBaseContext.ts` que centraliza la lógica, permitiendo que `EntityBase.vue` sea solo un orquestador ligero.
 
-    <component
-      :is="currentViewComponent"
-      :items="items"
-      :loading="loading"
-      :label="label"
-      :entity-kind="entityKind"
-      @preview="onPreview"
-      @edit="onEdit"
-      @delete="onDelete"
-      @feedback="onFeedback"
-      @tags="onTags"
-    />
-  </div>
-</template>
-
-<script setup lang="ts">
-import { computed } from 'vue'
-import ViewControls from './ViewControls.vue'
-import EntityCards from './view/EntityCards.vue'
-import EntityCardsClassic from './view/EntityCardsClassic.vue'
-import ManageEntityCarta from './view/ManageEntityCarta.vue'
-import ManageTableBridge from '../ManageTableBridge.vue'
-
-interface Props {
-  viewMode: 'table' | 'cards' | 'classic' | 'carta'
-  templateKey?: string
-  items: any[]
-  loading: boolean
-  label: string
-  entityKind?: string
+```typescript
+// app/composables/manage/useEntityBaseContext.ts
+export function useEntityBaseContext(options: EntityBaseOptions) {
+  // Centralización de CRUD, filtros, paginación y modales
+  // ...
 }
-
-const props = defineProps<Props>()
-const emit = defineEmits<{
-  'update:viewMode': [mode: string]
-  'update:templateKey': [key: string]
-  preview: [item: any]
-  edit: [item: any]
-  delete: [item: any]
-  feedback: [item: any]
-  tags: [item: any]
-}>()
-
-const viewComponents = {
-  table: ManageTableBridge,
-  cards: EntityCards,
-  classic: EntityCardsClassic,
-  carta: ManageEntityCarta
-}
-
-const currentViewComponent = computed(() => {
-  return viewComponents[props.viewMode] || EntityCards
-})
-
-function onPreview(item: any) {
-  emit('preview', item)
-}
-
-function onEdit(item: any) {
-  emit('edit', item)
-}
-
-function onDelete(item: any) {
-  emit('delete', item)
-}
-
-function onFeedback(item: any) {
-  emit('feedback', item)
-}
-
-function onTags(item: any) {
-  emit('tags', item)
-}
-</script>
 ```
+
+#### Gestión de Vistas: EntityViewsManager.vue
+Se ha creado `EntityViewsManager.vue` para separar la lógica de renderizado de las diferentes vistas (tabla, tarjetas, etc.).
 
 #### Nuevo Componente: EntityModalManager.vue
 ```vue
@@ -391,263 +317,21 @@ function closeAllModals() {
 </script>
 ```
 
-### 2.2 División de FormModal.vue
+### 2.2 Refactorización de FormModal.vue y Presets (✅ Realizado el 7 de enero de 2026)
 
-#### Nuevo Componente: DynamicFormRenderer.vue
-```vue
-<!-- app/components/manage/form/DynamicFormRenderer.vue -->
-<template>
-  <div class="dynamic-form-renderer space-y-4">
-    <div v-for="(field, key) in resolvedFields" :key="key">
-      <UFormField 
-        :label="getFieldLabel(key as string, field.label)" 
-        :required="field.required" 
-        :class="{ hidden: field.hidden }"
-      >
-        <!-- Text Input -->
-        <UInput
-          v-if="field.type === 'input'"
-          v-model="formData[key]"
-          :placeholder="field.placeholder"
-          :disabled="field.disabled"
-          class="w-full"
-        />
+Se ha eliminado la introspección dinámica de esquemas Zod en favor de un sistema de **Presets Declarativos**.
 
-        <!-- Textarea -->
-        <UTextarea
-          v-else-if="field.type === 'textarea'"
-          v-model="formData[key]"
-          :rows="field.rows || 3"
-          :placeholder="field.placeholder"
-          :disabled="field.disabled"
-          class="w-full"
-        />
-
-        <!-- Select -->
-        <USelectMenu
-          v-else-if="field.type === 'select'"
-          v-model="formData[key]"
-          :items="getFieldOptions(field, key as string)"
-          option-attribute="label"
-          value-key="value"
-          :disabled="field.disabled"
-          :clearable="field.clearable"
-          class="w-full"
-        />
-
-        <!-- Toggle -->
-        <USwitch
-          v-else-if="field.type === 'toggle'"
-          v-model="formData[key]"
-          :disabled="field.disabled"
-          size="md"
-        />
-
-        <!-- Effects Field -->
-        <template v-else-if="field.type === 'effects'">
-          <USwitch
-            v-model="formData.legacy_effects"
-            :label="getFieldLabel('legacy_effects', 'Legacy effects')"
-            :disabled="field.disabled"
-            size="md"
-          />
-          <p
-            v-if="showFallbackHint(key)"
-            class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
-          >
-            EN: {{ formatEffectsFallback() }}
-          </p>
-          <MarkdownEditor
-            v-if="formData.legacy_effects"
-            v-model="effectsText"
-            :label="field.label || getFieldLabel(key as string, field.label)"
-            :placeholder="field.placeholder || 'Write markdown content...'"
-            :disabled="field.disabled"
-          />
-        </template>
-
-        <!-- Image Upload -->
-        <ImageUploadField
-          v-else-if="field.type === 'upload'"
-          :model-value="imageFile"
-          :preview="resolvedImagePreview"
-          :field="imageFieldConfig"
-          :enabled="true"
-          @update:model-value="$emit('update:image-file', $event)"
-          @remove="$emit('remove-image')"
-        />
-
-        <!-- Unknown field type -->
-        <div v-else class="text-sm text-yellow-600">
-          Unknown field type: {{ field.type }}
-        </div>
-      </UFormField>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
-import { useI18n } from '#imports'
-import MarkdownEditor from '~/components/common/MarkdownEditor.vue'
-import ImageUploadField from '../common/ImageUploadField.vue'
-
-interface FieldConfig {
-  label?: string
-  placeholder?: string
-  required?: boolean
-  disabled?: boolean
-  hidden?: boolean
-  type?: 'input' | 'textarea' | 'select' | 'toggle' | 'effects' | 'upload'
-  rows?: number
-  clearable?: boolean
-  options?: Array<{ label: string; value: unknown } | string>
-  relation?: string
+#### Implementación de Presets
+```typescript
+// app/composables/manage/presets/useEntityFormPreset.ts
+export function useEntityFormPreset(entity: string) {
+  // Retorna campos y esquemas específicos por entidad
+  // ...
 }
-
-interface Props {
-  fields: Record<string, FieldConfig>
-  formData: Record<string, any>
-  entityLabel: string
-  englishItem?: Record<string, any> | null
-  imageFile?: File | null
-  imagePreview?: string | null
-  imageFieldConfig?: Record<string, any>
-  localeCode: string
-}
-
-const props = defineProps<Props>()
-const emit = defineEmits<{
-  'update:formData': [data: Record<string, any>]
-  'update:image-file': [file: File | null]
-  'remove-image': []
-}>()
-
-const { t } = useI18n()
-
-// Computed properties
-const resolvedFields = computed(() => props.fields || {})
-const effectsText = computed({
-  get() {
-    const eff = props.formData.effects?.[props.localeCode]
-    return Array.isArray(eff) ? eff.join('\n') : (eff || '')
-  },
-  set(v: string) {
-    if (!props.formData.effects) props.formData.effects = {}
-    props.formData.effects[props.localeCode] = v
-      ? v.split(/\n+/).filter(line => line.trim() !== '')
-      : []
-  }
-})
-
-const resolvedImagePreview = computed(() => {
-  const preview = props.imagePreview
-  if (typeof preview === 'string' && preview) return resolveImage(preview)
-  const imageValue = props.formData?.image
-  if (typeof imageValue === 'string' && imageValue) return resolveImage(imageValue)
-  return null
-})
-
-const imageFieldConfig = computed(() => {
-  return props.imageFieldConfig || {
-    label: 'Image',
-    dropLabel: 'Drop image or click to upload',
-    removeLabel: 'Remove image',
-    previewAlt: 'Preview image',
-    description: '',
-    required: false,
-    disabled: false
-  }
-})
-
-// Methods
-function getFieldLabel(key: string, fallback?: string): string {
-  const entityKey = props.entityLabel
-    ?.toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/-/g, '_')
-    .replace(/s$/, '')
-    .trim() || ''
-
-  const tryKeys = [
-    entityKey ? `fields.${entityKey}.${key}` : '',
-    `fields.${key}`,
-  ]
-
-  const commonMap: Record<string, string> = {
-    status: 'ui.fields.status',
-    is_active: 'ui.states.active',
-    name: 'ui.fields.name',
-    description: 'ui.fields.description',
-    short_text: 'common.short_text',
-    arcana_id: 'entities.arcana',
-    facet_id: 'entities.facet',
-    card_type_id: 'entities.card_type',
-    image: 'common.image',
-  }
-  if (commonMap[key]) tryKeys.push(commonMap[key])
-
-  for (const k of tryKeys) {
-    if (!k) continue
-    const translated = t(k) as unknown as string
-    if (translated !== k) return translated
-  }
-  return fallback || key
-}
-
-function getFieldOptions(field: FieldConfig, key: string) {
-  // Handle explicit options from schema or preset
-  const raw = field?.options
-  if (Array.isArray(raw)) {
-    if (raw.length === 0) return []
-    if (typeof raw[0] === 'string') {
-      return (raw as string[]).map(v => ({ label: String(v), value: v }))
-    }
-    return raw as { label: string; value: unknown }[]
-  }
-  return []
-}
-
-function showFallbackHint(key: string): boolean {
-  if (props.localeCode === 'en' || !props.englishItem) return false
-  const translatableKeys = ['name', 'short_text', 'description', 'effects']
-  return translatableKeys.includes(key) && !!props.englishItem[key]
-}
-
-function formatEffectsFallback(): string {
-  const effects = props.englishItem?.effects as Record<string, string[] | string | undefined> | undefined
-  if (!effects) return '—'
-  const candidate =
-    effects[props.localeCode] ??
-    effects.en ??
-    Object.values(effects).find((value) => {
-      if (Array.isArray(value)) return value.length > 0
-      return typeof value === 'string' && value.length > 0
-    })
-  if (Array.isArray(candidate)) return candidate.join(' / ')
-  if (typeof candidate === 'string') return candidate
-  return '—'
-}
-
-function resolveImage(src?: string | null) {
-  if (!src) return ''
-  const value = String(src)
-  if (value.startsWith('http://') || value.startsWith('https://')) return value
-  if (value.startsWith('/')) return value
-
-  if (value.includes('/')) {
-    return `/img/${value}`
-  }
-
-  return `/img/${value}`
-}
-
-// Watch for form data changes
-watch(() => props.formData, (newData) => {
-  emit('update:formData', { ...newData })
-}, { deep: true })
-</script>
 ```
+
+#### Nuevo Componente: FormModal.vue Refactorizado
+Ahora consume los campos (`fields`) directamente desde el preset, mejorando la robustez y eliminando errores de introspección.
 
 ## 3. Optimizaciones de Performance
 
@@ -1149,4 +833,4 @@ Cada sugerencia está diseñada para ser implementada de forma incremental, mini
 
 ---
 
-*Sugerencias de implementación generadas el 4 de enero de 2026*
+*Sugerencias de implementación actualizadas el 7 de enero de 2026*

@@ -64,9 +64,10 @@ El backend de Tarot2 está construido sobre Nuxt 4 con H3 server framework, util
 
 #### Autenticación y Autorización
 **Archivos**:
-- `/server/middleware/00.auth.hydrate.ts`
-- `/server/middleware/01.auth.guard.ts`
-- `/server/middleware/02.rate-limit.ts`
+- `/server/middleware/00.auth.hydrate.ts` - Optimizado para eliminar joins pesados y agregación JSON.
+- `/server/plugins/auth.ts` - Se movió la codificación del secreto JWT al ámbito del módulo (singleton).
+- `/server/utils/eagerTags.ts` - Nueva utilidad para obtener tags de forma masiva para entidades.
+- `/server/api/*/_crud.ts` - Refactorizado para eliminar subconsultas N+1 para tags (arcana, base_card, world, facet, skill, world_card).
 
 **Hidratación de Usuario** (`00.auth.hydrate.ts`):
 - Extracción de JWT desde cookies
@@ -178,9 +179,10 @@ El backend de Tarot2 está construido sobre Nuxt 4 con H3 server framework, util
 ### ✅ Fortalezas
 
 1. **Arquitectura Sólida**
-   - Separación clara de responsabilidades
-   - Patrones consistentes en todo el backend
-   - Uso de TypeScript para type safety
+   - Separación clara de responsabilidades.
+   - Patrones consistentes en todo el backend.
+   - Uso de TypeScript para type safety.
+   - **Optimización de consultas N+1**: Implementación de `eagerTags` para carga eficiente de etiquetas.
 
 2. **Seguridad Robusta**
    - Autenticación JWT bien implementada
@@ -213,9 +215,12 @@ El backend de Tarot2 está construido sobre Nuxt 4 con H3 server framework, util
    - Comentarios limitados en código complejo
 
 3. **Monitoreo**
-   - Falta de métricas de rendimiento
-   - No hay alertas configuradas
-   - Logging podría ser más estructurado
+    - Manejo de tokens JWT y optimización del middleware (se movió la codificación del secreto JWT al ámbito del módulo).
+    - Se implementó la carga ansiosa para tags para resolver problemas de consultas N+1 en controladores CRUD.
+    - Se simplificó la obtención del usuario en el middleware de autenticación para la validación de la sesión.
+    ```
+    /server/utils/eagerTags.ts # Nueva utilidad para obtener tags de forma masiva
+    ```
 
 4. **Optimización**
    - Algunas consultas podrían optimizarse
@@ -264,4 +269,4 @@ El backend de Tarot2 demuestra una arquitectura moderna y bien diseñada con pat
 
 ---
 
-*Auditoría realizada el 4 de enero de 2026*
+*Auditoría actualizada el 7 de enero de 2026 (Refactorización de EntityBase y optimizaciones CRUD)*

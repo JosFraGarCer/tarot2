@@ -48,9 +48,9 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
       const raw = query[queryKey]
       if (raw === undefined) continue
       const parser = parse[key as keyof TState]
-      const parsed = parser ? parser(raw as RouteQueryValue) : defaultParse(raw as RouteQueryValue, defaults[key])
+      const parsed = parser ? (parser as any)(raw as RouteQueryValue) : defaultParse(raw as RouteQueryValue, defaults[key])
       if (parsed !== undefined) {
-        next[key] = parsed
+        (next as any)[key] = parsed
       }
     }
 
@@ -58,7 +58,7 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
       const extra = parseState(query as Record<string, RouteQueryValue>, defaults)
       for (const key in extra) {
         if (extra[key] !== undefined) {
-          next[key] = extra[key] as TState[Extract<keyof TState, string>]
+          (next as any)[key] = extra[key]
         }
       }
     }
@@ -69,7 +69,7 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
   function applyState(next: TState) {
     skipNextStateWatch = true
     for (const key in next) {
-      state[key] = next[key]
+      (state as any)[key] = next[key]
     }
   }
 
@@ -81,7 +81,7 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
       const queryKey = (queryKeyMap[key as keyof TState] ?? key) as string
       const serializer = serialize[key as keyof TState]
       const value = current[key]
-      const serialized = serializer ? serializer(value) : defaultSerialize(value, baseDefaults[key])
+      const serialized = serializer ? (serializer as any)(value) : defaultSerialize(value, baseDefaults[key])
       const defaultValue = baseDefaults[key]
 
       if (isEqual(value, defaultValue)) continue
@@ -255,7 +255,11 @@ function deepClone<T>(value: T): T {
     }
   }
 
-  return JSON.parse(JSON.stringify(plain))
+  try {
+    return JSON.parse(JSON.stringify(plain))
+  } catch {
+    return plain // Return as-is if unclonable (e.g. function/symbol) to avoid crash
+  }
 }
 
 function isEqual(a: QueryStateValue, b: QueryStateValue): boolean {
@@ -263,9 +267,11 @@ function isEqual(a: QueryStateValue, b: QueryStateValue): boolean {
     if (a.length !== b.length) return false
     return a.every((item, index) => item === b[index])
   }
+
   if (a instanceof Date && b instanceof Date) {
     return a.getTime() === b.getTime()
   }
+
   return a === b
 }
 
@@ -280,7 +286,7 @@ function stableStringify(value: Record<string, QueryStateValue>): string {
   const normalized: Record<string, QueryStateValue> = {}
   for (const key of sortedKeys) {
     const entry = value[key]
-    normalized[key] = Array.isArray(entry) ? [...entry] : entry
+    normalized[key] = Array.isArray(entry) ? ([...entry] as any) : entry
   }
   return JSON.stringify(normalized)
 }

@@ -72,21 +72,24 @@
                 {{ statusLabel(user.status) }}
               </UBadge>
               <ClientOnly>
-                  <UBadge size="sm" color="info">
-                    {{ formatDate(user.created_at) }}
+                <UBadge size="sm" color="info">
+                  {{ formatDate(user.created_at) }}
+                </UBadge>
+
+                <template v-if="user.roles && user.roles.length">
+                  <UBadge
+                    v-for="role in user.roles"
+                    :key="role.id"
+                    size="sm"
+                    color="primary"
+                  >
+                    {{ role.name }}
                   </UBadge>
+                </template>
+                <span v-else class="text-xs text-neutral-500 dark:text-neutral-400">
+                  {{ $t('domains.user.noRoles') }}
+                </span>
               </ClientOnly>
-              <UBadge
-                v-for="role in user.roles"
-                :key="role.id"
-                size="sm"
-                color="primary"
-              >
-                {{ role.name }}
-              </UBadge>
-              <span v-if="!user.roles.length" class="text-xs text-neutral-500 dark:text-neutral-400">
-                {{ $t('domains.user.noRoles') }}
-              </span>
             </div>
           </div>
 
@@ -168,23 +171,27 @@
             <p class="text-sm text-neutral-600 dark:text-neutral-400">
               Efectivos desde roles/asignaciones
             </p>
-            <div class="flex flex-wrap gap-2 pt-2">
-              <template v-for="(v, key) in user.permissions" :key="key">
-              <UBadge
-                v-if="v"
-                size="sm"
-                color="primary"
-              >
-                {{ key }}
-              </UBadge>
-              </template>
-              <span
-                v-if="!user.permissions || !Object.values(user.permissions).some(Boolean)"
-                class="text-xs text-neutral-500 dark:text-neutral-400"
-              >
-                No permissions
-              </span>
-            </div>
+            <ClientOnly>
+              <div class="flex flex-wrap gap-2 pt-2">
+                <template v-if="user.permissions && Object.values(user.permissions).some(Boolean)">
+                  <template v-for="(v, key) in user.permissions" :key="key">
+                    <UBadge
+                      v-if="v"
+                      size="sm"
+                      color="primary"
+                    >
+                      {{ key }}
+                    </UBadge>
+                  </template>
+                </template>
+                <span
+                  v-else
+                  class="text-xs text-neutral-500 dark:text-neutral-400"
+                >
+                  No permissions
+                </span>
+              </div>
+            </ClientOnly>
           </div>
         </section>
       </div>

@@ -6,6 +6,7 @@ import {
   skillCreateSchema,
   skillUpdateSchema,
 } from '../../schemas/skill'
+import { fetchTagsForEntities } from '../../utils/eagerTags'
 import type { DB, CardStatus, Json } from '../../database/types'
 import type { Kysely, SelectQueryBuilder } from 'kysely'
 import type { z } from 'zod'
@@ -90,24 +91,7 @@ function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any,
       sql`coalesce(t_req.language_code, 'en')`.as('language_code_resolved'),
       sql`coalesce(t_req_ft.name, t_en_ft.name)`.as('facet'),
       sql`u.username`.as('create_user'),
-      sql`
-        (
-          select coalesce(json_agg(
-            json_build_object(
-              'id', tg.id,
-              'name', coalesce(tt_req.name, tt_en.name),
-              'language_code_resolved', coalesce(tt_req.language_code, 'en')
-            )
-          ) filter (where tg.id is not null), '[]'::json)
-          from tag_links as tl
-          join tags as tg on tg.id = tl.tag_id
-          left join tags_translations as tt_req
-            on tt_req.tag_id = tg.id and tt_req.language_code = ${lang}
-          left join tags_translations as tt_en
-            on tt_en.tag_id = tg.id and tt_en.language_code = 'en'
-          where tl.entity_type = ${'skills'} and tl.entity_id = s.id
-        )
-      `.as('tags'),
+      sql`'[]'::json`.as('tags'), // Placeholder
     ])
 }
 
@@ -192,6 +176,15 @@ export const skillCrud = createCrudHandlers({
             ]),
           ),
       },
+      transformRows: async (rows: SkillRow[], { db, lang }) => {
+        if (!rows.length) return rows
+        const ids = rows.map((r) => r.id)
+        const tagsMap = await fetchTagsForEntities(db, 'skills', ids, lang)
+        return rows.map((row) => ({
+          ...row,
+          tags: tagsMap[row.id] || [],
+        }))
+      },
       logMeta: ({ rows }: { rows: SkillRow[] }) => ({
         facet_id: query.facet_id ?? null,
         tag_ids: tagIds ?? null,
@@ -203,10 +196,17 @@ export const skillCrud = createCrudHandlers({
       }),
     }
   },
-  selectOne: ({ db, lang }: { db: Kysely<DB>; lang: string }, id: number) =>
-    buildSelect(db, lang)
+  selectOne: async ({ db, lang }: { db: Kysely<DB>; lang: string }, id: number) => {
+    const row = await buildSelect(db, lang)
       .where('s.id', '=', id)
-      .executeTakeFirst(),
+      .executeTakeFirst()
+    
+    if (row) {
+      const tagsMap = await fetchTagsForEntities(db, 'skills', [row.id], lang)
+      row.tags = tagsMap[row.id] || []
+    }
+    return row
+  },
   mutations: {
     buildCreatePayload: (input: SkillCreate, ctx) => {
       const userId = (ctx.event.context.user as { id: number } | undefined)?.id ?? null

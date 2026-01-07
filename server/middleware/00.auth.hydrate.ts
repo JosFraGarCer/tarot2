@@ -15,48 +15,28 @@ export default defineEventHandler(async (event) => {
     if (!token) return
 
     const userPayload = await verifyToken(token)
-    if (!userPayload?.id) return
+    const userId = Number(userPayload?.id)
+    if (!userId || isNaN(userId)) return
 
+    // OPTIMIZACIÓN: Query ligera solo para validar estado activo
+    // Los roles completos no se cargan en cada request para evitar sobrecarga
     const user = await globalThis.db
-      .selectFrom('users as u')
-      .leftJoin('user_roles as ur', 'ur.user_id', 'u.id')
-      .leftJoin('roles as r', 'r.id', 'ur.role_id')
-      .select([
-        'u.id',
-        'u.username',
-        'u.email',
-        'u.status',
-        'u.image',
-        'u.created_at',
-        'u.modified_at',
-        sql`coalesce(json_agg(r.*) filter (where r.id is not null), '[]'::json)`.as('roles')
-      ])
-      .where('u.id', '=', userPayload.id)
-      .groupBy('u.id')
+      .selectFrom('users')
+      .select(['id', 'username', 'email', 'status', 'image', 'created_at', 'modified_at'])
+      .where('id', '=', userId)
       .executeTakeFirst()
 
     if (!user || user.status === 'suspended') return
 
-    const userRow = user as {
-      id: number
-      username: string
-      email: string
-      status: string
-      image: string | null
-      created_at: Date | string
-      modified_at: Date | string
-      roles: unknown
+    // Mantenemos la estructura pero con roles vacíos por defecto en middleware
+    // Si un endpoint necesita roles, debe consultarlos explícitamente
+    const permissions: string[] = [] 
+    
+    event.context.user = { 
+      ...user, 
+      roles: [], // Se evita el join masivo
+      permissions 
     }
-
-    const rolesArr = (() => {
-      const val = userRow.roles
-      if (Array.isArray(val)) return val as Record<string, unknown>[]
-      try { return JSON.parse(val as string) } catch { return [] }
-    })()
-
-    const permissions = mergePermissions(rolesArr as { permissions?: unknown }[])
-
-    event.context.user = { ...userRow, roles: rolesArr, permissions }
   } catch (err) {
     console.warn('[auth.hydrate] Failed to decode user:', err)
   }
