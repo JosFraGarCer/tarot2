@@ -13,19 +13,35 @@
               v-model="form[key]"
               :items="selectItems(field, key as string)"
               option-attribute="label"
-              value-key="value"
+              value-attribute="value"
               :disabled="field.disabled"
               class="w-full"
-            />
+              @update:model-value="(val) => {
+                if (val && typeof val === 'object' && 'value' in val) {
+                  form[key] = val.value
+                } else {
+                  form[key] = val
+                }
+              }"
+            >
+              <template #default="{ open }">
+                  <span v-if="form[key] !== undefined && form[key] !== null" class="truncate">
+                    {{ selectItems(field, key as string).find(i => i.value === form[key])?.label || form[key] }}
+                  </span>
+                  <span v-else class="text-neutral-500 dark:text-neutral-400">
+                    {{ field.placeholder || $t('ui.actions.select_option') }}
+                  </span>
+              </template>
+            </USelectMenu>
             <USwitch
               v-else-if="field.type === 'toggle'"
-              v-model="form[key]"
+              v-model="(form[key] as boolean)"
               :disabled="field.disabled"
               size="md"
             />
             <template v-else-if="field.type === 'effects'">
               <USwitch
-                v-model="form.legacy_effects"
+                v-model="(form.legacy_effects as boolean)"
                 :label="trLabel('legacy_effects', 'Legacy effects')"
                 :disabled="field.disabled"
                 size="md"
@@ -61,7 +77,7 @@
                 EN: {{ props.englishItem?.[key] || '—' }}
               </p>
               <UTextarea
-                v-model="form[key]"
+                v-model="(form[key] as string)"
                 :rows="field.rows"
                 :placeholder="field.placeholder"
                 :disabled="field.disabled"
@@ -76,7 +92,7 @@
                 EN: {{ props.englishItem?.[key] || '—' }}
               </p>
               <UInput
-                v-model="form[key]"
+                v-model="(form[key] as any)"
                 :placeholder="field.placeholder"
                 :disabled="field.disabled"
                 class="w-full"
@@ -91,7 +107,7 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="soft" :label="cancelLabel" @click="handleCancel" />
-        <UButton color="primary" :label="submitLabel" :loading="loading" @click="emit('submit')" />
+        <UButton color="primary" :label="submitLabel" :loading="loading" :disabled="!canSubmit" @click="emit('submit')" />
       </div>
     </template>
   </UModal>
@@ -123,16 +139,15 @@ const props = withDefaults(defineProps<{
   imagePreview?: string | null
   imageFieldConfig?: Record<string, unknown>
   englishItem?: Record<string, unknown> | null
-  schema?: {
-    create?: z.ZodTypeAny
-    update?: z.ZodTypeAny
-  } | null
+  fields?: Record<string, any> | undefined
+  schema?: { create?: z.ZodTypeAny; update?: z.ZodTypeAny } | null | undefined
 }>(), {
   loading: false,
   submitLabel: 'Save',
   cancelLabel: 'Cancel',
   englishItem: null,
-  schema: null
+  schema: null,
+  fields: undefined
 })
 
 const { t, locale } = useI18n()
@@ -167,16 +182,9 @@ const openInternal = computed({
   set: v => emit('update:open', v)
 })
 
-const form = reactive(props.form || {})
-watch(
-  () => props.form,
-  (newVal) => {
-    if (newVal && typeof newVal === 'object') {
-      Object.assign(form, newVal)
-    }
-  },
-  { deep: true, immediate: true }
-)
+// We use props.form directly to maintain reactivity with useFormState in the parent
+// since props.form is a reactive object passed by reference.
+const form = props.form as Record<string, any>
 
 const { arcanaOptions, cardTypeOptions, facetOptions, loadAll } = useEntityRelations()
 
@@ -247,6 +255,21 @@ interface FieldConfig {
 
 const resolvedFields = computed(() => {
   return (props.fields || {}) as Record<string, FieldConfig>
+})
+
+const canSubmit = computed(() => {
+  if (props.loading) return false
+  
+  // Validar campos requeridos
+  for (const [key, config] of Object.entries(resolvedFields.value)) {
+    if (config.required) {
+      const val = form[key]
+      if (val === undefined || val === null || val === '') return false
+      if (Array.isArray(val) && val.length === 0) return false
+    }
+  }
+  
+  return true
 })
 
 // 🔧 Estado local sincronizado con form.effects

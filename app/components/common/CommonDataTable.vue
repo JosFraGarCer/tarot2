@@ -58,7 +58,7 @@
     <UTable
       :data="items"
       :columns="resolvedColumns"
-      :loading="loading"
+      :loading="false"
       :sort="sortInternal"
       :row-attr="rowAttr"
       class="w-full"
@@ -78,15 +78,67 @@
         />
       </template>
 
+      <!-- Skeleton loading state -->
+      <template v-if="loading" #body>
+        <tr v-for="i in (metaState.pageSize || 10)" :key="`skeleton-${i}`" class="border-b border-neutral-100 dark:border-neutral-800">
+          <td v-if="selectable" class="px-3 py-4">
+            <USkeleton class="h-4 w-4" />
+          </td>
+          <td v-for="col in baseColumns" :key="col.id" class="px-3 py-4">
+            <USkeleton class="h-4 w-full max-w-[150px]" />
+          </td>
+          <td v-if="capabilities.hasStatus" class="px-3 py-4">
+            <USkeleton class="h-5 w-20 rounded-full" />
+          </td>
+          <td v-if="capabilities.translatable" class="px-3 py-4">
+            <USkeleton class="h-5 w-24 rounded-full" />
+          </td>
+          <td v-if="capabilities.i18nHealth" class="px-3 py-4 text-center">
+            <div class="flex justify-center gap-1">
+              <USkeleton class="h-5 w-6 rounded-sm" />
+              <USkeleton class="h-5 w-6 rounded-sm" />
+            </div>
+          </td>
+          <td v-if="capabilities.hasTags" class="px-3 py-4">
+             <div class="flex gap-1">
+               <USkeleton class="h-5 w-12 rounded-full" />
+               <USkeleton class="h-5 w-12 rounded-full" />
+             </div>
+          </td>
+          <td v-if="capabilities.hasRevisions" class="px-3 py-4 text-center">
+            <USkeleton class="mx-auto h-4 w-8" />
+          </td>
+          <td v-if="hasActionsSlot || capabilities.actionsBatch" class="px-3 py-4 text-right">
+            <USkeleton class="ml-auto h-8 w-8 rounded-md" />
+          </td>
+        </tr>
+      </template>
+
       <template
         v-for="column in slotColumns"
         :key="column.key"
         #[column.slotName]="ctx"
       >
         <slot :name="`cell-${column.key}`" v-bind="ctx">
+          <template v-if="column.isI18nHealth">
+            <div class="flex gap-1">
+              <template v-for="lang in ['es', 'en']" :key="lang">
+                <UTooltip :text="lang.toUpperCase()">
+                  <UBadge
+                    size="xs"
+                    variant="soft"
+                    :color="ctx.row.original?.language_code === lang || (lang === 'en' && ctx.row.original?._isFallback) ? 'success' : 'neutral'"
+                    :class="ctx.row.original?.language_code === lang ? 'opacity-100' : 'opacity-40'"
+                  >
+                    {{ lang.toUpperCase() }}
+                  </UBadge>
+                </UTooltip>
+              </template>
+            </div>
+          </template>
           <component
             :is="column.component"
-            v-if="column.component"
+            v-else-if="column.component"
             v-bind="buildComponentProps(column, ctx)"
           />
           <span v-else class="block truncate">
@@ -129,7 +181,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, readonly } from 'vue'
 import { useSlots, useI18n } from '#imports'
-import type { TableColumn, TableSort } from '@nuxt/ui'
+import type { TableColumn } from '@nuxt/ui'
 import PaginationControls from '~/components/common/PaginationControls.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useListMeta, type ListMeta } from '~/composables/common/useListMeta'
@@ -138,6 +190,8 @@ import { useEntityCapabilities, type EntityCapabilities } from '~/composables/co
 // Row data type - generic record with id
 export interface TableRowData {
   id?: number | string
+  language_code?: string | null
+  _isFallback?: boolean
   [key: string]: unknown
 }
 
@@ -146,7 +200,7 @@ export interface ColumnDefinition<T = TableRowData> {
   label?: string
   sortable?: boolean
   width?: string
-  align?: TableColumn<T>['align']
+  align?: 'left' | 'center' | 'right'
   hidden?: boolean
   capability?: keyof EntityCapabilities | Array<keyof EntityCapabilities>
 }
@@ -165,7 +219,7 @@ const props = withDefaults(defineProps<{
   densityToggle?: boolean
   title?: string
   showToolbar?: boolean
-  sort?: TableSort | null
+  sort?: { column: string; direction: 'asc' | 'desc' } | null
   pageSizeItems?: Array<{ label: string; value: number }>
 }>(), {
   items: () => [],
@@ -191,7 +245,7 @@ const emit = defineEmits<{
   (e: 'update:selected', value: Array<string | number>): void
   (e: 'update:page', value: number): void
   (e: 'update:pageSize', value: number): void
-  (e: 'update:sort', value: TableSort): void
+  (e: 'update:sort', value: { column: string; direction: 'asc' | 'desc' }): void
   (e: 'row:click', value: TableRowData): void
   (e: 'row:dblclick', value: TableRowData): void
 }>()
@@ -250,7 +304,7 @@ watch(items, () => {
   selectedInternal.value = selectedInternal.value.filter(key => validKeys.has(key))
 })
 
-const sortInternal = ref<TableSort | null>(props.sort)
+const sortInternal = ref<{ column: string; direction: 'asc' | 'desc' } | null>(props.sort)
 watch(() => props.sort, (value) => { sortInternal.value = value })
 
 function acceptsCapability(column: ColumnDefinition): boolean {
@@ -297,6 +351,11 @@ const resolvedColumns = computed<TableColumn[]>(() => {
     existing.add('translationStatus')
   }
 
+  if (caps.i18nHealth && !existing.has('i18nHealth')) {
+    list.push({ id: 'i18nHealth', accessorKey: 'i18nHealth', header: tt('ui.fields.i18nHealth', 'i18n Health'), width: '1%' })
+    existing.add('i18nHealth')
+  }
+
   if (caps.hasTags && !existing.has('tags')) {
     list.push({ id: 'tags', accessorKey: 'tags', header: tt('ui.fields.tags', 'Tags') })
     existing.add('tags')
@@ -326,6 +385,8 @@ function builtinComponentFor(key: string | undefined) {
       return { component: StatusBadge, badgeType: 'user' as const }
     case 'status':
       return { component: StatusBadge, badgeType: 'status' as const }
+    case 'i18nHealth':
+      return { component: 'div', isI18nHealth: true }
     default:
       return null
   }
@@ -340,12 +401,17 @@ const slotColumns = computed(() => resolvedColumns.value
       key,
       slotName: `${key}-cell`,
       component: config?.component ?? null,
-      badgeType: config?.badgeType,
+      badgeType: (config as any)?.badgeType,
+      isI18nHealth: (config as any)?.isI18nHealth,
     }
   }))
 
-function buildComponentProps(column: { key: string; component: unknown; badgeType?: 'status' | 'release' | 'translation' | 'user' }, ctx: { getValue?: () => unknown; row?: { original?: TableRowData } }) {
+function buildComponentProps(column: { key: string; component: unknown; badgeType?: 'status' | 'release' | 'translation' | 'user'; isI18nHealth?: boolean }, ctx: { getValue?: () => unknown; row?: { original?: TableRowData } }) {
   const value = ctx?.getValue ? ctx.getValue() : ctx?.row?.original?.[column.key]
+
+  if (column.isI18nHealth) {
+    return {}
+  }
 
   if (column.component === StatusBadge) {
     const row = ctx?.row?.original ?? {}
@@ -392,13 +458,10 @@ defineExpose({
 
 const tableUi = computed(() => ({
   thead: 'text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400',
-  td: {
-    base: densityInternal.value === 'compact'
-      ? 'text-xs py-2'
-      : densityInternal.value === 'comfortable'
-        ? 'text-sm py-4'
-        : 'text-sm py-3',
-  },
+  tbody: 'divide-y divide-neutral-100 dark:divide-neutral-800',
+  tr: {
+    base: 'cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800'
+  }
 }))
 
 const showHeader = computed(() => props.showToolbar || Boolean(slots.toolbar) || Boolean(slots.title) || Boolean(props.title))
@@ -440,7 +503,7 @@ function toggleRow(row: TableRowData, include: boolean) {
   selectedInternal.value = Array.from(next)
 }
 
-function handleSort(sort: TableSort) {
+function handleSort(sort: { column: string; direction: 'asc' | 'desc' }) {
   sortInternal.value = sort
   emit('update:sort', sort)
 }

@@ -49,6 +49,7 @@ const translationFields = {
 export const baseCardCreateSchema = z.object({
   code: z.string().min(1),
   card_type_id: z.coerce.number().int().positive(),
+  card_family: z.string().min(1),
   image: z.string().nullable().optional(),
   status: z.string().optional(),
   is_active: z.boolean().optional(),
@@ -61,6 +62,7 @@ export const baseCardCreateSchema = z.object({
 export const baseCardUpdateSchema = z.object({
   code: z.string().min(1).optional(),
   card_type_id: z.coerce.number().int().positive().optional(),
+  card_family: z.string().min(1).optional(),
   image: z.string().nullable().optional(),
   status: z.string().optional(),
   is_active: z.boolean().optional(),

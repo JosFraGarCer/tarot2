@@ -32,18 +32,18 @@ export default defineEventHandler(async (event) => {
       }
     })
 
-    globalThis.logger?.info('Tags detached from entities', {
+    globalThis.logger?.info({
       entity_type,
       entity_count: entity_ids.length,
       tag_count: tag_ids.length,
       timeMs: Date.now() - startedAt,
-    })
+    }, 'Tags detached from entities')
 
     return createResponse({ entity_type, entity_ids, tag_ids }, null)
   } catch (error) {
-    globalThis.logger?.error('Failed to detach tags from entities', {
+    globalThis.logger?.error({
       error: error instanceof Error ? error.message : String(error),
-    })
+    }, 'Failed to detach tags from entities')
     throw error
   }
 })

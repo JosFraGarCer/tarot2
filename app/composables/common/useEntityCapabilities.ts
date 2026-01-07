@@ -26,6 +26,7 @@ const DEFAULT_CAPABILITIES: Required<EntityCapabilities> = {
   hasStatus: true,
   hasReleaseStage: false,
   hasLanguage: true,
+  i18nHealth: true,
   actionsBatch: false,
 }
 
@@ -37,6 +38,7 @@ const ENTITY_CAPABILITIES_MAP: Record<string, Partial<EntityCapabilities>> = {
     hasRevisions: true,
     hasStatus: true,
     hasReleaseStage: true,
+    i18nHealth: true,
     actionsBatch: true,
   },
   base_card: {
@@ -46,6 +48,7 @@ const ENTITY_CAPABILITIES_MAP: Record<string, Partial<EntityCapabilities>> = {
     hasRevisions: true,
     hasStatus: true,
     hasReleaseStage: true,
+    i18nHealth: true,
     actionsBatch: true,
   },
   world: {
@@ -55,6 +58,7 @@ const ENTITY_CAPABILITIES_MAP: Record<string, Partial<EntityCapabilities>> = {
     hasRevisions: false,
     hasStatus: true,
     hasReleaseStage: false,
+    i18nHealth: true,
   },
   content_version: {
     translatable: false,

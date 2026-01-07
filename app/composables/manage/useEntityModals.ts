@@ -106,9 +106,30 @@ export function useEntityModals(
         const looksUrl = s.startsWith('http://') || s.startsWith('https://') || s.startsWith('/')
         if (!looksUrl) delete payload.image
       }
+      // 1. First pass: extract primitive values from objects (UI artifacts)
       for (const k in payload) {
+        const v = payload[k]
+        if (v && typeof v === 'object' && 'value' in v) {
+          payload[k] = (v as { value: unknown }).value
+        }
+      }
+
+      // 2. Second pass: type normalization and cleaning
+      for (const k in payload) {
+        const v = payload[k]
+
+        // Normalize IDs to numbers
+        if ((k.endsWith('_id') || k === 'id') && v !== null && v !== undefined && v !== '') {
+          const num = Number(v)
+          if (!isNaN(num)) {
+            payload[k] = num
+          }
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- Remove empty values
-        if (payload[k] === '' || payload[k] === null) delete payload[k]
+        if (payload[k] === '' || payload[k] === null) {
+          delete payload[k]
+        }
       }
       if (isEditing.value && payload.id != null) {
         await crud.update?.(payload.id as string | number, payload)

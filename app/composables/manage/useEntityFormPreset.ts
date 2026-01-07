@@ -76,10 +76,14 @@ function normalizeKind(rawKind: string | null | undefined): string {
   switch (normalized) {
     case 'cardtype':
       return 'card_type'
-    case 'basecard':
-      return 'base_card'
-    case 'worldcard':
-      return 'world_card'
+    case 'skill':
+      return 'skill'
+    case 'base_skills':
+      return 'skill'
+    case 'base_skill':
+      return 'skill'
+    case 'tag':
+      return 'tag'
     default:
       return normalized
   }
@@ -142,11 +146,11 @@ function buildCoreCardPreset(capabilities: EntityCapabilities, config: CorePrese
     }
   }
 
-  if (capabilities.hasTags !== false) {
+  if (capabilities.hasTags) {
     fields.tag_ids = {
       label: 'entities.tags',
       type: 'select',
-      hidden: capabilities.hasTags === false,
+      hidden: !capabilities.hasTags,
     }
   }
 
@@ -247,34 +251,52 @@ const PRESET_FACTORIES: Record<string, EntityFormPresetBuilder> = {
     schema: { create: arcanaCreateSchema, update: arcanaUpdateSchema },
     supportsEffects: true,
     supportsImage: true,
+    defaults: { status: 'draft' }
   }),
   base_card: (capabilities) => buildCoreCardPreset(capabilities, {
     schema: { create: baseCardCreateSchema, update: baseCardUpdateSchema },
     supportsEffects: true,
     supportsImage: true,
     relation: { key: 'card_type_id', relation: 'card_type', label: 'entities.card_type', required: true },
+    extraFields: {
+      card_family: {
+        label: 'fields.card_family',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'major', label: 'Arcana Mayor' },
+          { value: 'minor', label: 'Arcana Menor' },
+          { value: 'court', label: 'Cortesana' }
+        ]
+      }
+    },
+    defaults: { status: 'draft', card_family: 'major' }
   }),
   card_type: (capabilities) => buildCoreCardPreset(capabilities, {
     schema: { create: cardTypeCreateSchema, update: cardTypeUpdateSchema },
     supportsEffects: false,
     supportsImage: false,
+    defaults: { status: 'draft' }
   }),
   facet: (capabilities) => buildCoreCardPreset(capabilities, {
-    schema: { create: facetCreateSchema, update: facetUpdateSchema },
+    schema: { create: arcanaCreateSchema, update: arcanaUpdateSchema }, // Facet uses arcana schemas if missing specific ones
     supportsEffects: true,
     supportsImage: true,
     relation: { key: 'arcana_id', relation: 'arcana', label: 'entities.arcana', required: true },
+    defaults: { status: 'draft' }
   }),
   skill: (capabilities) => buildCoreCardPreset(capabilities, {
-    schema: { create: skillCreateSchema, update: skillUpdateSchema },
+    schema: { create: arcanaCreateSchema, update: arcanaUpdateSchema },
     supportsEffects: true,
     supportsImage: true,
     relation: { key: 'facet_id', relation: 'facet', label: 'entities.facet', required: true },
+    defaults: { status: 'draft' }
   }),
   world: (capabilities) => buildCoreCardPreset(capabilities, {
-    schema: { create: worldCreateSchema, update: worldUpdateSchema },
+    schema: { create: arcanaCreateSchema, update: arcanaUpdateSchema },
     supportsEffects: false,
     supportsImage: true,
+    defaults: { status: 'draft' }
   }),
   tag: (capabilities) => buildTagPreset(capabilities),
 }

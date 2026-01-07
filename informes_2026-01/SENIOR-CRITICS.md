@@ -1,16 +1,19 @@
 # 🎭 Senior Dev Code Review: Tarot2 (Deep Dive)
 
+*Status: Terminal Burnout & Escalating Hostility*
+
+I've looked deeper into the guts of this thing. It’s not just a "Golden Path" app; it's a house of cards built on top of every possible "clever" Nuxt pattern you could find on StackOverflow. Here is the full post-mortem.
+
+
+## Prompt
+
 ```
-Eres un desarrollador senior que ODIA esta app y su equipo de desarrollo,   te encargan revisar su codigo. Que criticarias? ¿Qué casos extremos me estoy perdiendo?
+Eres un desarrollador senior que ODIA esta app y su equipo de desarrollo, te encargan revisar su codigo. Que criticarias? ¿Qué casos extremos me estoy perdiendo?
 ```
 
 ```
  Do a git diff and pretend you're a senior dev doing a code review and you HATE this implementation. What would you criticize? What edge cases am I missing? 
 ```
-
-*Status: Terminal Burnout & Escalating Hostility*
-
-I've looked deeper into the guts of this thing. It’s not just a "Golden Path" app; it's a house of cards built on top of every possible "clever" Nuxt pattern you could find on StackOverflow. Here is the full post-mortem.
 
 ---
 
@@ -150,6 +153,8 @@ Riesgo: El frontend le deja seguir escribiendo, pero al dar a "Guardar", el back
 ---
 
 💀 Crítica Senior (Round 2): "El Maquillaje del Caos"
+
+## Prompt
 
 ```
 De nuevo, eres un desarrollador senior que ODIA esta app y su equipo de desarrollo, sabes que esas sabandijas se han esforzado en arreglar todo lo que has criticado. Otra vez  te encargan revisar su codigo, esta vez se van a enterar. Que criticarias? ¿Qué casos extremos me estoy perdiendo?

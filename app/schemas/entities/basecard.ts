@@ -30,8 +30,8 @@ const commonOptional = {
 
 export const baseCardCreateSchema = z.object({
   code: z.string().min(1),
-  name: z.string().min(1),
   card_type_id: z.number().int(),
+  card_family: z.string().min(1),
   ...commonOptional,
 })
 
@@ -39,5 +39,6 @@ export const baseCardUpdateSchema = z.object({
   name: z.string().min(1),
   code: z.string().min(1).optional(),
   card_type_id: z.number().int().optional(),
+  card_family: z.string().min(1).optional(),
   ...commonOptional,
 })
