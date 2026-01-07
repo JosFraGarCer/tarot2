@@ -1,7 +1,8 @@
-import { reactive, ref } from 'vue'
+import { reactive, ref, type Ref, toValue } from 'vue'
 import type { useToast } from '#imports'
 import type { AnyManageCrud } from '@/types/manage'
 import { useFormState } from '~/composables/manage/useFormState'
+import { useFormPersistence } from '~/composables/manage/useFormPersistence'
 import { useApiFetch } from '~/utils/fetcher'
 
 export function useEntityModals(
@@ -27,6 +28,11 @@ export function useEntityModals(
     initialValue: () => opts.defaults?.value ? structuredClone(toValue(opts.defaults)) : {} 
   })
   const modalFormState = form.values
+
+  const persistence = useFormPersistence(
+    crud.resourcePath.replace(/\//g, '_'),
+    form
+  )
   const manage = reactive<{ englishItem: Record<string, unknown> | null }>({ englishItem: null })
 
   function et(key: 'create' | 'edit') {
@@ -76,6 +82,16 @@ export function useEntityModals(
     form.reset({ to: defaults, updateInitial: true })
     if (imagePreview) imagePreview.value = null
     manage.englishItem = null
+    
+    // Check for draft
+    if (persistence.hasDraft()) {
+      if (confirm(t?.('ui.drafts.recover_prompt') || 'Se ha encontrado un borrador. ¿Deseas recuperarlo?')) {
+        persistence.loadDraft()
+      } else {
+        persistence.clearDraft()
+      }
+    }
+    
     isModalOpen.value = true
   }
 
@@ -101,6 +117,7 @@ export function useEntityModals(
       }
       await crud.fetchList?.()
       form.markClean({ updateInitial: true })
+      persistence.clearDraft()
       isModalOpen.value = false
       toast?.add?.({ title: (t?.('common.saved') ?? 'Saved') as string, color: 'success' })
     } catch {

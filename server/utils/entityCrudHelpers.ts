@@ -290,16 +290,20 @@ export async function batchUpdateEntities(opts: CrudHelperOptions) {
     }
 
     if (opts.userId != null) patch.updated_by = opts.userId
+    // DEEP MODIFIED CHECK: Ensure base table modified_at is updated
+    patch.modified_at = sql`now()`
 
-    const res = await globalThis.db
-      .updateTable(sql`${sql.ref(table)}`)
-      .set(patch)
-      .where(sql`${sql.ref(idField)}`, 'in', ids)
-      .execute()
+    await globalThis.db.transaction().execute(async (trx) => {
+      const res = await trx
+        .updateTable(sql`${sql.ref(table)}` as any)
+        .set(patch as any)
+        .where(sql`${sql.ref(idField)}` as any, 'in', ids)
+        .executeTakeFirst()
 
-    const updated = Array.isArray(res) ? res.length : 0
-    globalThis.logger?.info('Batch update entities', { table, updated, timeMs: Date.now() - startedAt })
-    return createResponse({ updated }, null)
+      const updated = Number(res.numUpdatedRows)
+      globalThis.logger?.info('Batch update entities', { table, updated, timeMs: Date.now() - startedAt })
+      return createResponse({ updated }, null)
+    })
   } catch (error) {
     globalThis.logger?.error('Batch update failed', { table: opts.table, error: String(error) })
     throw error

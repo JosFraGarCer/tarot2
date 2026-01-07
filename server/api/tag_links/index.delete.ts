@@ -3,6 +3,8 @@ import { defineEventHandler, readBody } from 'h3'
 import { createResponse } from '../../utils/response'
 import { safeParseOrThrow } from '../../utils/validate'
 import { tagLinksDetachSchema } from '../../schemas/tag-link'
+import { touchEntityModifiedAt } from '../../utils/eagerTags'
+import type { DB } from '../../database/types'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
@@ -12,16 +14,23 @@ export default defineEventHandler(async (event) => {
 
     const { entity_type, entity_ids, tag_ids } = payload
 
-    await globalThis.db
-      .deleteFrom('tag_links')
-      .where((eb) =>
-        eb.and([
-          eb('entity_type', '=', entity_type),
-          eb('entity_id', 'in', entity_ids),
-          eb('tag_id', 'in', tag_ids),
-        ]),
-      )
-      .execute()
+    await globalThis.db.transaction().execute(async (trx) => {
+      await trx
+        .deleteFrom('tag_links')
+        .where((eb) =>
+          eb.and([
+            eb('entity_type', '=', entity_type),
+            eb('entity_id', 'in', entity_ids),
+            eb('tag_id', 'in', tag_ids),
+          ]),
+        )
+        .execute()
+
+      // DEEP MODIFIED CHECK: Update base entities modified_at when tags are detached
+      for (const id of entity_ids) {
+        await touchEntityModifiedAt(trx, entity_type as keyof DB, id)
+      }
+    })
 
     globalThis.logger?.info('Tags detached from entities', {
       entity_type,

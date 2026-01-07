@@ -1,5 +1,5 @@
 // server/utils/createCrudHandlers.ts
-import { defineEventHandler, readBody, createError } from 'h3'
+import { defineEventHandler, readBody, createError, getRequestHeader } from 'h3'
 import type { H3Event } from 'h3'
 import type { ZodSchema, ZodTypeAny } from 'zod'
 import { z } from 'zod'
@@ -174,6 +174,14 @@ export function createCrudHandlers<
   const create = defineEventHandler(async (event) => {
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as unknown as { logger: { info: (data: unknown, msg: string) => void } }).logger
+    
+    // JSON Payload Size Limit (Senior Critic #2)
+    const contentLength = Number(getRequestHeader(event, 'content-length'))
+    const MAX_JSON_SIZE = 1024 * 500 // 500KB
+    if (contentLength > MAX_JSON_SIZE) {
+      throw createError({ statusCode: 413, statusMessage: 'Payload too large. Max 500KB.' })
+    }
+
     const raw = await readBody(event)
     const body = config.schema.create.parse(raw)
     const user = event.context.user
@@ -250,6 +258,14 @@ export function createCrudHandlers<
     if (!Number.isFinite(paramsId)) {
       throw createError({ statusCode: 400, statusMessage: 'Invalid id parameter' })
     }
+
+    // JSON Payload Size Limit (Senior Critic #2)
+    const contentLength = Number(getRequestHeader(event, 'content-length'))
+    const MAX_JSON_SIZE = 1024 * 500 // 500KB
+    if (contentLength > MAX_JSON_SIZE) {
+      throw createError({ statusCode: 413, statusMessage: 'Payload too large. Max 500KB.' })
+    }
+
     const raw = await readBody(event)
     const body = config.schema.update.parse(raw)
     const user = event.context.user

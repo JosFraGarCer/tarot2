@@ -1,6 +1,30 @@
 import { sql } from 'kysely'
+import { createError } from 'h3'
 import type { DB } from '../database/types'
-import type { Kysely } from 'kysely'
+import type { Kysely, Transaction } from 'kysely'
+
+/**
+ * Updates the modified_at field of a base entity.
+ * Used when children (translations, tags) are modified to ensure
+ * optimistic locking works correctly.
+ */
+export async function touchEntityModifiedAt(
+  trx: Transaction<DB> | Kysely<DB>,
+  baseTable: keyof DB,
+  id: number | string,
+  idColumn: string = 'id'
+) {
+  try {
+    await trx
+      .updateTable(baseTable as any)
+      .set({ modified_at: sql`now()` } as any)
+      .where(idColumn as any, '=', id)
+      .execute()
+  } catch (e) {
+    // Some tables might not have modified_at, we ignore errors here
+    // as it's a best-effort update for optimistic locking support
+  }
+}
 
 export interface TagInfo {
   id: number

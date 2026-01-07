@@ -150,6 +150,15 @@ export async function translatableUpsert<TEntityRow = unknown>(
       })
       translationInserted = translationInserted || result === 'inserted'
       translationUpdated = translationUpdated || result === 'updated'
+
+      // DEEP MODIFIED CHECK: Update base entity modified_at when translation changes
+      if (result === 'updated' || result === 'inserted') {
+        await trx
+          .updateTable(opts.baseTable)
+          .set({ modified_at: sql`now()` } as any)
+          .where(idColumn as any, '=', entityId)
+          .execute()
+      }
     }
 
     // Ensure default language translation exists on create

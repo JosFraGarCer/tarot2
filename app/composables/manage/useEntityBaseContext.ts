@@ -246,17 +246,26 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
       // Intentamos un fetch ligero para ver si la sesión sigue viva
       await $fetch('/api/auth/session', { method: 'GET' })
       lastAuthCheck.value = Date.now()
+      authFailCount.value = 0 // Reset on success
     } catch (e: any) {
-      if (e.statusCode === 401 || e.statusCode === 403) {
+      authFailCount.value++
+      if (e.statusCode === 401 || e.statusCode === 403 || authFailCount.value >= 3) {
         toast.add({
           title: t('auth.sessionExpired.title'),
           description: t('auth.sessionExpired.description'),
           color: 'error',
-          timeout: 0, // Persistent
+          // @ts-ignore - Support persistent toast if library allows
+          duration: 0,
         })
+        // Force redirect to login if it's a hard fail
+        if (e.statusCode === 401) {
+          window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname)
+        }
       }
     }
   }
+
+  const authFailCount = ref(0)
 
   let authTimer: any = null
   onMounted(() => {
@@ -265,6 +274,9 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
   onUnmounted(() => {
     if (authTimer) clearInterval(authTimer)
   })
+
+  // --- Event Handlers Wrapper ---
+  const onCreateClickWrapper = () => onCreateClick(() => options.emit('create'))
 
   // --- Context Object (Flat) ---
   const context = {

@@ -3,6 +3,8 @@ import { defineEventHandler, readBody } from 'h3'
 import { createResponse } from '../../utils/response'
 import { safeParseOrThrow } from '../../utils/validate'
 import { tagLinksAttachSchema } from '../../schemas/tag-link'
+import { touchEntityModifiedAt } from '../../utils/eagerTags'
+import type { DB } from '../../database/types'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
@@ -27,6 +29,9 @@ export default defineEventHandler(async (event) => {
           .values(values)
           .onConflict((oc) => oc.columns(['tag_id', 'entity_type', 'entity_id']).doNothing())
           .execute()
+
+        // DEEP MODIFIED CHECK: Update base entity modified_at when tags are attached
+        await touchEntityModifiedAt(trx, entity_type as keyof DB, entityId)
       }
     })
 
