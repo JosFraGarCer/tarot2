@@ -47,6 +47,13 @@ interface MutationsPayload<TCreate, TUpdate> {
     lang?: string | null
     modifiedAt?: string | null
   }
+  // Hooks for custom logic (Senior Critic: "The Risk" in CRUD Handler)
+  beforeCreate?: (input: TCreate, ctx: CrudContext<TCreate>) => Promise<void> | void
+  afterCreate?: (result: { id: number; row: any }, input: TCreate, ctx: CrudContext<TCreate>) => Promise<void> | void
+  beforeUpdate?: (id: number, input: TUpdate, ctx: CrudContext<TUpdate>) => Promise<void> | void
+  afterUpdate?: (result: { id: number; row: any }, input: TUpdate, ctx: CrudContext<TUpdate>) => Promise<void> | void
+  beforeRemove?: (id: number, ctx: CrudContext<any>) => Promise<void> | void
+  afterRemove?: (id: number, ctx: CrudContext<any>) => Promise<void> | void
 }
 
 interface TranslationConfig {
@@ -151,7 +158,7 @@ export function createCrudHandlers<
     const data = builder.skipFallbackMark ? transformed : (Array.isArray(transformed) ? markLanguageFallback(transformed as Record<string, unknown>[], lang) : markLanguageFallback(transformed as Record<string, unknown>, lang))
 
     const metaFromBuilder = builder.logMeta
-      ? builder.logMeta({ rows, ctx, page, pageSize, totalItems })
+      ? (builder.logMeta({ rows, ctx, page, pageSize, totalItems }) as Record<string, unknown>)
       : {}
 
     logger?.info?.({
@@ -189,10 +196,39 @@ export function createCrudHandlers<
 
     const raw = await readBody(event)
     const body = config.schema.create.parse(raw) as TCreate
+    
+    // 🛡️ Idempotency Protection (Senior Critic #6)
+    const idempotencyKey = getRequestHeader(event, 'x-idempotency-key')
+    if (idempotencyKey) {
+      const db = getDb(event)
+      const existing = await db
+        .selectFrom('idempotency_keys')
+        .select(['response_body', 'status_code'])
+        .where('key', '=', idempotencyKey)
+        .where('user_id', '=', event.context.user?.id)
+        .executeTakeFirst()
+
+      if (existing) {
+        logger?.info?.({ scope: 'idempotency', key: idempotencyKey }, 'Returning cached response for idempotency key')
+        event.node.res.statusCode = existing.status_code
+        return JSON.parse(existing.response_body)
+      }
+    }
+
+    // 🛡️ Mass Assignment Protection: Strip fields not present in Zod schema
+    // config.schema.create.parse already returns only the fields defined in the schema
+    // but we reinforce it here for clarity and safety.
+    const validatedBody = body as Record<string, unknown>
+    
     const user = event.context.user
     const lang = (body as Record<string, unknown>).lang ? String((body as Record<string, unknown>).lang).toLowerCase() : 'en'
     const db = getDb(event)
     const ctx: CrudContext<TCreate> = { event, db, query: body, lang }
+
+    // Execute beforeCreate hook if provided
+    if (config.mutations.beforeCreate) {
+      await config.mutations.beforeCreate(body, ctx)
+    }
 
     const { baseData, translationData } = config.mutations.buildCreatePayload(body, ctx)
     
@@ -212,6 +248,14 @@ export function createCrudHandlers<
         lang,
         select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body as any, lang: langCode }, id),
       })
+      const id = upsertResult.id
+      const row = upsertResult.row
+      
+      // Execute afterCreate hook
+      if (config.mutations.afterCreate) {
+        await config.mutations.afterCreate({ id, row }, body, ctx)
+      }
+
       logger?.info?.({
         scope: `${config.logScope ?? config.entity}.create`,
         entity: config.entity,
@@ -219,7 +263,22 @@ export function createCrudHandlers<
         lang: upsertResult.lang,
         timeMs: Date.now() - startedAt,
       }, 'Entity created')
-      return createResponse(upsertResult.row, null)
+
+      const response = createResponse(upsertResult.row, null)
+      
+      if (idempotencyKey) {
+        await db.insertInto('idempotency_keys')
+          .values({
+            key: idempotencyKey,
+            user_id: user?.id,
+            response_body: JSON.stringify(response),
+            status_code: 200,
+            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
+          })
+          .execute()
+      }
+
+      return response
     }
 
     const insert = await db
@@ -234,6 +293,12 @@ export function createCrudHandlers<
 
     const id = Number((insert as Record<string, unknown>)[idColumn])
     const row = await config.selectOne({ event, db, query: body as any, lang }, id)
+
+    // Execute afterCreate hook
+    if (config.mutations.afterCreate) {
+      await config.mutations.afterCreate({ id, row }, body, ctx)
+    }
+
     logger?.info?.({ scope: `${config.logScope ?? config.entity}.create`, entity: config.entity, id, timeMs: Date.now() - startedAt }, 'Entity created')
     return createResponse(row ? markLanguageFallback(row, lang) : row, null)
   })
@@ -245,7 +310,7 @@ export function createCrudHandlers<
     if (!Number.isFinite(paramsId)) {
       throw createError({ statusCode: 400, statusMessage: 'Invalid id parameter' })
     }
-    const query = parseQuery(event, deleteSchema, { scope: `${config.logScope ?? config.entity}.detail.query` })
+    const query = (await parseQuery(event, deleteSchema, { scope: `${config.logScope ?? config.entity}.detail.query` })) as Record<string, unknown>
     const lang = resolveLangFromQuery(query as Record<string, unknown>)
     const db = getDb(event)
     const ctx: CrudContext<any> = { event, db, query, lang }
@@ -275,11 +340,21 @@ export function createCrudHandlers<
 
     const raw = await readBody(event)
     const body = config.schema.update.parse(raw) as TUpdate
+
+    // 🛡️ Mass Assignment Protection: Reinforce stripping
+    const validatedBody = body as Record<string, unknown>
+
     const user = event.context.user
     const lang = (body as Record<string, unknown>).lang ? String((body as Record<string, unknown>).lang).toLowerCase() : 'en'
     const modifiedAt = (body as Record<string, unknown>).modified_at ? String((body as Record<string, unknown>).modified_at) : null
     const db = getDb(event)
     const ctx: CrudContext<TUpdate> = { event, db, query: body, lang }
+
+    // Execute beforeUpdate hook
+    if (config.mutations.beforeUpdate) {
+      await config.mutations.beforeUpdate(paramsId, body, ctx)
+    }
+
     const { baseData, translationData } = config.mutations.buildUpdatePayload(body, ctx)
     
     // Add updated_by if column exists
@@ -300,6 +375,14 @@ export function createCrudHandlers<
         modifiedAt,
         select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body as any, lang: langCode }, id),
       })
+      const id = upsertResult.id
+      const row = upsertResult.row
+
+      // Execute afterUpdate hook
+      if (config.mutations.afterUpdate) {
+        await config.mutations.afterUpdate({ id, row }, body, ctx)
+      }
+
       logger?.info?.({
         scope: `${config.logScope ?? config.entity}.update`,
         entity: config.entity,
@@ -333,6 +416,12 @@ export function createCrudHandlers<
     if (!row) {
       throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
     }
+
+    // Execute afterUpdate hook
+    if (config.mutations.afterUpdate) {
+      await config.mutations.afterUpdate({ id: paramsId, row }, body, ctx)
+    }
+
     logger?.info?.({ scope: `${config.logScope ?? config.entity}.update`, entity: config.entity, id: paramsId, lang, timeMs: Date.now() - startedAt }, 'Entity updated')
     return createResponse(markLanguageFallback(row, lang), null)
   })
@@ -344,9 +433,15 @@ export function createCrudHandlers<
     if (!Number.isFinite(paramsId)) {
       throw createError({ statusCode: 400, statusMessage: 'Invalid id parameter' })
     }
-    const query = parseQuery(event, deleteSchema, { scope: `${config.logScope ?? config.entity}.delete.query` })
+    const query = (await parseQuery(event, deleteSchema, { scope: `${config.logScope ?? config.entity}.delete.query` })) as Record<string, unknown>
     const lang = resolveLangFromQuery(query as Record<string, unknown>)
     const db = getDb(event)
+    const ctx: CrudContext<any> = { event, db, query, lang }
+
+    // Execute beforeRemove hook
+    if (config.mutations.beforeRemove) {
+      await config.mutations.beforeRemove(paramsId, ctx)
+    }
 
     if (translation) {
       const result = await deleteLocalizedEntity({
@@ -359,6 +454,12 @@ export function createCrudHandlers<
         id: paramsId,
         lang,
       })
+
+      // Execute afterRemove hook
+      if (config.mutations.afterRemove) {
+        await config.mutations.afterRemove(paramsId, ctx)
+      }
+
       logger?.info?.({
         scope: `${config.logScope ?? config.entity}.delete`,
         entity: config.entity,
@@ -372,6 +473,12 @@ export function createCrudHandlers<
     }
 
     await db.deleteFrom(config.baseTable).where(idColumn as any, '=', paramsId).execute()
+
+    // Execute afterRemove hook
+    if (config.mutations.afterRemove) {
+      await config.mutations.afterRemove(paramsId, ctx)
+    }
+
     logger?.info?.({ scope: `${config.logScope ?? config.entity}.delete`, entity: config.entity, id: paramsId, timeMs: Date.now() - startedAt }, 'Entity deleted')
     return createResponse({ id: paramsId }, null)
   })

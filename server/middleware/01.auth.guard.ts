@@ -1,20 +1,20 @@
 import { defineEventHandler, createError } from 'h3'
 
-const PUBLIC_API_PATHS = new Set([
+const PUBLIC_API_PREFIXES = [
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/session',
-])
+]
 
 export default defineEventHandler((event) => {
-  const path = event.path || ''
+  const path = (event.path || '').split('?')[0].toLowerCase()
   if (!path.startsWith('/api')) return
   
   // H3 native method check
   if (event.method === 'OPTIONS') return
 
-  // ✅ Solo login/logout/session son públicos
-  if (PUBLIC_API_PATHS.has(path)) return
+  // ✅ Solo login/logout/session son públicos (case-insensitive y prefijo base)
+  if (PUBLIC_API_PREFIXES.some(prefix => path === prefix || path.startsWith(`${prefix}/`))) return
 
   const user = event.context.user
 
@@ -37,8 +37,20 @@ export default defineEventHandler((event) => {
   const roles = user.roles || []
   const isAdmin = roles.some((r: any) => r.name?.toLowerCase() === 'admin') || perms.canManageUsers
 
-  // Admin acceso total
+  // ✅ Admin tiene acceso total
   if (isAdmin) return
+
+  // 🔐 Validación de propiedad (Ownership) y permisos granulares (Senior Critic: "Security by Optimism")
+  // Evita IDOR (Insecure Direct Object Reference) en la API de usuarios
+  if (path.startsWith('/api/user/')) {
+    const targetId = path.split('/')[3]
+    if (targetId && targetId !== String(user.id)) {
+      throw createError({ 
+        statusCode: 403, 
+        message: 'Forbidden: You can only access your own profile' 
+      })
+    }
+  }
 
   // Ejemplo granular: solo managers editan roles
   if (path.startsWith('/api/role') && !perms.canManageUsers) {

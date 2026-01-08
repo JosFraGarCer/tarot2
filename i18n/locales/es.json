@@ -32,7 +32,10 @@
     "image": "Image",
     "legacy_effects": "Legacy_effects",
     "effects": "Effects",
-    "language_code": "Language_code"
+    "language_code": "Language_code",
+    "time": {
+      "now": "ahora mismo"
+    }
   },
   "deck": {
     "arcanaDescription": "Explora arcanos arquetipo y sus resúmenes.",
@@ -543,6 +546,25 @@
       "userProfile": "Perfil",
       "versions": "Versiones",
       "worlds": "Mundos"
+    },
+    "manage": {
+      "description": "Acceso rápido a las herramientas de gestión de cartas."
+    },
+    "description": {
+      "admin": "Herramientas de administración avanzada y control del sistema.",
+      "arcana": "Gestiona los arquetipos de arcanos y sus propiedades base.",
+      "baseCards": "Biblioteca completa de cartas base del sistema.",
+      "cardTypes": "Define y organiza los diferentes tipos de cartas disponibles.",
+      "database": "Mantenimiento, exportación e importación de datos maestros.",
+      "deck": "Explora y organiza los mazos de cartas activos.",
+      "facets": "Gestiona las facetas vinculadas a los arcanos.",
+      "feedback": "Revisa y resuelve los comentarios de los usuarios sobre el contenido.",
+      "home": "Panel principal con métricas y estado del ecosistema.",
+      "manage": "Acceso rápido a las herramientas de gestión de cartas.",
+      "manageUsers": "Control de acceso, roles y permisos de usuarios.",
+      "skills": "Gestiona las habilidades y efectos especiales.",
+      "versions": "Control de versiones y publicación de cambios en el sistema.",
+      "worlds": "Configuración de mundos y lore asociado."
     }
   },
   "system": {
@@ -599,7 +621,11 @@
       "editJson": "Edit Json",
       "back": "Back",
       "apply": "Apply",
-      "reload": "Reload"
+      "reload": "Reload",
+      "batchUpdateCompleted": "Actualización masiva completada",
+      "batchUpdateStarted": "Iniciando actualización masiva...",
+      "resetFilters": "Restablecer filtros",
+      "select_option": "Seleccionar opción"
     },
     "fields": {
       "card": "Carta",
@@ -631,7 +657,8 @@
       "author": "Author",
       "imageUrl": "Image Url",
       "original": "Original",
-      "createdBy": "Created By"
+      "createdBy": "Created By",
+      "i18nHealth": "Salud i18n"
     },
     "states": {
       "active": "Activa",
@@ -680,7 +707,11 @@
       }
     },
     "empty": {
-      "noData": "Sin datos"
+      "noData": "Sin datos",
+      "title": "Sin elementos todavía",
+      "subtitle": "Crea una nueva entrada para empezar a llenar tu mazo.",
+      "noResultsFiltered": "No hay resultados para tus filtros",
+      "tryAdjustFilters": "Prueba ajustando los filtros o restableciéndolos."
     },
     "filters": {
       "active": "Activas",
@@ -723,19 +754,21 @@
     "table": {
       "actions": "Acciones",
       "items": "encontrados",
-      "selected": "{count} seleccionadas",
+      "selected": "{count} elementos seleccionados",
       "selectedCount": "{n} seleccionados",
-      "densityLabel": "Density Label",
-      "selectAll": "Select All",
-      "selectRow": "Select Row",
-      "densityComfortable": "Density Comfortable",
-      "densityRegular": "Density Regular",
-      "densityCompact": "Density Compact"
+      "densityLabel": "Densidad",
+      "selectAll": "Seleccionar todo",
+      "selectRow": "Seleccionar fila",
+      "densityComfortable": "Cómoda",
+      "densityRegular": "Normal",
+      "densityCompact": "Compacta",
+      "itemsSelected": "{count} elementos seleccionados"
     },
     "labels": {
-      "unsavedChanges": "Unsaved Changes",
-      "editMode": "Edit Mode",
-      "readOnly": "Read Only"
+      "unsavedChanges": "Cambios sin guardar",
+      "editMode": "Modo edición",
+      "readOnly": "Solo lectura",
+      "unsavedChangesConfirm": "Tienes cambios sin guardar. ¿Estás seguro de que quieres cerrar?"
     },
     "placeholders": {
       "json": "Json"
@@ -744,14 +777,19 @@
       "entityInspectorDescription": "Entity Inspector Description"
     },
     "sections": {
-      "translations": "Translations",
-      "metadata": "Metadata",
-      "summary": "Summary",
+      "translations": "Traducciones",
+      "metadata": "Metadatos",
+      "summary": "Resumen",
       "basic": "Básico"
     },
     "common": {
-      "untitled": "Untitled",
-      "entity": "Entity"
+      "untitled": "Sin título",
+      "entity": "Entidad"
+    },
+    "errors": {
+      "code_taken": "Este código ya está en uso",
+      "list_failed": "Error al cargar el listado",
+      "validation_failed": "Error de validación"
     }
   },
   "viewModes": {
@@ -824,7 +862,8 @@
     "update_failed": "Update_failed",
     "unsupportedEntityTags": "Unsupported Entity Tags",
     "unsupportedFeedback": "Unsupported Feedback",
-    "validation_failed": "Validation_failed"
+    "validation_failed": "Validation_failed",
+    "batch_update_failed": "Error en la actualización masiva"
   },
   "reset": "Restablecer",
   "cancel": "Cancelar",
@@ -1030,5 +1069,18 @@
   "text-sm": "Text-sm",
   "User": "User",
   "Label": "Etiqueta",
-  "Etiqueta": "Etiqueta"
+  "Etiqueta": "Etiqueta",
+  "auth": {
+    "sessionExpired": {
+      "description": "Tu sesión ha expirado. Por favor, inicia sesión de nuevo.",
+      "title": "Sesión expirada"
+    }
+  },
+  "notifications": {
+    "history": {
+      "clear": "Limpiar historial",
+      "empty": "No hay notificaciones recientes",
+      "title": "Centro de Notificaciones"
+    }
+  }
 }

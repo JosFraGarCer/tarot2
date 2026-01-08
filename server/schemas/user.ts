@@ -16,11 +16,11 @@ export const userQuerySchema = z.object({
 })
 
 export const userCreateSchema = z.object({
-  username: z.string().min(3),
-  email: z.string().email(),
-  password: z.string().min(6),
-  image: z.string().nullable().optional(),
-  status: z.string().default('active'),
+  username: z.string().min(3).max(50),
+  email: z.string().email().max(255),
+  password: z.string().min(6).max(100),
+  image: z.string().nullable().optional().refine(v => !v || v.length <= 2000, { message: 'Image path too long' }),
+  status: z.string().max(20).default('active'),
   is_active: z.boolean().default(true),
   role_ids: z.array(z.number()).nonempty(),
 })

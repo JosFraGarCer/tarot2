@@ -23,7 +23,7 @@
             }"
           >
             <template #label>
-              {{ tt('ui.table.densityLabel', 'Density') }}
+              {{ $t('ui.table.densityLabel') }}
             </template>
             <div class="flex items-center gap-1">
               <UButton
@@ -34,7 +34,7 @@
                 :color="densityInternal === option.value ? 'primary' : 'neutral'"
                 variant="soft"
                 :aria-pressed="densityInternal === option.value"
-                @click="setDensity(option.value)"
+                @click="() => setDensity(option.value as 'comfortable' | 'regular' | 'compact')"
               />
             </div>
           </UFieldGroup>
@@ -62,24 +62,28 @@
       :sort="sortInternal"
       :row-attr="rowAttr"
       class="w-full"
-      :ui="tableUi"
+      :ui="{
+        thead: 'text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400',
+        tbody: 'divide-y divide-neutral-100 dark:divide-neutral-800',
+        tr: 'cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800'
+      }"
       @update:sort="handleSort"
-      @row-click="row => emit('row:click', row)"
-      @row-dblclick="row => emit('row:dblclick', row)"
+      @row-click="(row: any) => emit('row:click', row)"
+      @row-dblclick="(row: any) => emit('row:dblclick', row)"
     >
       <template v-if="selectable" #select-header>
         <UCheckbox 
           v-model="allSelected" 
           :id="`${id}-select-all`"
-          :aria-label="tt('ui.table.selectAll', 'Select all')" 
+          :aria-label="$t('ui.table.selectAll')" 
         />
       </template>
       <template v-if="selectable" #select-cell="{ row }">
         <UCheckbox
           :model-value="selectedInternal.includes(rowKeyValue(row.original))"
           :id="`${id}-select-${rowKeyValue(row.original)}`"
-          :aria-label="tt('ui.table.selectRow', 'Select row')"
-          @update:model-value="(value) => toggleRow(row.original, value)"
+          :aria-label="$t('ui.table.selectRow')"
+          @update:model-value="(value: boolean | 'indeterminate') => toggleRow(row.original, value === true)"
         />
       </template>
 
@@ -113,7 +117,7 @@
           <td v-if="capabilities.hasRevisions" class="px-3 py-4 text-center">
             <USkeleton class="mx-auto h-4 w-8" />
           </td>
-          <td v-if="hasActionsSlot || capabilities.actionsBatch" class="px-3 py-4 text-right">
+          <td v-if="hasActionsSlot || !!capabilities.actionsBatch" class="px-3 py-4 text-right">
             <USkeleton class="ml-auto h-8 w-8 rounded-md" />
           </td>
         </tr>
@@ -269,9 +273,9 @@ const densityInternal = ref(props.density)
 watch(() => props.density, (value) => { densityInternal.value = value })
 
 const densityOptions = computed(() => ([
-  { label: tt('ui.table.densityComfortable', 'Comfort'), value: 'comfortable' },
-  { label: tt('ui.table.densityRegular', 'Regular'), value: 'regular' },
-  { label: tt('ui.table.densityCompact', 'Compact'), value: 'compact' },
+  { label: t('ui.table.densityComfortable'), value: 'comfortable' },
+  { label: t('ui.table.densityRegular'), value: 'regular' },
+  { label: t('ui.table.densityCompact'), value: 'compact' },
 ]))
 
 function setDensity(value: 'comfortable' | 'regular' | 'compact') {
@@ -322,10 +326,10 @@ function acceptsCapability(column: ColumnDefinition): boolean {
     : Boolean(caps[column.capability])
 }
 
-const baseColumns = computed<TableColumn[]>(() => props.columns
+const baseColumns = computed<TableColumn<TableRowData>[]>(() => props.columns
   .filter(column => !column.hidden)
   .filter(acceptsCapability)
-  .map<TableColumn>((column) => ({
+  .map<TableColumn<TableRowData>>((column) => ({
     id: column.key,
     accessorKey: column.key,
     header: column.label,
@@ -336,45 +340,46 @@ const baseColumns = computed<TableColumn[]>(() => props.columns
 
 const hasActionsSlot = computed(() => Boolean(slots.actions))
 
-const resolvedColumns = computed<TableColumn[]>(() => {
-  const list: TableColumn[] = []
+const resolvedColumns = computed<TableColumn<TableRowData>[]>(() => {
+  const list: TableColumn<TableRowData>[] = []
 
   if (selectable.value && !baseColumns.value.some(col => col.id === 'select')) {
-    list.push({ id: 'select', accessorKey: 'select', header: '', width: '1%' })
+    list.push({ id: 'select', accessorKey: 'select' as any, header: '' })
   }
 
   list.push(...baseColumns.value)
 
-  const existing = new Set(list.map(col => col.id || col.accessorKey))
+  const existing = new Set(list.map(col => col.id))
   const caps = capabilities.value || {}
 
   if (caps.hasStatus && !existing.has('status')) {
-    list.push({ id: 'status', accessorKey: 'status', header: tt('ui.fields.status', 'Status') })
+    list.push({ id: 'status', accessorKey: 'status', header: t('ui.fields.status') } as any)
     existing.add('status')
   }
 
   if (caps.translatable && !existing.has('translationStatus')) {
-    list.push({ id: 'translationStatus', accessorKey: 'translationStatus', header: tt('ui.fields.translation', 'Translation') })
+    list.push({ id: 'translationStatus', accessorKey: 'translationStatus', header: t('ui.fields.translation') } as any)
     existing.add('translationStatus')
   }
 
   if (caps.i18nHealth && !existing.has('i18nHealth')) {
-    list.push({ id: 'i18nHealth', accessorKey: 'i18nHealth', header: tt('ui.fields.i18nHealth', 'i18n Health'), width: '1%' })
+    list.push({ id: 'i18nHealth', accessorKey: 'i18nHealth', header: t('ui.fields.i18nHealth') } as any)
     existing.add('i18nHealth')
   }
 
   if (caps.hasTags && !existing.has('tags')) {
-    list.push({ id: 'tags', accessorKey: 'tags', header: tt('ui.fields.tags', 'Tags') })
+    list.push({ id: 'tags', accessorKey: 'tags', header: t('ui.fields.tags') } as any)
     existing.add('tags')
   }
 
   if (caps.hasRevisions && !existing.has('revisionCount')) {
-    list.push({ id: 'revisionCount', accessorKey: 'revisionCount', header: tt('ui.fields.revisions', 'Revisions') })
+    list.push({ id: 'revisionCount', accessorKey: 'revisionCount', header: t('ui.fields.revisions') } as any)
     existing.add('revisionCount')
   }
 
-  if ((hasActionsSlot.value || capabilities.value.actionsBatch) && !existing.has('actions')) {
-    list.push({ id: 'actions', accessorKey: 'actions', header: tt('ui.table.actions', 'Actions'), width: '1%' })
+  if ((hasActionsSlot.value || (capabilities.value.actionsBatch as boolean)) && !existing.has('actions')) {
+    list.push({ id: 'actions', accessorKey: 'actions', header: t('ui.table.actions') } as any)
+    existing.add('actions')
   }
 
   return list
@@ -402,7 +407,7 @@ function builtinComponentFor(key: string | undefined) {
 const slotColumns = computed(() => resolvedColumns.value
   .filter(column => column.id !== 'select')
   .map((column) => {
-    const key = String(column.id || column.accessorKey || '')
+    const key = String(column.id || '')
     const config = builtinComponentFor(key)
     return {
       key,
@@ -462,14 +467,6 @@ defineExpose({
   selectedIds: readonly(selectedInternal),
   runBatchWith,
 })
-
-const tableUi = computed(() => ({
-  thead: 'text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400',
-  tbody: 'divide-y divide-neutral-100 dark:divide-neutral-800',
-  tr: {
-    base: 'cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800'
-  }
-}))
 
 const showHeader = computed(() => props.showToolbar || Boolean(slots.toolbar) || Boolean(slots.title) || Boolean(props.title))
 const showDensityToggle = computed(() => props.densityToggle && densityOptions.value.length > 1)

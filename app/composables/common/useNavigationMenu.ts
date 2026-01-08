@@ -54,6 +54,7 @@ export function useNavigationMenu() {
               .filter((c) => !c.visible || c.visible(perms, role))
               .map((c) => ({
                 label: t(c.labelKey),
+                description: c.descriptionKey ? t(c.descriptionKey) : undefined,
                 to: safePath(c.to),
                 active: isActive(c.to),
               }))

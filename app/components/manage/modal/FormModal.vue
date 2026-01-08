@@ -47,10 +47,10 @@
                 size="md"
               />
               <p
-                v-if="showFallbackHint(key)"
+                v-if="showFallbackHint(key as string)"
                 class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
               >
-                EN: {{ formatEffectsFallback() }}
+                EN: {{ effectsFallbackText }}
               </p>
               <MarkdownEditor
                 v-if="form.legacy_effects"
@@ -86,7 +86,7 @@
             </template>
             <template v-else>
               <p
-                v-if="showFallbackHint(key)"
+                v-if="showFallbackHint(key as string)"
                 class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
               >
                 EN: {{ props.englishItem?.[key] || '—' }}
@@ -95,9 +95,18 @@
                 v-model="(form[key] as any)"
                 :placeholder="field.placeholder"
                 :disabled="field.disabled"
+                :loading="key === 'code' && codeLoading"
+                :status="key === 'code' && !codeAvailable ? 'error' : undefined"
                 class="w-full"
-              />
-          </template>
+              >
+                <template v-if="key === 'code' && !codeAvailable" #trailing>
+                  <UIcon name="i-heroicons-exclamation-triangle" class="text-error-500" />
+                </template>
+              </UInput>
+              <p v-if="key === 'code' && codeError" class="mt-1 text-xs text-error-500">
+                {{ codeError }}
+              </p>
+            </template>
 
           </UFormField>
         </div>
@@ -185,6 +194,11 @@ const openInternal = computed({
 // We use a local reactive copy to avoid direct prop mutation
 const localForm = reactive({ ...props.form })
 
+// Track if form has changed to show confirmation dialog
+const isDirty = computed(() => {
+  return JSON.stringify(localForm) !== JSON.stringify(props.form)
+})
+
 // Sync local form with parent changes
 watch(() => props.form, (newVal) => {
   Object.assign(localForm, newVal)
@@ -224,7 +238,7 @@ function showFallbackHint(key: string) {
   return translatableKeys.includes(key) && !!props.englishItem[key]
 }
 
-function formatEffectsFallback(): string {
+const effectsFallbackText = computed(() => {
   const effects = props.englishItem?.effects as Record<string, string[] | string | undefined> | undefined
   if (!effects) return '—'
   const candidate =
@@ -237,7 +251,11 @@ function formatEffectsFallback(): string {
   if (Array.isArray(candidate)) return candidate.join(' / ')
   if (typeof candidate === 'string') return candidate
   return '—'
-}
+})
+
+onMounted(() => {
+  loadAll()
+})
 
 const normalizedLabel = computed(() =>
   props.entityLabel
@@ -264,8 +282,57 @@ const resolvedFields = computed(() => {
   return (props.fields || {}) as Record<string, FieldConfig>
 })
 
+// 🏗️ Estado local para validación asíncrona de 'code'
+const codeLoading = ref(false)
+const codeAvailable = ref(true)
+const codeError = ref<string | null>(null)
+let codeTimeout: any = null
+
+async function validateCodeAsync(newCode: string) {
+  if (!newCode || newCode.trim().length === 0) {
+    codeAvailable.value = true
+    codeError.value = null
+    return
+  }
+
+  // Si estamos editando y el código es el mismo que el original, es válido
+  if (props.form.id && newCode === props.form.code) {
+    codeAvailable.value = true
+    codeError.value = null
+    return
+  }
+
+  codeLoading.value = true
+  codeError.value = null
+
+  try {
+    const data = await $fetch<{ available: boolean }>('/api/database/validate-code', {
+      params: {
+        entity: props.entity,
+        code: newCode,
+        excludeId: props.form.id
+      }
+    })
+    codeAvailable.value = data.available
+    if (!data.available) {
+      codeError.value = t('ui.errors.code_taken', 'This code is already in use')
+    }
+  } catch (e) {
+    console.error('Code validation failed', e)
+  } finally {
+    codeLoading.value = false
+  }
+}
+
+watch(() => localForm.code, (newVal) => {
+  if (codeTimeout) clearTimeout(codeTimeout)
+  if (typeof newVal === 'string') {
+    codeTimeout = setTimeout(() => validateCodeAsync(newVal), 500)
+  }
+})
+
 const canSubmit = computed(() => {
-  if (props.loading) return false
+  if (props.loading || codeLoading.value || !codeAvailable.value) return false
   
   // Validar campos requeridos
   for (const [key, config] of Object.entries(resolvedFields.value)) {
@@ -339,6 +406,10 @@ function selectItems(field: FieldConfig, key: string) {
 }
 
 function handleCancel() {
+  if (isDirty.value) {
+    const confirmClose = confirm(t('ui.labels.unsavedChangesConfirm', 'You have unsaved changes. Are you sure you want to close?'))
+    if (!confirmClose) return
+  }
   emit('cancel')
   emit('update:open', false)
 }

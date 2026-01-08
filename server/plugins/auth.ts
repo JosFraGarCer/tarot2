@@ -62,6 +62,11 @@ export async function verifyToken(token: string) {
 
 // -------------------- USER EXTRACTION --------------------
 export async function getUserFromEvent(event: H3Event) {
+  // ✅ SSR Safe: Priorizar usuario ya hidratado en el contexto
+  if (event.context.user) {
+    return event.context.user
+  }
+
   const authHeader = getHeader(event, 'authorization')
   const cookieToken = getCookie(event, 'auth_token') || getCookie(event, 'token')
 

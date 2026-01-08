@@ -269,13 +269,21 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
   const authFailCount = ref(0)
 
   let authTimer: any = null
+  const cleanupAuthTimer = () => {
+    if (authTimer) {
+      clearInterval(authTimer)
+      authTimer = null
+    }
+  }
+
   onMounted(() => {
     if (import.meta.client) {
+      cleanupAuthTimer()
       authTimer = setInterval(checkAuthStatus, authInterval)
     }
   })
   onUnmounted(() => {
-    if (authTimer) clearInterval(authTimer)
+    cleanupAuthTimer()
   })
 
   // --- Event Handlers Wrapper ---
@@ -381,7 +389,45 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
       return onEdit(record)
     },
     onCreate: onCreateClickWrapper,
-    handleSubmit,
+    handleSubmit: async (payload?: any) => {
+      // 🧪 Robust Zod Validation Support (.refine, .transform)
+      // Senior Critic: "Zod Failures" in Manual QA Checklist
+      const schema = isEditing.value ? presetSchema.value?.update : presetSchema.value?.create
+      
+      // Manejar el caso donde el payload viene de un @submit de UForm (sin argumentos)
+      // o de un emit('submit') manual.
+      const data = payload?.data ?? (payload && !payload.preventDefault ? payload : modalFormState.value)
+      
+      if (!data) {
+        console.error('[useEntityBaseContext] handleSubmit: no data found in payload or modalFormState', payload)
+        return
+      }
+
+      if (schema) {
+        const result = schema.safeParse(data)
+        if (!result.success) {
+          // Si el esquema falla aquí, es por un refine/transform que el front no pilló individualmente
+          const firstError = result.error.issues[0]
+          if (firstError) {
+            toast.add({
+              title: t('ui.errors.validation_failed', 'Validation Error'),
+              description: firstError.message,
+              color: 'error'
+            })
+          }
+          return
+        }
+        // Usar los datos transformados por Zod si la validación fue exitosa
+        // Si el payload tenía una propiedad .data, la actualizamos para que useEntityModals la use
+        if (payload && payload.data) {
+          payload.data = result.data
+        } else {
+          // Actualizamos el estado del formulario con los datos limpios de Zod
+          Object.assign(modalFormState.value as object, result.data as object)
+        }
+      }
+      await handleSubmit()
+    },
     handleCancel,
     setModalOpen: (v: boolean) => { isModalOpen.value = v },
 
@@ -426,7 +472,15 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     feedbackEntityName: feedback.entityName,
     feedbackEntityType: feedback.entityType,
     handleFeedbackOpenChange: (v: boolean) => { if (!v) feedback.close() },
-    handleFeedbackSubmit: (payload: any) => feedback.submit(payload.data),
+    handleFeedbackSubmit: (payload: any) => {
+      // 🛡️ Robust safety check for feedback payload
+      const data = payload?.data ?? payload
+      if (!data || typeof data !== 'object') {
+        console.error('[useEntityBaseContext] handleFeedbackSubmit: no data found in payload', payload)
+        return
+      }
+      return feedback.submit(data)
+    },
 
     // Tags specific
     tagsModalOpen: tags.modalOpen,

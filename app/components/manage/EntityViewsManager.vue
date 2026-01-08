@@ -96,29 +96,59 @@
           </div>
         </template>
 
-        <!-- Empty State -->
-        <template #empty>
-          <div class="flex flex-col items-center justify-center gap-4 py-10 text-center">
-            <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" />
-            <div class="space-y-2">
-              <p class="text-lg font-semibold text-neutral-700 dark:text-neutral-200">{{ $t('ui.empty.title') }}</p>
-              <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ $t('ui.empty.subtitle') }}</p>
-            </div>
-            <div class="flex flex-wrap items-center justify-center gap-2">
-              <UButton color="primary" icon="i-heroicons-plus" @click="ctx.onCreate">
-                {{ $t('ui.actions.create') }}
-              </UButton>
-              <UButton
-                variant="ghost"
-                color="neutral"
-                icon="i-heroicons-arrow-path"
-                @click="ctx.resetFilters"
-              >
-                {{ $t('ui.actions.resetFilters') }}
-              </UButton>
-            </div>
-          </div>
-        </template>
+    <!-- Empty State -->
+    <template #empty>
+      <div class="flex flex-col items-center justify-center gap-4 py-12 text-center">
+        <div class="relative">
+          <UIcon name="i-heroicons-magnifying-glass-circle" class="h-16 w-16 text-neutral-200 dark:text-neutral-700" />
+          <UIcon 
+            v-if="ctx.crud.filters?.value && Object.values(ctx.crud.filters.value).some(v => v !== undefined && v !== '')"
+            name="i-heroicons-funnel" 
+            class="h-6 w-6 text-primary-500 absolute -bottom-1 -right-1 bg-white dark:bg-neutral-900 rounded-full p-0.5" 
+          />
+        </div>
+        
+        <div class="space-y-2 max-w-xs">
+          <p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
+            {{ ctx.crud.loading.value ? $t('ui.states.loading') : (ctx.crud.items.value.length === 0 && Object.values(ctx.crud.filters?.value || {}).some(v => v) ? $t('ui.empty.noResultsFiltered') : $t('ui.empty.title')) }}
+          </p>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">
+            {{ ctx.crud.error?.value ? $t('ui.errors.list_failed') : (Object.values(ctx.crud.filters?.value || {}).some(v => v) ? $t('ui.empty.tryAdjustFilters') : $t('ui.empty.subtitle')) }}
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-3 mt-2">
+          <UButton 
+            v-if="!ctx.crud.error?.value"
+            color="primary" 
+            icon="i-heroicons-plus" 
+            @click="ctx.onCreate"
+          >
+            {{ $t('ui.actions.create') }}
+          </UButton>
+          
+          <UButton
+            v-if="Object.values(ctx.crud.filters?.value || {}).some(v => v)"
+            variant="soft"
+            color="neutral"
+            icon="i-heroicons-funnel-slash"
+            @click="ctx.resetFilters"
+          >
+            {{ $t('ui.actions.resetFilters') }}
+          </UButton>
+
+          <UButton
+            v-if="ctx.crud.error?.value"
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-arrow-path"
+            @click="ctx.crud.fetchList"
+          >
+            {{ $t('ui.actions.reload') }}
+          </UButton>
+        </div>
+      </div>
+    </template>
 
         <!-- Loading -->
         <template #loading>
@@ -136,7 +166,7 @@
               variant="soft"
               size="xs"
               :aria-label="$t('ui.actions.quickEdit')"
-              @click="ctx.onEdit(row.raw ?? row)"
+              @click="ctx.onEdit((row as any).original?.raw ?? (row as any).original)"
             />
             <UButton
               icon="i-heroicons-arrows-pointing-out"
@@ -144,34 +174,34 @@
               variant="ghost"
               size="xs"
               :aria-label="$t('ui.actions.fullEdit')"
-              @click="ctx.openFullEditor(row.raw ?? row)"
+              @click="ctx.openFullEditor((row as any).original?.raw ?? (row as any).original)"
             />
             <UButton
-              v-if="row.raw && ctx.capabilities.value.hasPreview !== false"
+              v-if="(row as any).original?.raw && ctx.capabilities.value.hasPreview !== false"
               icon="i-heroicons-eye"
               color="neutral"
               variant="ghost"
               size="xs"
               :aria-label="$t('ui.actions.preview')"
-              @click="ctx.onPreview(row.raw ?? row)"
+              @click="ctx.onPreview((row as any).original?.raw ?? (row as any).original)"
             />
             <UButton
-              v-if="row.raw"
+              v-if="(row as any).original?.raw"
               icon="i-heroicons-exclamation-triangle"
               color="warning"
               variant="soft"
               size="xs"
               aria-label="Feedback"
-              @click="ctx.onFeedback(row.raw ?? row)"
+              @click="ctx.onFeedback((row as any).original?.raw ?? (row as any).original)"
             />
             <UButton
-              v-if="row.raw && ctx.capabilities.value.hasTags !== false"
+              v-if="(row as any).original?.raw && ctx.capabilities.value.hasTags !== false"
               icon="i-heroicons-tag"
               color="neutral"
               variant="soft"
               size="xs"
               aria-label="Tags"
-              @click="ctx.onTags(row.raw ?? row)"
+              @click="ctx.onTags((row as any).original?.raw ?? (row as any).original)"
             />
             <UButton
               icon="i-heroicons-trash"
@@ -179,7 +209,7 @@
               variant="soft"
               size="xs"
               aria-label="Delete"
-              @click="ctx.onDelete(row.raw ?? row)"
+              @click="ctx.onDelete((row as any).original?.raw ?? (row as any).original)"
             />
           </div>
         </template>

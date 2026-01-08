@@ -1,50 +1,80 @@
 <!-- app/pages/manage.vue -->
 <!-- /app/pages/manage.vue -->
 <template>
-  <div class="px-4">
-    <UCard>
-      <template #header>
-        <div class="flex items-center justify-between gap-3">
-          <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-            {{ t('navigation.menu.manage') }}
-          </h1>
-          <ClientOnly>
-            <template #fallback>
-              <div class="h-8 w-[180px] rounded bg-default/40" />
-            </template>
-            <ViewControls
-              v-model="viewMode"
-              v-model:template-key="templateKey"
-              class="shrink-0"
-              :template-options="templateOptions as any"
-              storage-key="manage"
-            />
-          </ClientOnly>
-        </div>
-      </template>
-
-      <UTabs v-model="selectedTab" :items="tabs" :unmount-on-hide="false">
-        <template #content="{ item }">
-          <ManageEntity
-            v-if="entityConfigs[item.value as EntityKey]"
-            :key="item.value"
-            :label="entityConfigs[item.value as EntityKey].label"
-            :use-crud="entityConfigs[item.value as EntityKey].useCrud"
-            :view-mode="viewMode"
-            :template-key="templateKey"
-            :entity="item.value"
-            :filters-config="entityConfigs[item.value as EntityKey].filters"
-            :card-type="entityConfigs[item.value as EntityKey].cardType"
-            :no-tags="entityConfigs[item.value as EntityKey].noTags"
-            @create="() => onCreateEntity(item.value as EntityKey)"
-          />
-        </template>
-      </UTabs>
-
-      <div class="mt-6">
-        <NuxtPage />
+  <div class="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <!-- Sidebar Vertical para Navegación de Entidades -->
+    <aside class="w-64 border-r bg-neutral-50/50 dark:bg-neutral-900/50 hidden lg:flex flex-col shrink-0">
+      <div class="p-4 border-b">
+        <h1 class="text-xl font-bold text-gray-900 dark:text-white">
+          {{ t('navigation.menu.manage') }}
+        </h1>
       </div>
-    </UCard>
+      <div class="flex-1 overflow-y-auto p-4">
+        <UNavigationMenu
+          orientation="vertical"
+          :items="sidebarTabs"
+          class="w-full"
+        >
+          <template #item-label="{ item }">
+            <div class="flex flex-col py-1">
+              <span class="text-sm font-medium">{{ item.label }}</span>
+            </div>
+          </template>
+        </UNavigationMenu>
+      </div>
+      <div class="p-4 border-t">
+        <ClientOnly>
+          <template #fallback>
+            <div class="h-8 w-full rounded bg-default/40" />
+          </template>
+          <ViewControls
+            v-model="viewMode"
+            v-model:template-key="templateKey"
+            class="w-full"
+            :template-options="templateOptions as any"
+            storage-key="manage"
+          />
+        </ClientOnly>
+      </div>
+    </aside>
+
+    <!-- Área de Contenido Principal -->
+    <main class="flex-1 overflow-y-auto p-4 lg:p-6">
+      <!-- Tabs para Mobile (cuando el aside está oculto) -->
+      <div class="lg:hidden mb-6">
+        <UTabs v-model="selectedTabIndex" :items="tabs" class="w-full" />
+      </div>
+
+      <UCard class="h-full flex flex-col" :ui="{ body: 'flex-1 overflow-hidden p-0 sm:p-0' }">
+        <template #header>
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <UIcon :name="activeEntityConfig.icon" class="w-5 h-5 text-primary" />
+              <h2 class="text-lg font-semibold">{{ activeEntityConfig.label }}</h2>
+            </div>
+          </div>
+        </template>
+
+        <ManageEntity
+          v-if="activeEntityConfig"
+          :key="activeEntityKey"
+          :label="activeEntityConfig.label"
+          :use-crud="activeEntityConfig.useCrud"
+          :view-mode="viewMode"
+          :template-key="templateKey"
+          :entity="activeEntityKey"
+          :filters-config="activeEntityConfig.filters"
+          :card-type="activeEntityConfig.cardType"
+          :no-tags="activeEntityConfig.noTags"
+          class="h-full"
+          @create="() => onCreateEntity(activeEntityKey)"
+        />
+
+        <div class="mt-6 px-4 pb-4">
+          <NuxtPage />
+        </div>
+      </UCard>
+    </main>
   </div>
 </template>
 
@@ -78,8 +108,10 @@ useServerSeoMeta({
 
 const { viewMode, templateKey, templateOptions } = useManageView({ storageKey: 'manage' })
 
-// Selected tab
-const selectedTab = ref<'cardType' | 'baseCard' | 'world' | 'arcana' | 'facet' | 'skill' | 'tag'>('cardType')
+type EntityKey = 'cardType' | 'baseCard' | 'world' | 'arcana' | 'facet' | 'skill' | 'tag'
+
+// State for active entity
+const activeEntityKey = ref<EntityKey>('cardType')
 
 // Tab items
 const tabs = computed(() => [
@@ -92,18 +124,38 @@ const tabs = computed(() => [
   { label: t('navigation.menu.tags'), value: 'tag', icon: 'i-heroicons-tag' }
 ])
 
-type EntityKey = 'cardType' | 'baseCard' | 'world' | 'arcana' | 'facet' | 'skill' | 'tag'
+// Sidebar mapping
+const sidebarTabs = computed(() => tabs.value.map(tab => ({
+  ...tab,
+  active: activeEntityKey.value === tab.value,
+  onSelect: () => { activeEntityKey.value = tab.value as EntityKey }
+})))
+
+// Selected tab index for mobile UTabs
+const selectedTabIndex = computed({
+  get: () => {
+    const index = tabs.value.findIndex(t => t.value === activeEntityKey.value)
+    return index === -1 ? 0 : index
+  },
+  set: (val) => { 
+    if (tabs.value[val]) {
+      activeEntityKey.value = tabs.value[val].value as EntityKey
+    }
+  }
+})
 
 // Configuración por entidad
 const entityConfigs: Record<EntityKey, {
   label: string
-  useCrud: () => AnyManageCrud
+  icon: string
+  useCrud: any
   filters: Record<string, string>
   cardType: boolean
   noTags: boolean
 }> = {
   cardType: {
     label: t('navigation.menu.cardTypes'),
+    icon: 'i-heroicons-squares-2x2',
     useCrud: useCardTypeCrud,
     filters: {
       search: 'search',
@@ -115,6 +167,7 @@ const entityConfigs: Record<EntityKey, {
   },
   baseCard: {
     label: t('navigation.menu.baseCards'),
+    icon: 'i-heroicons-rectangle-stack',
     useCrud: useBaseCardCrud,
     filters: {
       search: 'search',
@@ -128,6 +181,7 @@ const entityConfigs: Record<EntityKey, {
   },
   world: {
     label: t('navigation.menu.worlds'),
+    icon: 'i-heroicons-map',
     useCrud: useWorldCrud,
     filters: {
       search: 'search',
@@ -140,6 +194,7 @@ const entityConfigs: Record<EntityKey, {
   },
   arcana: {
     label: t('navigation.menu.arcana'),
+    icon: 'i-heroicons-sparkles',
     useCrud: useArcanaCrud,
     filters: {
       search: 'search',
@@ -152,6 +207,7 @@ const entityConfigs: Record<EntityKey, {
   },
   facet: {
     label: t('navigation.menu.facets'),
+    icon: 'i-heroicons-beaker',
     useCrud: useFacetCrud,
     filters: {
       search: 'search',
@@ -165,6 +221,7 @@ const entityConfigs: Record<EntityKey, {
   },
   skill: {
     label: t('navigation.menu.skills'),
+    icon: 'i-heroicons-academic-cap',
     useCrud: useSkillCrud,
     filters: {
       search: 'search',
@@ -178,6 +235,7 @@ const entityConfigs: Record<EntityKey, {
   },
   tag: {
     label: t('navigation.menu.tags'),
+    icon: 'i-heroicons-tag',
     useCrud: useTagCrud,
     filters: {
       search: 'search',
@@ -188,6 +246,8 @@ const entityConfigs: Record<EntityKey, {
     noTags: true
   }
 }
+
+const activeEntityConfig = computed(() => entityConfigs[activeEntityKey.value])
 
 // Acción crear
 function onCreateEntity(type: EntityKey) {

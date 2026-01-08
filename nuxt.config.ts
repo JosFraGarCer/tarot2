@@ -71,6 +71,7 @@ export default defineNuxtConfig({
     }
   },
   modules: [
+    'nuxt-security',
     '@nuxt/eslint',
     '@nuxt/image',
     '@nuxt/ui',
@@ -78,5 +79,16 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@pinia/colada-nuxt',
    ],
+
+  security: {
+    csrf: true,
+    headers: {
+      contentSecurityPolicy: {
+        'img-src': ["'self'", 'data:', 'https:', 'http:'],
+      }
+    },
+    rateLimiter: false, // Ya tenemos un middleware custom de rate limit más granular
+    enabled: process.env.NODE_ENV === 'production',
+  },
 
 })

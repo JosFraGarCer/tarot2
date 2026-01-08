@@ -1,255 +1,68 @@
 # Tarot2 - Roadmap Detallado de Mejoras 2026-01
 
-## Resumen Ejecutivo
+## Hitos Alcanzados (Enero 2026)
 
-Este roadmap detalla el plan de implementación de mejoras para Tarot2 basado en la auditoría completa. El plan está estructurado en 3 fases principales con tareas específicas, dependencias, estimaciones de tiempo y recursos necesarios.
+### 🛡️ Seguridad y Autenticación
+- **Protección IDOR**: Validación de propiedad en endpoints de usuario (`[id].get.ts`, `.patch.ts`, `.delete.ts`).
+- **Sanitización de UI**: Eliminación de `v-html` en modales de comparación, sustituido por renderizado seguro línea por línea.
+- **Hardening de API**: Integración de `nuxt-security` (CSRF, CSP), límites estrictos en Zod y Rate Limiting global.
+- **Optimización JWT**: Singleton para codificación del secreto y uso de `getCookie` nativo de H3.
 
-## Cronograma General
+### ⚡ Performance y Backend
+- **N+1 Solucionado**: Implementación de `eagerTags.ts` para carga masiva de etiquetas en entidades core.
+- **Optimización de Auth**: Reducción de queries pesadas en el middleware de hidratación y carga perezosa de roles.
+- **Estabilidad de DB**: Configuración de timeouts (`statement_timeout`) para evitar bloqueos del pool.
+
+### 🏗️ Arquitectura Frontend
+- **Refactorización de EntityBase**: Migración de lógica monolítica a `useEntityBaseContext`.
+- **Formularios Robustos**: Eliminación de la introspección mágica de Zod en `FormModal.vue` en favor de presets declarativos.
+- **UX Crítica**: Implementación de avisos de "Cambios no guardados" y bloqueo optimista real basado en `modified_at`.
+- **Sincronización de URL**: Optimización de `useQuerySync` para evitar bucles de reactividad y clones profundos innecesarios.
+
+## Cronograma General Actualizado
 
 ```
-Fase 1: Fundamentos     │████████████│ 8 semanas
-Fase 2: Optimización    │████████████│ 12 semanas  
-Fase 3: Herramientas    │████████│    8 semanas
+Fase 1: Estabilización y Fixes Críticos │✅ COMPLETADO│ 2 semanas
+Fase 2: Escalabilidad y Caché (Redis)    │████████████│ 8 semanas
+Fase 3: Refactor UI/UX Progresivo       │████████████│ 12 semanas
+Fase 4: Herramientas y Automatización   │████████│    8 semanas
 ```
 
-## Fase 1: Fundamentos (8 semanas)
+## Fase 2: Escalabilidad y Caché (Redis) - 8 semanas
 
-### Semana 1-2: Setup y Planificación
+### Semana 1-4: Integración de Redis y Sesiones
+- **Implementación de Redis**: Configuración de Redis para gestión de sesiones y caché de corto plazo.
+- **Revocación de Tokens**: Sistema de "lista negra" de JWT en Redis para cierres de sesión instantáneos.
+- **Caché de Traducciones**: Mover el `translatableUpsert` y fallbacks a un sistema de caché en memoria para reducir latencia de DB.
+- **Rate Limiting Distribuido**: Migrar el rate limit actual de memoria local a Redis para soporte multi-instancia.
 
-#### Tarea 1.1: Configuración de Testing
-**Duración**: 3 días
-**Recursos**: 1 desarrollador senior
-**Dependencias**: Ninguna
-**Entregables**:
-- Configuración de Vitest
-- Setup de @vue/test-utils
-- Configuración de Playwright
-- Scripts de testing en package.json
+### Semana 5-8: Optimización de Datos Complejos
+- **Batching de Mutaciones**: Refactorizar `useBatchMutation` para manejar volúmenes altos de datos sin bloquear el Event Loop.
+- **Caché de Relaciones**: Implementar TTL en previews de entidades y relaciones profundas (`world_card` -> `world` -> `arcana`).
+- **Optimización de JSONB**: Límites de tamaño en payloads para evitar el "JSON Bloat" en `card_effects`.
 
-```bash
-# Comandos de setup
-npm install --save-dev vitest @vue/test-utils @testing-library/vue @playwright/test
-npm install --save-dev jsdom happy-dom
-```
+## Fase 3: Refactor UI/UX Progresivo - 12 semanas
 
-#### Tarea 1.2: Análisis de Componentes para Refactoring
-**Duración**: 2 días
-**Recursos**: 1 arquitecto de software
-**Dependencias**: Ninguna
-**Entregables**:
-- Inventario detallado de componentes
-- Matriz de complejidad
-- Plan de拆分 específico
+Debido a los arreglos estructurales realizados, la interfaz requiere una actualización para mejorar la consistencia y usabilidad.
 
-#### Tarea 1.3: Baseline de Métricas
-**Duración**: 2 días
-**Recursos**: 1 desarrollador
-**Dependencias**: Ninguna
-**Entregables**:
-- Métricas de performance actuales
-- Coverage de testing actual
-- Bundle size baseline
-- Tiempo de build actual
+### Semana 9-14: Estandarización de Componentes
+- **Migración Legacy**: Eliminar definitivamente `EntityTableWrapper.vue` y `PreviewModal.vue`.
+- **Jerarquía de Capas**: Estandarizar Z-Index y Focus Trap usando exclusivamente `USlideover` para inspección y `UModal` para diálogos.
+- **Navegación Fluida**: Implementación de transiciones suaves y `flush: 'sync'` en sincronización de estado para evitar parpadeos.
 
-### Semana 3-4: Testing Suite Básica
+### Semana 15-20: Feedback y Accesibilidad
+- **Skeleton Loaders 2.0**: Implementar estados de carga granulares que no causen saltos de layout (CLS).
+- **Consola de Errores UX**: Sistema de notificaciones que diferencie errores de red, validación y concurrencia.
+- **Accesibilidad (A11y)**: Auditoría y corrección de roles ARIA y navegación por teclado en tablas complejas.
 
-#### Tarea 1.4: Tests Unitarios - Composables Críticos
-**Duración**: 5 días
-**Recursos**: 2 desarrolladores
-**Dependencias**: 1.1
-**Entregables**:
-- Tests para useEntity composable
-- Tests para useEntityCapabilities
-- Tests para useManageFilters
-- Coverage target: 70%
-
-**Estructura de tests**:
-```typescript
-// tests/composables/useEntity.test.ts
-import { describe, it, expect, vi } from 'vitest'
-import { renderComposable } from '@vue/test-utils'
-import { useEntity } from '@/composables/manage/useEntity'
-
-describe('useEntity', () => {
-  it('should fetch list successfully', async () => {
-    const { result } = renderComposable(() => 
-      useEntity({
-        resourcePath: '/api/arcana',
-        schema: arcanaSchema
-      })
-    )
-    
-    await result.fetchList()
-    expect(result.items.value).toHaveLength(10)
-  })
-})
-```
-
-#### Tarea 1.5: Tests de Integración - APIs Principales
-**Duración**: 4 días
-**Recursos**: 1 desarrollador backend
-**Dependencias**: 1.1
-**Entregables**:
-- Tests para CRUD de arcanos
-- Tests para CRUD de cartas base
-- Tests de autenticación
-- Tests de middleware
-
-### Semana 5-6: Refactoring de Componentes (Hito alcanzado: 7 de enero de 2026)
-
-#### Tarea 1.6: Refactoring EntityBase.vue (✅ Completado)
-**Estado**: Completado el 7 de enero de 2026.
-**Resultados**:
-- `EntityBase.vue` desacoplado: lógica movida a `useEntityBaseContext`.
-- Implementación de `EntityViewsManager.vue` para gestionar vistas.
-- Delegación de modales a `BaseFormModal`, `BasePreviewDrawer`, etc.
-
-#### Tarea 1.7: Refactoring FormModal.vue (✅ Completado)
-**Estado**: Completado el 7 de enero de 2026.
-**Resultados**:
-- Eliminación de introspección dinámica frágil de Zod.
-- Implementación de **presets declarativos** para definición de campos.
-- Mejora en la robustez de validación y carga de imágenes.
-
-### Semana 7-8: Documentación Básica
-
-#### Tarea 1.8: Documentación de APIs
-**Duración**: 4 días
-**Recursos**: 1 desarrollador + 1 technical writer
-**Dependencias**: 1.4, 1.5
-**Entregables**:
-- Documentación OpenAPI/Swagger
-- Guía de endpoints principales
-- Ejemplos de uso
-- Documentación de esquemas Zod
-
-#### Tarea 1.9: Guías de Desarrollo
-**Duración**: 3 días
-**Recursos**: 1 technical writer
-**Dependencias**: 1.6, 1.7
-**Entregables**:
-- Guía de arquitectura
-- Guía de patrones de componentes
-- Guía de composables
-- Guía de contribución
-
-## Fase 2: Optimización (12 semanas)
-
-### Semana 9-10: Performance - Frontend
-
-#### Tarea 2.1: Implementación de Memoización
-**Duración**: 4 días
-**Recursos**: 1 desarrollador frontend
-**Dependencias**: 1.6
-**Entregables**:
-- Memoización en componentes complejos
-- useMemo para cálculos pesados
-- useCallback para event handlers
-- Performance budget configurado
-
-```typescript
-// Ejemplo de optimización
-const memoizedFilteredItems = useMemo(() => {
-  return items.value.filter(item => 
-    matchesFilters(item, filters.value)
-  )
-}, [items.value, filters.value])
-
-const memoizedHandleAction = useCallback((action: string, item: any) => {
-  // Handle action
-}, [selectedItems])
-```
-
-#### Tarea 2.2: Virtualization para Listas Grandes
-**Duración**: 5 días
-**Recursos**: 1 desarrollador frontend
-**Dependencias**: 1.6
-**Entregables**:
-- Virtual scrolling en CommonDataTable
-- Lazy loading de imágenes
-- Pagination optimizada
-- Infinite scroll opcional
-
-### Semana 11-12: Performance - Backend
-
-#### Tarea 2.3: Optimización de Consultas (✅ En progreso - Hito: Eager Tags)
-**Estado**: Optimizaciones críticas de N+1 completadas el 7 de enero de 2026.
-**Logros**:
-- Implementación de `eagerTags.ts` para carga masiva de etiquetas.
-- Refactorización de controladores CRUD (arcana, base_card, world, facet, skill, world_card).
-
-#### Tarea 2.4: Compresión y Caching
-**Duración**: 4 días
-**Recursos**: 1 desarrollador backend
-**Dependencias**: 2.3
-**Entregables**:
-- Compresión de respuestas API
-- Cache de traducciones
-- CDN para assets estáticos
-- Service worker para caching
-
-### Semana 13-16: UX Improvements
-
-#### Tarea 2.5: Loading States Granulares
-**Duración**: 5 días
-**Recursos**: 1 desarrollador frontend
-**Dependencias**: 2.1
-**Entregables**:
-- Skeleton loaders específicos
-- Progress indicators
-- Optimistic updates
-- Error boundaries
-
-#### Tarea 2.6: Error Handling Mejorado
-**Duración**: 4 días
-**Recursos**: 1 desarrollador frontend
-**Dependencias**: 2.1
-**Entregables**:
-- Error boundaries por componente
-- User-friendly error messages
-- Retry mechanisms
-- Error reporting
-
-#### Tarea 2.7: Progressive Enhancement
-**Duración**: 4 días
-**Recursos**: 1 desarrollador frontend
-**Dependencias**: 2.5, 2.6
-**Entregables**:
-- Offline support básico
-- Service worker implementation
-- Background sync
-- Push notifications opcionales
-
-### Semana 17-20: Monitoreo y Logging
-
-#### Tarea 2.8: Sistema de Métricas
-**Duración**: 6 días
-**Recursos**: 1 desarrollador DevOps
-**Dependencias**: 2.3, 2.4
-**Entregables**:
-- Métricas de performance
-- Monitoring de APIs
-- Alertas automáticas
-- Dashboard de métricas
-
-#### Tarea 2.9: Logging Estructurado
-**Duración**: 5 días
-**Recursos**: 1 desarrollador backend
-**Dependencias**: 2.8
-**Entregables**:
-- Logging JSON estructurado
-- Correlation IDs
-- Log aggregation
-- Log retention policies
-
-## Fase 3: Herramientas y Automatización (8 semanas)
+## Fase 4: Herramientas y Automatización (8 semanas)
 
 ### Semana 21-22: Herramientas de Desarrollo
 
-#### Tarea 3.1: Pre-commit Hooks
+#### Tarea 4.1: Pre-commit Hooks
 **Duración**: 3 días
 **Recursos**: 1 desarrollador
-**Dependencias**: 1.1
+**Dependencias**: Ninguna
 **Entregables**:
 - Husky configuration
 - Linting automático
@@ -266,7 +79,7 @@ npm run typecheck
 npm run test:unit
 ```
 
-#### Tarea 3.2: Bundle Analysis
+#### Tarea 4.2: Bundle Analysis
 **Duración**: 2 días
 **Recursos**: 1 desarrollador
 **Dependencias**: 2.1
@@ -276,7 +89,7 @@ npm run test:unit
 - Dependency analysis
 - Optimization recommendations
 
-#### Tarea 3.3: Security Scanning
+#### Tarea 4.3: Security Scanning
 **Duración**: 3 días
 **Recursos**: 1 desarrollador
 **Dependencias**: Ninguna
@@ -288,7 +101,7 @@ npm run test:unit
 
 ### Semana 23-24: CI/CD Pipeline
 
-#### Tarea 3.4: Pipeline de Testing
+#### Tarea 4.4: Pipeline de Testing
 **Duración**: 4 días
 **Recursos**: 1 DevOps engineer
 **Dependencias**: 3.1
@@ -298,7 +111,7 @@ npm run test:unit
 - Quality gates
 - Test reporting
 
-#### Tarea 3.5: Deployment Automatizado
+#### Tarea 4.5: Deployment Automatizado
 **Duración**: 4 días
 **Recursos**: 1 DevOps engineer
 **Dependencias**: 3.4
@@ -310,7 +123,7 @@ npm run test:unit
 
 ### Semana 25-26: Documentación Avanzada
 
-#### Tarea 3.6: Storybook Setup
+#### Tarea 4.6: Storybook Setup
 **Duración**: 5 días
 **Recursos**: 1 desarrollador frontend
 **Dependencias**: 1.6, 1.7
@@ -320,7 +133,7 @@ npm run test:unit
 - Design system docs
 - Interactive examples
 
-#### Tarea 3.7: API Documentation
+#### Tarea 4.7: API Documentation
 **Duración**: 4 días
 **Recursos**: 1 technical writer
 **Dependencias**: 1.8
@@ -330,7 +143,7 @@ npm run test:unit
 - Code examples
 - SDK documentation
 
-#### Tarea 3.8: Developer Onboarding
+#### Tarea 4.8: Developer Onboarding
 **Duración**: 3 días
 **Recursos**: 1 technical writer
 **Dependencias**: 3.6, 3.7
@@ -367,18 +180,22 @@ npm run test:unit
 ## Hitos y Entregables
 
 ### Hito 1 - Fin Fase 1 (Semana 8)
-- ✅ Testing suite funcional (70% coverage)
-- ✅ Componentes refactorizados
-- ✅ Documentación básica completa
-- ✅ Baseline de métricas establecido
+- ✅ Estabilización y Fixes Críticos Completados
+- ✅ Refactorización de Arquitectura Core (EntityBase, FormModal)
+- ✅ Optimización de Performance Backend (N+1, Auth)
+- ✅ Hardening de Seguridad (IDOR, CSRF, CSP)
 
-### Hito 2 - Fin Fase 2 (Semana 20)
-- ✅ Performance optimizada (+30% improvement)
-- ✅ UX mejorada significativamente
-- ✅ Sistema de monitoreo operativo
-- ✅ Error handling robusto
+### Hito 2 - Fin Fase 2 (Semana 16)
+- ✅ Integración de Redis funcional
+- ✅ Sistema de caché de traducciones y sesiones
+- ✅ Rate limiting distribuido
 
 ### Hito 3 - Fin Fase 3 (Semana 28)
+- ✅ Interfaz UI/UX completamente renovada y estandarizada
+- ✅ Eliminación de deuda técnica legacy (EntityTableWrapper, etc.)
+- ✅ Accesibilidad y feedback de errores mejorados
+
+### Hito 4 - Fin Fase 4 (Semana 36)
 - ✅ CI/CD pipeline completo
 - ✅ Herramientas de desarrollo configuradas
 - ✅ Documentación avanzada completa
@@ -441,4 +258,4 @@ El timeline de 28 semanas es realista y permite implementar mejoras significativ
 
 ---
 
-*Roadmap detallado actualizado el 7 de enero de 2026*
+*Roadmap detallado actualizado el 8 de enero de 2026*

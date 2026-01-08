@@ -1,6 +1,7 @@
 // app/composables/manage/useEntityFormPreset.ts
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import type { z } from 'zod'
+import { deepClone } from '../../../shared/utils/validation'
 
 import { useEntityCapabilities, type EntityCapabilities } from '~/composables/common/useEntityCapabilities'
 import { arcanaCreateSchema, arcanaUpdateSchema } from '../../../shared/schemas/entities/arcana'
@@ -89,25 +90,11 @@ function normalizeKind(rawKind: string | null | undefined): string {
   }
 }
 
-function cloneDefaultValue<T>(value: T): T {
-  if (value === null || typeof value !== 'object') return value
-  if (Array.isArray(value)) return value.map(item => cloneDefaultValue(item)) as unknown as T
-  try {
-    return structuredClone(value)
-  } catch {
-    const out: Record<string, unknown> = {}
-    for (const key of Object.keys(value as Record<string, unknown>)) {
-      out[key] = cloneDefaultValue((value as Record<string, unknown>)[key])
-    }
-    return out as T
-  }
-}
-
 function pruneUndefinedDefaults(defaults: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(defaults)) {
     if (value !== undefined) {
-      out[key] = cloneDefaultValue(value)
+      out[key] = deepClone(value)
     }
   }
   return out
@@ -240,7 +227,7 @@ function buildFallbackPreset(): EntityFormPreset {
   })
 
   return {
-    schema: null,
+    schema: { create: undefined, update: undefined },
     fields,
     defaults,
   }

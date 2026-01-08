@@ -13,13 +13,19 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <UCard>
             <template #header>{{ $t('features.admin.revisionsHistory.left','Revision A') }} (#{{ revA?.id }})</template>
-            <!-- eslint-disable-next-line vue/no-v-html -- Sanitized diff HTML -->
-            <pre class="text-xs overflow-auto max-h-[70vh]" v-html="jsonHtmlA"/>
+            <div class="text-xs overflow-auto max-h-[70vh] font-mono whitespace-pre bg-neutral-50 dark:bg-neutral-900 p-2 rounded">
+              <template v-for="(line, index) in formattedLinesA" :key="index">
+                <div :class="line.classes">{{ line.content }}</div>
+              </template>
+            </div>
           </UCard>
           <UCard>
             <template #header>{{ $t('features.admin.revisionsHistory.right','Revision B') }} (#{{ revB?.id }})</template>
-            <!-- eslint-disable-next-line vue/no-v-html -- Sanitized diff HTML -->
-            <pre class="text-xs overflow-auto max-h-[70vh]" v-html="jsonHtmlB"/>
+            <div class="text-xs overflow-auto max-h-[70vh] font-mono whitespace-pre bg-neutral-50 dark:bg-neutral-900 p-2 rounded">
+              <template v-for="(line, index) in formattedLinesB" :key="index">
+                <div :class="line.classes">{{ line.content }}</div>
+              </template>
+            </div>
           </UCard>
         </div>
       </div>
@@ -82,33 +88,31 @@ const summary = computed(() => ({
   total: diff.value.added.length + diff.value.removed.length + diff.value.changed.length
 }))
 
-function escapeHtml(s:string) { return s.replace(/[&<> "]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c] as string)) }
-function wrapKeys(jsonStr:string, which: 'A'|'B') {
-  let html = escapeHtml(jsonStr)
+function getLineMetadata(jsonStr: string, which: 'A' | 'B') {
+  const lines = jsonStr.split('\n')
   const setAdd = new Set(diff.value.added.map(p => p.split('/').filter(Boolean).pop() || ''))
   const setRem = new Set(diff.value.removed.map(p => p.split('/').filter(Boolean).pop() || ''))
   const setChg = new Set(diff.value.changed.map(p => p.split('/').filter(Boolean).pop() || ''))
-  // For A, added keys are not present; removed keys exist only in A. For B, vice versa.
+  
   const addCls = 'bg-green-100 dark:bg-green-900/30'
   const remCls = 'bg-red-100 dark:bg-red-900/30 line-through'
   const chgCls = 'bg-yellow-100 dark:bg-yellow-900/30'
-  function mark(keys:Set<string>, cls:string) {
-    for (const key of keys) {
-      if (!key) continue
-      const rx = new RegExp(`("${key}"\\s*:)`, 'g')
-      html = html.replace(rx, `<span class="${cls}">$1</span>`)
+
+  return lines.map(line => {
+    let classes = ''
+    // Heurística simple para detectar si la línea contiene una de las llaves modificadas
+    for (const key of (which === 'A' ? [...setRem, ...setChg] : [...setAdd, ...setChg])) {
+      if (line.includes(`"${key}":`)) {
+        if (setRem.has(key) && which === 'A') classes = remCls
+        else if (setAdd.has(key) && which === 'B') classes = addCls
+        else if (setChg.has(key)) classes = chgCls
+        break
+      }
     }
-  }
-  if (which === 'A') {
-    mark(setRem, remCls)
-    mark(setChg, chgCls)
-  } else {
-    mark(setAdd, addCls)
-    mark(setChg, chgCls)
-  }
-  return html
+    return { content: line, classes }
+  })
 }
 
-const jsonHtmlA = computed(() => wrapKeys(JSON.stringify(snapshotA.value, null, 2), 'A'))
-const jsonHtmlB = computed(() => wrapKeys(JSON.stringify(snapshotB.value, null, 2), 'B'))
+const formattedLinesA = computed(() => getLineMetadata(JSON.stringify(snapshotA.value, null, 2), 'A'))
+const formattedLinesB = computed(() => getLineMetadata(JSON.stringify(snapshotB.value, null, 2), 'B'))
 </script>

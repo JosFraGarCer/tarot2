@@ -10,8 +10,8 @@ type QueryStateValue = string | number | boolean | string[] | number[] | Date | 
 
 export interface UseQuerySyncOptions<TState extends Record<string, QueryStateValue>> {
   defaults: TState
-  parse?: Partial<{ [K in keyof TState]: (value: RouteQueryValue) => TState[K] }>
-  serialize?: Partial<{ [K in keyof TState]: (value: TState[K]) => RouteQueryValue }>
+  parse?: Partial<Record<keyof TState, (value: RouteQueryValue) => any>>
+  serialize?: Partial<Record<keyof TState, (value: any) => RouteQueryValue>>
   replace?: boolean
   queryKeyMap?: Partial<Record<keyof TState, string>>
   parseState?: (query: Record<string, RouteQueryValue>, defaults: TState) => Partial<TState>
@@ -41,19 +41,19 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
 
   function readRoute(): TState {
     const opts = resolvedOptions()
-    const parse = opts.parse ?? {}
-    const queryKeyMap = opts.queryKeyMap ?? {}
+    const parse = (opts.parse ?? {}) as Record<string, (value: RouteQueryValue) => any>
+    const queryKeyMap = (opts.queryKeyMap ?? {}) as Record<string, string>
     const parseState = opts.parseState
     const query = route.query || {}
     const next = deepClone(defaults) as TState
 
     for (const key in defaults) {
-      const queryKey = (queryKeyMap[key as keyof TState] ?? key) as string
+      const queryKey = queryKeyMap[key] ?? key
       const raw = query[queryKey]
       if (raw === undefined) continue
-      const parser = (parse as Record<string, any>)[key]
+      const parser = parse[key]
       const parsed = parser 
-        ? (parser as (value: RouteQueryValue) => TState[Extract<keyof TState, string>])(raw as RouteQueryValue) 
+        ? parser(raw as RouteQueryValue) 
         : defaultParse(raw as RouteQueryValue, (defaults as any)[key])
       
       if (parsed !== undefined) {
@@ -83,19 +83,19 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
   function buildQuery(current: TState): Record<string, RouteQueryValue> {
     const opts = resolvedOptions()
     const baseDefaults = opts.defaults as TState
-    const serialize = opts.serialize ?? {}
-    const queryKeyMap = opts.queryKeyMap ?? {}
+    const serialize = (opts.serialize ?? {}) as Record<string, (value: any) => RouteQueryValue>
+    const queryKeyMap = (opts.queryKeyMap ?? {}) as Record<string, string>
     const serializeState = opts.serializeState
     const result: Record<string, RouteQueryValue> = {}
 
     for (const key in current) {
-      const queryKey = (queryKeyMap[key as keyof TState] ?? key) as string
-      const serializer = (serialize as Record<string, any>)[key]
+      const queryKey = queryKeyMap[key] ?? key
+      const serializer = serialize[key]
       const value = current[key]
       const defaultValue = (baseDefaults as any)[key]
       
       const serialized = serializer 
-        ? (serializer as (value: TState[Extract<keyof TState, string>]) => RouteQueryValue)(value) 
+        ? serializer(value) 
         : defaultSerialize(value, defaultValue)
 
       if (isEqual(value, defaultValue)) continue
@@ -120,7 +120,14 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
     lastSerialized = serialized
     skipNextRouteSync = true
     const replace = overrideReplace ?? resolvedOptions().replace ?? true
-    await router[replace ? 'replace' : 'push']({ query })
+    
+    try {
+      await router[replace ? 'replace' : 'push']({ query })
+    } catch (e) {
+      // Ignore navigation failures (like repeated pushes to same URL)
+      // but ensure we reset state if needed
+      skipNextRouteSync = false
+    }
   }
 
   function read(): TState {
@@ -140,34 +147,39 @@ export function useQuerySync<TState extends Record<string, QueryStateValue>>(
     await syncToRoute(read(), resetOptions?.replace)
   }
 
-  watchEffect(() => {
-    const next = readRoute()
-    applyState(next)
-  })
+  // Initial state from route
+  const initialState = readRoute()
+  applyState(initialState)
 
   if (import.meta.client) {
+    // Sync state -> route
+    watch(
+      () => buildQuery(state),
+      async (newQuery, oldQuery) => {
+        const newSerialized = stableStringify(newQuery)
+        const oldSerialized = stableStringify(oldQuery)
+        
+        if (newSerialized === oldSerialized) return
+        if (newSerialized === lastSerialized) return // Already synced from route
+
+        // Debounce actual navigation to avoid router overhead/spam
+        await syncToRoute(state)
+      },
+      { deep: true }
+    )
+
+    // Sync route -> state
     watch(
       () => route.query,
-      () => {
-        if (skipNextRouteSync) {
-          skipNextRouteSync = false
-          return
-        }
+      (newQuery) => {
+        const newSerialized = stableStringify(newQuery as Record<string, RouteQueryValue>)
+        if (newSerialized === lastSerialized) return // Already synced from state
+
+        lastSerialized = newSerialized
         const next = readRoute()
         applyState(next)
       },
-    )
-
-    watch(
-      state,
-      async () => {
-        if (skipNextStateWatch) {
-          skipNextStateWatch = false
-          return
-        }
-        await syncToRoute(read())
-      },
-      { deep: true },
+      { deep: true, flush: 'sync' } // Use sync flush to ensure state is ready before router transitions
     )
   }
 
@@ -232,11 +244,11 @@ function defaultSerialize(value: QueryStateValue, _fallback: QueryStateValue): R
 
 function unwrapClonable<T>(value: T): T {
   if (isRef(value)) {
-    return unwrapClonable(unref(value))
+    return unwrapClonable(unref(value)) as T
   }
 
   if (isReactive(value)) {
-    return unwrapClonable(toRaw(value))
+    return unwrapClonable(toRaw(value)) as T
   }
 
   if (value instanceof Date) {

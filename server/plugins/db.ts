@@ -25,6 +25,8 @@ export default defineNitroPlugin((nitroApp) => {
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+    statement_timeout: 10000, // 10s maximum per query to avoid hanging (Senior Critic #1)
+    query_timeout: 10000,     // 10s maximum per query execution
   })
   
   const dialect = new PostgresDialect({ pool })

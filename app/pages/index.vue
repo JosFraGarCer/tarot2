@@ -34,6 +34,13 @@
         <h2 class="text-sm font-semibold text-neutral-400 uppercase tracking-widest px-1">Infrastructure Status</h2>
         <ClientOnly>
           <ServerStatusIsland />
+          <template #fallback>
+            <UCard class="bg-neutral-50/50 dark:bg-neutral-900/50 animate-pulse">
+              <div class="h-20 flex items-center justify-center">
+                <span class="text-neutral-400 text-xs">Loading health data...</span>
+              </div>
+            </UCard>
+          </template>
         </ClientOnly>
       </div>
       

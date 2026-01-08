@@ -31,14 +31,16 @@
 import { sql } from 'kysely'
 import type { Kysely } from 'kysely'
 
-const uptime = Math.floor(process.uptime())
+const uptime = import.meta.server ? Math.floor(process.uptime()) : 0
 let isDbHealthy = false
 
 try {
   // Verificación directa de salud de la DB usando el singleton global con cast para evitar errores de tipado en compilación
-  const database = (globalThis as any).db as Kysely<any>
-  const result = await database.executeQuery(sql`SELECT 1`.compile(database))
-  isDbHealthy = !!result
+  const database = (globalThis as any).db as Kysely<any> | undefined
+  if (database) {
+    const result = await database.executeQuery(sql`SELECT 1`.compile(database))
+    isDbHealthy = !!result
+  }
 } catch (e) {
   console.error('[Island] DB Health Check failed:', e)
 }
