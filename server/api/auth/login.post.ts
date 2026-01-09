@@ -1,6 +1,7 @@
 // server/api/auth/login.post.ts
 import { defineEventHandler, setCookie, readBody, createError } from 'h3'
-import { z } from 'zod'
+import { userLoginSchema } from '@shared/schemas/user'
+import type { RoleBase } from '@shared/schemas/role'
 import bcrypt from 'bcrypt'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
@@ -9,10 +10,9 @@ import { mergePermissions } from '../../utils/users'
 import { sql } from 'kysely'
 import { enforceRateLimit } from '../../utils/rateLimit'
 
-const loginSchema = z.object({
-  identifier: z.string().min(1), // acepta username o email
-  password: z.string().min(6),
-})
+interface RolesQueryResult {
+  roles: RoleBase[] | string | null
+}
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
     })
 
     const raw = await readBody(event)
-    const body = safeParseOrThrow(loginSchema, raw)
+    const body = safeParseOrThrow(userLoginSchema, raw)
     const { identifier, password } = body
     attemptedIdentifier = identifier
 
@@ -62,8 +62,8 @@ export default defineEventHandler(async (event) => {
       .where('ur.user_id', '=', user.id)
       .executeTakeFirst()
 
-    const rolesArr: any[] = (() => {
-      const rolesVal = (rolesRow as any)?.roles
+    const rolesArr: RoleBase[] = (() => {
+      const rolesVal = (rolesRow as RolesQueryResult)?.roles
       if (Array.isArray(rolesVal)) return rolesVal
       try {
         return JSON.parse(rolesVal as string)

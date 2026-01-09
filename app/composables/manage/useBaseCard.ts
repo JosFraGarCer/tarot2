@@ -2,7 +2,7 @@
 // /app/composables/manage/useBaseCard.ts
 import { useEntity, type EntityFilterConfig } from '~/composables/manage/useEntity'
 import type { ManageCrud } from '@/types/manage'
-import { baseCardCreateSchema, baseCardUpdateSchema } from '~/schemas/entities/basecard'
+import { baseCardCreateSchema, baseCardUpdateSchema } from '@shared/schemas/entities/base-card'
 import type { BaseCardList, BaseCardCreate, BaseCardUpdate } from '@/types/entities'
 
 const baseCardFilterConfig: EntityFilterConfig = {

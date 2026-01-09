@@ -3,7 +3,7 @@
 import { defineEventHandler, readBody } from 'h3'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
-import { roleCreateSchema } from '../../schemas/role'
+import { roleCreateSchema } from '@shared/schemas/role'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

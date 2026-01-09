@@ -4,7 +4,7 @@ import { sql, type SelectQueryBuilder } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
-import { contentFeedbackQuerySchema } from '../../schemas/content-feedback'
+import { contentFeedbackQuerySchema } from '@shared/schemas/content-feedback'
 
 function applyEntityRelation<QB extends SelectQueryBuilder<any, any, any>>(qb: QB, relationRaw: string | undefined): QB {
   if (!relationRaw) return qb

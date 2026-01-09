@@ -5,7 +5,7 @@ import {
   worldCardQuerySchema,
   worldCardCreateSchema,
   worldCardUpdateSchema,
-} from '../../schemas/world-card'
+} from '@shared/schemas/entities/world-card'
 
 function sanitize<T extends Record<string, any>>(input: T): Record<string, any> {
   const output: Record<string, any> = {}

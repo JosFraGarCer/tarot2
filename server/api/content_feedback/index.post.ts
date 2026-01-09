@@ -3,7 +3,7 @@ import { defineEventHandler, readBody } from 'h3'
 import { sql } from 'kysely'
 import { createResponse } from '../../utils/response'
 import { safeParseOrThrow } from '../../utils/validate'
-import { contentFeedbackCreateSchema } from '../../schemas/content-feedback'
+import { contentFeedbackCreateSchema } from '@shared/schemas/content-feedback'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

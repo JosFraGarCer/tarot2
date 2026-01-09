@@ -4,7 +4,7 @@ import { sql } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
 import { buildFilters } from '../../utils/filters'
 import { createPaginatedResponse } from '../../utils/response'
-import { contentVersionQuerySchema } from '../../schemas/content-version'
+import { contentVersionQuerySchema } from '@shared/schemas/content-version'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

@@ -6,7 +6,7 @@ import { parseQuery } from '../../utils/parseQuery'
 import { createResponse } from '../../utils/response'
 import { markLanguageFallback } from '../../utils/language'
 import { getRequestedLanguage } from '../../utils/i18n'
-import { tagCreateSchema, tagLangQuerySchema } from '../../schemas/tag'
+import { tagCreateSchema, tagLangQuerySchema } from '@shared/schemas/entities/tag'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

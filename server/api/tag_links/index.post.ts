@@ -2,7 +2,7 @@
 import { defineEventHandler, readBody } from 'h3'
 import { createResponse } from '../../utils/response'
 import { safeParseOrThrow } from '../../utils/validate'
-import { tagLinksAttachSchema } from '../../schemas/tag-link'
+import { tagLinksAttachSchema } from '@shared/schemas/tag-link'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

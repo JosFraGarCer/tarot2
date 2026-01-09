@@ -5,7 +5,7 @@ import { sql } from 'kysely'
 import bcrypt from 'bcrypt'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
-import { userCreateSchema } from '../../schemas/user'
+import { userCreateSchema } from '@shared/schemas/user'
 import { conflict } from '../../utils/error'
 import { mergePermissions } from '../../utils/users'
 

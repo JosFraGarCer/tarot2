@@ -4,7 +4,7 @@ import { sql } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
 import { badRequest, forbidden, notFound } from '../../utils/error'
-import { contentVersionPublishSchema } from '../../schemas/content-version'
+import { contentVersionPublishSchema } from '@shared/schemas/content-version'
 import { enforceRateLimit } from '../../utils/rateLimit'
 
 export default defineEventHandler(async (event) => {

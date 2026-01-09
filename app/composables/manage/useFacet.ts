@@ -2,7 +2,7 @@
 // /app/composables/manage/useFacet.ts
 import { useEntity, type EntityFilterConfig } from '~/composables/manage/useEntity'
 import type { ManageCrud } from '@/types/manage'
-import { facetCreateSchema, facetUpdateSchema } from '~/schemas/entities/facet'
+import { facetCreateSchema, facetUpdateSchema } from '@shared/schemas/entities/facet'
 import type { FacetList, FacetCreate, FacetUpdate } from '@/types/entities'
 
 export const facetFilterConfig: EntityFilterConfig = {

@@ -5,7 +5,7 @@ import { defineEventHandler, readBody } from 'h3'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
 import { notFound } from '../../utils/error'
-import { roleUpdateSchema } from '../../schemas/role'
+import { roleUpdateSchema } from '@shared/schemas/role'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

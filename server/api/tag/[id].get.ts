@@ -5,7 +5,7 @@ import { parseQuery } from '../../utils/parseQuery'
 import { createResponse } from '../../utils/response'
 import { getRequestedLanguage } from '../../utils/i18n'
 import { markLanguageFallback } from '../../utils/language'
-import { tagLangQuerySchema } from '../../schemas/tag'
+import { tagLangQuerySchema } from '@shared/schemas/entities/tag'
 import { createError } from 'h3'
 
 export default defineEventHandler(async (event) => {

@@ -5,17 +5,20 @@ import {
   baseCardTypeQuerySchema,
   baseCardTypeCreateSchema,
   baseCardTypeUpdateSchema,
-} from '../../schemas/base-card-type'
+} from '@shared/schemas/entities/cardtype'
+import type { DB } from '../../database/types'
 
-function sanitize<T extends Record<string, any>>(input: T): Record<string, any> {
-  const out: Record<string, any> = {}
+function sanitize<T extends Record<string, unknown>>(input: T): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(input)) {
-    if (value !== undefined) out[key] = value
+    if (value !== undefined) {
+      out[key] = value
+    }
   }
   return out
 }
 
-function buildSelect(db: any, lang: string) {
+function buildSelect(db: DB, lang: string) {
   return db
     .selectFrom('base_card_type as ct')
     .leftJoin('users as u', 'u.id', 'ct.created_by')

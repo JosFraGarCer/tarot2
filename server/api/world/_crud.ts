@@ -5,7 +5,7 @@ import {
   worldQuerySchema,
   worldCreateSchema,
   worldUpdateSchema,
-} from '../../schemas/world'
+} from '@shared/schemas/entities/world'
 
 function sanitize<T extends Record<string, any>>(input: T): Record<string, any> {
   const output: Record<string, any> = {}

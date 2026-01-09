@@ -1,33 +1,12 @@
 // server/api/tag/batch.patch.ts
-import { defineEventHandler, readBody, createError } from 'h3'
+import { defineEventHandler, readBody, createError, getQuery } from 'h3'
 import { sql } from 'kysely'
-import { z } from 'zod'
-import { parseQuery } from '../../utils/parseQuery'
-import { getRequestedLanguage } from '../../utils/i18n'
-import { tagLangQuerySchema } from '../../schemas/tag'
-import { createResponse } from '../../utils/response'
-import { markLanguageFallback } from '../../utils/language'
-
-const tagBatchSchema = z
-  .object({
-    ids: z.array(z.coerce.number().int()).min(1),
-    is_active: z.coerce.boolean().optional(),
-    category: z.string().optional(),
-    parent_id: z.coerce.number().int().nullable().optional(),
-    sort: z.coerce.number().int().optional(),
-    name: z.string().min(1).optional(),
-    short_text: z.string().nullable().optional(),
-    description: z.string().nullable().optional(),
-  })
-  .refine((payload) => {
-    const { ids, ...rest } = payload
-    return Object.keys(rest).length > 0
-  }, 'No fields to update')
+import { tagBatchSchema } from '@shared/schemas/entities/tag'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
   const logger = event.context.logger ?? globalThis.logger
-  const userId = (event.context.user as any)?.id ?? null
+  const userId = (event.context.user as { id?: number })?.id ?? null
 
   logger?.info?.({
     scope: 'tag.batch.start',
@@ -35,13 +14,13 @@ export default defineEventHandler(async (event) => {
     time: new Date().toISOString(),
   }, 'Tag batch update started')
 
-  const query = parseQuery(event, tagLangQuerySchema, { scope: 'tag.batch.query' })
+  const query = getQuery(event)
   const lang = getRequestedLanguage(query)
 
   const body = tagBatchSchema.parse(await readBody(event))
   const ids = Array.from(new Set(body.ids))
 
-  const basePatch: Record<string, any> = {}
+  const basePatch: Record<string, unknown> = {}
   if (body.is_active !== undefined) basePatch.is_active = body.is_active
   if (body.category !== undefined) basePatch.category = body.category
   if (body.parent_id !== undefined) basePatch.parent_id = body.parent_id
@@ -50,7 +29,7 @@ export default defineEventHandler(async (event) => {
     basePatch.updated_by = userId
   }
 
-  const translationPatch: Record<string, any> = {}
+  const translationPatch: Record<string, unknown> = {}
   if (body.name !== undefined) translationPatch.name = body.name
   if (body.short_text !== undefined) translationPatch.short_text = body.short_text
   if (body.description !== undefined) translationPatch.description = body.description
@@ -65,7 +44,7 @@ export default defineEventHandler(async (event) => {
     } else {
       // Ensure entities exist when only translations provided
       const count = await trx.selectFrom('tags').select(sql`count(*)`.as('c')).where('id', 'in', ids).executeTakeFirst()
-      const total = Number((count as any)?.c ?? 0)
+      const total = Number((count as { c?: string | number })?.c ?? 0)
       if (total !== ids.length) {
         throw createError({ statusCode: 404, statusMessage: 'One or more tags not found' })
       }
@@ -88,7 +67,7 @@ export default defineEventHandler(async (event) => {
               ...(translationPatch.short_text !== undefined ? { short_text: translationPatch.short_text ?? null } : {}),
               ...(translationPatch.description !== undefined ? { description: translationPatch.description ?? null } : {}),
             })
-            .where('id', '=', (existing as any).id)
+            .where('id', '=', (existing as { id: number }).id)
             .execute()
         } else {
           if (translationPatch.name === undefined) {

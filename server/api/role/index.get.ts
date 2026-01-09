@@ -5,7 +5,7 @@ import { sql } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
-import { roleQuerySchema } from '../../schemas/role'
+import { roleQuerySchema } from '@shared/schemas/role'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

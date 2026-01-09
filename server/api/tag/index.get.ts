@@ -5,7 +5,7 @@ import { parseQuery } from '../../utils/parseQuery'
 import { buildFilters } from '../../utils/filters'
 import { createPaginatedResponse } from '../../utils/response'
 import { getRequestedLanguage } from '../../utils/i18n'
-import { tagQuerySchema } from '../../schemas/tag'
+import { tagQuerySchema } from '@shared/schemas/entities/tag'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

@@ -6,7 +6,7 @@ import { createPaginatedResponse } from '../../utils/response'
 import { safeParseOrThrow } from '../../utils/validate'
 import { buildFilters } from '../../utils/filters'
 import { mergePermissions } from '../../utils/users'
-import { userQuerySchema } from '../../schemas/user'
+import { userQuerySchema } from '@shared/schemas/user'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

@@ -5,7 +5,7 @@ import {
   baseCardQuerySchema,
   baseCardCreateSchema,
   baseCardUpdateSchema,
-} from '../../schemas/base-card'
+} from '@shared/schemas/entities/base-card'
 
 function sanitize<T extends Record<string, any>>(input: T): Record<string, any> {
   const out: Record<string, any> = {}

@@ -3,7 +3,7 @@ import { defineEventHandler } from 'h3'
 import { createResponse } from '../../utils/response'
 import { parseQuery } from '../../utils/parseQuery'
 import { getRequestedLanguage } from '../../utils/i18n'
-import { tagLangQuerySchema } from '../../schemas/tag'
+import { tagLangQuerySchema } from '@shared/schemas/entities/tag'
 import { createError } from 'h3'
 
 export default defineEventHandler(async (event) => {

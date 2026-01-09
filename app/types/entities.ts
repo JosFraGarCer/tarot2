@@ -40,7 +40,7 @@ export interface WithTranslation {
 
 export interface WithEffects {
   legacy_effects?: boolean
-  effects?: Record<string, string[]> | null
+  effects?: Record<string, unknown>[] | null
 }
 
 //
@@ -153,8 +153,8 @@ export interface Tag {
   modified_at?: string
   created_by?: number | null
   updated_by?: number | null
-  created_by_user?: any
-  updated_by_user?: any
+  created_by_user?: UserSummary
+  updated_by_user?: UserSummary
 }
 
 export interface TagCreate {

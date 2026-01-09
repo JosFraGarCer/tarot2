@@ -1,11 +1,6 @@
 // server/api/tag/import.post.ts
 import { defineEventHandler, readBody } from 'h3'
-import { z } from 'zod'
-import { importEntityData } from '../../utils/entityTransferService'
-
-const tagImportSchema = z.object({
-  tags: z.array(z.record(z.string(), z.any())).min(1),
-})
+import { tagImportSchema } from '@shared/schemas/entities/tag'
 
 export default defineEventHandler(async (event) => {
   const logger = event.context.logger ?? globalThis.logger

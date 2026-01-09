@@ -5,10 +5,11 @@ import {
   facetQuerySchema,
   facetCreateSchema,
   facetUpdateSchema,
-} from '../../schemas/facet'
+} from '@shared/schemas/entities/facet'
+import type { DB } from '../../database/types'
 
-function sanitize<T extends Record<string, any>>(input: T): Record<string, any> {
-  const output: Record<string, any> = {}
+function sanitize<T extends Record<string, unknown>>(input: T): Record<string, unknown> {
+  const output: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) {
       output[key] = value
@@ -17,7 +18,7 @@ function sanitize<T extends Record<string, any>>(input: T): Record<string, any> 
   return output
 }
 
-function buildSelect(db: any, lang: string) {
+function buildSelect(db: DB, lang: string) {
   return db
     .selectFrom('facet as f')
     .leftJoin('users as u', 'u.id', 'f.created_by')

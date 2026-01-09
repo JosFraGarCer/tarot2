@@ -1,7 +1,7 @@
 // server/api/arcana/_crud.ts
 import { sql } from 'kysely'
 import { createCrudHandlers } from '../../utils/createCrudHandlers'
-import { arcanaQuerySchema, arcanaCreateSchema, arcanaUpdateSchema } from '../../schemas/arcana'
+import { arcanaQuerySchema, arcanaCreateSchema, arcanaUpdateSchema } from '@shared/schemas/entities/arcana'
 import type { DB } from '../../database/types'
 
 function sanitizeBaseData(input: Record<string, any>) {

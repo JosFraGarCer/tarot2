@@ -2,7 +2,7 @@
 // /app/composables/manage/useArcana.ts
 import { useEntity, type EntityFilterConfig } from '~/composables/manage/useEntity'
 import type { ManageCrud } from '@/types/manage'
-import { arcanaCreateSchema, arcanaUpdateSchema } from '~/schemas/entities/arcana'
+import { arcanaCreateSchema, arcanaUpdateSchema } from '@shared/schemas/entities/arcana'
 import type { ArcanaList, ArcanaCreate, ArcanaUpdate } from '@/types/entities'
 
 export const arcanaFilterConfig: EntityFilterConfig = {

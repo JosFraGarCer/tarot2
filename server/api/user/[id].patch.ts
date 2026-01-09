@@ -6,7 +6,7 @@ import bcrypt from 'bcrypt'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
 import { notFound } from '../../utils/error'
-import { userUpdateSchema } from '../../schemas/user'
+import { userUpdateSchema } from '@shared/schemas/user'
 import { mergePermissions } from '../../utils/users'
 import { sql } from 'kysely'
 

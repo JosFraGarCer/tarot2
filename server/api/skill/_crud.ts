@@ -5,7 +5,7 @@ import {
   skillQuerySchema,
   skillCreateSchema,
   skillUpdateSchema,
-} from '../../schemas/skill'
+} from '@shared/schemas/entities/skill'
 
 function sanitize<T extends Record<string, any>>(input: T): Record<string, any> {
   const output: Record<string, any> = {}

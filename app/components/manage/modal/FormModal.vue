@@ -104,7 +104,7 @@ import ImageUploadField from '~/components/manage/common/ImageUploadField.vue'
 import MarkdownEditor from '~/components/common/MarkdownEditor.vue'
 import { useEntityRelations } from '~/composables/manage/useEntityRelations'
 import { entityFieldPresets } from '~/composables/manage/entityFieldPresets'
-import type { z } from 'zod'
+import type { ZodTypeAny } from 'zod'
 import { useCardStatus } from '~/utils/status'
 
 // Props
@@ -114,25 +114,30 @@ const props = withDefaults(defineProps<{
   description?: string
   entityLabel: string,
   entity: string,
-  form: Record<string, any>
+  form: Record<string, unknown>
   loading?: boolean
-  ui?: Record<string, any>
+  ui?: Record<string, unknown>
   submitLabel?: string
   cancelLabel?: string
   imageFile?: File | null
   imagePreview?: string | null
-  imageFieldConfig?: Record<string, any>
-  englishItem?: Record<string, any> | null
+  imageFieldConfig?: Record<string, unknown>
+  englishItem?: Record<string, unknown> | null
   schema?: {
-    create?: z.ZodTypeAny
-    update?: z.ZodTypeAny
+    create?: ZodTypeAny
+    update?: ZodTypeAny
   } | null
 }>(), {
   loading: false,
   submitLabel: 'Save',
   cancelLabel: 'Cancel',
   englishItem: null,
-  schema: null
+  schema: null,
+  description: '',
+  ui: () => ({}),
+  imageFile: null,
+  imagePreview: null,
+  imageFieldConfig: () => ({})
 })
 
 const { t, locale } = useI18n()
@@ -155,9 +160,7 @@ const imageFieldConfig = computed(() => {
 
 const emit = defineEmits<{
   (e: 'update:open', v: boolean): void
-  (e: 'submit'): void
-  (e: 'cancel'): void
-  (e: 'remove-image'): void
+  (e: 'submit' | 'cancel' | 'remove-image'): void
   (e: 'update:image-file', v: File | null): void
 }>()
 
@@ -183,7 +186,7 @@ const { arcanaOptions, cardTypeOptions, facetOptions, loadAll } = useEntityRelat
 const resolvedImagePreview = computed(() => {
   const preview = props.imagePreview
   if (typeof preview === 'string' && preview) return resolveImage(preview)
-  const imageValue = (form as any)?.image
+  const imageValue = (form as Record<string, unknown>)?.image
   if (typeof imageValue === 'string' && imageValue) return resolveImage(imageValue)
   return null
 })
@@ -234,28 +237,30 @@ const normalizedLabel = computed(() =>
 )
 
 // Build fields from Zod schema if provided; fallback to presets
-const schemaResolvedFields = computed<Record<string, any>>(() => {
+const schemaResolvedFields = computed<Record<string, unknown>>(() => {
   try {
     const s = props.schema?.update || props.schema?.create
-    if (!s || typeof (s as any)._def === 'undefined') return {}
-    const obj = (s as any)
+    if (!s || typeof (s as { _def?: unknown })._def === 'undefined') return {}
+    const obj = (s as { _def?: { shape?: unknown } })
     const shapeDef = obj?._def?.shape
     const shape = typeof shapeDef === 'function' ? shapeDef() : shapeDef
     if (!shape) return {}
 
-    function unwrap(t: any): any {
+    function unwrap(t: unknown): unknown {
       // unwrap Optional/Nullable/Effects
-      while (t && (t._def?.typeName === 'ZodOptional' || t._def?.typeName === 'ZodNullable' || t._def?.typeName === 'ZodEffects')) {
-        t = t._def?.innerType || t._def?.schema || t._def?.inner
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      while (t && (t as any) && ((t as any)._def?.typeName === 'ZodOptional' || (t as any)._def?.typeName === 'ZodNullable' || (t as any)._def?.typeName === 'ZodEffects')) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        t = (t as any)._def?.innerType || (t as any)._def?.schema || (t as any)._def?.inner
       }
       return t
     }
 
-    const fields: Record<string, any> = {}
-    for (const key of Object.keys(shape)) {
-      const raw = (shape as any)[key]
+    const fields: Record<string, unknown> = {}
+    for (const key of Object.keys(shape as Record<string, unknown>)) {
+      const raw = (shape as Record<string, unknown>)[key]
       const t = unwrap(raw)
-      let field: any = { label: key, placeholder: '', required: false, disabled: false }
+      let field: Record<string, unknown> = { label: key, placeholder: '', required: false, disabled: false }
 
       // Heurística para relaciones por nombre
       if (/(^|_)arcana_id$/.test(key)) field = { ...field, type: 'select', relation: 'arcana' }
@@ -286,14 +291,14 @@ const schemaResolvedFields = computed<Record<string, any>>(() => {
       if (key === 'effects') field = { ...field, type: 'effects' }
 
       // Ocultar/ignorar campos que no se editan desde el formulario
-      if (['id', 'created_by', 'content_version_id', 'sort', 'language_code'].includes(key)) {
+      if (['id', 'created_by', 'content_version_id', 'sort', 'language_code', 'lang', 'metadata'].includes(key)) {
         field.hidden = true
       }
 
       fields[key] = field
     }
     return fields
-  } catch (e) {
+  } catch {
     // fallback silencioso a presets
     return {}
   }
@@ -313,12 +318,12 @@ const resolvedFields = computed(() => {
 // 🔧 Estado local sincronizado con form.effects
 const effectsText = computed({
   get() {
-    const eff = (form as any)?.effects?.[localeCode.value]
+    const eff = (form as Record<string, unknown>)?.effects?.[localeCode.value]
     return Array.isArray(eff) ? eff.join('\n') : (eff || '')
   },
   set(v: string) {
-    if (!(form as any).effects) (form as any).effects = {}
-    ;(form as any).effects[localeCode.value] = v
+    if (!(form as Record<string, unknown>).effects) (form as Record<string, unknown>).effects = {}
+    ;(form as Record<string, unknown>).effects[localeCode.value] = v
       ? v.split(/\n+/).filter(line => line.trim() !== '')
       : []
   }
@@ -342,7 +347,7 @@ function getRelationOptions(relation?: string) {
 }
 
 // Items for select fields: prefer relation options; otherwise enum/explicit options.
-function selectItems(field: any, key: string) {
+function selectItems(field: Record<string, unknown>, key: string) {
   // If relation specified, use relation options
   if (field?.relation) return getRelationOptions(field.relation)
 

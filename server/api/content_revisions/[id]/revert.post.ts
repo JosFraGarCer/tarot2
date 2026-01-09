@@ -1,16 +1,7 @@
 // server/api/content_revisions/[id]/revert.post.ts
 import { defineEventHandler, readBody } from 'h3'
 import { sql } from 'kysely'
-import { z } from 'zod'
-import { safeParseOrThrow } from '../../../utils/validate'
-import { badRequest, forbidden, notFound } from '../../../utils/error'
-import { createResponse } from '../../../utils/response'
-import { contentRevisionRevertSchema } from '../../../schemas/content-revision'
-import { enforceRateLimit } from '../../../utils/rateLimit'
-
-const paramsSchema = z.object({
-  id: z.coerce.number().int().positive(),
-})
+import { paramsSchema, contentRevisionRevertSchema } from '@shared/schemas/content-revision'
 
 const DISALLOWED_FIELDS = new Set(['id', 'created_at', 'modified_at', 'updated_by', 'created_by'])
 

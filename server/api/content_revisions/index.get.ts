@@ -4,7 +4,7 @@ import { sql } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
-import { contentRevisionQuerySchema } from '../../schemas/content-revision'
+import { contentRevisionQuerySchema } from '@shared/schemas/content-revision'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()

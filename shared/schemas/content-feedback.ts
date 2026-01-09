@@ -1,19 +1,28 @@
-// server/schemas/content-feedback.ts
+// shared/schemas/content-feedback.ts
 import { z } from 'zod'
-import { queryBoolean } from '../utils/zod'
 
-const entityTypeEnum = z.enum([
+// Enums for content feedback
+export const entityTypeEnum = z.enum([
   'arcana',
-  'facet',
   'base_card',
   'base_card_type',
+  'facet',
   'world_card',
   'world',
-  'base_skills',
+  'base_skills'
 ])
 
-const feedbackStatusEnum = z.enum(['open', 'resolved', 'dismissed'])
+export const feedbackStatusEnum = z.enum(['open', 'resolved', 'dismissed'])
 
+export const feedbackCategoryEnum = z.enum([
+  'translation',
+  'content',
+  'technical',
+  'design',
+  'other'
+])
+
+// Schema for content feedback queries
 export const contentFeedbackQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
@@ -23,41 +32,43 @@ export const contentFeedbackQuerySchema = z.object({
   version_number: z.coerce.number().int().optional(),
   language_code: z.string().max(5).optional(),
   status: feedbackStatusEnum.optional(),
-  category: z.string().optional(),
+  category: feedbackCategoryEnum.optional(),
   created_by: z.coerce.number().int().optional(),
   resolved_by: z.coerce.number().int().optional(),
-  has_resolution: queryBoolean.optional(),
   created_from: z.coerce.date().optional(),
   created_to: z.coerce.date().optional(),
-  resolved_from: z.coerce.date().optional(),
-  resolved_to: z.coerce.date().optional(),
-  entity_relation: z.string().optional(),
-  sort: z
-    .enum(['created_at', 'resolved_at', 'status', 'entity', 'version_number'])
-    .optional(),
+  sort: z.enum([
+    'created_at',
+    'entity_type',
+    'entity_id',
+    'status',
+    'category',
+    'created_by'
+  ]).optional(),
   direction: z.enum(['asc', 'desc']).optional(),
 })
 
+// Schema for creating content feedback
 export const contentFeedbackCreateSchema = z.object({
   entity_type: entityTypeEnum,
-  entity_id: z.number().int(),
-  comment: z.string().min(1),
-  category: z.string().optional(),
+  entity_id: z.coerce.number().int().positive(),
+  version_number: z.coerce.number().int().optional(),
   language_code: z.string().max(5).optional(),
-  version_number: z.number().int().optional(),
-  status: feedbackStatusEnum.optional(),
+  comment: z.string().min(1, 'Comment is required').max(2000),
+  category: feedbackCategoryEnum.optional(),
 })
 
+// Schema for updating content feedback
 export const contentFeedbackUpdateSchema = z.object({
-  comment: z.string().min(1).optional(),
-  category: z.string().optional(),
-  language_code: z.string().max(5).nullable().optional(),
   status: feedbackStatusEnum.optional(),
-  version_number: z.number().int().nullable().optional(),
-  resolved_by: z.number().int().nullable().optional(),
-  resolved_at: z.union([z.coerce.date(), z.null()]).optional(),
+  category: feedbackCategoryEnum.optional(),
+  resolved_by: z.coerce.number().int().optional(),
 })
 
+// Types exportados
+export type EntityType = z.infer<typeof entityTypeEnum>
+export type FeedbackStatus = z.infer<typeof feedbackStatusEnum>
+export type FeedbackCategory = z.infer<typeof feedbackCategoryEnum>
 export type ContentFeedbackQuery = z.infer<typeof contentFeedbackQuerySchema>
 export type ContentFeedbackCreate = z.infer<typeof contentFeedbackCreateSchema>
 export type ContentFeedbackUpdate = z.infer<typeof contentFeedbackUpdateSchema>

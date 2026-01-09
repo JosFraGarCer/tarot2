@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'url'
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: false },
@@ -8,7 +10,7 @@ export default defineNuxtConfig({
     port: 3007,
   },
 
-  ssr: true,
+  ssr: false,
 
   // App configuration
   app: {
@@ -37,6 +39,15 @@ export default defineNuxtConfig({
   },
 
   css: ['@/assets/css/main.css'],
+
+  // Alias para schemas compartidos
+  alias: {
+    '@shared': fileURLToPath(new URL('./shared', import.meta.url))
+  },
+
+  // Configuración Nitro para imports compartidos en server
+  nitro: {
+  },
 
   modules: [
     '@nuxt/eslint',

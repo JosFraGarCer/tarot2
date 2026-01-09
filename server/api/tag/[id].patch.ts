@@ -6,7 +6,7 @@ import { safeParseOrThrow } from '../../utils/validate'
 import { parseQuery } from '../../utils/parseQuery'
 import { createResponse } from '../../utils/response'
 import { markLanguageFallback } from '../../utils/language'
-import { tagUpdateSchema, tagLangQuerySchema } from '../../schemas/tag'
+import { tagUpdateSchema, tagLangQuerySchema } from '@shared/schemas/entities/tag'
 import { getRequestedLanguage } from '../../utils/i18n'
 import { createError } from 'h3'
 

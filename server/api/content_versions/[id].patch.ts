@@ -3,7 +3,7 @@ import { defineEventHandler, readBody } from 'h3'
 import { sql } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
-import { contentVersionUpdateSchema } from '../../schemas/content-version'
+import { contentVersionUpdateSchema } from '@shared/schemas/content-version'
 import { badRequest, notFound, conflict } from '../../utils/error'
 
 export default defineEventHandler(async (event) => {

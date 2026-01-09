@@ -2,7 +2,7 @@
 // /app/composables/manage/useCardType.ts
 import { useEntity, type EntityFilterConfig } from '~/composables/manage/useEntity'
 import type { ManageCrud } from '@/types/manage'
-import { cardTypeCreateSchema, cardTypeUpdateSchema } from '~/schemas/entities/cardtype'
+import { cardTypeCreateSchema, cardTypeUpdateSchema } from '@shared/schemas/entities/cardtype'
 import type { CardTypeList, CardTypeCreate, CardTypeUpdate } from '@/types/entities'
 
 export const cardTypeFilterConfig: EntityFilterConfig = {

@@ -1,20 +1,20 @@
 // app/composables/manage/useEntityFormPreset.ts
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
-import { z } from 'zod'
+import type { ZodTypeAny } from 'zod'
 
 import { useEntityCapabilities, type EntityCapabilities } from '~/composables/common/useEntityCapabilities'
-import { arcanaCreateSchema, arcanaUpdateSchema } from '~/schemas/entities/arcana'
-import { baseCardCreateSchema, baseCardUpdateSchema } from '~/schemas/entities/basecard'
-import { cardTypeCreateSchema, cardTypeUpdateSchema } from '~/schemas/entities/cardtype'
-import { facetCreateSchema, facetUpdateSchema } from '~/schemas/entities/facet'
-import { skillCreateSchema, skillUpdateSchema } from '~/schemas/entities/skill'
-import { tagCreateSchema, tagUpdateSchema } from '~/schemas/entities/tag'
-import { worldCreateSchema, worldUpdateSchema } from '~/schemas/entities/world'
+import { arcanaCreateSchema, arcanaUpdateSchema } from '@shared/schemas/entities/arcana'
+import { baseCardCreateSchema, baseCardUpdateSchema } from '@shared/schemas/entities/base-card'
+import { cardTypeCreateSchema, cardTypeUpdateSchema } from '@shared/schemas/entities/cardtype'
+import { facetCreateSchema, facetUpdateSchema } from '@shared/schemas/entities/facet'
+import { skillCreateSchema, skillUpdateSchema } from '@shared/schemas/entities/skill'
+import { tagCreateSchema, tagUpdateSchema } from '@shared/schemas/entities/tag'
+import { worldCreateSchema, worldUpdateSchema } from '@shared/schemas/entities/world'
 
 export type EntityFormFieldType = 'text' | 'textarea' | 'select' | 'toggle' | 'number' | 'image' | 'effects'
 
 export interface EntityFormFieldOption {
-  value: any
+  value: unknown
   label?: string
   labelKey?: string
 }
@@ -34,14 +34,14 @@ export interface EntityFormField {
 }
 
 export interface EntityFormPresetSchema {
-  create?: z.ZodTypeAny
-  update?: z.ZodTypeAny
+  create?: ZodTypeAny
+  update?: ZodTypeAny
 }
 
 export interface EntityFormPreset {
   schema: EntityFormPresetSchema | null
   fields: Record<string, EntityFormField>
-  defaults: Record<string, any>
+  defaults: Record<string, unknown>
 }
 
 type EntityFormPresetBuilder = (capabilities: EntityCapabilities) => EntityFormPreset
@@ -51,7 +51,7 @@ type CorePresetConfig = {
   relation?: { key: string; relation: string; label: string; required?: boolean; options?: EntityFormFieldOption[] }
   supportsEffects?: boolean
   supportsImage?: boolean
-  defaults?: Record<string, any>
+  defaults?: Record<string, unknown>
   extraFields?: Record<string, EntityFormField>
 }
 
@@ -91,16 +91,16 @@ function cloneDefaultValue<T>(value: T): T {
   try {
     return structuredClone(value)
   } catch {
-    const out: Record<string, any> = {}
-    for (const key of Object.keys(value as Record<string, any>)) {
-      out[key] = cloneDefaultValue((value as Record<string, any>)[key])
+    const out: Record<string, unknown> = {}
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      out[key] = cloneDefaultValue((value as Record<string, unknown>)[key])
     }
     return out as T
   }
 }
 
-function pruneUndefinedDefaults(defaults: Record<string, any>): Record<string, any> {
-  const out: Record<string, any> = {}
+function pruneUndefinedDefaults(defaults: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(defaults)) {
     if (value !== undefined) {
       out[key] = cloneDefaultValue(value)
@@ -133,6 +133,7 @@ function buildCoreCardPreset(capabilities: EntityCapabilities, config: CorePrese
 
   fields.sort = { label: 'common.sort', type: 'number', hidden: true }
   fields.language_code = { label: 'common.language_code', type: 'text', hidden: true }
+  fields.metadata = { label: 'common.metadata', type: 'text', hidden: true }
 
   if (capabilities.hasReleaseStage) {
     fields.release_stage = {
@@ -146,7 +147,7 @@ function buildCoreCardPreset(capabilities: EntityCapabilities, config: CorePrese
     fields.tag_ids = {
       label: 'entities.tags',
       type: 'select',
-      hidden: capabilities.hasTags === false,
+      hidden: !capabilities.hasTags,
     }
   }
 
