@@ -14,7 +14,7 @@ export function useEntityPagination(crud: AnyManageCrud) {
   const page = computed(() => crud.pagination.value.page)
   const pageSize = computed(() => crud.pagination.value.pageSize)
   const totalItems = computed(() => crud.pagination.value.totalItems)
-  
+
   const totalPages = computed(() => {
     const size = pageSize.value || 1
     return Math.max(1, Math.ceil((totalItems.value || 0) / size))
@@ -23,12 +23,18 @@ export function useEntityPagination(crud: AnyManageCrud) {
   const defaultPageSizes = computed(() => _toOptions(toValue(crud.pageSizeOptions)))
 
   function onPageChange(newPage: number) {
-    crud.pagination.value.page = newPage
+    if (crud.pagination.value.page !== newPage) {
+      crud.pagination.value.page = newPage
+      void crud.fetchList?.()
+    }
   }
 
   function onPageSizeChange(newPageSize: number) {
-    crud.pagination.value.pageSize = newPageSize
-    crud.pagination.value.page = 1 // Reset to page 1 when page size changes
+    if (crud.pagination.value.pageSize !== newPageSize) {
+      crud.pagination.value.pageSize = newPageSize
+      crud.pagination.value.page = 1
+      void crud.fetchList?.()
+    }
   }
 
   return {

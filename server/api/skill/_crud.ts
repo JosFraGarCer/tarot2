@@ -57,7 +57,7 @@ function sanitize<T extends Record<string, unknown>>(input: T): Record<string, u
 
 // Returns a SelectQueryBuilder - using 'any' for complex joined table type
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, SkillRow> {
+function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, any> {
   return db
     .selectFrom('base_skills as s')
     .leftJoin('users as u', 'u.id', 's.created_by')
@@ -122,11 +122,14 @@ export const skillCrud = createCrudHandlers({
       base = base.where('s.created_by', '=', query.created_by)
     }
     if (query.facet_id !== undefined) {
-      base = base.where('s.facet_id', '=', query.facet_id)
+      const facetIds = Array.isArray(query.facet_id) ? query.facet_id : [query.facet_id]
+      if (facetIds.length > 0) {
+        base = base.where('s.facet_id', 'in', facetIds)
+      }
     }
 
     if (tagIds && tagIds.length > 0) {
-      base = base.where(sql`exists (
+      base = base.where(sql<boolean>`exists (
         select 1
         from tag_links tl
         where tl.entity_type = ${'skills'}
@@ -135,7 +138,7 @@ export const skillCrud = createCrudHandlers({
       )`)
     }
     if (tagsLower && tagsLower.length > 0) {
-      base = base.where(sql`exists (
+      base = base.where(sql<boolean>`exists (
         select 1
         from tag_links tl
         join tags t on t.id = tl.tag_id
@@ -169,10 +172,10 @@ export const skillCrud = createCrudHandlers({
         applySearch: (qb, term) =>
           qb.where((eb) =>
             eb.or([
-              sql`coalesce(t_req.name, t_en.name) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req.short_text, t_en.short_text) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req.description, t_en.description) ilike ${'%' + term + '%'}`,
-              sql`s.code ilike ${'%' + term + '%'}`,
+              sql<boolean>`coalesce(t_req.name, t_en.name) ilike ${'%' + term + '%'}`,
+              sql<boolean>`coalesce(t_req.short_text, t_en.short_text) ilike ${'%' + term + '%'}`,
+              sql<boolean>`coalesce(t_req.description, t_en.description) ilike ${'%' + term + '%'}`,
+              sql<boolean>`s.code ilike ${'%' + term + '%'}`,
             ]),
           ),
       },
@@ -197,10 +200,10 @@ export const skillCrud = createCrudHandlers({
     }
   },
   selectOne: async ({ db, lang }: { db: Kysely<DB>; lang: string }, id: number) => {
-    const row = await buildSelect(db, lang)
+    const row = await (buildSelect(db, lang) as SelectQueryBuilder<any, any, SkillRow>)
       .where('s.id', '=', id)
       .executeTakeFirst()
-    
+
     if (row) {
       const tagsMap = await fetchTagsForEntities(db, 'skills', [row.id], lang)
       row.tags = tagsMap[row.id] || []

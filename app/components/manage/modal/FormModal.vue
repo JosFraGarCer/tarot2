@@ -3,102 +3,64 @@
 <template>
   <UModal v-model:open="openInternal" :title="title" :description="description || ''" :ui="ui">
     <template #body>
-      <UForm v-if="resolvedFields && Object.keys(resolvedFields).length" class="space-y-4" @submit.prevent="emit('submit')">
+      <UForm v-if="resolvedFields && Object.keys(resolvedFields).length" class="space-y-4"
+        @submit.prevent="emit('submit', localForm)">
         <!-- Campos dinámicos -->
         <div v-for="(field, key) in resolvedFields" :key="key">
-          <UFormField :label="trLabel(key as string, field.label)" :required="field.required" :class="{ hidden: field.hidden }">
-
-            <USelectMenu
-              v-if="field.type === 'select'"
-              v-model="form[key]"
-              :items="selectItems(field, key as string)"
-              option-attribute="label"
-              value-attribute="value"
-              :disabled="field.disabled"
-              class="w-full"
-              @update:model-value="(val) => {
+          <UFormField :label="trLabel(key as string, field.label)" :required="field.required"
+            :class="{ hidden: field.hidden }">
+            <USelectMenu v-if="field.type === 'select'" v-model="localForm[key]"
+              :items="selectItems(field, key as string)" option-attribute="label" value-attribute="value"
+              :disabled="field.disabled" class="w-full" @update:model-value="(val) => {
+                console.log('[FormModal] Select update for', key, ':', val, typeof val);
                 if (val && typeof val === 'object' && 'value' in val) {
-                  form[key] = val.value
-                } else {
-                  form[key] = val
+                  localForm[key] = (val as any).value
+                  console.log('[FormModal] Set localForm[', key, '] to object.value:', (val as any).value);
                 }
-              }"
-            >
-              <template #default="{ open }">
-                  <span v-if="form[key] !== undefined && form[key] !== null" class="truncate">
-                    {{ selectItems(field, key as string).find(i => i.value === form[key])?.label || form[key] }}
-                  </span>
-                  <span v-else class="text-neutral-500 dark:text-neutral-400">
-                    {{ field.placeholder || $t('ui.actions.select_option') }}
-                  </span>
+                else {
+                  localForm[key] = val
+                  console.log('[FormModal] Set localForm[', key, '] to value:', val);
+                }
+              }">
+              <template #default>
+                <span v-if="localForm[key] !== undefined && localForm[key] !== null" class="truncate">
+                  {{(selectItems(field, key as string) || []).find(i => i && i.value === localForm[key])?.label
+                    || localForm[key]}}
+                </span>
+                <span v-else class="text-neutral-500 dark:text-neutral-400">
+                  {{ field.placeholder || $t('ui.actions.select_option') }}
+                </span>
               </template>
             </USelectMenu>
-            <USwitch
-              v-else-if="field.type === 'toggle'"
-              v-model="(form[key] as boolean)"
-              :disabled="field.disabled"
-              size="md"
-            />
+            <USwitch v-else-if="field.type === 'toggle'" v-model="(localForm[key] as boolean)"
+              :disabled="field.disabled" size="md" />
             <template v-else-if="field.type === 'effects'">
-              <USwitch
-                v-model="(form.legacy_effects as boolean)"
-                :label="trLabel('legacy_effects', 'Legacy effects')"
-                :disabled="field.disabled"
-                size="md"
-              />
-              <p
-                v-if="showFallbackHint(key as string)"
-                class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
-              >
+              <USwitch v-model="(localForm.legacy_effects as boolean)"
+                :label="trLabel('legacy_effects', 'Legacy effects')" :disabled="field.disabled" size="md" />
+              <p v-if="showFallbackHint(key as string)" class="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
                 EN: {{ effectsFallbackText }}
               </p>
-              <MarkdownEditor
-                v-if="form.legacy_effects"
-                v-model="effectsText"
+              <MarkdownEditor v-if="localForm.legacy_effects" v-model="effectsText"
                 :label="field.label || trLabel(key as string, field.label)"
-                :placeholder="field.placeholder || 'Write markdown content...'"
-                :disabled="field.disabled"
-              />
+                :placeholder="field.placeholder || 'Write markdown content...'" :disabled="field.disabled" />
             </template>
-            <ImageUploadField
-              v-else-if="field.type === 'upload'"
-              :model-value="imageFile"
-              :preview="resolvedImagePreview"
-              :field="imageFieldConfig"
-              :enabled="true"
-              @update:model-value="(v) => emit('update:image-file', v)"
-              @remove="emit('remove-image')"
-            />
+            <ImageUploadField v-else-if="field.type === 'upload'" :model-value="imageFile"
+              :preview="resolvedImagePreview" :field="imageFieldConfig" :enabled="true"
+              @update:model-value="(v) => emit('update:image-file', v)" @remove="emit('remove-image')" />
             <template v-else-if="field.rows">
-              <p
-                v-if="showFallbackHint(key)"
-                class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
-              >
+              <p v-if="showFallbackHint(key as string)" class="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
                 EN: {{ props.englishItem?.[key] || '—' }}
               </p>
-              <UTextarea
-                v-model="(form[key] as string)"
-                :rows="field.rows"
-                :placeholder="field.placeholder"
-                :disabled="field.disabled"
-                class="w-full"
-              />
+              <UTextarea v-model="(localForm[key] as string)" :rows="field.rows" :placeholder="field.placeholder"
+                :disabled="field.disabled" class="w-full" />
             </template>
             <template v-else>
-              <p
-                v-if="showFallbackHint(key as string)"
-                class="text-xs text-neutral-500 dark:text-neutral-400 mb-1"
-              >
+              <p v-if="showFallbackHint(key as string)" class="text-xs text-neutral-500 dark:text-neutral-400 mb-1">
                 EN: {{ props.englishItem?.[key] || '—' }}
               </p>
-              <UInput
-                v-model="(form[key] as any)"
-                :placeholder="field.placeholder"
-                :disabled="field.disabled"
+              <UInput v-model="(localForm[key] as any)" :placeholder="field.placeholder" :disabled="field.disabled"
                 :loading="key === 'code' && codeLoading"
-                :status="key === 'code' && !codeAvailable ? 'error' : undefined"
-                class="w-full"
-              >
+                :status="key === 'code' && !codeAvailable ? 'error' : undefined" class="w-full">
                 <template v-if="key === 'code' && !codeAvailable" #trailing>
                   <UIcon name="i-heroicons-exclamation-triangle" class="text-error-500" />
                 </template>
@@ -107,7 +69,6 @@
                 {{ codeError }}
               </p>
             </template>
-
           </UFormField>
         </div>
       </UForm>
@@ -116,14 +77,24 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="soft" :label="cancelLabel" @click="handleCancel" />
-        <UButton color="primary" :label="submitLabel" :loading="loading" :disabled="!canSubmit" @click="emit('submit')" />
+        <UButton color="primary" :label="submitLabel" :loading="loading" :disabled="!canSubmit" @click="() => {
+          console.log('[FormModal] localForm before toRaw:', localForm.arcana_id, typeof localForm.arcana_id);
+          const data = toRaw(localForm);
+          console.log('[FormModal] data after toRaw:', data.arcana_id, typeof data.arcana_id);
+          if (!data) {
+            console.error('[FormModal] Attempted to submit with null/undefined localForm');
+            return;
+          }
+          emit('submit', data);
+          console.log('[FormModal] Final submitted data.arcana_id:', data.arcana_id, typeof data.arcana_id);
+        }" />
       </div>
     </template>
   </UModal>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, watch, onMounted } from 'vue'
+import { computed, reactive, watch, onMounted, toRaw, ref } from 'vue'
 import { useI18n } from '#imports'
 import ImageUploadField from '~/components/manage/common/ImageUploadField.vue'
 import MarkdownEditor from '~/components/common/MarkdownEditor.vue'
@@ -137,8 +108,8 @@ const props = withDefaults(defineProps<{
   open: boolean
   title: string
   description?: string
-  entityLabel: string,
-  entity: string,
+  entityLabel: string
+  entity: string
   form: Record<string, unknown>
   loading?: boolean
   ui?: Record<string, unknown>
@@ -146,22 +117,31 @@ const props = withDefaults(defineProps<{
   cancelLabel?: string
   imageFile?: File | null
   imagePreview?: string | null
-  imageFieldConfig?: Record<string, unknown>
   englishItem?: Record<string, unknown> | null
   fields?: Record<string, any> | undefined
-  schema?: { create?: z.ZodTypeAny; update?: z.ZodTypeAny } | null | undefined
+  schema?: { create?: z.ZodTypeAny, update?: z.ZodTypeAny } | null | undefined
+  imageFieldConfig?: {
+    label?: string
+    dropLabel?: string
+    removeLabel?: string
+    previewAlt?: string
+    description?: string
+    required?: boolean
+    disabled?: boolean
+  }
 }>(), {
   loading: false,
   submitLabel: 'Save',
   cancelLabel: 'Cancel',
   englishItem: null,
   schema: null,
-  fields: undefined
+  fields: undefined,
+  imageFieldConfig: undefined,
 })
 
 const { t, locale } = useI18n()
 const localeCode = computed(() =>
-  typeof locale === 'string' ? locale : locale.value
+  typeof locale === 'string' ? locale : locale.value,
 )
 
 // Configuración por defecto del campo de imagen
@@ -173,13 +153,13 @@ const imageFieldConfig = computed(() => {
     previewAlt: 'Preview image',
     description: '',
     required: false,
-    disabled: false
+    disabled: false,
   }) as any
 })
 
 const emit = defineEmits<{
   (e: 'update:open', v: boolean): void
-  (e: 'submit'): void
+  (e: 'submit', payload?: Record<string, any>): void
   (e: 'cancel'): void
   (e: 'remove-image'): void
   (e: 'update:image-file', v: File | null): void
@@ -188,11 +168,11 @@ const emit = defineEmits<{
 // Estado interno
 const openInternal = computed({
   get: () => props.open,
-  set: v => emit('update:open', v)
+  set: v => emit('update:open', v),
 })
 
 // We use a local reactive copy to avoid direct prop mutation
-const localForm = reactive({ ...props.form })
+const localForm = reactive<Record<string, any>>({ ...props.form })
 
 // Track if form has changed to show confirmation dialog
 const isDirty = computed(() => {
@@ -201,18 +181,18 @@ const isDirty = computed(() => {
 
 // Sync local form with parent changes
 watch(() => props.form, (newVal) => {
-  Object.assign(localForm, newVal)
+  if (newVal) {
+    Object.assign(localForm, newVal)
+  }
 }, { deep: true })
 
 // Sync back to parent via events if needed or use internal logic
-const form = localForm as Record<string, any>
-
 const { arcanaOptions, cardTypeOptions, facetOptions, loadAll } = useEntityRelations()
 
 const resolvedImagePreview = computed(() => {
   const preview = props.imagePreview
   if (typeof preview === 'string' && preview) return resolveImage(preview)
-  const imageValue = (form as Record<string, unknown>)?.image
+  const imageValue = (localForm as Record<string, unknown>)?.image
   if (typeof imageValue === 'string' && imageValue) return resolveImage(imageValue)
   return null
 })
@@ -231,8 +211,9 @@ function resolveImage(src?: string | null) {
   return entityKey ? `/img/${entityKey}/${value}` : `/img/${value}`
 }
 function showFallbackHint(key: string) {
+  if (!key || !props.englishItem) return false
   // solo mostrar si NO estamos en inglés y sí hay englishItem
-  if (localeCode.value === 'en' || !props.englishItem) return false
+  if (localeCode.value === 'en') return false
 
   const translatableKeys = ['name', 'short_text', 'description', 'effects']
   return translatableKeys.includes(key) && !!props.englishItem[key]
@@ -241,10 +222,10 @@ function showFallbackHint(key: string) {
 const effectsFallbackText = computed(() => {
   const effects = props.englishItem?.effects as Record<string, string[] | string | undefined> | undefined
   if (!effects) return '—'
-  const candidate =
-    effects[localeCode.value] ??
-    effects.en ??
-    Object.values(effects).find((value) => {
+  const candidate
+    = effects[localeCode.value]
+    ?? effects.en
+    ?? Object.values(effects).find((value) => {
       if (Array.isArray(value)) return value.length > 0
       return typeof value === 'string' && value.length > 0
     })
@@ -263,7 +244,7 @@ const normalizedLabel = computed(() =>
     .replace(/\s+/g, '_')
     .replace(/-/g, '_')
     .replace(/s$/, '') // quita plural final
-    .trim() || ''
+    .trim() || '',
 )
 
 interface FieldConfig {
@@ -275,7 +256,7 @@ interface FieldConfig {
   type?: 'select' | 'toggle' | 'effects' | 'upload' | 'input' | 'textarea'
   rows?: number
   relation?: string
-  options?: Array<{ label: string; value: unknown } | string>
+  options?: Array<{ label: string, value: unknown } | string>
 }
 
 const resolvedFields = computed(() => {
@@ -289,14 +270,14 @@ const codeError = ref<string | null>(null)
 let codeTimeout: any = null
 
 async function validateCodeAsync(newCode: string) {
-  if (!newCode || newCode.trim().length === 0) {
+  if (!newCode || typeof newCode !== 'string' || newCode.trim().length === 0) {
     codeAvailable.value = true
     codeError.value = null
     return
   }
 
   // Si estamos editando y el código es el mismo que el original, es válido
-  if (props.form.id && newCode === props.form.code) {
+  if (props.form && props.form.id && newCode === props.form.code) {
     codeAvailable.value = true
     codeError.value = null
     return
@@ -310,16 +291,18 @@ async function validateCodeAsync(newCode: string) {
       params: {
         entity: props.entity,
         code: newCode,
-        excludeId: props.form.id
-      }
+        excludeId: props.form.id,
+      },
     })
     codeAvailable.value = data.available
     if (!data.available) {
       codeError.value = t('ui.errors.code_taken', 'This code is already in use')
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error('Code validation failed', e)
-  } finally {
+  }
+  finally {
     codeLoading.value = false
   }
 }
@@ -333,33 +316,38 @@ watch(() => localForm.code, (newVal) => {
 
 const canSubmit = computed(() => {
   if (props.loading || codeLoading.value || !codeAvailable.value) return false
-  
+
   // Validar campos requeridos
-  for (const [key, config] of Object.entries(resolvedFields.value)) {
-    if (config.required) {
-      const val = form[key]
+  const fields = resolvedFields.value || {}
+  for (const [key, config] of Object.entries(fields)) {
+    if (config && config.required) {
+      const val = localForm ? (localForm as Record<string, any>)[key] : undefined
       if (val === undefined || val === null || val === '') return false
       if (Array.isArray(val) && val.length === 0) return false
     }
   }
-  
+
   return true
 })
 
-// 🔧 Estado local sincronizado con form.effects
+// 🔧 Estado local sincronizado con localForm.effects
 const effectsText = computed({
   get() {
-    const f = form as Record<string, unknown>
+    const f = localForm as Record<string, unknown>
     const eff = (f.effects as Record<string, string[] | string | undefined>)?.[localeCode.value]
     return Array.isArray(eff) ? eff.join('\n') : (eff || '')
   },
   set(v: string) {
-    const f = form as Record<string, unknown>
-    if (!f.effects) f.effects = {}
-    ;(f.effects as Record<string, unknown>)[localeCode.value] = v
+    const f = localForm as Record<string, unknown>
+    if (!f.effects || Array.isArray(f.effects)) f.effects = {}
+
+    const newEffects = { ...(f.effects as Record<string, unknown>) }
+    newEffects[localeCode.value] = v
       ? v.split(/\n+/).filter(line => line.trim() !== '')
       : []
-  }
+
+    f.effects = newEffects
+  },
 })
 
 onMounted(() => {
@@ -399,7 +387,7 @@ function selectItems(field: FieldConfig, key: string) {
     if (typeof raw[0] === 'string') {
       return (raw as string[]).map(v => ({ label: String(v), value: v }))
     }
-    return raw as { label: string; value: unknown }[]
+    return raw as { label: string, value: unknown }[]
   }
 
   return []
@@ -416,11 +404,12 @@ function handleCancel() {
 
 // i18n label helper: try fields.<key>, else fallback label/key
 function trLabel(key: string, fallback?: string) {
+  if (!key) return fallback || ''
   const entityKey = normalizedLabel.value
   const tryKeys = [
     entityKey ? `fields.${entityKey}.${key}` : '',
     `fields.${key}`,
-  ]
+  ].filter(Boolean)
 
   // Common fallbacks for frequent keys
   const commonMap: Record<string, string> = {

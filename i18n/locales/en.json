@@ -74,7 +74,7 @@
       },
       "manage": {
         "title": "Title",
-        "description": "Description"
+        "description": "Quick access to arcana management tools."
       }
     },
     "baseCard": {

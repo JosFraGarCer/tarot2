@@ -21,7 +21,7 @@ const worldFilters = {
 
 export function useWorldCrud(): ManageCrud<WorldList, WorldCreate, WorldUpdate> {
   return useEntity<WorldList, WorldCreate, WorldUpdate>({
-    resourcePath: '/api/world',
+    resourcePath: '/world',
     schema: {
       create: worldCreateSchema,
       update: worldUpdateSchema,

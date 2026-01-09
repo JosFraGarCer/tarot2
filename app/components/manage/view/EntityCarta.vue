@@ -1,78 +1,115 @@
 <!-- app/components/manage/view/EntityCarta.vue -->
-<!-- /app/components/manage/views/EntityCarta.vue -->
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-  <div v-for="item in ctx.crud.items?.value ?? ctx.crud.items" :key="item.id" class="flex flex-col items-center w-full">
-    <div class="flex items-start justify-center w-fit">
-      <!-- Card principal -->
-      <div>
-        <component
-          :is="Resolved"
-          v-if="ctx.templateKey.value === 'Class'"
-          class="shadow-lg shadow-gray-800"
-          :type-label="showCardType ? resolveTypeLabel(item) : ''"
-          :name="item.name"
-          :short-text="item.short_text"
-          :description="item.description"
-          :img="resolveImage(item.image)"
-          :legacy-effects="item.legacy_effects"
-          :effects-markdown="resolveEffectsMarkdown(item)"
-        />
-        <component
-          :is="Resolved"
-          v-else-if="ctx.templateKey.value === 'Origin'"
-          class="shadow-lg shadow-gray-800"
-          :title="item.name"
-          :short-text="item.short_text"
-          :description="item.description"
-          :img="resolveImage(item.image)"
-          :card-info="showCardType ? resolveTypeLabel(item) : null"
-          :legacy-effects="item.legacy_effects"
-          :effects-markdown="resolveEffectsMarkdown(item)"
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pb-12">
+    <div 
+      v-for="item in ctx.crud.items?.value ?? ctx.crud.items" 
+      :key="item.id" 
+      class="group relative flex flex-col items-center w-full"
+    >
+      <!-- Selection Indicator -->
+      <div 
+        class="absolute top-0 left-1/2 -translate-x-32 -translate-y-2 z-20 transition-opacity"
+        :class="[ctx.tableSelectionSource?.isSelected(item.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100']"
+      >
+        <UCheckbox 
+          :model-value="ctx.tableSelectionSource?.isSelected(item.id)" 
+          @update:model-value="ctx.tableSelectionSource?.toggleOne(item.id, $event)" 
+          @click.stop
         />
       </div>
 
-      <!-- Acciones justo al lado del card -->
-      <div class="flex flex-col gap-1 self-start pt-1 pl-1">
-        <EntityActions
-          :entity="item"
-          vertical
-          @edit="ctx.onEdit(item)"
-          @feedback="ctx.onFeedback(item)"
-          @tags="ctx.onTags(item)"
-          @delete="ctx.onDelete(item)"
-        />
-      </div>
-    </div>
+      <div class="flex items-start justify-center w-fit relative">
+        <!-- Main Card Component -->
+        <div class="transition-all duration-500 group-hover:scale-[1.02] group-hover:-translate-y-2">
+          <component
+            :is="Resolved"
+            v-if="ctx.templateKey.value === 'Class'"
+            class="shadow-xl shadow-neutral-900/20 dark:shadow-black/40 rounded-[2rem]"
+            :type-label="showCardType ? resolveTypeLabel(item) : ''"
+            :name="item.name"
+            :short-text="item.short_text"
+            :description="item.description"
+            :img="resolveImage(item.image)"
+            :legacy-effects="item.legacy_effects"
+            :effects-markdown="resolveEffectsMarkdown(item)"
+          />
+          <component
+            :is="Resolved"
+            v-else-if="ctx.templateKey.value === 'Origin'"
+            class="shadow-xl shadow-neutral-900/20 dark:shadow-black/40 rounded-[2rem]"
+            :title="item.name"
+            :short-text="item.short_text"
+            :description="item.description"
+            :img="resolveImage(item.image)"
+            :card-info="showCardType ? resolveTypeLabel(item) : null"
+            :legacy-effects="item.legacy_effects"
+            :effects-markdown="resolveEffectsMarkdown(item)"
+          />
+        </div>
 
-    <!-- Fila inferior: estado + tags -->
-    <div class="mt-3 space-y-1 text-center">
-      <div class="flex items-center justify-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-        <UBadge
-          :label="(item.is_active ? t('ui.states.active') : t('ui.states.inactive')) || '-'"
-          :color="item.is_active ? 'primary' : 'neutral'"
-          size="sm"
-        />
-        <StatusBadge
-          v-if="allowPreview"
-          type="status"
-          :value="typeof item.status === 'string' ? item.status : null"
-        />
+        <!-- Float Actions (Modern Style) -->
+        <div class="absolute -right-12 top-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0">
+          <UButton 
+            icon="i-heroicons-eye" 
+            size="sm" 
+            color="neutral" 
+            variant="solid" 
+            class="rounded-full shadow-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white hover:scale-110"
+            @click.stop="ctx.onPreview(item)"
+          />
+          <UButton 
+            icon="i-heroicons-pencil" 
+            size="sm" 
+            color="neutral" 
+            variant="solid" 
+            class="rounded-full shadow-lg bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white hover:scale-110"
+            @click.stop="ctx.onEdit(item)"
+          />
+          <UButton 
+            icon="i-heroicons-trash" 
+            size="sm" 
+            color="error" 
+            variant="solid" 
+            class="rounded-full shadow-lg hover:scale-110"
+            @click.stop="ctx.onDelete(item)"
+          />
+        </div>
       </div>
 
-      <div v-if="allowTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap justify-center gap-1">
-        <UBadge
-            v-for="(tag, idx) in item.tags"
-            :key="tag.id ?? tag.code ?? idx"
-            color="neutral"
+      <!-- Bottom Info Area -->
+      <div class="mt-6 flex flex-col items-center gap-3 w-full max-w-[260px]">
+        <div class="flex items-center justify-center gap-3">
+          <StatusBadge
+            :type="isUserEntity ? 'user' : 'status'"
+            :value="typeof item.status === 'string' ? item.status : null"
             size="sm"
-            variant="subtle"
+          />
+          <UBadge
+            :color="item.is_active ? 'primary' : 'neutral'"
+            size="sm"
+            variant="soft"
+            class="rounded-lg font-bold"
           >
-            {{ tag.name ?? tag.label ?? tag.code }}
+            {{ item.is_active ? t('ui.states.active') : t('ui.states.inactive') }}
           </UBadge>
+        </div>
+
+        <!-- Tags Cloud -->
+        <div v-if="allowTags && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap justify-center gap-1.5">
+          <UBadge
+            v-for="(tag, idx) in item.tags.slice(0, 4)"
+            :key="tag.id ?? idx"
+            color="neutral"
+            size="xs"
+            variant="outline"
+            class="rounded-md border-neutral-200 dark:border-neutral-700 font-medium"
+          >
+            {{ tag.name ?? tag.code }}
+          </UBadge>
+          <span v-if="item.tags.length > 4" class="text-[10px] text-neutral-400 font-bold">+{{ item.tags.length - 4 }}</span>
+        </div>
       </div>
     </div>
-  </div>
   </div>
 </template>
 
@@ -114,6 +151,7 @@ const showCardType = computed(() => {
   return false
 })
 
+const isUserEntity = computed(() => ctx.entityKey.value === 'user')
 const isTagEntity = computed(() => ctx.entityKey.value === 'tag')
 
 function resolveEffectsMarkdown(item: unknown): string | null {

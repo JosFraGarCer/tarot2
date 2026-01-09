@@ -5,6 +5,7 @@ import {
   languageCodeWithDefault,
   numberArrayParam,
   optionalLanguageCodeSchema,
+  singleOrArrayNumberParam,
   sortDirectionSchema,
   stringArrayParam,
 } from './common'
@@ -30,7 +31,7 @@ export const skillQuerySchema = z.object({
   status: z.string().optional(),
   is_active: queryBoolean.optional(),
   created_by: z.coerce.number().int().optional(),
-  facet_id: z.coerce.number().int().optional(),
+  facet_id: singleOrArrayNumberParam,
   tags: stringArrayParam,
   tag_ids: numberArrayParam,
   sort: z.enum(sortFields).optional(),

@@ -136,10 +136,13 @@ export function createCrudHandlers<
   const list = defineEventHandler(async (event) => {
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as unknown as { logger: { info: (data: unknown, msg: string) => void } }).logger
-    const query = parseQuery(event, config.schema.query, { scope: `${config.logScope ?? config.entity}.list.query` }) as TQuery
+    const query = await parseQuery(event, config.schema.query, { scope: `${config.logScope ?? config.entity}.list.query` })
     const lang = resolveLangFromQuery(query as Record<string, unknown>)
     const db = getDb(event)
-    const ctx: CrudContext<TQuery> = { event, db, query, lang }
+    const ctx: CrudContext<TQuery> = { event, db, query: query as TQuery, lang }
+
+    // Senior Debug: Log the incoming query parameters
+    logger?.info?.({ scope: 'crud.list.params', query }, 'Processing list request with params')
 
     const builder = await config.buildListQuery(ctx)
     const filters: BuildFiltersOptions = {
@@ -186,7 +189,7 @@ export function createCrudHandlers<
   const create = defineEventHandler(async (event) => {
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as unknown as { logger: { info: (data: unknown, msg: string) => void } }).logger
-    
+
     // JSON Payload Size Limit (Senior Critic #2)
     const contentLength = Number(getRequestHeader(event, 'content-length'))
     const MAX_JSON_SIZE = 1024 * 500 // 500KB
@@ -196,7 +199,7 @@ export function createCrudHandlers<
 
     const raw = await readBody(event)
     const body = config.schema.create.parse(raw) as TCreate
-    
+
     // 🛡️ Idempotency Protection (Senior Critic #6)
     const idempotencyKey = getRequestHeader(event, 'x-idempotency-key')
     if (idempotencyKey) {
@@ -219,7 +222,7 @@ export function createCrudHandlers<
     // config.schema.create.parse already returns only the fields defined in the schema
     // but we reinforce it here for clarity and safety.
     const validatedBody = body as Record<string, unknown>
-    
+
     const user = event.context.user
     const lang = (body as Record<string, unknown>).lang ? String((body as Record<string, unknown>).lang).toLowerCase() : 'en'
     const db = getDb(event)
@@ -231,7 +234,7 @@ export function createCrudHandlers<
     }
 
     const { baseData, translationData } = config.mutations.buildCreatePayload(body, ctx)
-    
+
     // Add created_by if column exists in table (we assume it does based on schema)
     const baseDataWithUser = { ...baseData, created_by: user?.id }
 
@@ -250,7 +253,7 @@ export function createCrudHandlers<
       })
       const id = upsertResult.id
       const row = upsertResult.row
-      
+
       // Execute afterCreate hook
       if (config.mutations.afterCreate) {
         await config.mutations.afterCreate({ id, row }, body, ctx)
@@ -265,7 +268,7 @@ export function createCrudHandlers<
       }, 'Entity created')
 
       const response = createResponse(upsertResult.row, null)
-      
+
       if (idempotencyKey) {
         await db.insertInto('idempotency_keys')
           .values({
@@ -356,7 +359,7 @@ export function createCrudHandlers<
     }
 
     const { baseData, translationData } = config.mutations.buildUpdatePayload(body, ctx)
-    
+
     // Add updated_by if column exists
     const baseDataWithUser = { ...baseData, updated_by: user?.id }
 

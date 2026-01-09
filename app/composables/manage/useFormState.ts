@@ -47,17 +47,12 @@ function resolveInitial<T extends Record<string, unknown>>(initial?: T | (() => 
 }
 
 function clone<T>(value: T): T {
-  const raw = toRaw(value)
-  const structuredCloneFn = (globalThis as unknown as { structuredClone: <K>(val: K) => K }).structuredClone
-  if (structuredCloneFn) {
-    try {
-      return structuredCloneFn(raw)
-    } catch {
-      // fall back to manual deep clone
-    }
+  if (value === null || value === undefined) {
+    return value
   }
 
-  if (raw === null || typeof raw !== 'object') {
+  const raw = toRaw(value)
+  if (raw === null || raw === undefined || typeof raw !== 'object') {
     return raw
   }
 
@@ -66,8 +61,14 @@ function clone<T>(value: T): T {
   }
 
   const out: Record<string, unknown> = {}
-  for (const key of Object.keys(raw)) {
-    out[key] = clone((raw as Record<string, unknown>)[key])
+  try {
+    for (const key in raw) {
+      if (Object.prototype.hasOwnProperty.call(raw, key)) {
+        out[key] = clone((raw as Record<string, unknown>)[key])
+      }
+    }
+  } catch (_err) {
+    return raw // Final safety fallback
   }
   return out as T
 }
@@ -137,7 +138,7 @@ export function useFormState<T extends Record<string, unknown>>(options: UseForm
   return {
     values,
     dirty,
-    isDirty: computed(() => dirty.value),
+    isDirty: computed(() => dirty.value) as unknown as ReturnType<typeof computed<boolean>>,
     replace,
     reset,
     patch,

@@ -21,7 +21,7 @@ export const arcanaFilters = {
 
 export function useArcanaCrud(): ManageCrud<ArcanaList, ArcanaCreate, ArcanaUpdate> {
   return useEntity<ArcanaList, ArcanaCreate, ArcanaUpdate>({
-    resourcePath: '/api/arcana',
+    resourcePath: '/arcana',
     schema: {
       create: arcanaCreateSchema,
       update: arcanaUpdateSchema,

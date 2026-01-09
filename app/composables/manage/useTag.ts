@@ -9,7 +9,7 @@ export type TagCrud = EntityCrud<Tag, TagCreate, TagUpdate>
 
 export function useTagCrud(): TagCrud {
   return useEntity<Tag, TagCreate, TagUpdate>({
-    resourcePath: '/api/tag',
+    resourcePath: '/tag',
     schema: {
       create: tagCreateSchema,
       update: tagUpdateSchema,

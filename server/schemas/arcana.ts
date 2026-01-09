@@ -5,6 +5,7 @@ import {
   languageCodeWithDefault,
   numberArrayParam,
   optionalLanguageCodeSchema,
+  singleOrArrayNumberParam,
   sortDirectionSchema,
   stringArrayParam,
 } from './common'
@@ -21,6 +22,7 @@ export const arcanaQuerySchema = z.object({
   created_by: z.coerce.number().int().optional(),
   tags: stringArrayParam,
   tag_ids: numberArrayParam,
+  id: singleOrArrayNumberParam,
   sort: z.enum(baseSortFields).optional(),
   direction: sortDirectionSchema,
   lang: optionalLanguageCodeSchema,

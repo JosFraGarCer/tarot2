@@ -1,132 +1,123 @@
 <!-- app/components/manage/view/EntityCardsClassic.vue -->
 <template>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     <template v-if="ctx.crud.loading.value">
-      <UCard v-for="n in 6" :key="`classic-skeleton-${n}`" class="flex flex-col gap-3 h-full text-sm">
-        <div class="flex items-start gap-3">
-          <USkeleton class="w-15 h-20 rounded-md" />
+      <div v-for="n in 6" :key="`classic-skeleton-${n}`" class="bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-4 shadow-sm space-y-3">
+        <div class="flex items-start gap-4">
+          <USkeleton class="w-16 h-20 rounded-xl" />
           <div class="flex-1 space-y-2">
             <USkeleton class="h-4 w-3/4" />
             <USkeleton class="h-3 w-1/2" />
             <USkeleton class="h-3 w-full" />
           </div>
         </div>
-        <USkeleton class="h-3 w-5/6" />
-      </UCard>
-    </template>
-    <template v-else-if="(ctx.crud.items?.value ?? ctx.crud.items)?.length === 0">
-      <div class="col-span-full">
-        <UCard class="flex flex-col items-center justify-center gap-4 py-10 text-center">
-          <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" />
-          <div class="space-y-2">
-            <p class="text-lg font-semibold text-neutral-700 dark:text-neutral-200">{{ t('common.noResults') }}</p>
-            <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ t('common.tryAdjustFilters') }}</p>
-          </div>
-          <div class="flex flex-wrap items-center justify-center gap-2">
-            <UButton color="primary" icon="i-heroicons-plus" @click="ctx.onCreate">
-              {{ t('ui.actions.create') }} {{ ctx.label.value }}
-            </UButton>
-            <UButton
-              variant="ghost"
-              color="neutral"
-              icon="i-heroicons-arrow-path"
-              @click="ctx.resetFilters"
-            >
-              {{ t('common.resetFilters') }}
-            </UButton>
-          </div>
-        </UCard>
       </div>
     </template>
-    <UCard v-for="item in ctx.crud.items?.value ?? ctx.crud.items" v-else :key="item.id" class="flex flex-col gap-3 h-full text-sm">
-      <div class="flex justify-between items-start gap-3">
-        <div class="flex items-start gap-3 flex-1">
+
+    <template v-else-if="(ctx.crud.items?.value ?? ctx.crud.items)?.length === 0">
+      <div class="col-span-full py-16 flex flex-col items-center justify-center text-center">
+        <UIcon name="i-heroicons-magnifying-glass-circle" class="h-16 w-16 text-neutral-200 dark:text-neutral-800 mb-4" />
+        <h3 class="text-lg font-bold text-neutral-900 dark:text-white">{{ t('common.noResults') }}</h3>
+        <p class="text-neutral-500 max-w-xs mx-auto mt-1">{{ t('common.tryAdjustFilters') }}</p>
+      </div>
+    </template>
+
+    <div 
+      v-for="item in ctx.crud.items?.value ?? ctx.crud.items" 
+      v-else 
+      :key="item.id"
+      class="group relative bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col"
+    >
+      <!-- Selection Indicator -->
+      <div 
+        class="absolute top-3 left-3 z-20 transition-opacity"
+        :class="[ctx.tableSelectionSource?.isSelected(item.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100']"
+      >
+        <UCheckbox 
+          :model-value="ctx.tableSelectionSource?.isSelected(item.id)" 
+          @update:model-value="ctx.tableSelectionSource?.toggleOne(item.id, $event)" 
+          @click.stop
+        />
+      </div>
+
+      <div class="flex gap-4 min-w-0">
+        <!-- Image with Hover Overlay -->
+        <div class="w-16 h-20 rounded-xl bg-neutral-100 dark:bg-neutral-800 overflow-hidden shrink-0 relative">
           <img
             v-if="item.image"
             :src="resolveImage(item.image || item.thumbnail_url)"
-            :alt="item.name || item.code"
-            class="w-15 h-20 object-cover rounded-md border border-neutral-200 dark:border-neutral-700"
+            alt=""
+            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             loading="lazy"
-            @error="imageFallback"
           >
-          <div class="flex-1 space-y-1">
-            <p class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1">
-               <span class="truncate" :title="titleOf(item)">{{ titleOf(item) }}</span>
-              <UButton
-                v-if="allowPreview"
-                icon="i-heroicons-eye"
-                size="xs"
-                color="neutral"
-                variant="ghost"
-                :title="$t('ui.actions.preview')"
-                @click="ctx.onPreview(item)"
-              />
-               <UBadge v-if="langBadge(item)" color="neutral" variant="subtle" size="sm">
-                {{ langBadge(item) }}
-              </UBadge>
-            </p>
-
-            <p class="text-xs text-neutral-500 dark:text-neutral-400">
-              {{ item.code }}
-            </p>
-
-            <p
-              v-if="showCardType"
-              class="text-xs text-neutral-500 dark:text-neutral-400"
-            >
-              {{ item.card_type_name || item.card_type_code }}
-              <UBadge
-                v-if="item.card_type_language_code && item.card_type_language_code !== locale"
-                size="xs"
-                variant="soft"
-              >
-                {{ item.card_type_language_code }}
-              </UBadge>
-            </p>
-            <div class="flex-1 space-x-2">
-              <StatusBadge type="status" :value="typeof item.status === 'string' ? item.status : null" />
-              <UBadge
-                :label="(item.is_active ? t('ui.states.active') : t('ui.states.inactive')) || '-'"
-                :color="item.is_active ? 'primary' : 'neutral'"
-                size="sm"
-              />
-            </div>
+          <div v-else class="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-800">
+            <UIcon :name="ctx.capabilities.value.icon || 'i-heroicons-photo'" class="w-8 h-8 text-neutral-400 opacity-20" />
+          </div>
+          
+          <!-- Small Hover Overlay -->
+          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <UIcon name="i-heroicons-eye" class="text-white w-5 h-5" @click.stop="ctx.onPreview(item)" />
           </div>
         </div>
 
-        <!-- ACCIONES -->
-        <EntityActions
-          :entity="item"
-          vertical
-          @edit="ctx.onEdit(item)"
-          @feedback="ctx.onFeedback(item)"
-          @tags="ctx.onTags(item)"
-          @delete="ctx.onDelete(item)"
-        />
-      </div>
-      <!-- DESCRIPCIÓN -->
-      <div class="mt-2 space-y-2 text-sm text-gray-700 dark:text-gray-300">
-        <p v-if="item.short_text" class="text-neutral-600 dark:text-neutral-400">
-          {{ item.short_text }}
-        </p>
-        <p v-if="item.description" class="text-neutral-700 dark:text-neutral-300 text-xs">
-          {{ item.description }}
-        </p>
+        <!-- Info -->
+        <div class="flex-1 min-w-0 flex flex-col justify-center">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <h3 class="font-bold text-neutral-900 dark:text-white truncate group-hover:text-primary-500 transition-colors leading-tight" :title="titleOf(item)">
+                {{ titleOf(item) }}
+              </h3>
+              <div class="flex items-center gap-2 mt-1">
+                <span v-if="item.code" class="text-[10px] font-mono text-neutral-400 tracking-wider">#{{ item.code }}</span>
+                <UBadge v-if="langBadge(item)" color="neutral" variant="soft" size="xs" class="rounded px-1 py-0 scale-90">
+                  {{ langBadge(item) }}
+                </UBadge>
+              </div>
+            </div>
+            
+            <StatusBadge
+              :type="isUserEntity ? 'user' : 'status'"
+              :value="typeof item.status === 'string' ? item.status : null"
+              size="sm"
+              class="shrink-0"
+            />
+          </div>
+
+          <div class="mt-2 flex items-center gap-2 text-[10px] text-neutral-500 font-medium">
+            <span v-if="item.card_type_name" class="truncate">{{ item.card_type_name }}</span>
+            <span v-if="item.card_type_name" class="text-neutral-300">•</span>
+            <span :class="[item.is_active ? 'text-primary-500' : 'text-neutral-400']">
+              {{ item.is_active ? t('ui.states.active') : t('ui.states.inactive') }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions (Vertical) -->
+        <div class="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
+          <UButton 
+            icon="i-heroicons-pencil" 
+            size="xs" 
+            color="neutral" 
+            variant="ghost" 
+            class="rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            @click.stop="ctx.onEdit(item)"
+          />
+          <UButton 
+            icon="i-heroicons-trash" 
+            size="xs" 
+            color="error" 
+            variant="ghost" 
+            class="rounded-lg"
+            @click.stop="ctx.onDelete(item)"
+          />
+        </div>
       </div>
 
-      <!-- TAGS -->
-      <div v-if="allowTags && !isTagEntity && Array.isArray(item.tags) && item.tags.length" class="flex flex-wrap gap-1 mt-2">
-        <UBadge
-            v-for="(tag, idx) in item.tags"
-            :key="tag.id ?? tag.code ?? idx"
-            color="neutral"
-            size="sm"
-            variant="subtle"
-          >
-            {{ tag.name ?? tag.label ?? tag.code }}
-          </UBadge>
+      <!-- Footer Text -->
+      <div v-if="item.short_text" class="mt-3 text-xs text-neutral-500 line-clamp-1 italic italic-lore border-t border-neutral-100 dark:border-neutral-800 pt-2">
+        "{{ item.short_text }}"
       </div>
-    </UCard>
+    </div>
   </div>
 </template>
 
@@ -167,4 +158,5 @@ const showCardType = computed(() => {
 })
 
 const isTagEntity = computed(() => ctx.entityKey.value === 'tag')
+const isUserEntity = computed(() => ctx.entityKey.value === 'user')
 </script>

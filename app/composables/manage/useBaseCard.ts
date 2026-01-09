@@ -23,7 +23,7 @@ const baseCardFilters = {
 
 export function useBaseCardCrud(): ManageCrud<BaseCardList, BaseCardCreate, BaseCardUpdate> {
   return useEntity<BaseCardList, BaseCardCreate, BaseCardUpdate>({
-    resourcePath: '/api/base_card',
+    resourcePath: '/base_card',
     schema: {
       create: baseCardCreateSchema,
       update: baseCardUpdateSchema,

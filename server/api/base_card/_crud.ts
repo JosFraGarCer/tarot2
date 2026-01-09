@@ -55,7 +55,7 @@ function sanitize<T extends Record<string, unknown>>(input: T): Record<string, u
 
 // Returns a SelectQueryBuilder - using 'any' for complex joined table type
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, BaseCardRow> {
+function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, any> {
   return db
     .selectFrom('base_card as c')
     .leftJoin('users as u', 'u.id', 'c.created_by')
@@ -120,11 +120,14 @@ export const baseCardCrud = createCrudHandlers({
       base = base.where('c.created_by', '=', query.created_by)
     }
     if (query.card_type_id !== undefined) {
-      base = base.where('c.card_type_id', '=', query.card_type_id)
+      const cardTypeIds = Array.isArray(query.card_type_id) ? query.card_type_id : [query.card_type_id]
+      if (cardTypeIds.length > 0) {
+        base = base.where('c.card_type_id', 'in', cardTypeIds)
+      }
     }
 
     if (tagIds && tagIds.length > 0) {
-      base = base.where(sql`exists (
+      base = base.where(sql<boolean>`exists (
         select 1
         from tag_links tl
         where tl.entity_type = ${'base_card'}
@@ -133,7 +136,7 @@ export const baseCardCrud = createCrudHandlers({
       )`)
     }
     if (tagsLower && tagsLower.length > 0) {
-      base = base.where(sql`exists (
+      base = base.where(sql<boolean>`exists (
         select 1
         from tag_links tl
         join tags t on t.id = tl.tag_id
@@ -167,10 +170,10 @@ export const baseCardCrud = createCrudHandlers({
         applySearch: (qb, s) =>
           qb.where((eb) =>
             eb.or([
-              sql`coalesce(t_req.name, t_en.name) ilike ${'%' + s + '%'}`,
-              sql`coalesce(t_req.short_text, t_en.short_text) ilike ${'%' + s + '%'}`,
-              sql`coalesce(t_req.description, t_en.description) ilike ${'%' + s + '%'}`,
-              sql`c.code ilike ${'%' + s + '%'}`,
+              sql<boolean>`coalesce(t_req.name, t_en.name) ilike ${'%' + s + '%'}`,
+              sql<boolean>`coalesce(t_req.short_text, t_en.short_text) ilike ${'%' + s + '%'}`,
+              sql<boolean>`coalesce(t_req.description, t_en.description) ilike ${'%' + s + '%'}`,
+              sql<boolean>`c.code ilike ${'%' + s + '%'}`,
             ]),
           ),
       },
@@ -191,10 +194,10 @@ export const baseCardCrud = createCrudHandlers({
     }
   },
   selectOne: async ({ db, lang }: { db: Kysely<DB>; lang: string }, id: number) => {
-    const row = await buildSelect(db, lang)
+    const row = await (buildSelect(db, lang) as SelectQueryBuilder<any, any, BaseCardRow>)
       .where('c.id', '=', id)
       .executeTakeFirst()
-    
+
     if (row) {
       const tagsMap = await fetchTagsForEntities(db, 'base_card', [row.id], lang)
       row.tags = tagsMap[row.id] || []

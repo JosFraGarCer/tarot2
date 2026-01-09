@@ -23,7 +23,7 @@ export const skillFilters = {
 
 export function useSkillCrud(): ManageCrud<SkillList, SkillCreate, SkillUpdate> {
   return useEntity<SkillList, SkillCreate, SkillUpdate>({
-    resourcePath: '/api/skill',
+    resourcePath: '/skill',
     schema: {
       create: skillCreateSchema,
       update: skillUpdateSchema,

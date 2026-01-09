@@ -73,8 +73,7 @@
         "placeholderDescription": "Placeholder Description"
       },
       "manage": {
-        "title": "Título",
-        "description": "Descripción"
+        "description": "Acceso rápido a las herramientas de gestión de arcanos."
       }
     },
     "baseCard": {

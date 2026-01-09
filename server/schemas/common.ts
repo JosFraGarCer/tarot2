@@ -69,6 +69,13 @@ export const stringArrayParam = z.preprocess((value) => parseStringArray(value),
 
 export const numberArrayParam = z.preprocess((value) => parseNumberArray(value), z.array(z.number().int()).optional())
 
+export const singleOrArrayNumberParam = z.preprocess((value) => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (Array.isArray(value)) return parseNumberArray(value)
+  const num = Number(value)
+  return Number.isFinite(num) ? [num] : undefined
+}, z.array(z.number().int()).optional())
+
 export const languageCodeSchema = z
   .string()
   .min(2)

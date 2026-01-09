@@ -2,84 +2,113 @@
 <!-- eslint-disable vue/no-mutating-props -->
 <template>
   <div class="flex flex-col gap-3">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-2">
-        <UInput
-          v-model="ctx.crud.filters.search"
-          size="xs"
-          :placeholder="t('ui.actions.search')"
-          class="w-56"
-          icon="i-heroicons-magnifying-glass-20-solid"
-        />
+    <!-- Filters Row -->
+    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+      <USelectMenu
+        v-if="show.tags"
+        v-model="tagValue"
+        :items="tagOptions"
+        multiple
+        size="sm"
+        value-key="id"
+        class="w-40 lg:w-48"
+        :placeholder="tagsPlaceholder"
+        :ui="{ base: 'rounded-xl' }"
+      />
 
-        <USelectMenu
-          v-if="show.tags"
-          v-model="tagValue"
-          :items="tagOptions"
-          multiple
-          size="xs"
-          value-key="id"
-          class="w-56"
-          :placeholder="tagsPlaceholder"
-        />
-        <USelectMenu
-          v-if="show.facet"
-          v-model="facetValue"
-          :items="facetOptions"
-          multiple
-          size="xs"
-          value-key="id"
-          class="w-40"
-          :placeholder="facetPlaceholder"
-        />
-        <USelectMenu
-          v-if="show.type"
-          v-model="typeValue"
-          :items="typeOptions"
-          multiple
-          size="xs"
-          value-key="id"
-          class="w-40"
-          :placeholder="typePlaceholder"
-        />
-        <USelectMenu
-          v-if="show.status"
-          v-model="statusValue"
-          :items="statusOptions"
-          size="xs"
-          value-key="value"
-          class="w-40"
-          :placeholder="statusPlaceholder"
-        />
-        <USelectMenu
-          v-if="show.is_active"
-          v-model="isActiveValue"
-          :items="isActiveOptions"
-          size="xs"
-          value-key="value"
-          class="w-40"
-          :placeholder="activePlaceholder"
-        />
-        <USelectMenu
-          v-if="show.parent"
-          v-model="parentValue"
-          :items="parentOptions"
-          size="xs"
-          value-key="id"
-          class="w-40"
-          :placeholder="parentPlaceholder"
-        />
-      </div>
+      <USelectMenu
+        v-if="show.facet"
+        v-model="facetValue"
+        :items="facetOptions"
+        multiple
+        size="sm"
+        value-key="id"
+        class="w-36 lg:w-40"
+        :placeholder="facetPlaceholder"
+        :ui="{ base: 'rounded-xl' }"
+      />
 
-      <div v-can.disable="['canEditContent','canPublish']" class="flex items-center gap-2">
-        <UButton
-          icon="i-heroicons-plus-20-solid"
-          size="md"
+      <USelectMenu
+        v-if="show.type"
+        v-model="typeValue"
+        :items="typeOptions"
+        multiple
+        size="sm"
+        value-key="id"
+        class="w-36 lg:w-40"
+        :placeholder="typePlaceholder"
+        :ui="{ base: 'rounded-xl' }"
+      />
+
+      <USelectMenu
+        v-if="show.status"
+        v-model="statusValue"
+        :items="statusOptions"
+        size="sm"
+        value-key="value"
+        class="w-32 lg:w-36"
+        :placeholder="statusPlaceholder"
+        :ui="{ base: 'rounded-xl' }"
+      />
+
+      <USelectMenu
+        v-if="show.is_active"
+        v-model="isActiveValue"
+        :items="isActiveOptions"
+        size="sm"
+        value-key="value"
+        class="w-32 lg:w-36"
+        :placeholder="activePlaceholder"
+        :ui="{ base: 'rounded-xl' }"
+      />
+
+      <USelectMenu
+        v-if="show.parent"
+        v-model="parentValue"
+        :items="parentOptions"
+        size="sm"
+        value-key="id"
+        class="w-36 lg:w-40"
+        :placeholder="parentPlaceholder"
+        :ui="{ base: 'rounded-xl' }"
+      />
+
+      <UButton
+        variant="ghost"
+        color="neutral"
+        icon="i-heroicons-funnel"
+        size="sm"
+        class="rounded-xl shrink-0"
+        @click="ctx.resetFilters()"
+      >
+        <template #trailing>
+          <UIcon name="i-heroicons-x-mark" class="size-3 -ml-1 opacity-50" />
+        </template>
+        {{ t('ui.actions.resetFilters') }}
+      </UButton>
+    </div>
+
+    <!-- Active Filter Badges (Senior Suggestion) -->
+    <div v-if="hasActiveFilters" class="flex flex-wrap items-center gap-2">
+      <span class="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mr-1">Filtros activos:</span>
+      <template v-for="badge in activeFilterBadges" :key="badge.key">
+        <UBadge
+          size="xs"
+          variant="soft"
           color="primary"
-          :label="`${t('ui.actions.create')} ${ctx.label.value}`"
-          @click="ctx.onCreate"
-        />
-      </div>
+          class="rounded-lg pl-2 pr-1 py-0.5 flex items-center gap-1"
+        >
+          {{ badge.label }}
+          <UButton
+            icon="i-heroicons-x-mark"
+            size="xs"
+            color="primary"
+            variant="ghost"
+            class="rounded-full h-4 w-4 p-0"
+            @click="badge.onRemove()"
+          />
+        </UBadge>
+      </template>
     </div>
   </div>
 </template>
@@ -371,4 +400,58 @@ const tagsPlaceholder = computed(() => t('ui.fields.tags'))
 const activePlaceholder = computed(() => t('ui.states.active'))
 
 const parentPlaceholder = computed(() => t('filters.parent'))
+
+const hasActiveFilters = computed(() => {
+  if (!ctx.crud?.filters) return false
+  return Object.entries(ctx.crud.filters).some(([key, value]) => {
+    if (key === 'search') return false
+    if (Array.isArray(value)) return value.length > 0
+    return value !== null && value !== undefined && value !== '' && value !== 'all'
+  })
+})
+
+const activeFilterBadges = computed(() => {
+  const badges: Array<{ key: string; label: string; onRemove: () => void }> = []
+  
+  if (show.value.tags && tagValue.value && Array.isArray(tagValue.value) && tagValue.value.length) {
+    badges.push({
+      key: 'tags',
+      label: `${t('ui.fields.tags')}: ${tagValue.value.length}`,
+      onRemove: () => { tagValue.value = [] }
+    })
+  }
+  
+  if (show.value.facet && facetValue.value && Array.isArray(facetValue.value) && facetValue.value.length) {
+    badges.push({
+      key: 'facet',
+      label: `${facetPlaceholder.value}: ${facetValue.value.length}`,
+      onRemove: () => { facetValue.value = [] }
+    })
+  }
+
+  if (show.value.status && statusValue.value) {
+    const opt = statusOptions.value.find(o => o.value === statusValue.value)
+    if (opt && opt.value !== null) {
+      badges.push({
+        key: 'status',
+        label: `${t('ui.fields.status')}: ${opt.label}`,
+        onRemove: () => { statusValue.value = null }
+      })
+    }
+  }
+
+  if (show.value.is_active && isActiveValue.value !== 'all') {
+    const opt = isActiveOptions.value.find(o => o.value === isActiveValue.value)
+    if (opt) {
+      badges.push({
+        key: 'is_active',
+        label: opt.label,
+        onRemove: () => { isActiveValue.value = 'all' }
+      })
+    }
+  }
+
+  return badges
+})
+
 </script>

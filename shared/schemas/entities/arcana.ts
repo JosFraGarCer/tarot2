@@ -29,7 +29,7 @@ const commonOptional = {
   description: z.string().max(10000).optional().nullable(),
   language_code: z.string().min(2).max(10).optional().nullable(),
   lang: z.string().min(2).max(10).optional().nullable(),
-  image: z.string().url().optional().nullable(),
+  image: z.string().optional().nullable(),
   is_active: z.boolean().optional(),
   sort: z.number().int().optional().nullable(),
   status: statusEnum.optional(),

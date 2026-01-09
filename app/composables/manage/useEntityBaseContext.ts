@@ -1,4 +1,4 @@
-import { computed, ref, reactive, provide, inject, type Ref, unref, toValue, onMounted, onUnmounted } from 'vue'
+import { computed, ref, provide, inject, type Ref, unref, toValue, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n, useToast } from '#imports'
 import { normalizeSlideoverKind, type SlideoverKind } from '~/utils/manage/kinds'
 import {
@@ -37,8 +37,9 @@ export interface EntityBaseContextOptions {
   cardType: Ref<boolean | undefined>
   noTags: Ref<boolean | undefined>
   translatable: Ref<boolean | undefined>
-  pageSizeItems: Ref<Array<{ label: string; value: number }> | undefined>
+  pageSizeItems: Ref<Array<{ label: string, value: number }> | undefined>
   emit: (e: 'create') => void
+  emitUpdateViewMode?: (v: string) => void
 }
 
 /**
@@ -47,7 +48,7 @@ export interface EntityBaseContextOptions {
  */
 export function useEntityBaseContext(options: EntityBaseContextOptions) {
   const { t, locale } = useI18n()
-  const toast = useToast?.() || { add: console.log }
+  const toast = useToast()
   const crud = unref(options.useCrud)()
 
   // --- Capabilities ---
@@ -136,7 +137,7 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     if (index === -1) return { prev: null as number | null, next: null as number | null }
     return {
       prev: index > 0 ? ids[index - 1] : null,
-      next: index < ids.length - 1 ? ids[index + 1] : null
+      next: index < ids.length - 1 ? ids[index + 1] : null,
     }
   })
 
@@ -161,7 +162,7 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     resourcePath: crud.resourcePath,
     entityLabel: toValue(options.label),
     filePrefix: toValue(options.entity),
-    onImported: async () => { await crud.fetchList?.() }
+    onImported: async () => { await crud.fetchList?.() },
   })
 
   const importModalOpen = ref(false)
@@ -191,7 +192,7 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
 
   // --- Forms ---
   const { fields: presetFields, defaults: presetDefaults, schema: presetSchema } = useEntityFormPreset(resolvedEntityKind)
-  
+
   const {
     isModalOpen,
     isEditing,
@@ -200,17 +201,17 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     modalFormState,
     manage,
     onEdit,
-    onCreateClick,
-    handleSubmit,
+    onCreateClick: modalsOnCreateClick,
+    handleSubmit: modalsHandleSubmit,
     handleCancel,
-  } = useEntityModals(crud, { 
-    localeCode: () => localeCode.value, 
-    t, 
-    toast, 
-    imagePreview, 
+  } = useEntityModals(crud, {
+    localeCode: () => localeCode.value,
+    t,
+    toast,
+    imagePreview,
     translatable: toValue(options.translatable),
     defaults: presetDefaults,
-    schema: presetSchema
+    schema: presetSchema,
   })
 
   // --- Pagination ---
@@ -248,15 +249,14 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
       await $fetch('/api/auth/session', { method: 'GET' })
       lastAuthCheck.value = Date.now()
       authFailCount.value = 0 // Reset on success
-    } catch (e: any) {
+    }
+    catch (e: any) {
       authFailCount.value++
       if (e.statusCode === 401 || e.statusCode === 403 || authFailCount.value >= 3) {
         toast.add({
           title: t('auth.sessionExpired.title'),
           description: t('auth.sessionExpired.description'),
           color: 'error',
-          // @ts-ignore - Support persistent toast if library allows
-          duration: 0,
         })
         // Force redirect to login if it's a hard fail
         if (e.statusCode === 401) {
@@ -287,14 +287,21 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
   })
 
   // --- Event Handlers Wrapper ---
-  const onCreateClickWrapper = () => onCreateClick(() => options.emit('create'))
+  const onCreateClickWrapper = () => modalsOnCreateClick(() => options.emit('create'))
+
+  const viewMode = ref(toValue(options.viewMode))
+  watch(() => toValue(options.viewMode), (v) => { viewMode.value = v })
 
   // --- Context Object (Flat) ---
   const context = {
     // Reactive Options
     label: computed(() => toValue(options.label)),
     entityKey: computed(() => toValue(options.entity)),
-    viewMode: computed(() => toValue(options.viewMode)),
+    viewMode,
+    setViewMode: (v: string) => {
+      viewMode.value = v
+      options.emitUpdateViewMode?.(v)
+    },
     templateKey: computed(() => toValue(options.templateKey)),
     filtersConfig: computed(() => toValue(options.filtersConfig)),
     columns: computed(() => toValue(options.columns)),
@@ -332,7 +339,7 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     resolvedSlideoverKind,
     slideoverNeighbors,
     openFullEditor,
-    setSlideoverOpen: (v: boolean) => { 
+    setSlideoverOpen: (v: boolean) => {
       if (!v) {
         slideoverEntityId.value = null
         slideoverKind.value = null
@@ -382,7 +389,7 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     et,
     modalFormState,
     modalFields: presetFields, // Exposed from preset
-    formSchema: presetSchema,  // Exposed from preset
+    formSchema: presetSchema, // Exposed from preset
     manage,
     onEdit: (entity: unknown) => {
       const record = (entity as Record<string, any>) || {}
@@ -390,43 +397,85 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
     },
     onCreate: onCreateClickWrapper,
     handleSubmit: async (payload?: any) => {
-      // 🧪 Robust Zod Validation Support (.refine, .transform)
-      // Senior Critic: "Zod Failures" in Manual QA Checklist
+      console.log('[DEBUG-V22] useEntityBaseContext handleSubmit start')
+      console.log('[DEBUG-V22] Payload received:', payload)
+      console.log('[DEBUG-V22] Payload.arcana_id:', payload?.arcana_id, typeof payload?.arcana_id)
       const schema = isEditing.value ? presetSchema.value?.update : presetSchema.value?.create
-      
-      // Manejar el caso donde el payload viene de un @submit de UForm (sin argumentos)
-      // o de un emit('submit') manual.
-      const data = payload?.data ?? (payload && !payload.preventDefault ? payload : modalFormState.value)
-      
-      if (!data) {
-        console.error('[useEntityBaseContext] handleSubmit: no data found in payload or modalFormState', payload)
+
+      // DETERMINAR DATA A VALIDAR
+      // SIEMPRE usar el payload si viene de FormModal, ya que contiene los datos actualizados
+      let dataToValidate: any
+      if (payload && typeof payload === 'object' && !payload.preventDefault) {
+        dataToValidate = payload
+        console.log('[DEBUG-V22] Using payload from FormModal')
+      }
+      else {
+        const target = toValue(modalFormState)
+        dataToValidate = target
+        console.log('[DEBUG-V22] Using modalFormState as fallback')
+      }
+
+      if (!dataToValidate || typeof dataToValidate !== 'object') {
+        console.error('[useEntityBaseContext] handleSubmit: no data found')
+        // If we really have no data but modals are open, call modalsHandleSubmit as last resort
+        await modalsHandleSubmit()
         return
       }
 
+      console.log('[DEBUG-V22] dataToValidate keys:', Object.keys(dataToValidate))
+      console.log('[DEBUG-V22] dataToValidate sample:', { code: dataToValidate.code, name: dataToValidate.name })
+
       if (schema) {
-        const result = schema.safeParse(data)
-        if (!result.success) {
-          // Si el esquema falla aquí, es por un refine/transform que el front no pilló individualmente
-          const firstError = result.error.issues[0]
-          if (firstError) {
-            toast.add({
-              title: t('ui.errors.validation_failed', 'Validation Error'),
-              description: firstError.message,
-              color: 'error'
-            })
+        try {
+          // NO normalizar 'effects' ANTES de validación Zod - dejar que Zod lo maneje
+          // La normalización de 'arcana_id' se hará DESPUÉS de la validación
+
+          const result = schema.safeParse(dataToValidate)
+          console.log('[DEBUG-V22] Zod validation result:', result.success)
+          if (!result.success) {
+            console.warn('[DEBUG-V22] Zod validation failed:', result.error.issues)
+            const firstError = result.error.issues[0]
+            if (firstError) {
+              toast.add({
+                title: t('ui.errors.validation_failed', 'Validation Error'),
+                description: firstError.message,
+                color: 'error',
+              })
+            }
+            return
           }
-          return
-        }
-        // Usar los datos transformados por Zod si la validación fue exitosa
-        // Si el payload tenía una propiedad .data, la actualizamos para que useEntityModals la use
-        if (payload && payload.data) {
-          payload.data = result.data
-        } else {
+
+          console.log('[DEBUG-V22] Zod validation success')
+          console.log('[DEBUG-V22] result.data keys:', Object.keys(result.data))
+          console.log('[DEBUG-V22] result.data.arcana_id:', result.data?.arcana_id, typeof result.data?.arcana_id)
+
+          // 🔧 Si Zod eliminó arcana_id pero el payload lo tenía, lo restauramos manualmente
+          if (dataToValidate.arcana_id !== undefined && dataToValidate.arcana_id !== null) {
+            console.log('[DEBUG-V22] Restoring arcana_id to result.data:', dataToValidate.arcana_id);
+            (result.data as any).arcana_id = dataToValidate.arcana_id
+            console.log('[DEBUG-V22] After restore - result.data.arcana_id:', (result.data as any).arcana_id)
+          }
           // Actualizamos el estado del formulario con los datos limpios de Zod
-          Object.assign(modalFormState.value as object, result.data as object)
+          // Si usamos payload, actualizamos modalFormState con los datos validados
+          if (payload && typeof payload === 'object' && !payload.preventDefault) {
+            // El payload vino de FormModal, actualizamos modalFormState
+            const target = toValue(modalFormState)
+            console.log('[DEBUG-V22] Before update - modalFormState.arcana_id:', target?.arcana_id)
+            console.log('[DEBUG-V22] Before update - result.data.arcana_id:', result.data?.arcana_id)
+            if (target && typeof target === 'object') {
+              Object.assign(target, result.data)
+              console.log('[DEBUG-V22] After update - modalFormState.arcana_id:', target?.arcana_id)
+            }
+          }
+        }
+        catch (e) {
+          console.error('[useEntityBaseContext] Zod parse/assign error:', e)
         }
       }
-      await handleSubmit()
+
+      console.log('[DEBUG-V22] Calling underlying modalsHandleSubmit')
+      // IMPORTANTE: Llamamos a la lógica de guardado real en useEntityModals
+      await modalsHandleSubmit()
     },
     handleCancel,
     setModalOpen: (v: boolean) => { isModalOpen.value = v },
@@ -460,7 +509,8 @@ export function useEntityBaseContext(options: EntityBaseContextOptions) {
       const target = crud.items.value.find((item: any) => Number(item?.id ?? item?.raw?.id) === id)
       if (target) {
         openFullEditor(target as Record<string, any>)
-      } else {
+      }
+      else {
         openFullEditor({ id } as Record<string, any>)
       }
     },

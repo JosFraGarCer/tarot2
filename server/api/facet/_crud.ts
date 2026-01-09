@@ -57,7 +57,7 @@ function sanitize<T extends Record<string, unknown>>(input: T): Record<string, u
 
 // Returns a SelectQueryBuilder - using 'any' for complex joined table type
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, FacetRow> {
+function buildSelect(db: Kysely<DB>, lang: string): SelectQueryBuilder<any, any, any> {
   return db
     .selectFrom('facet as f')
     .leftJoin('users as u', 'u.id', 'f.created_by')
@@ -122,11 +122,14 @@ export const facetCrud = createCrudHandlers({
       base = base.where('f.created_by', '=', query.created_by)
     }
     if (query.arcana_id !== undefined) {
-      base = base.where('f.arcana_id', '=', query.arcana_id)
+      const arcanaIds = Array.isArray(query.arcana_id) ? query.arcana_id : [query.arcana_id]
+      if (arcanaIds.length > 0) {
+        base = base.where('f.arcana_id', 'in', arcanaIds)
+      }
     }
 
     if (tagIds && tagIds.length > 0) {
-      base = base.where(sql`exists (
+      base = base.where(sql<boolean>`exists (
         select 1
         from tag_links tl
         where tl.entity_type = ${'facet'}
@@ -135,7 +138,7 @@ export const facetCrud = createCrudHandlers({
       )`)
     }
     if (tagsLower && tagsLower.length > 0) {
-      base = base.where(sql`exists (
+      base = base.where(sql<boolean>`exists (
         select 1
         from tag_links tl
         join tags t on t.id = tl.tag_id
@@ -169,10 +172,10 @@ export const facetCrud = createCrudHandlers({
         applySearch: (qb, term) =>
           qb.where((eb) =>
             eb.or([
-              sql`coalesce(t_req.name, t_en.name) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req.short_text, t_en.short_text) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req.description, t_en.description) ilike ${'%' + term + '%'}`,
-              sql`f.code ilike ${'%' + term + '%'}`,
+              sql<boolean>`coalesce(t_req.name, t_en.name) ilike ${'%' + term + '%'}`,
+              sql<boolean>`coalesce(t_req.short_text, t_en.short_text) ilike ${'%' + term + '%'}`,
+              sql<boolean>`coalesce(t_req.description, t_en.description) ilike ${'%' + term + '%'}`,
+              sql<boolean>`f.code ilike ${'%' + term + '%'}`,
             ]),
           ),
       },
@@ -197,10 +200,10 @@ export const facetCrud = createCrudHandlers({
     }
   },
   selectOne: async ({ db, lang }: { db: Kysely<DB>; lang: string }, id: number) => {
-    const row = await buildSelect(db, lang)
+    const row = await (buildSelect(db, lang) as SelectQueryBuilder<any, any, FacetRow>)
       .where('f.id', '=', id)
       .executeTakeFirst()
-    
+
     if (row) {
       const tagsMap = await fetchTagsForEntities(db, 'facet', [row.id], lang)
       row.tags = tagsMap[row.id] || []

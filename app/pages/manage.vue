@@ -1,87 +1,7 @@
 <!-- app/pages/manage.vue -->
-<!-- /app/pages/manage.vue -->
-<template>
-  <div class="flex h-[calc(100vh-4rem)] overflow-hidden">
-    <!-- Sidebar Vertical para Navegación de Entidades -->
-    <aside class="w-64 border-r bg-neutral-50/50 dark:bg-neutral-900/50 hidden lg:flex flex-col shrink-0">
-      <div class="p-4 border-b">
-        <h1 class="text-xl font-bold text-gray-900 dark:text-white">
-          {{ t('navigation.menu.manage') }}
-        </h1>
-      </div>
-      <div class="flex-1 overflow-y-auto p-4">
-        <UNavigationMenu
-          orientation="vertical"
-          :items="sidebarTabs"
-          class="w-full"
-        >
-          <template #item-label="{ item }">
-            <div class="flex flex-col py-1">
-              <span class="text-sm font-medium">{{ item.label }}</span>
-            </div>
-          </template>
-        </UNavigationMenu>
-      </div>
-      <div class="p-4 border-t">
-        <ClientOnly>
-          <template #fallback>
-            <div class="h-8 w-full rounded bg-default/40" />
-          </template>
-          <ViewControls
-            v-model="viewMode"
-            v-model:template-key="templateKey"
-            class="w-full"
-            :template-options="templateOptions as any"
-            storage-key="manage"
-          />
-        </ClientOnly>
-      </div>
-    </aside>
-
-    <!-- Área de Contenido Principal -->
-    <main class="flex-1 overflow-y-auto p-4 lg:p-6">
-      <!-- Tabs para Mobile (cuando el aside está oculto) -->
-      <div class="lg:hidden mb-6">
-        <UTabs v-model="selectedTabIndex" :items="tabs" class="w-full" />
-      </div>
-
-      <UCard class="h-full flex flex-col" :ui="{ body: 'flex-1 overflow-hidden p-0 sm:p-0' }">
-        <template #header>
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-              <UIcon :name="activeEntityConfig.icon" class="w-5 h-5 text-primary" />
-              <h2 class="text-lg font-semibold">{{ activeEntityConfig.label }}</h2>
-            </div>
-          </div>
-        </template>
-
-        <ManageEntity
-          v-if="activeEntityConfig"
-          :key="activeEntityKey"
-          :label="activeEntityConfig.label"
-          :use-crud="activeEntityConfig.useCrud"
-          :view-mode="viewMode"
-          :template-key="templateKey"
-          :entity="activeEntityKey"
-          :filters-config="activeEntityConfig.filters"
-          :card-type="activeEntityConfig.cardType"
-          :no-tags="activeEntityConfig.noTags"
-          class="h-full"
-          @create="() => onCreateEntity(activeEntityKey)"
-        />
-
-        <div class="mt-6 px-4 pb-4">
-          <NuxtPage />
-        </div>
-      </UCard>
-    </main>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n, useServerSeoMeta } from '#imports'
-import ViewControls from '~/components/manage/ViewControls.vue'
 import ManageEntity from '~/components/manage/EntityBase.vue'
 import { useManageView } from '~/composables/manage/useManageView'
 import type { AnyManageCrud } from '~/types/manage'
@@ -101,48 +21,24 @@ const { t } = useI18n()
 useServerSeoMeta({
   title: () => `${t('navigation.menu.manage')} | Tarot`,
   description: () => t('navigation.manage.description', 'Panel de gestión administrativa de entidades de Tarot.'),
-  ogTitle: () => `${t('navigation.menu.manage')} | Tarot`,
-  ogDescription: () => t('navigation.manage.description', 'Panel de gestión administrativa de entidades de Tarot.'),
-  twitterCard: 'summary_large_image',
 })
 
-const { viewMode, templateKey, templateOptions } = useManageView({ storageKey: 'manage' })
+const { viewMode, templateKey } = useManageView({ storageKey: 'manage' })
 
 type EntityKey = 'cardType' | 'baseCard' | 'world' | 'arcana' | 'facet' | 'skill' | 'tag'
 
-// State for active entity
 const activeEntityKey = ref<EntityKey>('cardType')
+const isSidebarOpen = ref(false)
 
-// Tab items
-const tabs = computed(() => [
-  { label: t('navigation.menu.cardTypes'), value: 'cardType', icon: 'i-heroicons-squares-2x2' },
-  { label: t('navigation.menu.baseCards'), value: 'baseCard', icon: 'i-heroicons-rectangle-stack' },
-  { label: t('navigation.menu.worlds'), value: 'world', icon: 'i-heroicons-map' },
-  { label: t('navigation.menu.arcana'), value: 'arcana', icon: 'i-heroicons-sparkles' },
-  { label: t('navigation.menu.facets'), value: 'facet', icon: 'i-heroicons-beaker' },
-  { label: t('navigation.menu.skills'), value: 'skill', icon: 'i-heroicons-academic-cap' },
-  { label: t('navigation.menu.tags'), value: 'tag', icon: 'i-heroicons-tag' }
+const menuItems = computed(() => [
+  { value: 'cardType', label: t('navigation.menu.cardTypes'), icon: 'i-heroicons-squares-2x2' },
+  { value: 'baseCard', label: t('navigation.menu.baseCards'), icon: 'i-heroicons-rectangle-stack' },
+  { value: 'world', label: t('navigation.menu.worlds'), icon: 'i-heroicons-map' },
+  { value: 'arcana', label: t('navigation.menu.arcana'), icon: 'i-heroicons-sparkles' },
+  { value: 'facet', label: t('navigation.menu.facets'), icon: 'i-heroicons-beaker' },
+  { value: 'skill', label: t('navigation.menu.skills'), icon: 'i-heroicons-academic-cap' },
+  { value: 'tag', label: t('navigation.menu.tags'), icon: 'i-heroicons-tag' }
 ])
-
-// Sidebar mapping
-const sidebarTabs = computed(() => tabs.value.map(tab => ({
-  ...tab,
-  active: activeEntityKey.value === tab.value,
-  onSelect: () => { activeEntityKey.value = tab.value as EntityKey }
-})))
-
-// Selected tab index for mobile UTabs
-const selectedTabIndex = computed({
-  get: () => {
-    const index = tabs.value.findIndex(t => t.value === activeEntityKey.value)
-    return index === -1 ? 0 : index
-  },
-  set: (val) => { 
-    if (tabs.value[val]) {
-      activeEntityKey.value = tabs.value[val].value as EntityKey
-    }
-  }
-})
 
 // Configuración por entidad
 const entityConfigs: Record<EntityKey, {
@@ -157,11 +53,7 @@ const entityConfigs: Record<EntityKey, {
     label: t('navigation.menu.cardTypes'),
     icon: 'i-heroicons-squares-2x2',
     useCrud: useCardTypeCrud,
-    filters: {
-      search: 'search',
-      status: 'status',
-      is_active: 'is_active'
-    },
+    filters: { search: 'search', status: 'status', is_active: 'is_active' },
     cardType: false,
     noTags: true
   },
@@ -169,13 +61,7 @@ const entityConfigs: Record<EntityKey, {
     label: t('navigation.menu.baseCards'),
     icon: 'i-heroicons-rectangle-stack',
     useCrud: useBaseCardCrud,
-    filters: {
-      search: 'search',
-      status: 'status',
-      is_active: 'is_active',
-      type: 'card_type_id',
-      tags: 'tag_ids'
-    },
+    filters: { search: 'search', status: 'status', is_active: 'is_active', type: 'card_type_id', tags: 'tag_ids' },
     cardType: true,
     noTags: false
   },
@@ -183,12 +69,7 @@ const entityConfigs: Record<EntityKey, {
     label: t('navigation.menu.worlds'),
     icon: 'i-heroicons-map',
     useCrud: useWorldCrud,
-    filters: {
-      search: 'search',
-      status: 'status',
-      is_active: 'is_active',
-      tags: 'tag_ids'
-    },
+    filters: { search: 'search', status: 'status', is_active: 'is_active', tags: 'tag_ids' },
     cardType: false,
     noTags: false
   },
@@ -196,12 +77,7 @@ const entityConfigs: Record<EntityKey, {
     label: t('navigation.menu.arcana'),
     icon: 'i-heroicons-sparkles',
     useCrud: useArcanaCrud,
-    filters: {
-      search: 'search',
-      status: 'status',
-      is_active: 'is_active',
-      tags: 'tag_ids'
-    },
+    filters: { search: 'search', status: 'status', is_active: 'is_active', tags: 'tag_ids' },
     cardType: false,
     noTags: false
   },
@@ -209,13 +85,7 @@ const entityConfigs: Record<EntityKey, {
     label: t('navigation.menu.facets'),
     icon: 'i-heroicons-beaker',
     useCrud: useFacetCrud,
-    filters: {
-      search: 'search',
-      status: 'status',
-      is_active: 'is_active',
-      facet: 'arcana_id',
-      tags: 'tag_ids'
-    },
+    filters: { search: 'search', status: 'status', is_active: 'is_active', facet: 'arcana_id', tags: 'tag_ids' },
     cardType: false,
     noTags: false
   },
@@ -223,13 +93,7 @@ const entityConfigs: Record<EntityKey, {
     label: t('navigation.menu.skills'),
     icon: 'i-heroicons-academic-cap',
     useCrud: useSkillCrud,
-    filters: {
-      search: 'search',
-      status: 'status',
-      is_active: 'is_active',
-      facet: 'facet_id',
-      tags: 'tag_ids'
-    },
+    filters: { search: 'search', status: 'status', is_active: 'is_active', facet: 'facet_id', tags: 'tag_ids' },
     cardType: false,
     noTags: false
   },
@@ -237,20 +101,73 @@ const entityConfigs: Record<EntityKey, {
     label: t('navigation.menu.tags'),
     icon: 'i-heroicons-tag',
     useCrud: useTagCrud,
-    filters: {
-      search: 'search',
-      is_active: 'is_active',
-      parent: 'parent_id'
-    },
+    filters: { search: 'search', is_active: 'is_active', parent: 'parent_id' },
     cardType: false,
     noTags: true
   }
 }
 
 const activeEntityConfig = computed(() => entityConfigs[activeEntityKey.value])
-
-// Acción crear
-function onCreateEntity(type: EntityKey) {
-  console.log('Create new entity:', type)
-}
 </script>
+
+<template>
+  <div class="flex h-[calc(100vh-4rem)] overflow-hidden bg-neutral-50 dark:bg-neutral-950 font-sans">
+    <!-- Sidebar Colapsable Modernizada -->
+    <aside
+      class="flex flex-col border-r border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-30 shadow-xl lg:shadow-none"
+      :class="[isSidebarOpen ? 'w-48' : 'w-16']">
+      <!-- Toggle Button Sidebar -->
+      <button
+        class="absolute -right-3 top-6 w-6 h-6 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-md flex items-center justify-center hover:scale-110 transition-transform z-40 hidden lg:flex"
+        @click="isSidebarOpen = !isSidebarOpen">
+        <UIcon :name="isSidebarOpen ? 'i-heroicons-chevron-left' : 'i-heroicons-chevron-right'"
+          class="w-3.5 h-3.5 text-neutral-500" />
+      </button>
+
+      <!-- Menú de Navegación -->
+      <nav class="flex-1 flex flex-col gap-1.5 py-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
+        <div v-for="item in menuItems" :key="item.value">
+          <UTooltip :text="item.label" :prevent="isSidebarOpen" side="right" :popper="{ offsetDistance: 12 }">
+            <UButton :icon="item.icon" color="neutral" variant="ghost" :class="[
+              'group relative transition-all duration-200 h-11',
+              isSidebarOpen ? 'w-full justify-start px-4' : 'w-full justify-center px-0',
+              activeEntityKey === item.value ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : 'text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
+            ]" @click="activeEntityKey = item.value as EntityKey">
+              <span v-if="isSidebarOpen" class="truncate font-medium text-sm">{{ item.label }}</span>
+              <!-- Active Indicator -->
+              <div v-if="activeEntityKey === item.value"
+                class="absolute left-0 w-1 h-6 bg-primary-500 rounded-r-full" />
+            </UButton>
+          </UTooltip>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Área de Contenido Principal -->
+    <main class="flex-1 flex flex-col min-w-0 bg-neutral-50 dark:bg-neutral-950 relative overflow-hidden">
+      <ManageEntity v-if="activeEntityConfig" :key="activeEntityKey" :label="activeEntityConfig.label"
+        :use-crud="activeEntityConfig.useCrud" v-model:view-mode="viewMode" :template-key="templateKey"
+        :entity="activeEntityKey" :filters-config="activeEntityConfig.filters" :card-type="activeEntityConfig.cardType"
+        :no-tags="activeEntityConfig.noTags" class="h-full" />
+    </main>
+  </div>
+</template>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e5e5e5;
+  border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #262626;
+}
+</style>

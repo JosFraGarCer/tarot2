@@ -7,7 +7,7 @@ Generic SSR-safe CRUD composable for any entity.
   - Optional Zod validation for create/update
 */
 
-import { ref, computed, watch, watchEffect, reactive, onMounted, onUnmounted, shallowRef } from 'vue'
+import { ref, computed, watch, watchEffect, reactive, shallowRef, onMounted, onUnmounted } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
 import type { z } from 'zod'
 import { useAsyncData, useI18n } from '#imports'
@@ -27,6 +27,7 @@ interface ApiMeta {
 interface ApiResponse<T> {
   success: boolean
   data: T
+  message?: string
   meta?: ApiMeta
 }
 
@@ -164,32 +165,13 @@ function normalizeMeta(metaCandidate: unknown): GenericMeta | undefined {
   const cand = metaCandidate as Record<string, unknown>
   const meta: GenericMeta = { ...cand }
 
-  const page = toNumber(
-    cand.page ??
-    cand.page_number ??
-    cand.current_page ??
-    cand.pageNumber ??
-    cand.currentPage
-  )
+  const page = toNumber(cand.page ?? cand.page_number ?? cand.current_page ?? cand.pageNumber ?? cand.currentPage)
   if (page !== undefined) meta.page = page
 
-  const pageSize = toNumber(
-    cand.pageSize ??
-    cand.page_size ??
-    cand.per_page ??
-    cand.perPage ??
-    cand.limit
-  )
+  const pageSize = toNumber(cand.pageSize ?? cand.page_size ?? cand.per_page ?? cand.perPage ?? cand.limit)
   if (pageSize !== undefined) meta.pageSize = pageSize
 
-  const totalItems = toNumber(
-    cand.totalItems ??
-    cand.total ??
-    cand.total_count ??
-    cand.totalResults ??
-    cand.total_records ??
-    cand.count
-  )
+  const totalItems = toNumber(cand.totalItems ?? cand.total ?? cand.total_count ?? cand.totalResults ?? cand.total_records ?? cand.count)
   if (totalItems !== undefined) meta.totalItems = totalItems
 
   const count = toNumber(cand.count)
@@ -199,13 +181,8 @@ function normalizeMeta(metaCandidate: unknown): GenericMeta | undefined {
 }
 
 function normalizeListResponse<TItem>(raw: unknown): NormalizedListResponse<TItem> {
-  if (!raw) {
-    return { items: [], totalItems: 0 }
-  }
-
-  if (Array.isArray(raw)) {
-    return { items: raw as TItem[], totalItems: raw.length }
-  }
+  if (!raw) return { items: [], totalItems: 0 }
+  if (Array.isArray(raw)) return { items: raw as TItem[], totalItems: raw.length }
 
   const r = raw as Record<string, unknown>
   const containers = [r, r.data, r.payload, r.body, r.result]
@@ -228,12 +205,7 @@ function normalizeListResponse<TItem>(raw: unknown): NormalizedListResponse<TIte
   }
 
   const metaCandidates = [
-    r.meta,
-    r.pagination,
-    r.pageInfo,
-    r.metaData,
-    r.meta_data,
-    r.paging,
+    r.meta, r.pagination, r.pageInfo, r.metaData, r.meta_data, r.paging,
     (r.data as Record<string, unknown>)?.meta,
     (r.data as Record<string, unknown>)?.pagination,
     (r.payload as Record<string, unknown>)?.meta,
@@ -253,14 +225,7 @@ function normalizeListResponse<TItem>(raw: unknown): NormalizedListResponse<TIte
   }
 
   const totalCandidates: Array<unknown> = [
-    meta?.totalItems,
-    meta?.total,
-    meta?.count,
-    r.totalItems,
-    r.total,
-    r.count,
-    r.total_count,
-    r.size,
+    meta?.totalItems, meta?.total, meta?.count, r.totalItems, r.total, r.count, r.total_count, r.size,
     (r.data as Record<string, unknown>)?.total,
     (r.data as Record<string, unknown>)?.count,
     (r.data as Record<string, unknown>)?.total_count,
@@ -292,7 +257,6 @@ function normalizeListResponse<TItem>(raw: unknown): NormalizedListResponse<TIte
 export function useEntity<TList, TCreate, TUpdate>(
   options: EntityOptions<TList, TCreate, TUpdate>
 ): EntityCrud<TList, TCreate, TUpdate> {
-  // i18n locale as reactive language code (always primitive string)
   const { locale } = useI18n()
   const lang = computed(() => (typeof locale === 'string' ? locale : locale.value) as string)
 
@@ -302,13 +266,10 @@ export function useEntity<TList, TCreate, TUpdate>(
   function resolveCreateLang(): string | undefined {
     if (!includeLangInCreateBody) return undefined
     const custom = options.createLangValue
-    if (typeof custom === 'function') {
-      return custom(lang.value)
-    }
+    if (typeof custom === 'function') return custom(lang.value)
     return custom ?? 'en'
   }
 
-  // Reactive filters & pagination setup
   const filters = reactive<Record<string, unknown>>(sanitizeInitialFilters(options.filters || {}))
   const filterConfig = normalizeFilterConfig(options.filterConfig)
   const defaultPage = 1
@@ -329,74 +290,48 @@ export function useEntity<TList, TCreate, TUpdate>(
     totalItems: paginated.totalItems.value,
   })
 
-  // Core state
+  watch(() => pagination.value.page, (val) => {
+    if (val !== paginated.page.value) paginated.setPage(val)
+  })
+  watch(() => pagination.value.pageSize, (val) => {
+    if (val !== paginated.pageSize.value) paginated.setPageSize(val)
+  })
+
+  watch([paginated.page, paginated.pageSize, paginated.totalItems], ([p, s, t]) => {
+    pagination.value.page = p
+    pagination.value.pageSize = s
+    pagination.value.totalItems = t
+  }, { immediate: true })
+
   const items = shallowRef<TList[]>([])
   const current = shallowRef<TList | null>(null)
   const listError = ref<string | null>(null)
   const actionError = ref<string | null>(null)
   const error = computed<string | null>(() => actionError.value ?? listError.value)
 
-  // We combine list pending with actionPending to expose a single loading flag
   const actionPending = ref(false)
 
-  // Debounced filters string to avoid excessive re-fetching while typing
   const debouncedFiltersStr = ref(JSON.stringify(filters))
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
   watch(
-    filters,
-    () => {
+    () => JSON.stringify(filters),
+    (newFiltersStr) => {
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
-        debouncedFiltersStr.value = JSON.stringify(filters)
+        debouncedFiltersStr.value = newFiltersStr
+        paginated.setPage(1)
+        void fetchList()
       }, 300)
-      paginated.resetPage()
     },
     { deep: true }
   )
 
-  watch(
-    [paginated.page, paginated.pageSize, paginated.totalItems],
-    ([pageValue, pageSizeValue, totalItemsValue]) => {
-      const current = pagination.value
-      if (current.page !== pageValue) current.page = pageValue
-      if (current.pageSize !== pageSizeValue) current.pageSize = pageSizeValue
-      if (current.totalItems !== totalItemsValue) current.totalItems = totalItemsValue
-    },
-    { immediate: true }
-  )
-
-  watch(
-    () => pagination.value.page,
-    (value) => {
-      if (value !== paginated.page.value) paginated.setPage(value)
-    }
-  )
-
-  watch(
-    () => pagination.value.pageSize,
-    (value) => {
-      if (value !== paginated.pageSize.value) paginated.setPageSize(value)
-    }
-  )
-
-  watch(
-    () => pagination.value.totalItems,
-    (value) => {
-      if (value !== paginated.totalItems.value) paginated.syncMeta({ totalItems: value })
-    }
-  )
-
-  // Build a stable cache key for useAsyncData based on resource + debounced filters + pagination + lang
   const listKey = computed(() => {
-    const f = debouncedFiltersStr.value
-    const uid = options.resourcePath.replace(/[^\w]/g, '_') // ejemplo: _api_card_type
-    return `entity:${uid}::${lang.value}::${paginated.page.value}::${paginated.pageSize.value}::${f}`
+    const uid = options.resourcePath.replace(/[^\w]/g, '_')
+    return `entity:${uid}::${lang.value}::${paginated.page.value}::${paginated.pageSize.value}::${debouncedFiltersStr.value}`
   })
 
-  // Abortable fetch controller to cancel in-flight list requests
   let listAbort: AbortController | null = null
-
-  // In-memory SWR cache
   const listCache: Map<string, unknown> = new Map()
 
   function invalidateDeckCaches() {
@@ -410,13 +345,14 @@ export function useEntity<TList, TCreate, TUpdate>(
   const { data: listData, pending: listPending, error: listErr, refresh } =
     useAsyncData<NormalizedListResponse<TList>>(listKey, async () => {
       if (listAbort) {
-        try { listAbort.abort() } catch { /* ignore abort errors */ }
+        try { listAbort.abort() } catch { }
       }
       listAbort = new AbortController()
+
       const params = pruneUndefined({
         ...normalizeFilters(filters),
-        page: paginated.page.value,
-        pageSize: paginated.pageSize.value,
+        page: pagination.value.page,
+        pageSize: pagination.value.pageSize,
         ...(includeLangParam ? { lang: lang.value } : {}),
       })
       const raw = await $fetch<Record<string, unknown>>(options.resourcePath, {
@@ -424,32 +360,28 @@ export function useEntity<TList, TCreate, TUpdate>(
         signal: listAbort.signal,
         params,
       })
-      const normalized = normalizeListResponse<TList>(raw)
-      return normalized
+      return normalizeListResponse<TList>(raw)
     }, {
-      watch: [listKey],
+      watch: [listKey, () => lang.value],
       immediate: true,
       server: true,
     })
 
-  // Keep exposed items and totalItems in sync with async data
   watchEffect(() => {
     const val = listData.value
     if (!val) {
       items.value = []
       paginated.syncMeta({ totalItems: 0 })
-      const snapshot = pagination.value
-      snapshot.page = paginated.page.value
-      snapshot.pageSize = paginated.pageSize.value
-      snapshot.totalItems = paginated.totalItems.value
+      pagination.value.page = paginated.page.value
+      pagination.value.pageSize = paginated.pageSize.value
+      pagination.value.totalItems = paginated.totalItems.value
       return
     }
 
     items.value = Array.isArray(val.items) ? val.items : []
     const meta = val.meta
     const pending = !!listPending.value
-    const totalItemsFromMeta =
-      meta?.totalItems ?? meta?.count ?? val.totalItems ?? items.value.length
+    const totalItemsFromMeta = meta?.totalItems ?? meta?.count ?? val.totalItems ?? items.value.length
 
     paginated.syncMeta({
       page: !pending ? meta?.page : undefined,
@@ -457,15 +389,13 @@ export function useEntity<TList, TCreate, TUpdate>(
       totalItems: totalItemsFromMeta,
     })
 
-    const snapshot = pagination.value
-    snapshot.page = paginated.page.value
-    snapshot.pageSize = paginated.pageSize.value
-    snapshot.totalItems = paginated.totalItems.value
+    pagination.value.page = paginated.page.value
+    pagination.value.pageSize = paginated.pageSize.value
+    pagination.value.totalItems = paginated.totalItems.value
 
-    try { listCache.set(listKey.value, val) } catch { /* ignore cache errors */ }
+    try { listCache.set(listKey.value, val) } catch { }
   })
 
-  // Mirror list error into a single string error state
   watch(
     () => listErr.value,
     (e) => {
@@ -475,18 +405,15 @@ export function useEntity<TList, TCreate, TUpdate>(
     { immediate: true }
   )
 
-  // Unified loading flag across list and actions
-  const loading: ComputedRef<boolean> = computed(() => !!listPending.value || actionPending.value)
+  const loading = computed(() => !!listPending.value || actionPending.value)
 
-  // Manual list refresh (SSR-ready)
-  async function fetchList() {
+  async function fetchList(): Promise<TList[]> {
     listError.value = null
     await refresh()
     return items.value
   }
 
-  // Fetch one entity by id
-  async function fetchOne(id: string | number) {
+  async function fetchOne(id: string | number): Promise<TList | null> {
     actionError.value = null
     actionPending.value = true
     try {
@@ -505,24 +432,23 @@ export function useEntity<TList, TCreate, TUpdate>(
     }
   }
 
-  // Create an entity (POST) — always send body with lang: 'en'
-  async function create(payload: TCreate) {
+  async function create(payload: TCreate): Promise<TList> {
     actionError.value = null
     actionPending.value = true
     try {
       const parsed = options.schema?.create ? options.schema.create.parse(payload) : payload
-      const createParams = includeLangParam ? { lang: lang.value } : undefined
       const createLang = resolveCreateLang()
-      const bodyPayload = includeLangInCreateBody && createLang !== undefined
-        ? { lang: createLang, ...parsed } as Record<string, unknown>
-        : parsed as Record<string, unknown>
-      const res = await $fetch<Record<string, unknown>>(options.resourcePath, {
+      const bodyPayload = (includeLangInCreateBody && createLang !== undefined)
+        ? { lang: createLang, ...parsed }
+        : parsed
+      const res = await $fetch<ApiResponse<TList>>(options.resourcePath, {
         method: 'POST',
-        params: createParams,
-        body: bodyPayload,
+        params: includeLangParam ? { lang: lang.value } : undefined,
+        body: bodyPayload as Record<string, unknown>,
       })
-      if (res?.success === false) throw new Error('Request failed')
+      if (res?.success === false) throw new Error(res?.message || 'Create failed')
       invalidateDeckCaches()
+      await refresh()
       return res.data
     } catch (e) {
       actionError.value = toErrorMessage(e)
@@ -532,21 +458,21 @@ export function useEntity<TList, TCreate, TUpdate>(
     }
   }
 
-  // Update an entity (PATCH)
-  async function update(id: string | number, payload: TUpdate) {
+  async function update(id: string | number, payload: TUpdate): Promise<TList> {
+    if (!id) throw new Error('Missing ID for update')
     actionError.value = null
     actionPending.value = true
     try {
-      const parsed = options.schema?.update
-        ? (options.schema.update as { partial: () => z.ZodType<TUpdate> }).partial().parse(payload)
-        : payload
-      const res = await $fetch<Record<string, unknown>>(`${options.resourcePath}/${id}`, {
+      const schema = options.schema?.update as any
+      const parsed = schema?.partial ? schema.partial().parse(payload) : payload
+      const res = await $fetch<ApiResponse<TList>>(`${options.resourcePath}/${id}`, {
         method: 'PATCH',
         params: includeLangParam ? { lang: lang.value } : undefined,
         body: parsed as Record<string, unknown>,
       })
-      if (res?.success === false) throw new Error('Request failed')
+      if (res?.success === false) throw new Error(res?.message || 'Update failed')
       invalidateDeckCaches()
+      await refresh()
       return res.data
     } catch (e) {
       actionError.value = toErrorMessage(e)
@@ -556,12 +482,11 @@ export function useEntity<TList, TCreate, TUpdate>(
     }
   }
 
-  // Remove an entity (DELETE) and auto-refresh list
-  async function remove(id: string | number) {
+  async function remove(id: string | number): Promise<boolean> {
     actionError.value = null
     actionPending.value = true
     try {
-      const res = await $fetch<Record<string, unknown>>(`${options.resourcePath}/${id}`, {
+      const res = await $fetch<any>(`${options.resourcePath}/${id}`, {
         method: 'DELETE',
         params: includeLangParam ? { lang: lang.value } : undefined,
       })
@@ -577,17 +502,15 @@ export function useEntity<TList, TCreate, TUpdate>(
     }
   }
 
-  // Update only the status field using PATCH
-  async function updateStatus(id: string | number, nextStatus: unknown) {
+  async function updateStatus(id: string | number, nextStatus: unknown): Promise<TList> {
     return update(id, { status: nextStatus } as unknown as TUpdate)
   }
 
-  // Replace tag associations via tag_ids
-  async function updateTags(id: string | number, tagIds: number[]) {
+  async function updateTags(id: string | number, tagIds: number[]): Promise<TList> {
     actionError.value = null
     actionPending.value = true
     try {
-      const res = await $fetch<Record<string, unknown>>(`${options.resourcePath}/${id}`, {
+      const res = await $fetch<ApiResponse<TList>>(`${options.resourcePath}/${id}`, {
         method: 'PATCH',
         params: includeLangParam ? { lang: lang.value } : undefined,
         body: { tag_ids: tagIds } as Record<string, unknown>,
@@ -604,57 +527,25 @@ export function useEntity<TList, TCreate, TUpdate>(
     }
   }
 
-  // Pagination helpers
-  function nextPage() {
-    paginated.setPage(paginated.page.value + 1)
-  }
+  function nextPage() { paginated.setPage(paginated.page.value + 1) }
+  function prevPage() { paginated.setPage(Math.max(1, paginated.page.value - 1)) }
 
-  function prevPage() {
-    paginated.setPage(Math.max(1, paginated.page.value - 1))
-  }
-
-  // Auto-refresh on filters/page/lang changes is handled via useAsyncData watch: [listKey]
-  // Consumers can still call fetchList() to force refresh if needed.
-
-  // Revalidate on focus (client-only)
   if (import.meta.client) {
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        void refresh()
-      }
+      if (document.visibilityState === 'visible') void refresh()
     }
     onMounted(() => document.addEventListener('visibilitychange', handleVisibility))
     onUnmounted(() => document.removeEventListener('visibilitychange', handleVisibility))
   }
 
   return {
-    // state
-    items,
-    current,
-    filters,
-    filterConfig,
-    pagination,
+    items, current, filters, filterConfig, pagination,
     pageSizeOptions: paginated.options,
-    loading,
-    error,
-    listError,
-    actionError,
-    lang,
+    loading, error, listError, actionError, lang,
     resourcePath: options.resourcePath,
     schema: options.schema,
-
-    // actions
-    fetchList,
-    fetchOne,
-    create,
-    update,
-    remove,
-    updateStatus,
-    updateTags,
-
-    // helpers
-    nextPage,
-    prevPage,
+    fetchList, fetchOne, create, update, remove,
+    updateStatus, updateTags, nextPage, prevPage,
     registerPageSizeOptions: paginated.registerPageSizeOptions,
   }
 }

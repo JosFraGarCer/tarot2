@@ -17,7 +17,7 @@ export const cardTypeFilters = {
 
 export function useCardTypeCrud(): ManageCrud<CardTypeList, CardTypeCreate, CardTypeUpdate> {
   return useEntity<CardTypeList, CardTypeCreate, CardTypeUpdate>({
-    resourcePath: '/api/card_type',
+    resourcePath: '/card_type',
     schema: {
       create: cardTypeCreateSchema,
       update: cardTypeUpdateSchema,

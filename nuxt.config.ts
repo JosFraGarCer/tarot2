@@ -79,7 +79,11 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@pinia/colada-nuxt',
    ],
-
+  eslint: {
+    config: {
+      stylistic: true, // <---
+    },
+  }, 
   security: {
     csrf: true,
     headers: {

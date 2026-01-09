@@ -23,7 +23,7 @@ export const facetFilters = {
 
 export function useFacetCrud(): ManageCrud<FacetList, FacetCreate, FacetUpdate> {
   return useEntity<FacetList, FacetCreate, FacetUpdate>({
-    resourcePath: '/api/facet',
+    resourcePath: '/facet',
     schema: {
       create: facetCreateSchema,
       update: facetUpdateSchema,
