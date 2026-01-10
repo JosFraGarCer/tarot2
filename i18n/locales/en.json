@@ -259,7 +259,7 @@
         "revision": "Revision"
       },
       "saved": "Version saved",
-      "semverInvalid": "Invalid version format. Use MAJOR.MINOR.PATCH[.BUILD]",
+      "semverInvalid": "Invalid version format. Use MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]",
       "semverRequired": "Version is required",
       "version": "Version",
       "viewMetadata": "View metadata"

@@ -25,7 +25,7 @@ export const contentVersionQuerySchema = z.object({
 
 // Schema for creating content versions
 export const contentVersionCreateSchema = z.object({
-  version_semver: z.string().regex(/^\d+\.\d+\.\d+(-[\w.[-]+)?(\+[\w.[-]+)?$/, 'Invalid semantic version format'),
+  version_semver: z.string().regex(/^\d+\.\d+\.\d+(?:-[\w.-]+)?(?:\+[\w.-]+)?$/, 'Invalid semantic version format'),
   description: z.string().optional(),
   metadata: z.record(z.any()).optional(),
   release: releaseStageEnum.default('dev'),

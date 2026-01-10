@@ -19,7 +19,10 @@ export const feedbackCategoryEnum = z.enum([
   'content',
   'technical',
   'design',
-  'other'
+  'other',
+  'bug',      // Legacy values
+  'suggestion', // Legacy values
+  'balance',   // Legacy values
 ])
 
 // Schema for content feedback queries

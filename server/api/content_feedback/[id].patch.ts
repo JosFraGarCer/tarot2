@@ -25,15 +25,27 @@ export default defineEventHandler(async (event) => {
     if (payload.resolved_by !== undefined) patch.resolved_by = payload.resolved_by ?? null
     if (payload.resolved_at !== undefined) patch.resolved_at = payload.resolved_at ?? null
 
-    if (Object.keys(patch).length > 0) {
-      const updated = await globalThis.db
-        .updateTable('content_feedback')
-        .set(patch)
-        .where('id', '=', id)
-        .returning('id')
-        .executeTakeFirst()
+    // Manejo especial para reopen: asegurarse que resolved_by sea null en la BD
+    if (payload.status === 'open' && payload.resolved_by === null) {
+      patch.resolved_by = null
+    }
 
-      if (!updated) notFound('Content feedback not found')
+    if (Object.keys(patch).length > 0) {
+      // Para reopen, usar SQL directo para asegurar que resolved_by sea NULL
+      if (payload.status === 'open' && payload.resolved_by === null) {
+        await sql`UPDATE content_feedback 
+          SET status = 'open', resolved_at = null, resolved_by = null 
+          WHERE id = ${id}`.execute(globalThis.db)
+      } else {
+        const updated = await globalThis.db
+          .updateTable('content_feedback')
+          .set(patch)
+          .where('id', '=', id)
+          .returning('id')
+          .executeTakeFirst()
+
+        if (!updated) notFound('Content feedback not found')
+      }
     } else {
       const exists = await globalThis.db
         .selectFrom('content_feedback')

@@ -6,23 +6,55 @@ import { createPaginatedResponse } from '../../utils/response'
 import { buildFilters } from '../../utils/filters'
 import { contentFeedbackQuerySchema } from '@shared/schemas/content-feedback'
 
-function applyEntityRelation<QB extends SelectQueryBuilder<any, any, any>>(qb: QB, relationRaw: string | undefined): QB {
-  if (!relationRaw) return qb
-  const key = relationRaw.replace(/\s+/g, '').toLowerCase()
-  switch (key) {
-    case 'world->base_card':
-    case 'world:base_card':
-      return qb
-        .leftJoin('world_card as wc_rel', (join) =>
-          join
-            .onRef('wc_rel.id', '=', 'cf.entity_id')
-            .on('cf.entity_type', '=', sql`'world_card'`),
-        )
-        .leftJoin('world as w_rel', 'w_rel.id', 'wc_rel.world_id')
-        .leftJoin('base_card as bc_rel', 'bc_rel.id', 'wc_rel.base_card_id')
-    default:
-      return qb
-  }
+function applyEntityRelation<QB extends SelectQueryBuilder<any, any, any>>(qb: QB): QB {
+  // Hacer JOINs universales para todas las entidades y usar COALESCE para obtener el código
+  return qb
+    .leftJoin('arcana as a_rel', (join) =>
+      join
+        .onRef('a_rel.id', '=', 'cf.entity_id')
+        .on('cf.entity_type', '=', sql`'arcana'`),
+    )
+    .leftJoin('base_card as bc_rel', (join) =>
+      join
+        .onRef('bc_rel.id', '=', 'cf.entity_id')
+        .on('cf.entity_type', '=', sql`'base_card'`),
+    )
+    .leftJoin('base_card_type as bct_rel', (join) =>
+      join
+        .onRef('bct_rel.id', '=', 'cf.entity_id')
+        .on('cf.entity_type', '=', sql`'base_card_type'`),
+    )
+    .leftJoin('facet as f_rel', (join) =>
+      join
+        .onRef('f_rel.id', '=', 'cf.entity_id')
+        .on('cf.entity_type', '=', sql`'facet'`),
+    )
+    .leftJoin('world_card as wc_rel', (join) =>
+      join
+        .onRef('wc_rel.id', '=', 'cf.entity_id')
+        .on('cf.entity_type', '=', sql`'world_card'`),
+    )
+    .leftJoin('world as w_rel', (join) =>
+      join
+        .onRef('w_rel.id', '=', 'cf.entity_id')
+        .on('cf.entity_type', '=', sql`'world'`),
+    )
+    .leftJoin('base_skills as bs_rel', (join) =>
+      join
+        .onRef('bs_rel.id', '=', 'cf.entity_id')
+        .on('cf.entity_type', '=', sql`'base_skills'`),
+    )
+    .select([
+      sql`coalesce(
+        a_rel.code,
+        bc_rel.code,
+        bct_rel.code,
+        f_rel.code,
+        wc_rel.code,
+        w_rel.code,
+        bs_rel.code
+      )`.as('entity_code'),
+    ])
 }
 
 export default defineEventHandler(async (event) => {
@@ -71,6 +103,7 @@ export default defineEventHandler(async (event) => {
         'cf.resolved_at',
         sql`coalesce(cu.username, cu.email)`.as('created_by_name'),
         sql`coalesce(ru.username, ru.email)`.as('resolved_by_name'),
+        sql`''`.as('entity_code'), // Placeholder para entity_code
       ])
 
     if (entity_type) base = base.where('cf.entity_type', '=', entity_type)

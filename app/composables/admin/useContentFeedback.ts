@@ -2,16 +2,24 @@
 import { computed, ref } from 'vue'
 import { useI18n, useToast } from '#imports'
 import { useApiFetch } from '@/utils/fetcher'
+import type { 
+  ContentFeedbackQuery, 
+  ContentFeedbackCreate, 
+  ContentFeedbackUpdate,
+  FeedbackStatus,
+  FeedbackCategory,
+  EntityType
+} from '../../../shared/schemas/content-feedback'
 
 interface FeedbackItem {
   id: number
-  entity_type: string
+  entity_type: EntityType
   entity_id: number
   version_number: number | null
   language_code: string | null
   comment: string
-  category: string | null
-  status: 'open' | 'resolved' | string
+  category: FeedbackCategory | null
+  status: FeedbackStatus
   created_by: number | null
   resolved_by: number | null
   created_at: string
@@ -305,7 +313,8 @@ export function useContentFeedback() {
   }
 
   async function reopen(id: number) {
-    await update(id, { status: 'open', resolved_at: null, resolved_by: null })
+    // Solo cambiar el status a 'open', no establecer resolved_by/resolved_at
+    await update(id, { status: 'open' })
   }
 
   async function update(id: number, payload: FeedbackUpdatePayload) {

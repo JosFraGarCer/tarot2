@@ -17,6 +17,11 @@
       <UCard>
         <template #header>{{ $t('features.admin.feedbackDashboard.byType','By type') }}</template>
         <div class="text-sm space-y-1">
+          <div class="flex justify-between"><span>translation</span><span>{{ totalsByType.translation }}</span></div>
+          <div class="flex justify-between"><span>content</span><span>{{ totalsByType.content }}</span></div>
+          <div class="flex justify-between"><span>technical</span><span>{{ totalsByType.technical }}</span></div>
+          <div class="flex justify-between"><span>design</span><span>{{ totalsByType.design }}</span></div>
+          <div class="flex justify-between"><span>other</span><span>{{ totalsByType.other }}</span></div>
           <div class="flex justify-between"><span>bug</span><span>{{ totalsByType.bug }}</span></div>
           <div class="flex justify-between"><span>suggestion</span><span>{{ totalsByType.suggestion }}</span></div>
           <div class="flex justify-between"><span>balance</span><span>{{ totalsByType.balance }}</span></div>
@@ -46,7 +51,7 @@ import { useApiFetch } from '@/utils/fetcher'
 const props = defineProps<{ query?: { type?: string | null; status?: string | null } }>()
 
 const totals = reactive({ total: 0, open: 0, resolved: 0 })
-const totalsByType = reactive({ bug: 0, suggestion: 0, balance: 0 })
+const totalsByType = reactive({ translation: 0, content: 0, technical: 0, design: 0, other: 0, bug: 0, suggestion: 0, balance: 0 })
 const weeklyBuckets = ref<{ label: string; count: number }[]>([])
 
 const { fetchMeta } = useContentFeedback()
@@ -66,6 +71,11 @@ async function loadTotals() {
   totals.total = await fetchCount(base)
   totals.open = await fetchCount({ ...base, status: 'open' })
   totals.resolved = await fetchCount({ ...base, status: 'resolved' })
+  totalsByType.translation = await fetchCount({ category: 'translation' })
+  totalsByType.content = await fetchCount({ category: 'content' })
+  totalsByType.technical = await fetchCount({ category: 'technical' })
+  totalsByType.design = await fetchCount({ category: 'design' })
+  totalsByType.other = await fetchCount({ category: 'other' })
   totalsByType.bug = await fetchCount({ category: 'bug' })
   totalsByType.suggestion = await fetchCount({ category: 'suggestion' })
   totalsByType.balance = await fetchCount({ category: 'balance' })

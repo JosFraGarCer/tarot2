@@ -7,10 +7,19 @@ import { mergePermissions } from '../utils/users'
 
 export default defineEventHandler(async (event) => {
   try {
-    const token = event.node.req.headers.cookie
+    // Intentar obtener token de cookie primero (para compatibilidad)
+    let token = event.node.req.headers.cookie
       ?.split(';')
       .find(c => c.trim().startsWith('auth_token='))
       ?.split('=')[1]
+
+    // Si no hay token en cookie, intentar del header Authorization
+    if (!token) {
+      const authHeader = event.node.req.headers.authorization
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.slice(7)
+      }
+    }
 
     if (!token) return
 

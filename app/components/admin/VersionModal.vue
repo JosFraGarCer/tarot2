@@ -158,13 +158,21 @@ async function submit() {
 
 function validateSemver() {
   const value = form.version_semver?.trim() || ''
-  const re = /^\d+\.\d+\.\d+(?:\.\d+)?$/
-  if (!value) {
-    semverError.value = tt('domains.version.semverRequired', 'Version is required')
-  } else if (!re.test(value)) {
-    semverError.value = tt('domains.version.semverInvalid', 'Invalid version format. Use MAJOR.MINOR.PATCH[.BUILD]')
+  console.log('DEBUG validateSemver:', { originalValue: value, cleanValue: value.replace(/^version\s*/i, '') })
+  // Remover prefijo 'version' si existe
+  const cleanValue = value.replace(/^version\s*/i, '')
+  // Remover puntos al final
+  const finalValue = cleanValue.replace(/\.$/, '')
+  const re = /^\d+\.\d+\.\d+(?:-[\w.-]+)?(?:\+[\w.-]+)?$/
+  console.log('DEBUG regex test:', { cleanValue, finalValue, regexMatch: re.test(finalValue) })
+  if (!finalValue) {
+    semverError.value = tt('versions.semverRequired', 'Version is required')
+  } else if (!re.test(finalValue)) {
+    semverError.value = tt('versions.semverInvalid', 'Invalid version format. Use MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]')
   } else {
     semverError.value = null
+    // Actualizar el formulario con el valor limpio
+    form.version_semver = finalValue
   }
 }
 

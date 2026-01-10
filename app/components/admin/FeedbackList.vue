@@ -46,69 +46,69 @@
 
     <template #cell-code="{ row }">
       <span class="font-mono text-xs text-neutral-600 dark:text-neutral-300">
-        {{ renderEntity(resolveFeedback(row)) }}
+        {{ renderEntity(row.original) }}
       </span>
     </template>
 
     <template #cell-name="{ row }">
-      <div :class="nameCellClass(resolveFeedback(row))">
+      <div :class="nameCellClass(row.original)">
         <div class="flex items-center gap-2">
-          <UTooltip :text="createdByTooltip(resolveFeedback(row))">
-            <UAvatar size="xs" :text="renderAvatarInitial(resolveFeedback(row))" />
+          <UTooltip :text="createdByTooltip(row.original)">
+            <UAvatar size="xs" :alt="renderAvatarInitial(row.original)" />
           </UTooltip>
           <div class="flex flex-wrap items-center gap-2">
             <span class="flex items-center gap-1 font-medium text-neutral-800 dark:text-neutral-100">
-              {{ renderTitle(resolveFeedback(row)) }}
+              {{ renderTitle(row.original) }}
               <UIcon
-                v-if="isRecentlyCreated(resolveFeedback(row))"
+                v-if="isRecentlyCreated(row.original)"
                 name="i-heroicons-sparkles"
                 class="text-primary-400"
                 :title="tt('features.admin.feedback.new', 'New feedback')"
               />
               <UIcon
-                v-if="hasInternalNotes(resolveFeedback(row))"
+                v-if="hasInternalNotes(row.original)"
                 name="i-heroicons-chat-bubble-left-ellipsis"
                 class="text-neutral-400"
                 :title="tt('features.admin.feedback.notes.hasNotes', 'Has internal notes')"
               />
             </span>
             <UBadge
-              v-if="resolveFeedback(row).language_code"
+              v-if="row.original.language_code"
               variant="soft"
               color="primary"
               size="xs"
             >
-              {{ String(resolveFeedback(row).language_code).toUpperCase() }}
+              {{ String(row.original.language_code).toUpperCase() }}
             </UBadge>
           </div>
         </div>
         <p
-          v-if="renderDetail(resolveFeedback(row))"
+          v-if="renderDetail(row.original)"
           class="mt-1 line-clamp-2 text-xs text-neutral-500 dark:text-neutral-400"
         >
-          {{ renderDetail(resolveFeedback(row)) }}
+          {{ renderDetail(row.original) }}
         </p>
       </div>
     </template>
 
     <template #cell-category="{ row }">
       <UBadge variant="soft">
-        {{ renderCategory(resolveFeedback(row)) }}
+        {{ renderCategory(row.original) }}
       </UBadge>
     </template>
 
     <template #cell-status="{ row }">
       <UBadge
-        :color="resolveFeedback(row).status === 'resolved' ? 'green' : 'primary'"
+        :color="row.original.status === 'resolved' ? 'success' : 'primary'"
         variant="soft"
       >
-        {{ resolveFeedback(row).status }}
+        {{ row.original.status }}
       </UBadge>
     </template>
 
     <template #cell-created_at="{ row }">
       <span class="text-xs text-neutral-500 dark:text-neutral-400">
-        {{ formatDate(resolveFeedback(row).created_at) }}
+        {{ formatDate(row.original.created_at) }}
       </span>
     </template>
 
@@ -119,14 +119,14 @@
           icon="i-heroicons-code-bracket-square"
           variant="soft"
           :title="tt('features.admin.feedback.viewJson', 'View JSON')"
-          @click="emit('view-json', resolveFeedback(row))"
+          @click="emit('view-json', row.original)"
         />
         <UButton
           size="xs"
           icon="i-heroicons-eye"
           variant="soft"
           :title="tt('ui.actions.preview', 'Preview')"
-          @click="handlePreview(resolveFeedback(row))"
+          @click="handlePreview(row.original)"
         />
         <UButton
           size="xs"
@@ -134,32 +134,32 @@
           variant="soft"
           :disabled="!isEditor"
           :title="!isEditor ? tt('ui.messages.noPermission', 'No permission') : tt('features.admin.feedback.actions.viewNotes', 'View notes')"
-          @click="emit('notes', resolveFeedback(row))"
+          @click="emit('notes', row.original)"
         />
         <UButton
-          v-if="hasLinkedEntity(resolveFeedback(row))"
+          v-if="hasLinkedEntity(row.original)"
           size="xs"
           icon="i-heroicons-link"
           variant="soft"
           :title="tt('features.admin.feedback.actions.openEntity', 'Open related entity')"
-          @click="openEntity(resolveFeedback(row))"
+          @click="openEntity(row.original)"
         />
         <UButton
-          v-if="isEditor && resolveFeedback(row).status === 'resolved'"
+          v-if="isEditor && row.original.status === 'resolved'"
           size="xs"
           icon="i-heroicons-arrow-path"
           variant="soft"
           :title="tt('features.admin.feedback.actions.reopen', 'Reopen')"
-          @click="emit('reopen', resolveFeedback(row))"
+          @click="emit('reopen', row.original)"
         />
         <UButton
           size="xs"
           icon="i-heroicons-check-circle"
           color="primary"
           variant="soft"
-          :disabled="!isEditor || resolveFeedback(row).status === 'resolved'"
+          :disabled="!isEditor || row.original.status === 'resolved'"
           :title="!isEditor ? tt('ui.messages.noPermission', 'No permission') : tt('ui.actions.resolve', 'Resolve')"
-          @click="emit('resolve', resolveFeedback(row))"
+          @click="emit('resolve', row.original)"
         />
         <UButton
           size="xs"
@@ -167,7 +167,7 @@
           color="error"
           variant="soft"
           :title="tt('ui.actions.delete', 'Delete')"
-          @click="emit('delete', resolveFeedback(row))"
+          @click="emit('delete', row.original)"
         />
       </div>
     </template>
@@ -187,6 +187,7 @@ import { formatDate } from '@/utils/date'
 
 type FeedbackListItem = {
   id: number
+  name?: string | null  // Esta es la clave que viste en el debug
   entity_type?: string | null
   entity_id?: number | null
   comment?: string | null
@@ -297,31 +298,18 @@ function onSelectedUpdate(ids: Array<string | number>) {
 
 const bridgeRef = ref<InstanceType<typeof AdminTableBridge> | null>(null)
 
-function resolveRow(row: any): EntityRow | null {
-  if (!row) return null
-  if ('original' in row && row.original) return row.original as EntityRow
-  return row as EntityRow
+function renderEntity(item: any) {
+  // El código ya viene procesado de mapFeedbackToRow
+  return item.code || '—'
 }
 
-function resolveFeedback(row: any): FeedbackListItem {
-  const entityRow = resolveRow(row)
-  if (entityRow?.raw) return entityRow.raw as FeedbackListItem
-  if (entityRow?.id != null) {
-    const match = props.items.find(item => item.id === entityRow.id)
-    if (match) return match
+function renderTitle(item: any) {
+  // Usar la clave 'name' que viene del EntityRow (mapFeedbackToRow)
+  if (item.name && item.name.trim().length) {
+    const trimmed = item.name.trim()
+    return trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed
   }
-  return {} as FeedbackListItem
-}
-
-function renderEntity(item: FeedbackListItem) {
-  if (item.card_code && item.card_code.trim().length) return item.card_code
-  const type = item.entity_type ? item.entity_type.replace(/_/g, ' ') : '—'
-  if (item.entity_id != null) return `${type} #${item.entity_id}`
-  return type
-}
-
-function renderTitle(item: FeedbackListItem) {
-  if (item.title && item.title.trim().length) return item.title
+  // Fallback a comment si no hay name
   if (item.comment && item.comment.trim().length) {
     const trimmed = item.comment.trim()
     return trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed

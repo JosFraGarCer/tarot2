@@ -257,17 +257,16 @@ export function mapUsersToRows(users: any[]): EntityRow[] {
 export function mapFeedbackToRow(feedback: any): EntityRow {
   const id = normalizeId(feedback?.id)
   const title = pickString(
+    feedback?.comment,  // Priorizar comment
     feedback?.title,
-    feedback?.summary,
-    feedback?.comment,
     feedback?.detail,
   )
-  const shortText = pickString(feedback?.detail, feedback?.comment, feedback?.notes)
+  const shortText = pickString(feedback?.detail, feedback?.comment)
   const status = pickString(feedback?.status)
-  const lang = pickString(feedback?.language_code, feedback?.lang, feedback?.locale)
-  const category = pickString(feedback?.type, feedback?.category)
+  const lang = pickString(feedback?.language_code)
+  const category = pickString(feedback?.category)
   const createdAt = feedback?.created_at ?? null
-  const updatedAt = feedback?.resolved_at ?? feedback?.updated_at ?? null
+  const updatedAt = feedback?.resolved_at ?? null
 
   return {
     id,
@@ -275,13 +274,13 @@ export function mapFeedbackToRow(feedback: any): EntityRow {
     short_text: shortText ?? '',
     description: shortText ?? null,
     status: status ?? null,
-    statusKind: 'feedback',
+    statusKind: 'card' as const,
     lang: lang,
     category: category,
-    code: pickString(feedback?.card_code, feedback?.entity_code, feedback?.entity_slug),
+    code: feedback?.entity_code || `${feedback?.entity_type || '—'} #${feedback?.entity_id || '—'}`, // Usar entity_code de la API o fallback
     created_at: createdAt,
     updated_at: updatedAt,
-    raw: feedback,
+    raw: feedback, // Aquí pasamos todos los campos originales
   }
 }
 

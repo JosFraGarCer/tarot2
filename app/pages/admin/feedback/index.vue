@@ -237,7 +237,7 @@ const route = useRoute()
 type FeedbackRouteState = {
   search: string
   status: 'all' | 'open' | 'resolved'
-  type: 'all' | 'bug' | 'suggestion' | 'balance' | 'translation'
+  type: 'all' | 'translation' | 'content' | 'technical' | 'design' | 'other' | 'bug' | 'suggestion' | 'balance'
   mineOnly: boolean
   language?: string
   entityType?: string
@@ -268,7 +268,7 @@ const { state: queryState, update: updateQueryState, reset: resetQueryState } = 
   defaults: initialState,
   parse(raw) {
     const statusParam = raw.status === 'open' || raw.status === 'resolved' ? raw.status : 'all'
-    const typeParam = raw.type === 'bug' || raw.type === 'suggestion' || raw.type === 'balance' || raw.type === 'translation'
+    const typeParam = ['translation', 'content', 'technical', 'design', 'other', 'bug', 'suggestion', 'balance'].includes(raw.type)
       ? raw.type
       : 'all'
     const mineOnlyParam = raw.mineOnly === 'true'
@@ -331,16 +331,20 @@ const { state: queryState, update: updateQueryState, reset: resetQueryState } = 
 
 const search = ref(queryState.search ?? '')
 const status = ref<'all' | 'open' | 'resolved'>(queryState.status ?? 'all')
-const type = ref<'all' | 'bug' | 'suggestion' | 'balance' | 'translation'>(queryState.type ?? 'all')
+const type = ref<'all' | 'translation' | 'content' | 'technical' | 'design' | 'other' | 'bug' | 'suggestion' | 'balance'>(queryState.type ?? 'all')
 const mineOnly = ref(!!queryState.mineOnly)
 
-const counts = ref<{ bug: number; suggestion: number; balance: number; translation: number }>({ bug: 0, suggestion: 0, balance: 0, translation: 0 })
+const counts = ref<{ translation: number; content: number; technical: number; design: number; other: number; bug: number; suggestion: number; balance: number }>({ translation: 0, content: 0, technical: 0, design: 0, other: 0, bug: 0, suggestion: 0, balance: 0 })
 const feedbackTabs = computed(() => [
   { label: tt('admin.feedback.tabs.all', 'All'), value: 'all' },
+  { label: `${tt('admin.feedback.tabs.translation', 'Translation')} (${counts.value.translation})`, value: 'translation' },
+  { label: `${tt('admin.feedback.tabs.content', 'Content')} (${counts.value.content})`, value: 'content' },
+  { label: `${tt('admin.feedback.tabs.technical', 'Technical')} (${counts.value.technical})`, value: 'technical' },
+  { label: `${tt('admin.feedback.tabs.design', 'Design')} (${counts.value.design})`, value: 'design' },
+  { label: `${tt('admin.feedback.tabs.other', 'Other')} (${counts.value.other})`, value: 'other' },
   { label: `${tt('admin.feedback.tabs.bug', 'Bugs')} (${counts.value.bug})`, value: 'bug' },
   { label: `${tt('admin.feedback.tabs.suggestion', 'Suggestions')} (${counts.value.suggestion})`, value: 'suggestion' },
   { label: `${tt('admin.feedback.tabs.balance', 'Balance')} (${counts.value.balance})`, value: 'balance' },
-  { label: `${tt('admin.feedback.tabs.translation', 'Translation')} (${counts.value.translation})`, value: 'translation' },
 ])
 
 const initialized = ref(false)
@@ -522,9 +526,11 @@ const filtered = computed(() => {
   const term = search.value.trim().toLowerCase()
   if (!term) return items.value || []
   return (items.value || []).filter(entry =>
-    entry.card_code?.toLowerCase().includes(term)
-    || entry.title?.toLowerCase().includes(term)
-    || entry.comment?.toLowerCase().includes(term),
+    entry.comment?.toLowerCase().includes(term) ||
+    entry.entity_type?.toLowerCase().includes(term) ||
+    String(entry.entity_id)?.includes(term) ||
+    entry.category?.toLowerCase().includes(term) ||
+    entry.status?.toLowerCase().includes(term)
   )
 })
 
@@ -684,13 +690,47 @@ async function fetchEntitySnapshot(entityType: string, entityId: number, lang?: 
 }
 
 async function onViewJson(f: any) {
-  const id = Number(f.entity_id)
-  const entityType = String(f.entity_type || '')
-  const lang = f.language_code || undefined
+  // Usar datos crudos si están disponibles
+  const rawData = f.raw || f
+  const id = Number(rawData.entity_id)
+  const entityType = String(rawData.entity_type || '')
+  const lang = rawData.language_code || undefined
   if (!Number.isFinite(id)) return
-  const data = await fetchEntitySnapshot(entityType, id, lang)
-  if (data) {
-    jsonData.value = data
+  
+  try {
+    const data = await fetchEntitySnapshot(entityType, id, lang)
+    
+    if (data) {
+      jsonData.value = data
+      jsonOpen.value = true
+    } else {
+      // Si no se encuentra la entidad, mostrar un mensaje informativo
+      jsonData.value = {
+        error: true,
+        message: `Entity not found`,
+        details: {
+          entity_type: entityType,
+          entity_id: id,
+          language_code: lang,
+          note: 'The referenced entity does not exist in the database'
+        },
+        feedback_data: f
+      }
+      jsonOpen.value = true
+    }
+  } catch (error) {
+    // Manejar errores de red o del servidor
+    jsonData.value = {
+      error: true,
+      message: `Error fetching entity`,
+      details: {
+        entity_type: entityType,
+        entity_id: id,
+        language_code: lang,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      feedback_data: f
+    }
     jsonOpen.value = true
   }
 }
@@ -778,31 +818,35 @@ async function confirmDelete() {
 }
 
 async function fetchCountsByType() {
-  const types = ['bug', 'suggestion', 'balance', 'translation'] as const
+  const types = ['translation', 'content', 'technical', 'design', 'other', 'bug', 'suggestion', 'balance'] as const
   try {
     const baseFilters: Record<string, any> = {
       search: filters.value.search,
-      status: filters.value.status,
-      created_by: filters.value.created_by,
-      language_code: filters.value.language_code,
-      entity_type: filters.value.entity_type,
-      created_from: filters.value.created_from,
-      created_to: filters.value.created_to,
-      resolved_from: filters.value.resolved_from,
-      resolved_to: filters.value.resolved_to,
-      resolved_by: filters.value.resolved_by,
+      status: filters.value.status !== 'all' ? filters.value.status : undefined,
+      language: filters.value.language,
+      entity_type: filters.value.entityType,
+      created_by: filters.value.createdBy,
+      resolved_by: filters.value.resolvedBy,
+      created_from: filters.value.createdRange?.from,
+      created_to: filters.value.createdRange?.to,
+      resolved_from: filters.value.resolvedRange?.from,
+      resolved_to: filters.value.resolvedRange?.to,
     }
-    const [bug, suggestion, balance, translation] = await Promise.all(
+    const [translation, content, technical, design, other, bug, suggestion, balance] = await Promise.all(
       types.map(t => fetchMeta({ ...baseFilters, category: t, page: 1, pageSize: 1 })),
     )
     counts.value = {
+      translation: translation?.totalItems ?? 0,
+      content: content?.totalItems ?? 0,
+      technical: technical?.totalItems ?? 0,
+      design: design?.totalItems ?? 0,
+      other: other?.totalItems ?? 0,
       bug: bug?.totalItems ?? 0,
       suggestion: suggestion?.totalItems ?? 0,
       balance: balance?.totalItems ?? 0,
-      translation: translation?.totalItems ?? 0,
     }
   } catch {
-    counts.value = { bug: 0, suggestion: 0, balance: 0 }
+    counts.value = { translation: 0, content: 0, technical: 0, design: 0, other: 0, bug: 0, suggestion: 0, balance: 0 }
   }
 }
 
