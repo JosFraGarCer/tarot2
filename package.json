@@ -21,15 +21,15 @@
     "@nuxt/image": "1.11.0",
     "@nuxt/ui": "4.2.1",
     "@nuxtjs/i18n": "^10.2.1",
-    "pinia": "^3.0.4",
-    "@pinia/nuxt": "^0.11.3",
     "@pinia/colada-nuxt": "^0.2.4",
+    "@pinia/nuxt": "^0.11.3",
     "bcrypt": "^5.1.1",
     "jose": "^5.10.0",
     "kysely": "^0.28.8",
     "markdown-it": "^14.1.0",
     "nuxt": "^4.2.1",
     "pg": "^8.16.3",
+    "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "pino": "^10.1.0",
     "pino-pretty": "^13.1.2",
@@ -41,6 +41,7 @@
   "devDependencies": {
     "@nuxt/devtools": "^3.1.0",
     "@nuxt/eslint": "1.10.0",
+    "@nuxt/test-utils": "^3.23.0",
     "@tailwindcss/typography": "^0.5.19",
     "@types/bcrypt": "^5.0.2",
     "@types/markdown-it": "^14.1.2",
@@ -58,7 +59,8 @@
     "prettier": "^3.6.2",
     "tailwindcss": "^4.1.17",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
   },
   "pnpm": {
     "overrides": {

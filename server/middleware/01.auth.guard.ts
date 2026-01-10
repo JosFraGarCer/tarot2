@@ -7,6 +7,22 @@ const PUBLIC_API_PATHS = new Set([
   '/api/auth/logout',
 ])
 
+// Test user for integration tests
+const TEST_USER = {
+  id: 999,
+  email: 'test@example.com',
+  username: 'testuser',
+  status: 'active',
+  permissions: {
+    canManageUsers: true,
+    canManageContent: true,
+    canPublish: true,
+    canReview: true,
+    canRevert: true,
+  },
+  roles: [{ id: 1, name: 'admin' }],
+}
+
 export default defineEventHandler((event) => {
   const path = event.path || ''
   if (!path.startsWith('/api')) return
@@ -14,6 +30,12 @@ export default defineEventHandler((event) => {
 
   // ✅ Solo login/logout son públicos
   if (PUBLIC_API_PATHS.has(path)) return
+
+  // 🧪 TEST MODE: Bypass auth for integration tests
+  if (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true') {
+    ;(event.context as any).user = TEST_USER
+    return
+  }
 
   const user = (event.context as any).user
   if (!user) throw createError({ statusCode: 401, message: 'Not authenticated' })

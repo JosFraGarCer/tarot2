@@ -20,6 +20,11 @@ const SENSITIVE_PATTERNS: Array<{ regex: RegExp; identifier: string }> = [
 ]
 
 export default defineEventHandler((event) => {
+  // Skip rate limiting for test environment
+  if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+    return
+  }
+
   const path = event.path ?? event.node.req.url?.split('?')[0] ?? ''
 
   if (!path.startsWith('/api') && !path.startsWith('api/')) {

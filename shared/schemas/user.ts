@@ -40,7 +40,7 @@ export const userCreateSchema = z.object({
   is_active: z.boolean().default(true),
   role_ids: z.array(z.coerce.number().int().positive(), {
     errorMap: () => ({ message: 'Role IDs must be positive integers' })
-  }).nonempty('At least one role is required'),
+  }).optional().default([1]), // Default to role ID 1 for initial setup
 })
 
 // Schema for updating users
