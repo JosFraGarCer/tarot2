@@ -168,6 +168,7 @@ export const baseCardCrud = createCrudHandlers({
       const baseData = sanitize({
         code: input.code,
         card_type_id: input.card_type_id,
+        card_family: input.card_family,
         image: input.image ?? null,
         status: input.status,
         is_active: input.is_active,

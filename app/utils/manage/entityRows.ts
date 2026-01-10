@@ -233,22 +233,20 @@ export function mapEntitiesToRows(entities: any[], options: EntityRowOptions): E
 
 export function mapUserToRow(user: any): EntityRow {
   const rolesArray = Array.isArray(user?.roles) ? user.roles : []
-  const roleNames = rolesArray
-    .map((role: any) => (typeof role?.name === 'string' ? role.name : null))
-    .filter((name): name is string => Boolean(name))
 
-  return {
+  const result = {
     id: normalizeId(user?.id),
     name: pickString(user?.username, user?.email, `#${normalizeId(user?.id) || '—'}`) ?? `#${normalizeId(user?.id) || '—'}`,
     email: typeof user?.email === 'string' ? user.email : null,
     username: typeof user?.username === 'string' ? user.username : null,
-    roles: roleNames,
+    roles: rolesArray, // <-- Keep original roles array
     status: typeof user?.status === 'string' ? user.status : null,
     img: resolveImage(user, { resourcePath: '/api/user', label: 'User', entity: 'user' }),
     created_at: user?.created_at ?? null,
     updated_at: user?.modified_at ?? user?.updated_at ?? null,
     raw: user,
   }
+  return result
 }
 
 export function mapUsersToRows(users: any[]): EntityRow[] {

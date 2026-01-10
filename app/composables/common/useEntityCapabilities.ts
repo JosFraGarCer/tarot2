@@ -85,7 +85,7 @@ const ENTITY_CAPABILITIES_MAP: Record<string, Partial<EntityCapabilities>> = {
   },
   users: {
     translatable: false,
-    hasTags: true,
+    hasTags: false,
     hasPreview: false,
     hasRevisions: false,
     hasStatus: true,

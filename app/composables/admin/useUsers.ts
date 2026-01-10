@@ -1,7 +1,7 @@
 // app/composables/admin/useUsers.ts
 import { useEntity } from '~/composables/manage/useEntity'
 import type { AdminUserCrud, AdminUserEntity } from '@/types/admin'
-import { adminUserCreateSchema, adminUserUpdateSchema } from '@shared/schemas/admin/user'
+import { adminUserCreateSchema, adminUserUpdateSchema } from '@shared/index'
 
 export interface CreateUserPayload {
   username: string
@@ -28,7 +28,7 @@ export function useAdminUsersCrud(): AdminUserCrud {
     },
     filters: {
       search: '',
-      status: true,
+      status: undefined,
       role_id: undefined,
     },
     pagination: true,

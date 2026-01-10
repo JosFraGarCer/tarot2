@@ -16,6 +16,9 @@ describe('BaseCard Schemas', () => {
       }
 
       const result = baseCardCreateSchema.safeParse(validData)
+      if (!result.success) {
+        console.log('Validation errors:', result.error.issues)
+      }
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.code).toBe('test-card')

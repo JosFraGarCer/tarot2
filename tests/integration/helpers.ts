@@ -14,17 +14,6 @@ interface ApiResponse<T = unknown> {
   }
 }
 
-interface EntityData {
-  id: number
-  code: string
-  name: string
-  status: string
-  is_active: boolean
-  created_at: string
-  modified_at: string
-  [key: string]: unknown
-}
-
 export class ApiClient {
   private baseUrl: string
 
@@ -127,6 +116,7 @@ export function createTestData(entityType: string, overrides: Record<string, unk
       return {
         ...baseData,
         ...(baseData.card_type_id ? {} : { card_type_id: 1 }), // Only set default if not provided
+        ...(baseData.card_family ? {} : { card_family: 'major_arcana' }), // Add default card_family
       }
     case 'world-card':
       return {
@@ -166,9 +156,20 @@ export async function authenticateTestUser(identifier = 'wsurf', password = 'win
 // Enhanced ApiClient that supports authentication
 export class AuthenticatedApiClient extends ApiClient {
   private token: string | null = null
+  private tokenExpiry: number | null = null
 
   setToken(token: string) {
     this.token = token
+    // Assume token is valid for 1 hour (conservative estimate)
+    this.tokenExpiry = Date.now() + (60 * 60 * 1000)
+  }
+
+  async refreshTokenIfNeeded(): Promise<void> {
+    if (!this.token || (this.tokenExpiry && Date.now() > this.tokenExpiry)) {
+      console.log('🔄 Refreshing authentication token...')
+      const newToken = await authenticateTestUser()
+      this.setToken(newToken)
+    }
   }
 
   async request(endpoint: string, options: RequestInit = {}): Promise<{
@@ -176,6 +177,9 @@ export class AuthenticatedApiClient extends ApiClient {
     status: number
     data: unknown
   }> {
+    // Refresh token if needed before making request
+    await this.refreshTokenIfNeeded()
+
     const headers: Record<string, string> = {
       ...options.headers,
     }
@@ -205,6 +209,11 @@ export async function setupAuthenticatedApi(): Promise<void> {
     console.warn('Could not authenticate test user, tests may fail:', error)
     // Continue without authentication - some tests might still work
   }
+}
+
+// Helper to add delay between tests
+export async function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 // Helper to clean up test data

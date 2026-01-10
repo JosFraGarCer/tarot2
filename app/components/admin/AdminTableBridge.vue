@@ -12,7 +12,7 @@
       :loading="loadingState"
       :selectable="isSelectable"
       :selected-keys="selectedIds"
-      :capabilities="capabilitiesState"
+      :capabilities="modifiedCapabilities"
       :entity-kind="entityKind"
       :density="density"
       :density-toggle="densityToggle"
@@ -165,16 +165,54 @@ const isSelectable = computed(() => {
   return Boolean(selection.value)
 })
 
-const resolvedColumns = computed(() => props.columns && props.columns.length
-  ? props.columns
-  : defaultColumns.value)
+const resolvedColumns = computed(() => {
+  // Siempre usar las columnas proporcionadas, pero deshabilitar capacidades automáticas
+  if (props.columns && props.columns.length > 0) {
+    return props.columns
+  } else {
+    return defaultColumns.value
+  }
+})
 
-const defaultColumns = computed<ColumnDefinition[]>(() => ([
-  { key: 'name', label: 'Name', sortable: true },
-  { key: 'status', label: 'Status' },
-  { key: 'created_at', label: 'Created' },
-  { key: 'actions', label: 'Actions', width: '1%' },
-]))
+// Para el CommonDataTable, necesitamos pasar capacidades modificadas cuando usamos columnas proporcionadas
+const modifiedCapabilities = computed(() => {
+  // Si se proporcionan columnas explícitas, deshabilitar capacidades automáticas que añaden columnas no deseadas
+  if (props.columns && props.columns.length > 0) {
+    const baseCaps = capabilitiesState.value || {}
+    return {
+      ...baseCaps,
+      translatable: false,  // Evita añadir columna translationStatus
+      hasTags: false,       // Evita añadir columna tags
+      hasRevisions: false,  // Evita añadir columna revisionCount
+    }
+  }
+  
+  // Si no hay columnas proporcionadas, usar capacidades normales
+  return capabilitiesState.value
+})
+
+const defaultColumns = computed<ColumnDefinition[]>(() => {
+  // Si no se proporcionan columnas, usar columnas por defecto según el entityKind
+  if (props.entityKind === 'user') {
+    return [
+      { key: 'username', label: 'Username', sortable: true },
+      { key: 'email', label: 'Email' },
+      { key: 'roles', label: 'Roles' },
+      { key: 'status', label: 'Status' },
+      { key: 'created_at', label: 'Created' },
+      { key: 'updated_at', label: 'Updated' },
+      { key: 'actions', label: 'Actions', width: '1%' },
+    ]
+  }
+  
+  // Columnas por defecto genéricas para otras entidades
+  return [
+    { key: 'name', label: 'Name', sortable: true },
+    { key: 'status', label: 'Status' },
+    { key: 'created_at', label: 'Created' },
+    { key: 'actions', label: 'Actions', width: '1%' },
+  ]
+})
 
 const columnSlots = computed(() => resolvedColumns.value.map(column => column.key))
 
@@ -197,6 +235,10 @@ const title = computed(() => props.title)
 const showToolbar = computed(() => props.showToolbar)
 const pageSizeItems = computed(() => props.pageSizeItems ?? undefined)
 const sortState = computed(() => props.sort ?? null)
+
+// Debug para ver qué datos llegan
+// console.log('AdminTableBridge - props.items:', props.items)
+// console.log('AdminTableBridge - props.columns:', props.columns)
 
 const hasBulkActionsSlot = computed(() => Boolean(slots['bulk-actions']))
 

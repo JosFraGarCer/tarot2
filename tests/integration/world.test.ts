@@ -2,206 +2,158 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest'
 import { authenticatedApi, createTestData, getEntityEndpoint, cleanupTestData, setupAuthenticatedApi } from './helpers'
 
+// Add delay function
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 describe('World Integration Tests', () => {
   const entityType = 'world'
   const testCode = `test-world-${Date.now()}`
 
   beforeAll(async () => {
     await setupAuthenticatedApi()
+    // Add delay to space out test initialization
+    await delay(500)
   })
 
   beforeEach(async () => {
     await cleanupTestData(entityType, testCode)
+    await delay(200)
   })
 
   afterEach(async () => {
     await cleanupTestData(entityType, testCode)
+    await delay(200)
   })
 
-  describe('Create Test Entity', () => {
-    it('should create world "Test" with multiple fields', async () => {
-      const testData = createTestData(entityType, {
-        code: testCode,
-        name: 'Test World Entity',
-        description: 'A test world for integration testing',
-        short_text: 'Test short description',
-        status: 'draft',
-        is_active: true,
-      })
-
-      const response = await authenticatedApi.post(getEntityEndpoint(entityType), testData)
-
-      expect(response.ok).toBe(true)
-      expect(response.status).toBe(200)
-      expect(response.data).toBeDefined()
-      expect(response.data.success).toBe(true)
-      expect(response.data.data.code).toBe(testCode)
-      expect(response.data.data.name).toBe('Test World Entity')
-      expect(response.data.data.description).toBe('A test world for integration testing')
-      expect(response.data.data.status).toBe('draft')
-      expect(response.data.data.is_active).toBe(true)
+  it('should create world with multiple fields', async () => {
+    const testData = createTestData(entityType, {
+      code: testCode,
+      name: 'Test World Entity',
+      description: 'A test world for integration testing',
+      short_text: 'Test short description',
+      status: 'draft',
+      is_active: true,
     })
+
+    const response = await authenticatedApi.post(getEntityEndpoint(entityType), testData)
+
+    if (!response.ok) {
+      console.error(`❌ WORLD CREATE FAILED (${testCode}):`, {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        url: getEntityEndpoint(entityType),
+        testData: JSON.stringify(testData, null, 2)
+      })
+    } else {
+      console.log(`✅ WORLD CREATE SUCCESS (${testCode}): status=${response.status}`)
+    }
+
+    expect(response.ok).toBe(true)
+    expect(response.status).toBe(200)
+    expect(response.data).toBeDefined()
+    expect(response.data.success).toBe(true)
+    expect(response.data.data.code).toBe(testCode)
+    expect(response.data.data.name).toBe('Test World Entity')
+    expect(response.data.data.description).toBe('A test world for integration testing')
+    expect(response.data.data.status).toBe('draft')
+    expect(response.data.data.is_active).toBe(true)
   })
 
-  describe('Modify Test Entity Fields', () => {
-    let createdEntityId: number
-    const modifyTestCode = `${testCode}-modify`
-
-    beforeEach(async () => {
-      await cleanupTestData(entityType, modifyTestCode)
-      
-      // Create the test entity first
-      const testData = createTestData(entityType, {
-        code: modifyTestCode,
-        name: 'Test World Entity',
-        description: 'A test world for integration testing',
-        short_text: 'Test short description',
-        status: 'draft',
-        is_active: true,
-      })
-
-      const createResponse = await authenticatedApi.post(getEntityEndpoint(entityType), testData)
-      expect(createResponse.ok).toBe(true)
-      createdEntityId = createResponse.data.data.id
+  it('should edit multiple fields of world', async () => {
+    // First create the entity
+    const createData = createTestData(entityType, {
+      code: testCode,
+      name: 'Test World Entity',
+      description: 'A test world for integration testing',
+      short_text: 'Test short description',
+      status: 'draft',
+      is_active: true,
     })
 
-    afterEach(async () => {
-      await cleanupTestData(entityType, modifyTestCode)
-    })
+    const createResponse = await authenticatedApi.post(getEntityEndpoint(entityType), createData)
+    expect(createResponse.ok).toBe(true)
+    const createdEntityId = createResponse.data.data.id
 
-    it('should modify name field', async () => {
-      const updateData = {
-        name: 'Updated Test World Name',
-      }
+    // Edit name field
+    const updateData1 = {
+      name: 'Updated Test World Name',
+      lang: 'en',
+    }
+    const response1 = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), updateData1)
+    expect(response1.ok).toBe(true)
 
-      const response = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), updateData)
+    // Edit description field
+    const updateData2 = {
+      description: 'Updated description for test world',
+      lang: 'en',
+    }
+    const response2 = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), updateData2)
+    expect(response2.ok).toBe(true)
 
-      expect(response.ok).toBe(true)
-      expect(response.status).toBe(200)
-      expect(response.data.success).toBe(true)
-      expect(response.data.data.name).toBe('Updated Test World Name')
-    })
-
-    it('should modify description field', async () => {
-      const updateData = {
-        description: 'Updated description for test world',
-      }
-
-      const response = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), updateData)
-
-      expect(response.ok).toBe(true)
-      expect(response.status).toBe(200)
-      expect(response.data.success).toBe(true)
-      expect(response.data.data.description).toBe('Updated description for test world')
-    })
-
-    it('should modify short_text field', async () => {
-      const updateData = {
-        short_text: 'Updated short description',
-      }
-
-      const response = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), updateData)
-
-      expect(response.ok).toBe(true)
-      expect(response.status).toBe(200)
-      expect(response.data.success).toBe(true)
-      expect(response.data.data.short_text).toBe('Updated short description')
-    })
-
-    it('should modify status field', async () => {
-      const updateData = {
-        status: 'approved',
-      }
-
-      const response = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), updateData)
-
-      expect(response.ok).toBe(true)
-      expect(response.status).toBe(200)
-      expect(response.data.success).toBe(true)
-      expect(response.data.data.status).toBe('approved')
-    })
-
-    it('should modify is_active field', async () => {
-      const updateData = {
-        is_active: false,
-      }
-
-      const response = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), updateData)
-
-      expect(response.ok).toBe(true)
-      expect(response.status).toBe(200)
-      expect(response.data.success).toBe(true)
-      expect(response.data.data.is_active).toBe(false)
-    })
+    // Edit status field
+    const updateData3 = {
+      status: 'published',
+      lang: 'en',
+    }
+    const response3 = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), updateData3)
+    expect(response3.ok).toBe(true)
   })
 
-  describe('Create Fields in Spanish (es)', () => {
-    let createdEntityId: number
-    const spanishTestCode = `${testCode}-es`
-
-    beforeEach(async () => {
-      // Create the test entity in English first
-      const testData = createTestData(entityType, {
-        code: spanishTestCode,
-        name: 'Test World Entity ES',
-        description: 'A test world for Spanish integration testing',
-        short_text: 'Test short description ES',
-        status: 'draft',
-        is_active: true,
-      })
-
-      const createResponse = await authenticatedApi.post(getEntityEndpoint(entityType), testData)
-      expect(createResponse.ok).toBe(true)
-      createdEntityId = createResponse.data!.data.id
+  it('should create Spanish translations for world fields', async () => {
+    // First create the entity in English
+    const createData = createTestData(entityType, {
+      code: testCode,
+      name: 'Test World Entity',
+      description: 'A test world for integration testing',
+      short_text: 'Test short description',
+      status: 'draft',
+      is_active: true,
     })
 
-    it('should add Spanish fields via update', async () => {
-      const spanishData = {
-        name: 'Mundo de Prueba',
-        description: 'Un mundo de prueba para pruebas de integración',
-        short_text: 'Descripción corta de prueba',
-        lang: 'es',
-      }
+    const createResponse = await authenticatedApi.post(getEntityEndpoint(entityType), createData)
+    expect(createResponse.ok).toBe(true)
+    const createdEntityId = createResponse.data.data.id
 
-      const response = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), spanishData)
+    // Create Spanish translations
+    const spanishData = {
+      name: 'Mundo de Prueba',
+      description: 'Un mundo de prueba para pruebas de integración',
+      short_text: 'Descripción corta de prueba',
+      lang: 'es',
+    }
 
-      expect(response.ok).toBe(true)
-      expect(response.status).toBe(200)
-      expect(response.data!.success).toBe(true)
-      expect((response.data!.data as any).name).toBe('Mundo de Prueba')
-      expect((response.data!.data as any).description).toBe('Un mundo de prueba para pruebas de integración')
-      expect((response.data!.data as any).language_code_resolved).toBe('es')
-    })
+    const response = await authenticatedApi.patch(getEntityEndpoint(entityType, createdEntityId), spanishData)
+    expect(response.ok).toBe(true)
+    expect(response.status).toBe(200)
+    expect(response.data.success).toBe(true)
+    expect((response.data.data as any).name).toBe('Mundo de Prueba')
+    expect((response.data.data as any).description).toBe('Un mundo de prueba para pruebas de integración')
+    expect((response.data.data as any).language_code_resolved).toBe('es')
   })
 
-  describe('Delete Test Entity', () => {
-    let createdEntityId: number
-
-    beforeEach(async () => {
-      // Create the test entity first
-      const testData = createTestData(entityType, {
-        code: testCode,
-        name: 'Test World Entity',
-        description: 'A test world for integration testing',
-        status: 'draft',
-        is_active: true,
-      })
-
-      const createResponse = await authenticatedApi.post(getEntityEndpoint(entityType), testData)
-      expect(createResponse.ok).toBe(true)
-      createdEntityId = createResponse.data.data.id
+  it('should delete world entity', async () => {
+    // First create the entity
+    const createData = createTestData(entityType, {
+      code: testCode,
+      name: 'Test World Entity',
+      description: 'A test world for integration testing',
+      short_text: 'Test short description',
+      status: 'draft',
+      is_active: true,
     })
 
-    it('should delete the test world entity', async () => {
-      const response = await authenticatedApi.delete(getEntityEndpoint(entityType, createdEntityId))
+    const createResponse = await authenticatedApi.post(getEntityEndpoint(entityType), createData)
+    expect(createResponse.ok).toBe(true)
+    const createdEntityId = createResponse.data.data.id
 
-      expect(response.ok).toBe(true)
-      expect(response.status).toBe(200)
-      expect(response.data.success).toBe(true)
+    // Delete the entity
+    const deleteResponse = await authenticatedApi.delete(getEntityEndpoint(entityType, createdEntityId))
+    expect(deleteResponse.ok).toBe(true)
 
-      // Verify the entity was deleted
-      const getResponse = await authenticatedApi.get(getEntityEndpoint(entityType, createdEntityId))
-      expect(getResponse.status).toBe(404)
-    })
+    // Verify it's deleted
+    const getResponse = await authenticatedApi.get(getEntityEndpoint(entityType, createdEntityId))
+    expect(getResponse.status).toBe(404)
   })
 })

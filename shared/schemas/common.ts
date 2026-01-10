@@ -53,15 +53,18 @@ export const translationFields = {
   language_code: optionalLanguageCodeSchema,
 }
 
-// Efectos (JSONB) - Array de efectos según base de datos
-export const effectsSchema = z.array(z.record(z.string(), z.unknown())).nullable().optional()
+// Efectos (JSONB) - Puede ser array u objeto para efectos narrativos
+export const effectsSchema = z.union([
+  z.array(z.record(z.string(), z.unknown())),
+  z.record(z.string(), z.unknown())
+]).nullable().optional()
 
 // Utilidades de consulta
-export const paginationSchema = {
+export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().min(1).max(150).optional(),
   q: z.string().min(1).max(150).optional(),
   sort: z.string().optional(),
   direction: z.enum(['asc', 'desc']).optional(),
-}
+})

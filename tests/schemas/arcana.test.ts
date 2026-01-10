@@ -27,7 +27,7 @@ describe('Arcana Schemas', () => {
       const invalidData = {
         code: '', // empty code
         name: 'x', // name too short
-        lang: 'invalid-lang',
+        lang: 'invalid', // invalid format and right length
       }
 
       const result = arcanaCreateSchema.safeParse(invalidData)

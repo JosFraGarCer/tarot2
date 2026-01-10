@@ -9,6 +9,12 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.ts'],
   },
+  pool: 'threads',
+  poolOptions: {
+    threads: {
+      singleThread: true,
+    },
+  },
   resolve: {
     alias: {
       '@shared': fileURLToPath(new URL('./shared', import.meta.url)),

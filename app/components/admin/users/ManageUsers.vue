@@ -155,7 +155,7 @@
                 <UAvatar v-if="row.img" :src="row.img" size="md" />
                 <div class="flex flex-col">
                   <span class="font-medium text-neutral-900 dark:text-neutral-50">
-                    {{ row.name }}
+                    {{ row.username }}
                   </span>
                   <span class="text-xs text-neutral-500 dark:text-neutral-400">
                     {{ row.email || '—' }}
@@ -167,32 +167,32 @@
             <template #cell-roles="{ row }">
               <div class="flex flex-wrap gap-1">
                 <UBadge
-                  v-for="role in row.raw?.roles || []"
+                  v-for="role in row.original?.roles || []"
                   :key="role.id ?? role.name"
                   size="xs"
                   variant="soft"
                 >
                   {{ role.name || role.code || `#${role.id}` }}
                 </UBadge>
-                <span v-if="!(row.raw?.roles || []).length" class="text-xs text-neutral-400">
+                <span v-if="!(row.original?.roles || []).length" class="text-xs text-neutral-400">
                   {{ tt('domains.user.noRoles', 'No roles') }}
                 </span>
               </div>
             </template>
 
             <template #cell-status="{ row }">
-              <StatusBadge type="user" :value="row.status" />
+              <StatusBadge type="user" :value="row.original?.status" />
             </template>
 
             <template #cell-created_at="{ row }">
               <span class="text-xs text-neutral-500 dark:text-neutral-400">
-                {{ formatDate(row.created_at) }}
+                {{ formatDate(row.original?.created_at) }}
               </span>
             </template>
 
             <template #cell-updated_at="{ row }">
               <span class="text-xs text-neutral-500 dark:text-neutral-400">
-                {{ formatDate(row.updated_at) }}
+                {{ formatDate(row.original?.updated_at || row.original?.modified_at) }}
               </span>
             </template>
 
@@ -202,30 +202,30 @@
                   size="xs"
                   icon="i-heroicons-pencil"
                   variant="soft"
-                  @click="openEdit(row.raw)"
+                  @click="openEdit(row.original)"
                 />
                 <UButton
                   size="xs"
                   icon="i-heroicons-pause-circle"
                   color="warning"
                   variant="soft"
-                  :disabled="row.status === 'suspended'"
-                  @click="handleSetStatus(row.id, 'suspended')"
+                  :disabled="row.original?.status === 'suspended'"
+                  @click="handleSetStatus(row.original?.id, 'suspended')"
                 />
                 <UButton
                   size="xs"
                   icon="i-heroicons-play-circle"
                   color="success"
                   variant="soft"
-                  :disabled="row.status === 'active'"
-                  @click="handleSetStatus(row.id, 'active')"
+                  :disabled="row.original?.status === 'active'"
+                  @click="handleSetStatus(row.original?.id, 'active')"
                 />
                 <UButton
                   size="xs"
                   icon="i-heroicons-arrow-path"
                   color="primary"
                   variant="soft"
-                  @click="handleResetPassword(row.raw)"
+                  @click="handleResetPassword(row.original)"
                 >
                   {{ tt('ui.actions.reset', 'Reset') }}
                 </UButton>
@@ -234,7 +234,7 @@
                   icon="i-heroicons-trash"
                   color="error"
                   variant="soft"
-                  @click="openDelete(row.raw)"
+                  @click="openDelete(row.original)"
                 />
               </div>
             </template>
@@ -282,8 +282,8 @@
           <div class="flex flex-wrap items-start gap-4">
             <UFormField :label="tt('common.roles', 'Roles')" class="w-full sm:flex-1">
               <USelectMenu
-                 class="w-full"
                 v-model="form.role_ids"
+                class="w-full"
                 :items="roleOptions"
                 value-key="value"
                 option-attribute="label"
@@ -294,12 +294,15 @@
             </UFormField>
             <UFormField :label="tt('ui.fields.status', 'Status')" class="w-full sm:w-48">
               <USelectMenu
-               class="w-full"
                 v-model="form.status"
+                class="w-full"
                 :items="statusValueOptions"
                 value-key="value"
                 option-attribute="label"
               />
+            </UFormField>
+            <UFormField :label="tt('ui.fields.active', 'Active')" class="w-full sm:w-32">
+              <UCheckbox v-model="form.is_active" />
             </UFormField>
           </div>
         </UForm>
@@ -398,7 +401,7 @@ const roleOptions = computed(() => {
 })
 
 const columns = computed<ColumnDefinition[]>(() => [
-  { key: 'name', label: tt('ui.fields.name', 'Name'), sortable: false, width: '20rem' },
+  { key: 'username', label: tt('common.username', 'Username'), sortable: false, width: '20rem' },
   { key: 'email', label: tt('common.email', 'Email'), sortable: false, width: '16rem' },
   { key: 'roles', label: tt('common.roles', 'Roles'), sortable: false, width: '20%' },
   { key: 'status', label: tt('ui.fields.status', 'Status'), sortable: false, width: '8rem' },
@@ -567,7 +570,6 @@ function resetForm() {
   form.password = ''
   form.role_ids = []
   form.status = 'active'
-  // no is_active
 }
 
 function openCreate() {
@@ -577,7 +579,7 @@ function openCreate() {
 }
 
 function openEdit(row: any) {
-  const user = row?.raw ?? row
+  const user = row?.original ?? row
   if (!user) return
   editingId.value = Number(user.id)
   form.username = user.username ?? ''
@@ -585,7 +587,6 @@ function openEdit(row: any) {
   form.password = ''
   form.role_ids = Array.isArray(user.roles) ? user.roles.map((role: any) => role?.id).filter((id: any) => typeof id === 'number') : []
   form.status = typeof user.status === 'string' ? user.status : 'active'
-  // no is_active
   modalOpen.value = true
 }
 
@@ -635,13 +636,13 @@ const saveUser = async () => {
 }
 
 function openDelete(row: any) {
-  userToDelete.value = row?.raw ?? row
+  userToDelete.value = row?.original ?? row
   if (!userToDelete.value) return
   deleteOpen.value = true
 }
 
 function handleRowClick(row: any) {
-  openEdit(row)
+  openEdit(row.original)
 }
 
 const confirmDelete = async () => {
@@ -679,7 +680,7 @@ async function handleSetStatus(id: number, status: string) {
 }
 
 async function handleResetPassword(user: any) {
-  const target = user?.raw ?? user
+  const target = user?.original ?? user
   if (!target?.id) return
   try {
     await useApiFetch(`/user/${target.id}/reset-password`, { method: 'POST' })
