@@ -4,6 +4,14 @@ import { fileURLToPath } from 'url'
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: false },
+  
+  // Experimental features para Suspense
+  experimental: {
+    payloadExtraction: false,
+    renderJsonPayloads: false,
+    asyncContext: true,
+  },
+  
   // Development server
   devServer: {
     host: '0.0.0.0',

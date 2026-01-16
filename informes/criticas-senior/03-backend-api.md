@@ -1,6 +1,6 @@
 # 📋 INFORME DE CRÍTICA SENIOR - BACKEND API
 
-**Fecha:** 2026-01-10  
+**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-16  
 **Analista:** Senior Dev Reviewer  
 **Alcance:** Backend API y middleware
 
@@ -242,11 +242,14 @@ const result = await createArcana(input)  // Sin validación
 
 **Calificación:** D- (Funciona pero es ineficiente y arriesgado)
 
-**Problemas críticos:**
-- Performance O(n²) en queries principales
-- Abstracciones que ocultan problemas
-- Falta de proper transaction management
-- Security issues potenciales
+### Estado Verificado (2026-01-16)
+
+| Problema | ¿Arreglado? | Evidencia Actual |
+|----------|-------------|-------------------|
+| N+1 Queries tags | ❌ NO | `buildSelect()` líneas 41-58: subquery por fila |
+| Auth JOIN pesado | ❌ NO | `00.auth.hydrate.ts:41` - `json_agg(r.*)` persiste |
+| SQL Injection | ❌ NO | `_crud.ts:106` - `${tagsLower}` interpolado |
+| Memory leaks | ⚠️ NO VERIFICADO | Sin archivo `eagerTags.ts` encontrado |
 
 **Riesgo en producción:** Alto - colapsará bajo carga real.
 

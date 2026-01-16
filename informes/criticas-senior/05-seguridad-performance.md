@@ -1,6 +1,6 @@
 # 📋 INFORME DE CRÍTICA SENIOR - SEGURIDAD Y PERFORMANCE
 
-**Fecha:** 2026-01-10  
+**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-16  
 **Analista:** Senior Dev Reviewer  
 **Alcance:** Vulnerabilidades de seguridad y problemas de performance
 
@@ -339,6 +339,15 @@ catch (error) {
 ## 💀 **VEREDICTO FINAL**
 
 **Seguridad:** **F- (Vulnerable a ataques críticos)**
+
+### Estado Verificado (2026-01-16)
+
+| Vulnerabilidad | ¿Arreglada? | Evidencia Actual |
+|----------------|-------------|------------------|
+| SQL Injection tags | ❌ NO | `_crud.ts:106` - interpolación directa |
+| JWT validation débil | ⚠️ PARCIAL | `auth.ts` - sin verificación `exp` |
+| Console logs producción | ❌ NO | `auth.hydrate.ts:59` - `console.warn` |
+| Memory leaks caché | ⚠️ NO VERIFICADO | Sin archivo `eagerTags.ts` |
 
 **Problemas críticos:**
 - SQL injection directo

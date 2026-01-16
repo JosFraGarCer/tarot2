@@ -1,0 +1,654 @@
+import { test, expect, devices } from '@playwright/test'
+
+// Test Desktop Chrome
+test.describe('Desktop Chrome Responsive Design', () => {
+  test.use({ ...devices['Desktop Chrome'] })
+
+  test.beforeEach(async ({ page }) => {
+    // Login before each test
+    await page.goto('/login')
+    await page.waitForLoadState('networkidle')
+    
+    await page.fill('input[placeholder="User or Email"]', process.env.TEST_USER_IDENTIFIER!)
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD!)
+    await page.click('button[type="submit"]')
+    
+    // Wait for successful login
+    await page.waitForURL('**/user', { timeout: 10000 })
+  })
+
+  test('main navigation works on desktop', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if navigation is visible and functional
+    const navigation = page.locator('nav, [data-testid="navigation"], .navigation')
+    await expect(navigation.first()).toBeVisible()
+    
+    // Test navigation to key sections
+    const navLinks = page.locator('a[href="/deck"], a[href="/manage"], a[href="/login"]')
+    const linkCount = await navLinks.count()
+    
+    if (linkCount > 0) {
+      // Test first available link
+      await navLinks.first().click()
+      await page.waitForLoadState('networkidle')
+      
+      // Verify navigation worked
+      const body = page.locator('body')
+      await expect(body).toBeVisible()
+    }
+  })
+
+  test('tables are readable on desktop', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if table exists
+    const table = page.locator('table, [data-testid="table"], .table')
+    if (await table.count() > 0) {
+      await expect(table.first()).toBeVisible()
+    } else {
+      console.log('Table not found on desktop - may use different layout')
+    }
+  })
+
+  test('forms are usable on desktop', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Open create form
+    const createButton = page.locator('button:has-text("Create"), button:has-text("New"), [data-testid="create-button"]')
+    await expect(createButton.first()).toBeVisible()
+    await createButton.first().click()
+    
+    await page.waitForSelector('form, [data-testid="form-modal"], .modal')
+    
+    // Check form fields are accessible
+    const formFields = page.locator('input, textarea, select')
+    const fieldCount = await formFields.count()
+    
+    expect(fieldCount).toBeGreaterThan(0)
+    
+    // Test first field is focusable and typeable
+    const firstField = formFields.first()
+    await firstField.focus()
+    await expect(firstField).toBeFocused()
+    
+    await firstField.fill('test')
+    await expect(firstField).toHaveValue('test')
+  })
+
+  test('modals fit screen properly on desktop', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Open a modal
+    const createButton = page.locator('button:has-text("Create"), button:has-text("New"), [data-testid="create-button"]')
+    await createButton.first().click()
+    await page.waitForSelector('form, [data-testid="form-modal"], .modal')
+    
+    const modal = page.locator('.modal, [data-testid="form-modal"], [role="dialog"]')
+    await expect(modal.first()).toBeVisible()
+    
+    // Check modal fits within viewport
+    const modalBox = await modal.first().boundingBox()
+    if (modalBox) {
+      const viewport = page.viewportSize()
+      if (viewport) {
+        expect(modalBox.width).toBeLessThanOrEqual(viewport.width)
+        expect(modalBox.height).toBeLessThanOrEqual(viewport.height)
+      }
+    }
+  })
+
+  test('text is readable on desktop', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    
+    // Check text sizes are appropriate
+    const headings = page.locator('h1, h2, h3')
+    const bodyText = page.locator('p, .text, span, div')
+    
+    if (await headings.count() > 0) {
+      const firstHeading = headings.first()
+      const fontSize = await firstHeading.evaluate(el => {
+        return getComputedStyle(el).fontSize
+      })
+      
+      // Headings should be reasonably large
+      expect(parseFloat(fontSize)).toBeGreaterThanOrEqual(16)
+    }
+    
+    if (await bodyText.count() > 0) {
+      const firstBodyText = bodyText.first()
+      const fontSize = await firstBodyText.evaluate(el => {
+        return getComputedStyle(el).fontSize
+      })
+      
+      // Body text should be readable
+      expect(parseFloat(fontSize)).toBeGreaterThanOrEqual(14)
+    }
+  })
+})
+
+// Test iPad
+test.describe('iPad Responsive Design', () => {
+  test.use({ ...devices['iPad'] })
+
+  test.beforeEach(async ({ page }) => {
+    // Login before each test
+    await page.goto('/login')
+    await page.waitForLoadState('networkidle')
+    
+    await page.fill('input[placeholder="User or Email"]', process.env.TEST_USER_IDENTIFIER!)
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD!)
+    await page.click('button[type="submit"]')
+    
+    // Wait for successful login
+    await page.waitForURL('**/user', { timeout: 10000 })
+  })
+
+  test('main navigation works on iPad', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if navigation is visible and functional
+    const navigation = page.locator('nav, [data-testid="navigation"], .navigation')
+    await expect(navigation.first()).toBeVisible()
+    
+    // Test navigation to key sections
+    const navLinks = page.locator('a[href="/deck"], a[href="/manage"], a[href="/login"]')
+    const linkCount = await navLinks.count()
+    
+    if (linkCount > 0) {
+      // Test first available link
+      await navLinks.first().click()
+      await page.waitForLoadState('networkidle')
+      
+      // Verify navigation worked
+      const body = page.locator('body')
+      await expect(body).toBeVisible()
+    }
+  })
+
+  test('tables are readable and scrollable on iPad', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if table exists
+    const table = page.locator('table, [data-testid="table"], .table')
+    if (await table.count() > 0) {
+      await expect(table.first()).toBeVisible()
+      
+      // On iPad, table should be scrollable horizontally if needed
+      const tableContainer = page.locator('.overflow-x-auto, .table-container, [data-testid="table-container"]')
+      if (await tableContainer.count() > 0) {
+        // Check if container has scroll functionality
+        const scrollWidth = await tableContainer.first().evaluate(el => el.scrollWidth > el.clientWidth)
+        const hasHorizontalScroll = await tableContainer.first().evaluate(el => {
+          return getComputedStyle(el).overflowX === 'auto' || 
+                 getComputedStyle(el).overflowX === 'scroll'
+        })
+        
+        if (scrollWidth) {
+          expect(hasHorizontalScroll).toBeTruthy()
+        }
+      }
+    } else {
+      console.log('Table not found on iPad - may use different layout')
+    }
+  })
+
+  test('forms are usable on iPad', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Open create form
+    const createButton = page.locator('button:has-text("Create"), button:has-text("New"), [data-testid="create-button"]')
+    await expect(createButton.first()).toBeVisible()
+    await createButton.first().click()
+    
+    await page.waitForSelector('form, [data-testid="form-modal"], .modal')
+    
+    // Check form fields are accessible
+    const formFields = page.locator('input, textarea, select')
+    const fieldCount = await formFields.count()
+    
+    expect(fieldCount).toBeGreaterThan(0)
+    
+    // Test first field is focusable and typeable
+    const firstField = formFields.first()
+    await firstField.focus()
+    await expect(firstField).toBeFocused()
+    
+    await firstField.fill('test')
+    await expect(firstField).toHaveValue('test')
+  })
+
+  test('modals fit screen properly on iPad', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Open a modal
+    const createButton = page.locator('button:has-text("Create"), button:has-text("New"), [data-testid="create-button"]')
+    await createButton.first().click()
+    await page.waitForSelector('form, [data-testid="form-modal"], .modal')
+    
+    const modal = page.locator('.modal, [data-testid="form-modal"], [role="dialog"]')
+    await expect(modal.first()).toBeVisible()
+    
+    // Check modal fits within viewport
+    const modalBox = await modal.first().boundingBox()
+    if (modalBox) {
+      const viewport = page.viewportSize()
+      if (viewport) {
+        expect(modalBox.width).toBeLessThanOrEqual(viewport.width)
+        expect(modalBox.height).toBeLessThanOrEqual(viewport.height)
+      }
+    }
+  })
+
+  test('buttons have proper touch targets on iPad', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Check button sizes are appropriate for touch
+    const buttons = page.locator('button, [role="button"], .btn')
+    const buttonCount = await buttons.count()
+    
+    if (buttonCount > 0) {
+      const firstButton = buttons.first()
+      const buttonBox = await firstButton.boundingBox()
+      
+      if (buttonBox) {
+        // Minimum touch target size is typically 44x44 points
+        const minTouchSize = 44
+        expect(buttonBox.height).toBeGreaterThanOrEqual(minTouchSize * 0.75) // Allow some flexibility
+        expect(buttonBox.width).toBeGreaterThanOrEqual(minTouchSize * 0.75)
+      }
+    }
+  })
+})
+
+// Test iPhone X
+test.describe('iPhone X Responsive Design', () => {
+  test.use({ ...devices['iPhone X'] })
+
+  test.beforeEach(async ({ page }) => {
+    // Login before each test
+    await page.goto('/login')
+    await page.waitForLoadState('networkidle')
+    
+    await page.fill('input[placeholder="User or Email"]', process.env.TEST_USER_IDENTIFIER!)
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD!)
+    await page.click('button[type="submit"]')
+    
+    // Wait for successful login
+    await page.waitForURL('**/user', { timeout: 10000 })
+  })
+
+  test('main navigation works on iPhone X', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if navigation is visible and functional
+    const navigation = page.locator('nav, [data-testid="navigation"], .navigation')
+    await expect(navigation.first()).toBeVisible()
+    
+    // Test navigation to key sections
+    const navLinks = page.locator('a[href="/deck"], a[href="/manage"], a[href="/login"]')
+    const linkCount = await navLinks.count()
+    
+    if (linkCount > 0) {
+      // Test first available link
+      await navLinks.first().click()
+      await page.waitForLoadState('networkidle')
+      
+      // Verify navigation worked
+      const body = page.locator('body')
+      await expect(body).toBeVisible()
+    }
+  })
+
+  test('tables are readable and scrollable on iPhone X', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if table exists
+    const table = page.locator('table, [data-testid="table"], .table')
+    if (await table.count() > 0) {
+      await expect(table.first()).toBeVisible()
+      
+      // On iPhone, table should be scrollable horizontally
+      const tableContainer = page.locator('.overflow-x-auto, .table-container, [data-testid="table-container"]')
+      if (await tableContainer.count() > 0) {
+        // Check if container has scroll functionality
+        const scrollWidth = await tableContainer.first().evaluate(el => el.scrollWidth > el.clientWidth)
+        const hasHorizontalScroll = await tableContainer.first().evaluate(el => {
+          return getComputedStyle(el).overflowX === 'auto' || 
+                 getComputedStyle(el).overflowX === 'scroll'
+        })
+        
+        if (scrollWidth) {
+          expect(hasHorizontalScroll).toBeTruthy()
+        }
+      }
+    } else {
+      console.log('Table not found on iPhone X - may use different layout')
+    }
+  })
+
+  test('forms are usable on iPhone X', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Open create form
+    const createButton = page.locator('button:has-text("Create"), button:has-text("New"), [data-testid="create-button"]')
+    await expect(createButton.first()).toBeVisible()
+    await createButton.first().click()
+    
+    await page.waitForSelector('form, [data-testid="form-modal"], .modal')
+    
+    // Check form fields are accessible
+    const formFields = page.locator('input, textarea, select')
+    const fieldCount = await formFields.count()
+    
+    expect(fieldCount).toBeGreaterThan(0)
+    
+    // Test first field is focusable and typeable
+    const firstField = formFields.first()
+    await firstField.focus()
+    await expect(firstField).toBeFocused()
+    
+    // On mobile, virtual keyboard should not obscure important elements
+    await firstField.fill('test')
+    await expect(firstField).toHaveValue('test')
+  })
+
+  test('modals fit screen properly on iPhone X', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Open a modal
+    const createButton = page.locator('button:has-text("Create"), button:has-text("New"), [data-testid="create-button"]')
+    await createButton.first().click()
+    await page.waitForSelector('form, [data-testid="form-modal"], .modal')
+    
+    const modal = page.locator('.modal, [data-testid="form-modal"], [role="dialog"]')
+    await expect(modal.first()).toBeVisible()
+    
+    // Check modal fits within viewport
+    const modalBox = await modal.first().boundingBox()
+    if (modalBox) {
+      const viewport = page.viewportSize()
+      if (viewport) {
+        expect(modalBox.width).toBeLessThanOrEqual(viewport.width)
+        expect(modalBox.height).toBeLessThanOrEqual(viewport.height)
+      }
+    }
+  })
+
+  test('buttons have proper touch targets on iPhone X', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Check button sizes are appropriate for touch
+    const buttons = page.locator('button, [role="button"], .btn')
+    const buttonCount = await buttons.count()
+    
+    if (buttonCount > 0) {
+      const firstButton = buttons.first()
+      const buttonBox = await firstButton.boundingBox()
+      
+      if (buttonBox) {
+        // Minimum touch target size is typically 44x44 points
+        const minTouchSize = 44
+        expect(buttonBox.height).toBeGreaterThanOrEqual(minTouchSize * 0.75) // Allow some flexibility
+        expect(buttonBox.width).toBeGreaterThanOrEqual(minTouchSize * 0.75)
+      }
+    }
+  })
+
+  test('text is readable without zooming on iPhone X', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    
+    // Check text sizes are appropriate
+    const headings = page.locator('h1, h2, h3')
+    const bodyText = page.locator('p, .text, span, div')
+    
+    if (await headings.count() > 0) {
+      const firstHeading = headings.first()
+      const fontSize = await firstHeading.evaluate(el => {
+        return getComputedStyle(el).fontSize
+      })
+      
+      // Headings should be reasonably large
+      expect(parseFloat(fontSize)).toBeGreaterThanOrEqual(16)
+    }
+    
+    if (await bodyText.count() > 0) {
+      const firstBodyText = bodyText.first()
+      const fontSize = await firstBodyText.evaluate(el => {
+        return getComputedStyle(el).fontSize
+      })
+      
+      // Body text should be readable
+      expect(parseFloat(fontSize)).toBeGreaterThanOrEqual(14)
+    }
+  })
+
+  test('horizontal scrolling is avoided on iPhone X', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if page requires horizontal scrolling
+    const body = page.locator('body')
+    const bodyWidth = await body.evaluate(el => el.scrollWidth)
+    const viewportWidth = await body.evaluate(el => el.clientWidth)
+    
+    // Page should not be wider than viewport (allow small margin)
+    expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + 20)
+    
+    // Check main container
+    const mainContainer = page.locator('main, .container, [data-testid="main"]')
+    if (await mainContainer.count() > 0) {
+      const containerWidth = await mainContainer.first().evaluate(el => el.scrollWidth)
+      const containerViewportWidth = await mainContainer.first().evaluate(el => el.clientWidth)
+      
+      expect(containerWidth).toBeLessThanOrEqual(containerViewportWidth + 20)
+    }
+  })
+})
+
+// Test iPhone 12
+test.describe('iPhone 12 Responsive Design', () => {
+  test.use({ ...devices['iPhone 12'] })
+
+  test.beforeEach(async ({ page }) => {
+    // Login before each test
+    await page.goto('/login')
+    await page.waitForLoadState('networkidle')
+    
+    await page.fill('input[placeholder="User or Email"]', process.env.TEST_USER_IDENTIFIER!)
+    await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD!)
+    await page.click('button[type="submit"]')
+    
+    // Wait for successful login
+    await page.waitForURL('**/user', { timeout: 10000 })
+  })
+
+  test('main navigation works on iPhone 12', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if navigation is visible and functional
+    const navigation = page.locator('nav, [data-testid="navigation"], .navigation')
+    await expect(navigation.first()).toBeVisible()
+    
+    // Test navigation to key sections
+    const navLinks = page.locator('a[href="/deck"], a[href="/manage"], a[href="/login"]')
+    const linkCount = await navLinks.count()
+    
+    if (linkCount > 0) {
+      // Test first available link
+      await navLinks.first().click()
+      await page.waitForLoadState('networkidle')
+      
+      // Verify navigation worked
+      const body = page.locator('body')
+      await expect(body).toBeVisible()
+    }
+  })
+
+  test('tables are readable and scrollable on iPhone 12', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if table exists
+    const table = page.locator('table, [data-testid="table"], .table')
+    if (await table.count() > 0) {
+      await expect(table.first()).toBeVisible()
+      
+      // On iPhone, table should be scrollable horizontally
+      const tableContainer = page.locator('.overflow-x-auto, .table-container, [data-testid="table-container"]')
+      if (await tableContainer.count() > 0) {
+        // Check if container has scroll functionality
+        const scrollWidth = await tableContainer.first().evaluate(el => el.scrollWidth > el.clientWidth)
+        const hasHorizontalScroll = await tableContainer.first().evaluate(el => {
+          return getComputedStyle(el).overflowX === 'auto' || 
+                 getComputedStyle(el).overflowX === 'scroll'
+        })
+        
+        if (scrollWidth) {
+          expect(hasHorizontalScroll).toBeTruthy()
+        }
+      }
+    } else {
+      console.log('Table not found on iPhone 12 - may use different layout')
+    }
+  })
+
+  test('forms are usable on iPhone 12', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Open create form
+    const createButton = page.locator('button:has-text("Create"), button:has-text("New"), [data-testid="create-button"]')
+    await expect(createButton.first()).toBeVisible()
+    await createButton.first().click()
+    
+    await page.waitForSelector('form, [data-testid="form-modal"], .modal')
+    
+    // Check form fields are accessible
+    const formFields = page.locator('input, textarea, select')
+    const fieldCount = await formFields.count()
+    
+    expect(fieldCount).toBeGreaterThan(0)
+    
+    // Test first field is focusable and typeable
+    const firstField = formFields.first()
+    await firstField.focus()
+    await expect(firstField).toBeFocused()
+    
+    // On mobile, virtual keyboard should not obscure important elements
+    await firstField.fill('test')
+    await expect(firstField).toHaveValue('test')
+  })
+
+  test('modals fit screen properly on iPhone 12', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Open a modal
+    const createButton = page.locator('button:has-text("Create"), button:has-text("New"), [data-testid="create-button"]')
+    await createButton.first().click()
+    await page.waitForSelector('form, [data-testid="form-modal"], .modal')
+    
+    const modal = page.locator('.modal, [data-testid="form-modal"], [role="dialog"]')
+    await expect(modal.first()).toBeVisible()
+    
+    // Check modal fits within viewport
+    const modalBox = await modal.first().boundingBox()
+    if (modalBox) {
+      const viewport = page.viewportSize()
+      if (viewport) {
+        expect(modalBox.width).toBeLessThanOrEqual(viewport.width)
+        expect(modalBox.height).toBeLessThanOrEqual(viewport.height)
+      }
+    }
+  })
+
+  test('buttons have proper touch targets on iPhone 12', async ({ page }) => {
+    await page.goto('/manage/arcana')
+    await page.waitForLoadState('networkidle')
+    
+    // Check button sizes are appropriate for touch
+    const buttons = page.locator('button, [role="button"], .btn')
+    const buttonCount = await buttons.count()
+    
+    if (buttonCount > 0) {
+      const firstButton = buttons.first()
+      const buttonBox = await firstButton.boundingBox()
+      
+      if (buttonBox) {
+        // Minimum touch target size is typically 44x44 points
+        const minTouchSize = 44
+        expect(buttonBox.height).toBeGreaterThanOrEqual(minTouchSize * 0.75) // Allow some flexibility
+        expect(buttonBox.width).toBeGreaterThanOrEqual(minTouchSize * 0.75)
+      }
+    }
+  })
+
+  test('text is readable without zooming on iPhone 12', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    
+    // Check text sizes are appropriate
+    const headings = page.locator('h1, h2, h3')
+    const bodyText = page.locator('p, .text, span, div')
+    
+    if (await headings.count() > 0) {
+      const firstHeading = headings.first()
+      const fontSize = await firstHeading.evaluate(el => {
+        return getComputedStyle(el).fontSize
+      })
+      
+      // Headings should be reasonably large
+      expect(parseFloat(fontSize)).toBeGreaterThanOrEqual(16)
+    }
+    
+    if (await bodyText.count() > 0) {
+      const firstBodyText = bodyText.first()
+      const fontSize = await firstBodyText.evaluate(el => {
+        return getComputedStyle(el).fontSize
+      })
+      
+      // Body text should be readable
+      expect(parseFloat(fontSize)).toBeGreaterThanOrEqual(14)
+    }
+  })
+
+  test('horizontal scrolling is avoided on iPhone 12', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    
+    // Check if page requires horizontal scrolling
+    const body = page.locator('body')
+    const bodyWidth = await body.evaluate(el => el.scrollWidth)
+    const viewportWidth = await body.evaluate(el => el.clientWidth)
+    
+    // Page should not be wider than viewport (allow small margin)
+    expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + 20)
+    
+    // Check main container
+    const mainContainer = page.locator('main, .container, [data-testid="main"]')
+    if (await mainContainer.count() > 0) {
+      const containerWidth = await mainContainer.first().evaluate(el => el.scrollWidth)
+      const containerViewportWidth = await mainContainer.first().evaluate(el => el.clientWidth)
+      
+      expect(containerWidth).toBeLessThanOrEqual(containerViewportWidth + 20)
+    }
+  })
+})

@@ -1,6 +1,6 @@
 # 📋 INFORME DE CRÍTICA SENIOR - RESUMEN EJECUTIVO
 
-**Fecha:** 2026-01-10  
+**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-16  
 **Analista:** Senior Dev Reviewer  
 **Alcance:** Evaluación completa del proyecto Tarot2
 
@@ -89,6 +89,31 @@ const listCache: Map<string, any> = new Map()
 ---
 
 ## ⚡ **ESCENARIOS DE COLAPSO (PRODUCCIÓN REAL)**
+
+### Estado Actual (2026-01-16) - VERIFICADO vs INFORME ORIGINAL
+
+| Problema Reportado | ¿Arreglado? | Evidencia |
+|--------------------|-------------|-----------|
+| SQL Injection en tags | ❌ NO | `server/api/arcana/_crud.ts:106` - `${tagsLower}` sin sanitización adicional |
+| N+1 Queries en tags | ❌ NO | Subquery por cada fila en `buildSelect()` líneas 41-58 |
+| Auth Overhead (JSON agg) | ❌ NO | `server/middleware/00.auth.hydrate.ts:41` - sigue usando `json_agg(r.*)` |
+| Memory Leaks | ⚠️ PARCIAL | Sin archivo `eagerTags.ts` creado |
+| FormModal introspección Zod | ❌ NO | `FormModal.vue:249-305` - función `unwrap()` sigue presente |
+| EntityFilters data fetching | ❌ NO | `EntityFilters.vue:310-362` - fetching embebido en componente |
+
+### Sugerencias de Arreglos Rápidos (1-2 días cada uno)
+
+#### 🔴 PRIORIDAD ALTA - Seguridad Crítica
+1. **SQL Injection** - Usar `sql.param()` en lugar de interpolación directa
+2. **Auth Overhead** - Eliminar `json_agg` del middleware, fetch roles solo cuando sea necesario
+
+#### 🟡 PRIORIDAD MEDIA - Performance
+3. **N+1 Tags** - Crear `eagerTags.ts` con batch fetch (estimado: 4-6 horas)
+4. **Console logs** - Remover `console.warn` de `FormModal.vue:313` y `auth.hydrate.ts:59`
+
+#### 🟢 PRIORIDAD BAJA - Mantenibilidad
+5. **FormModal** - Extraer lógica `unwrap()` a función compartida, no romperá nada
+6. **EntityFilters** - Separar fetching en composable `useFilterOptions` (refactor incremental)**
 
 ### Scenario 1: **SQL Attack** (Días 1-7)
 ```bash

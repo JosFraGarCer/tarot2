@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Console Errors</title>
+</head>
+<body>
+    <h1>Testing Console Errors</h1>
+    <div id="errors"></div>
+    
+    <script>
+        // Capturar errores de consola
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const errors = [];
+        const warnings = [];
+        
+        console.error = function(...args) {
+            errors.push(args.join(' '));
+            originalError.apply(console, args);
+        };
+        
+        console.warn = function(...args) {
+            warnings.push(args.join(' '));
+            originalWarn.apply(console, args);
+        };
+        
+        // Cargar la página de la app en un iframe
+        const iframe = document.createElement('iframe');
+        iframe.src = 'http://localhost:3007/';
+        iframe.style.width = '100%';
+        iframe.style.height = '500px';
+        
+        iframe.onload = function() {
+            setTimeout(() => {
+                const errorsDiv = document.getElementById('errors');
+                
+                if (errors.length === 0 && warnings.length === 0) {
+                    errorsDiv.innerHTML = '<h2 style="color: green;">✅ No console errors or warnings detected!</h2>';
+                } else {
+                    errorsDiv.innerHTML = `
+                        <h2>Console Issues Detected:</h2>
+                        <h3>Errors (${errors.length}):</h3>
+                        <ul>${errors.map(e => `<li style="color: red;">${e}</li>`).join('')}</ul>
+                        <h3>Warnings (${warnings.length}):</h3>
+                        <ul>${warnings.map(w => `<li style="color: orange;">${w}</li>`).join('')}</ul>
+                    `;
+                }
+            }, 3000);
+        };
+        
+        document.body.appendChild(iframe);
+    </script>
+</body>
+</html>

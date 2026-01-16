@@ -1,6 +1,6 @@
 # 📋 INFORME DE CRÍTICA SENIOR - FRONTEND COMPONENTS
 
-**Fecha:** 2026-01-10  
+**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-16  
 **Analista:** Senior Dev Reviewer  
 **Alcance:** Componentes Vue y composables frontend
 
@@ -245,6 +245,15 @@ defineProps<{
 ## 💀 **VEREDICTO FRONTEND**
 
 **Calificación:** D+ (Funciona pero es un desastre técnico)
+
+### Estado Verificado (2026-01-16)
+
+| Problema | ¿Arreglado? | Evidencia Actual |
+|----------|-------------|------------------|
+| FormModal reflexión Zod | ❌ NO | `FormModal.vue:249-305` - función `unwrap()` intacta |
+| EntityFilters fetching | ❌ NO | `EntityFilters.vue:310-362` - lógica embebida |
+| Console logs producción | ❌ NO | `FormModal.vue:313` - `console.warn` presente |
+| Race condition FormModal | ⚠️ PERSISTE | `FormModal.vue:174-182` - `Object.assign` sin protección |
 
 **Problemas principales:**
 - Over-engineering en lugar de simplicidad

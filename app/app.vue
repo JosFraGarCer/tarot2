@@ -25,7 +25,7 @@ onNuxtReady(() => {
 <template>
   <UApp>
     <NuxtLayout>
-      <NuxtPage />
+      <!-- El contenido se renderizará a través del layout default -->
     </NuxtLayout>
   </UApp>
 </template>
