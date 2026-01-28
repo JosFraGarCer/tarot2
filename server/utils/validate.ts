@@ -11,58 +11,36 @@ export function safeParseOrThrow<T>(schema: ZodType<T>, input: unknown): T {
     const sortRaw = inputObj && 'sort' in inputObj ? inputObj['sort'] : undefined
     const sortValue = typeof sortRaw === 'string' ? sortRaw : undefined
 
-    // Safely access parsed.error and its errors array
-    let errorsArr: unknown[] | null = null
-    if ('error' in parsed) {
-      const errUnknown = (parsed as { error: unknown }).error
-      if (typeof errUnknown === 'object' && errUnknown !== null && 'errors' in errUnknown) {
-        const maybeErrors = (errUnknown as Record<string, unknown>)['errors']
-        if (Array.isArray(maybeErrors)) errorsArr = maybeErrors
-      }
-    }
+    // Access Zod error issues using public API
+    const issues = parsed.error.issues
 
     // If sort exists and validation flagged it, raise specific message
     if (sortValue !== undefined) {
-      const hasSortIssue = Array.isArray(errorsArr)
-        ? errorsArr.some((e) => {
-            const issueObj = (typeof e === 'object' && e !== null)
-              ? (e as Record<string, unknown>)
-              : undefined
-            const path = issueObj && Array.isArray(issueObj['path'])
-              ? (issueObj['path'] as unknown[]).map(String).join('.')
-              : ''
-            return path === 'sort'
-          })
-        : true
+      const hasSortIssue = issues.some((e) => {
+        const path = Array.isArray(e.path) ? e.path.map(String).join('.') : ''
+        return path === 'sort'
+      })
       if (hasSortIssue) {
         throw createError({
           statusCode: 400,
-          statusMessage: `Invalid sort field '${sortValue}'. Allowed: created_at, code, status`,
+          statusMessage: `Invalid sort field '${sortValue}'.`,
         })
       }
     }
 
     // Fallback aggregated validation error message
     let details = 'Invalid input'
-    if (Array.isArray(errorsArr)) {
-      details = errorsArr
+    if (issues.length > 0) {
+      details = issues
         .map((e) => {
-          const issueObj = (typeof e === 'object' && e !== null)
-            ? (e as Record<string, unknown>)
-            : {}
-          const pathArr = Array.isArray(issueObj['path']) ? (issueObj['path'] as unknown[]) : []
+          const pathArr = Array.isArray(e.path) ? e.path : []
           const path = pathArr.length ? pathArr.map(String).join('.') : 'root'
-          const messageVal = issueObj['message']
-          const message = typeof messageVal === 'string' ? messageVal : 'Invalid'
+          const message = typeof e.message === 'string' ? e.message : 'Invalid'
           return `${path}: ${message}`
         })
         .join('; ')
-    } else if ('error' in parsed) {
-      const errUnknown = (parsed as { error: unknown }).error
-      if (typeof errUnknown === 'object' && errUnknown !== null && 'message' in errUnknown) {
-        const msg = (errUnknown as Record<string, unknown>)['message']
-        if (typeof msg === 'string') details = msg
-      }
+    } else if (parsed.error.message) {
+      details = parsed.error.message
     }
     throw createError({ statusCode: 400, statusMessage: `Validation error: ${details}` })
   }

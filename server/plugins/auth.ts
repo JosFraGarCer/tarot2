@@ -3,6 +3,12 @@ import bcrypt from 'bcrypt'
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose'
 import { getCookie, getHeader, createError, type H3Event } from 'h3'
 
+export interface UserPayload extends JWTPayload {
+  id: number
+  email: string
+  username: string
+}
+
 const SALT_ROUNDS = 10
 
 // -------------------- PASSWORD HELPERS --------------------
@@ -15,11 +21,17 @@ export async function verifyPassword(password: string, hash: string) {
 }
 
 // -------------------- JWT HELPERS --------------------
-function secretKey() {
+let cachedSecretKey: Uint8Array | null = null
+
+function getSecretKey(): Uint8Array {
+  if (cachedSecretKey) return cachedSecretKey
+
   const secret = process.env.JWT_SECRET
   if (!secret)
     throw createError({ statusCode: 500, statusMessage: 'JWT secret not configured' })
-  return new TextEncoder().encode(secret)
+
+  cachedSecretKey = new TextEncoder().encode(secret)
+  return cachedSecretKey
 }
 
 export async function createToken(payload: Record<string, unknown>) {
@@ -46,16 +58,16 @@ export async function createToken(payload: Record<string, unknown>) {
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setIssuedAt()
     .setExpirationTime(expUnix)
-    .sign(secretKey())
+    .sign(getSecretKey())
 }
 
 export async function verifyToken(token: string) {
   try {
-    const { payload } = await jwtVerify(token, secretKey(), {
+    const { payload } = await jwtVerify(token, getSecretKey(), {
       algorithms: ['HS256'],
     })
     return payload
-  } catch (err) {
+  } catch {
     throw createError({
       statusCode: 401,
       statusMessage: 'Invalid or expired token',

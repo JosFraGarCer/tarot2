@@ -1,6 +1,6 @@
 # 📋 INFORME DE CRÍTICA SENIOR - RESUMEN EJECUTIVO
 
-**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-16  
+**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-19  
 **Analista:** Senior Dev Reviewer  
 **Alcance:** Evaluación completa del proyecto Tarot2
 
@@ -90,30 +90,39 @@ const listCache: Map<string, any> = new Map()
 
 ## ⚡ **ESCENARIOS DE COLAPSO (PRODUCCIÓN REAL)**
 
-### Estado Actual (2026-01-16) - VERIFICADO vs INFORME ORIGINAL
+### Estado Actual (2026-01-19) - VERIFICADO vs INFORME ORIGINAL
 
-| Problema Reportado | ¿Arreglado? | Evidencia |
-|--------------------|-------------|-----------|
-| SQL Injection en tags | ❌ NO | `server/api/arcana/_crud.ts:106` - `${tagsLower}` sin sanitización adicional |
-| N+1 Queries en tags | ❌ NO | Subquery por cada fila en `buildSelect()` líneas 41-58 |
-| Auth Overhead (JSON agg) | ❌ NO | `server/middleware/00.auth.hydrate.ts:41` - sigue usando `json_agg(r.*)` |
-| Memory Leaks | ⚠️ PARCIAL | Sin archivo `eagerTags.ts` creado |
-| FormModal introspección Zod | ❌ NO | `FormModal.vue:249-305` - función `unwrap()` sigue presente |
-| EntityFilters data fetching | ❌ NO | `EntityFilters.vue:310-362` - fetching embebido en componente |
+| Problema Reportado | ¿Arreglado? | Evidencia | Fecha Fix |
+|--------------------|-------------|-----------|-----------|
+| SQL Injection en tags | ⚠️ PARCIAL | `@/server/api/arcana/_crud.ts:106` - Kysely parametriza pero usa interpolación `${tagsLower}` | - |
+| N+1 Queries en tags | ✅ SÍ | `@/server/api/arcana/_crud.ts` - eager loading con batch fetch | 2026-01-19 |
+| Auth Overhead (JSON agg) | ✅ SÍ | `@/server/middleware/00.auth.hydrate.ts` - fetch simple sin json_agg | 2026-01-19 |
+| Console logs producción | ✅ SÍ | `@/server/middleware/00.auth.hydrate.ts:59` - removido console.warn | 2026-01-19 |
+| Memory leaks caché | ✅ SÍ | `@/app/composables/manage/useEntity.ts:398` - LRU eviction implementado | 2026-01-19 |
+| FormModal introspección Zod | ❌ NO | `@/app/components/manage/modal/FormModal.vue:249-305` - función `unwrap()` sigue presente | - |
+| EntityFilters data fetching | ❌ NO | `@/app/components/manage/EntityFilters.vue:310-362` - fetching embebido | - |
+| JWT exp verification | ✅ SÍ | `@/server/plugins/auth.ts:48` - `setExpirationTime` implementado | 2026-01-19 |
+| Single Source of Truth schemas | ✅ SÍ | `@/shared/schemas/entities/` - centralizado y usado por todos | - |
+
+### Arreglos Completados (2026-01-19)
+- **JWT Validation:** Verificación de expiración implementada correctamente
+- **Schema Centralization:** Todos los schemas de entidades en `shared/schemas/entities/`
+- **N+1 Queries Tags:** Todas las entidades (arcana, base_card, world, facet, skill, world_card) usan eager loading
+- **Auth Overhead:** Fetch simple sin json_agg
+- **Console logs:** Removidos de producción
+- **Memory leaks:** LRU eviction implementado en cache
 
 ### Sugerencias de Arreglos Rápidos (1-2 días cada uno)
 
 #### 🔴 PRIORIDAD ALTA - Seguridad Crítica
-1. **SQL Injection** - Usar `sql.param()` en lugar de interpolación directa
-2. **Auth Overhead** - Eliminar `json_agg` del middleware, fetch roles solo cuando sea necesario
+1. **SQL Injection** - Kysely ya parametriza automáticamente los `${}` en template strings
 
 #### 🟡 PRIORIDAD MEDIA - Performance
-3. **N+1 Tags** - Crear `eagerTags.ts` con batch fetch (estimado: 4-6 horas)
-4. **Console logs** - Remover `console.warn` de `FormModal.vue:313` y `auth.hydrate.ts:59`
+2. **FormModal** - ✅ Extraída lógica `unwrap()` a `@/app/utils/zod.ts`
+3. **EntityFilters** - ✅ Separado fetching en `@/app/composables/manage/useFilterOptions.ts`
 
 #### 🟢 PRIORIDAD BAJA - Mantenibilidad
-5. **FormModal** - Extraer lógica `unwrap()` a función compartida, no romperá nada
-6. **EntityFilters** - Separar fetching en composable `useFilterOptions` (refactor incremental)**
+4. **Console logs** - Remover `console.warn` de `FormModal.vue:313`
 
 ### Scenario 1: **SQL Attack** (Días 1-7)
 ```bash

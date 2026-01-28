@@ -46,39 +46,28 @@ async function upsertTranslation(
     languageKey: string
     entityId: number
     lang: string
-    payload: Record<string, any>
+    payload: Record<string, unknown>
   },
 ): Promise<'updated' | 'inserted' | 'skipped'> {
   const { translationTable, foreignKey, languageKey, entityId, lang, payload } = options
   const cleaned = pruneUndefined(payload)
-  if (!Object.keys(cleaned).length) return 'skipped'
+  if (!Object.entries(cleaned).length) return 'skipped'
 
-  const existing = await trx
-    .selectFrom(translationTable)
-    .select(['id'])
-    .where(sql`${sql.ref(foreignKey)}`, '=', entityId)
-    .where(sql`${sql.ref(languageKey)}`, '=', lang)
-    .executeTakeFirst()
-
-  if (existing) {
-    await trx
-      .updateTable(translationTable)
-      .set(cleaned)
-      .where('id', '=', (existing as any).id as number)
-      .execute()
-    return 'updated'
-  }
-
-  await trx
-    .insertInto(translationTable)
+  // Use ON CONFLICT for atomic upsert in PostgreSQL
+  const result = await trx
+    .insertInto(translationTable as any)
     .values({
       [foreignKey]: entityId,
       [languageKey]: lang,
       ...cleaned,
-    })
-    .execute()
+    } as any)
+    .onConflict((oc) =>
+      oc.columns([foreignKey as any, languageKey as any]).doUpdateSet(cleaned as any)
+    )
+    .returning(['id' as any])
+    .executeTakeFirst()
 
-  return 'inserted'
+  return result ? 'updated' : 'inserted'
 }
 
 export async function translatableUpsert<TEntityRow = any>(
@@ -108,18 +97,18 @@ export async function translatableUpsert<TEntityRow = any>(
         throw new Error(`Cannot create ${String(opts.baseTable)} without base data`)
       }
       const inserted = await trx
-        .insertInto(opts.baseTable)
-        .values(baseData)
-        .returning(idColumn)
+        .insertInto(opts.baseTable as any)
+        .values(baseData as any)
+        .returning(idColumn as any)
         .executeTakeFirst()
       if (!inserted) throw new Error(`Failed to insert ${String(opts.baseTable)}`)
       entityId = Number((inserted as any)[idColumn])
       wasCreated = true
     } else if (Object.keys(baseData).length) {
       await trx
-        .updateTable(opts.baseTable)
-        .set(baseData)
-        .where(idColumn, '=', entityId)
+        .updateTable(opts.baseTable as any)
+        .set(baseData as any)
+        .where(idColumn as any, '=', entityId)
         .execute()
     }
 

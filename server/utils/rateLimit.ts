@@ -19,6 +19,18 @@ interface Bucket {
 
 const buckets = new Map<string, Bucket>()
 
+// Clean up expired buckets every hour to prevent memory leaks
+if (process.env.NODE_ENV !== 'test') {
+  setInterval(() => {
+    const now = Date.now()
+    for (const [key, bucket] of buckets.entries()) {
+      if (bucket.expiresAt <= now) {
+        buckets.delete(key)
+      }
+    }
+  }, 3600000) // 1 hour
+}
+
 export function getClientIp(event: H3Event): string | null {
   const header = event.node.req.headers['x-forwarded-for']
   if (typeof header === 'string' && header.trim().length) {
@@ -34,9 +46,11 @@ export function getClientIp(event: H3Event): string | null {
 }
 
 export function enforceRateLimit(event: H3Event, options: RateLimitOptions): void {
-  const logger = event.context.logger ?? (globalThis as any).logger
+  const logger = event.context.logger
   const ip = getClientIp(event) ?? 'unknown'
-  const userKey = (event.context as any)?.user?.id ?? 'anon'
+  const context = event.context as Record<string, unknown>
+  const user = context.user as { id?: number } | undefined
+  const userKey = user?.id ?? 'anon'
   const baseKey = `${options.identifier}:${userKey}:${ip}`
   const now = Date.now()
 
@@ -56,7 +70,7 @@ export function enforceRateLimit(event: H3Event, options: RateLimitOptions): voi
         identifier: options.identifier,
         max: options.max,
         windowMs: options.windowMs,
-        requestId: event.context.requestId ?? null,
+        requestId: context.requestId ?? null,
       },
       'Rate limit exceeded',
     )

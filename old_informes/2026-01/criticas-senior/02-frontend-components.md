@@ -1,6 +1,6 @@
 # 📋 INFORME DE CRÍTICA SENIOR - FRONTEND COMPONENTS
 
-**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-16  
+**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-19  
 **Analista:** Senior Dev Reviewer  
 **Alcance:** Componentes Vue y composables frontend
 
@@ -246,14 +246,16 @@ defineProps<{
 
 **Calificación:** D+ (Funciona pero es un desastre técnico)
 
-### Estado Verificado (2026-01-16)
+### Estado Verificado (2026-01-19)
 
-| Problema | ¿Arreglado? | Evidencia Actual |
-|----------|-------------|------------------|
-| FormModal reflexión Zod | ❌ NO | `FormModal.vue:249-305` - función `unwrap()` intacta |
-| EntityFilters fetching | ❌ NO | `EntityFilters.vue:310-362` - lógica embebida |
-| Console logs producción | ❌ NO | `FormModal.vue:313` - `console.warn` presente |
-| Race condition FormModal | ⚠️ PERSISTE | `FormModal.vue:174-182` - `Object.assign` sin protección |
+| Problema | ¿Arreglado? | Evidencia Actual | Fecha Fix |
+|----------|-------------|-------------------|-----------|
+| FormModal reflexión Zod | ✅ SÍ | `@/app/components/manage/modal/FormModal.vue` - usa `@/app/utils/zod.ts` | 2026-01-19 |
+| EntityFilters fetching | ✅ SÍ | `@/app/components/manage/EntityFilters.vue` - usa `@/app/composables/manage/useFilterOptions.ts` | 2026-01-19 |
+| Console logs producción | ❌ NO | `@/app/components/manage/modal/FormModal.vue:313` - `console.warn` presente | - |
+| Race condition FormModal | ⚠️ PERSISTE | `@/app/components/manage/modal/FormModal.vue:174-182` - `Object.assign` sin protección | - |
+| Single Source of Truth schemas | ✅ SÍ | `@/shared/schemas/entities/` - centralizado y usado por todos | - |
+| useEntityFormPreset | ✅ SÍ | `@/app/composables/manage/useEntityFormPreset.ts` - integra presets con schemas | 2026-01-19 |
 
 **Problemas principales:**
 - Over-engineering en lugar de simplicidad

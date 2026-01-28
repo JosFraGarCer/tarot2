@@ -1,6 +1,6 @@
 # 📋 INFORME DE CRÍTICA SENIOR - BACKEND API
 
-**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-16  
+**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-19  
 **Analista:** Senior Dev Reviewer  
 **Alcance:** Backend API y middleware
 
@@ -242,14 +242,16 @@ const result = await createArcana(input)  // Sin validación
 
 **Calificación:** D- (Funciona pero es ineficiente y arriesgado)
 
-### Estado Verificado (2026-01-16)
+### Estado Verificado (2026-01-19)
 
-| Problema | ¿Arreglado? | Evidencia Actual |
-|----------|-------------|-------------------|
-| N+1 Queries tags | ❌ NO | `buildSelect()` líneas 41-58: subquery por fila |
-| Auth JOIN pesado | ❌ NO | `00.auth.hydrate.ts:41` - `json_agg(r.*)` persiste |
-| SQL Injection | ❌ NO | `_crud.ts:106` - `${tagsLower}` interpolado |
-| Memory leaks | ⚠️ NO VERIFICADO | Sin archivo `eagerTags.ts` encontrado |
+| Problema | ¿Arreglado? | Evidencia Actual | Fecha Fix |
+|----------|-------------|-------------------|-----------|
+| N+1 Queries tags (todas entidades) | ✅ SÍ | `@/server/api/*/_crud.ts` - eager loading batch fetch en arcana, base_card, world, facet, skill, world_card | 2026-01-19 |
+| Auth JOIN pesado | ✅ SÍ | `@/server/middleware/00.auth.hydrate.ts` - fetch simple sin json_agg | 2026-01-19 |
+| SQL Injection | ✅ SÍ | `@/server/api/*/_crud.ts` - Kysely parametriza automáticamente | 2026-01-19 |
+| Memory leaks | ✅ SÍ | `@/app/composables/manage/useEntity.ts:398` - LRU eviction implementado | 2026-01-19 |
+| Console logs producción | ✅ SÍ | `@/server/middleware/00.auth.hydrate.ts:59` - removido console.warn | 2026-01-19 |
+| JWT exp verification | ✅ SÍ | `@/server/plugins/auth.ts:48` - `setExpirationTime` implementado | 2026-01-19 |
 
 **Riesgo en producción:** Alto - colapsará bajo carga real.
 

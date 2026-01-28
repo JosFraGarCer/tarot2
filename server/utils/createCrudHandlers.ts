@@ -35,14 +35,14 @@ interface ListBuilder<TQuery, TRow> {
 }
 
 interface MutationsPayload<TCreate, TUpdate> {
-  buildCreatePayload: (input: TCreate, ctx: CrudContext<any>) => {
-    baseData?: Record<string, any>
-    translationData?: Record<string, any> | null
+  buildCreatePayload: (input: TCreate, ctx: CrudContext<TCreate>) => {
+    baseData?: Record<string, unknown>
+    translationData?: Record<string, unknown> | null
     lang?: string | null
   }
-  buildUpdatePayload: (input: TUpdate, ctx: CrudContext<any>) => {
-    baseData?: Record<string, any>
-    translationData?: Record<string, any> | null
+  buildUpdatePayload: (input: TUpdate, ctx: CrudContext<TUpdate>) => {
+    baseData?: Record<string, unknown>
+    translationData?: Record<string, unknown> | null
     lang?: string | null
   }
 }
@@ -58,9 +58,9 @@ interface CrudHandlersConfig<
   TQuerySchema extends ZodTypeAny,
   TCreateSchema extends ZodTypeAny,
   TUpdateSchema extends ZodTypeAny,
-  TQuery = any,
-  TCreate = any,
-  TUpdate = any,
+  TQuery = z.infer<TQuerySchema>,
+  TCreate = z.infer<TCreateSchema>,
+  TUpdate = z.infer<TUpdateSchema>,
   TRow = any,
 > {
   entity: string

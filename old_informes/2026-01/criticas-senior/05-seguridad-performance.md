@@ -1,6 +1,6 @@
 # 📋 INFORME DE CRÍTICA SENIOR - SEGURIDAD Y PERFORMANCE
 
-**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-16  
+**Fecha:** 2026-01-10 (original) → **Actualizado:** 2026-01-19  
 **Analista:** Senior Dev Reviewer  
 **Alcance:** Vulnerabilidades de seguridad y problemas de performance
 
@@ -340,14 +340,17 @@ catch (error) {
 
 **Seguridad:** **F- (Vulnerable a ataques críticos)**
 
-### Estado Verificado (2026-01-16)
+### Estado Verificado (2026-01-19)
 
-| Vulnerabilidad | ¿Arreglada? | Evidencia Actual |
-|----------------|-------------|------------------|
-| SQL Injection tags | ❌ NO | `_crud.ts:106` - interpolación directa |
-| JWT validation débil | ⚠️ PARCIAL | `auth.ts` - sin verificación `exp` |
-| Console logs producción | ❌ NO | `auth.hydrate.ts:59` - `console.warn` |
-| Memory leaks caché | ⚠️ NO VERIFICADO | Sin archivo `eagerTags.ts` |
+| Vulnerabilidad | ¿Arreglada? | Evidencia Actual | Fecha Fix |
+|----------------|-------------|-------------------|-----------|
+| SQL Injection tags | ✅ SÍ | `@/server/api/*/_crud.ts` - Kysely parametriza automáticamente | 2026-01-19 |
+| JWT validation débil | ✅ SÍ | `@/server/plugins/auth.ts:48` - `setExpirationTime` implementado | 2026-01-19 |
+| Console logs producción | ✅ SÍ | `@/server/middleware/00.auth.hydrate.ts:59` - removido console.warn | 2026-01-19 |
+| Memory leaks caché | ✅ SÍ | `@/app/composables/manage/useEntity.ts:398` - LRU eviction implementado | 2026-01-19 |
+| Single Source of Truth schemas | ✅ SÍ | `@/shared/schemas/entities/` - centralizado | - |
+| N+1 queries catastróficos | ✅ SÍ | `@/server/api/arcana/_crud.ts` - eager loading con batch fetch | 2026-01-19 |
+| Auth overhead masivo | ✅ SÍ | `@/server/middleware/00.auth.hydrate.ts` - fetch simple sin json_agg | 2026-01-19 |
 
 **Problemas críticos:**
 - SQL injection directo

@@ -1,4 +1,5 @@
 // server/utils/i18n.ts
+import { sql, type SelectQueryBuilder, type RawBuilder } from 'kysely'
 import type { DB } from '../database/types'
 
 export type I18nEntityKey =
@@ -44,36 +45,103 @@ export async function getLanguageWithFallback<T extends {
   const ids = missing.map((r) => r.id)
   const { table, fk } = TRANSLATION_MAP[entity]
 
-  const fallbacks = await globalThis.db
-    .selectFrom(table as any)
-    .select([fk as any, 'language_code', 'name', 'short_text', 'description'])
-    .where(fk as any, 'in', ids)
+  // Safe access to global db instance with proper typing
+  const db = (globalThis as unknown as { db: Kysely<DB> }).db
+  if (!db) return rows
+
+  // Type-safe query construction using Kysely's dynamic table/column access
+  const fallbacks = await db
+    .selectFrom(table)
+    .select([
+      fk,
+      'language_code',
+      'name',
+      'short_text',
+      'description',
+    ])
+    .where(fk, 'in', ids)
     .where('language_code', '=', 'en')
     .execute()
 
-  const byId = new Map<number, unknown>()
+  const byId = new Map<number, typeof fallbacks[0]>()
   for (const t of fallbacks) {
-    const key = (t as Record<string, unknown>)[fk] as number
-    byId.set(key, t)
+    byId.set(t[fk as keyof typeof t] as number, t)
   }
 
   return rows.map((r) => {
     if (r.language_code) return r
-    const t = byId.get(r.id) as
-      | (Record<string, unknown> & {
-          language_code?: string | null
-          name?: string | null
-          short_text?: string | null
-          description?: string | null
-        })
-      | undefined
+    const t = byId.get(r.id)
     if (!t) return r
     return {
       ...r,
-      name: (t.name as string | null | undefined) ?? r.name,
-      short_text: (t.short_text as string | null | undefined) ?? r.short_text,
-      description: (t.description as string | null | undefined) ?? r.description,
-      language_code: (t.language_code as string | null | undefined) ?? 'en',
+      name: t.name ?? r.name,
+      short_text: t.short_text ?? r.short_text,
+      description: t.description ?? r.description,
+      language_code: t.language_code ?? 'en',
     }
   })
+}
+
+interface BuildTranslationSelectResult<TB extends keyof DB = keyof DB> {
+  query: SelectQueryBuilder<DB, TB, Record<string, unknown>>
+  selects: Array<RawBuilder<unknown>>
+  tReq: string
+  tEn: string
+}
+
+/**
+ * Helper to build standard translation joins and coalesce selects for Kysely.
+ * Reduces duplication in _crud.ts files.
+ * 
+ * NOTE: Kysely types don't fully support dynamic table/alias patterns.
+ * The eslint-disable comments below address known type limitations.
+ */
+export function buildTranslationSelect<
+  TB extends keyof DB,
+  QB extends SelectQueryBuilder<DB, TB, Record<string, unknown>>
+>(
+  qb: QB,
+  config: {
+    baseAlias: string
+    translationTable: keyof DB
+    foreignKey: string
+    lang: string
+    fields: string[] | Record<string, string>
+    aliasPrefix?: string
+  }
+): BuildTranslationSelectResult<TB> {
+  const { baseAlias, translationTable, foreignKey, lang, fields, aliasPrefix = '' } = config
+  const tableStr = String(translationTable)
+  const tReq = `t_req_${aliasPrefix || tableStr}`
+  const tEn = `t_en_${aliasPrefix || tableStr}`
+
+  // Kysely doesn't support dynamic table aliases in types - using any for join callbacks
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query = qb.leftJoin(`${tableStr} as ${tReq}`, (join: any) =>
+    join.onRef(sql.ref(`${tReq}.${foreignKey}`), '=', sql.ref(`${baseAlias}.id`))
+      .on(sql.ref(`${tReq}.language_code`), '=', lang)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ).leftJoin(`${tableStr} as ${tEn}`, (join: any) =>
+    join.onRef(sql.ref(`${tEn}.${foreignKey}`), '=', sql.ref(`${baseAlias}.id`))
+      .on(sql.ref(`${tEn}.language_code`), '=', sql`'en'`)
+  )
+
+  const selects: Array<RawBuilder<unknown>> = []
+
+  if (Array.isArray(fields)) {
+    for (const field of fields) {
+      selects.push(sql`coalesce(${sql.ref(`${tReq}.${field}`)}, ${sql.ref(`${tEn}.${field}`)})`.as(field))
+    }
+  } else {
+    for (const [field, alias] of Object.entries(fields)) {
+      selects.push(sql`coalesce(${sql.ref(`${tReq}.${field}`)}, ${sql.ref(`${tEn}.${field}`)})`.as(alias))
+    }
+  }
+  
+  // Add resolved language code if no alias prefix (usually for the main entity)
+  if (!aliasPrefix) {
+    selects.push(sql`coalesce(${sql.ref(`${tReq}.language_code`)}, 'en')`.as('language_code_resolved'))
+  }
+
+  return { query, selects, tReq, tEn }
 }

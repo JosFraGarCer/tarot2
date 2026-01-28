@@ -1,6 +1,6 @@
 # 📋 INFORME DE CRÍTICA SENIOR - CÓDIGO LEGACY Y DEUDA TÉCNICA
 
-**Fecha:** 2026-01-10  
+**Fecha:** 2026-01-10 → **Actualizado:** 2026-01-19  
 **Analista:** Senior Dev Reviewer  
 **Alcance:** Código legacy, deuda técnica y problemas de mantenimiento
 
@@ -292,6 +292,24 @@ try {
 - Knowledge silos: solo 1-2 personas entienden áreas
 
 **Recomendación:** **Rewrite estratégico** de áreas críticas antes de continuar con features.
+
+---
+
+## ✅ **ARREGLOS COMPLETADOS (2026-01-19)**
+
+| Área | Estado | Evidencia |
+|------|--------|-----------|
+| **Single Source of Truth Schemas** | ✅ SÍ | `@/shared/schemas/entities/` - centralizado y usado por todos |
+| **JWT Validation** | ✅ SÍ | `@/server/plugins/auth.ts:48` - `setExpirationTime` implementado |
+| **useEntityFormPreset** | ✅ SÍ | `@/app/composables/manage/useEntityFormPreset.ts` - integra presets con schemas |
+
+## ❓ **PENDIENTE DE VERIFICACIÓN**
+
+| Área | Estado | Evidencia |
+|------|--------|-----------|
+| **Código legacy entityRows.ts** | ⚠️ NO VERIFICADO | Sin acceso directo al archivo |
+| **Imports circulares** | ⚠️ NO VERIFICADO | Requeriría análisis de dependencias |
+| **Componentes huérfanos** | ⚠️ NO VERIFICADO | Requeriría análisis de imports |
 
 ---
 

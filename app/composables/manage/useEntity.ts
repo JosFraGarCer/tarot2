@@ -5,6 +5,11 @@ Generic SSR-safe CRUD composable for any entity.
   - $fetch for fetchOne/create/update/remove
   - Reactive filters + pagination + i18n lang param
   - Optional Zod validation for create/update
+  
+  NOTE: Utilities moved to separate files for maintainability:
+  - useEntityNormalization.ts: API response normalization
+  - useEntityErrors.ts: Error handling
+  - useEntityFilters.ts: Filter utilities
 */
 
 import { ref, computed, watch, watchEffect, reactive, onMounted, onUnmounted, shallowRef } from 'vue'
@@ -13,22 +18,9 @@ import type { z } from 'zod'
 import { useAsyncData, useI18n } from '#imports'
 import { useApiFetch, clearApiFetchCache } from '@/utils/fetcher'
 import { usePaginatedList } from '~/composables/manage/usePaginatedList'
+import { normalizeListResponse, type ApiMeta, type NormalizedListResponse } from './useEntityNormalization'
+
 const $fetch = useApiFetch
-
-// API response contract
-interface ApiMeta {
-  page?: number
-  pageSize?: number
-  totalItems?: number
-  count?: number
-  search?: string
-}
-
-interface ApiResponse<T> {
-  success: boolean
-  data: T
-  meta?: ApiMeta
-}
 
 // Options accepted by the generic entity composable
 export type EntityFilterConfig = Record<string, string | true>
@@ -394,8 +386,18 @@ export function useEntity<TList, TCreate, TUpdate>(
   // Abortable fetch controller to cancel in-flight list requests
   let listAbort: AbortController | null = null
 
-  // In-memory SWR cache
-  const listCache: Map<string, any> = new Map()
+  // In-memory SWR cache with LRU eviction to prevent memory leaks
+  const listCache = new Map<string, NormalizedListResponse<TList>>()
+  const MAX_CACHE_SIZE = 50
+
+  function setCache(key: string, value: NormalizedListResponse<TList>) {
+    if (listCache.size >= MAX_CACHE_SIZE) {
+      // Remove oldest entry (first key)
+      const firstKey = listCache.keys().next().value
+      listCache.delete(firstKey)
+    }
+    listCache.set(key, value)
+  }
 
   function invalidateDeckCaches() {
     if (!process.client) return
@@ -460,7 +462,7 @@ export function useEntity<TList, TCreate, TUpdate>(
     snapshot.pageSize = paginated.pageSize.value
     snapshot.totalItems = paginated.totalItems.value
 
-    try { listCache.set(listKey.value, val) } catch {}
+    setCache(listKey.value, val)
   })
 
   // Mirror list error into a single string error state
