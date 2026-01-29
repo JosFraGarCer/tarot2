@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, computed } from 'vue'
+import { reactive, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from '#imports'
 import { useAuth } from '@/composables/auth/useAuth'
@@ -64,7 +64,8 @@ definePageMeta({
 
 const { t } = useI18n()
 const router = useRouter()
-const { login, user, error, loading, isAuthenticated } = useAuth()
+const { login, error, loading, isAuthenticated } = useAuth()
+const toast = useToast()
 
 const form = reactive({
   identifier: '',
@@ -87,8 +88,8 @@ async function handleSubmit() {
 
   try {
     await login(form.identifier, form.password)
-  } catch (err) {
-    console.warn('Login failed:', err)
+  } catch {
+    toast.add({ title: t('errors.loginFailed'), color: 'error' })
   }
 }
 </script>

@@ -752,7 +752,7 @@ function tt(key: string, fallback: string): string {
 }
 
 function resolveApiBase(): string | undefined {
-  if (!process.server) return undefined
+  if (!import.meta.server) return undefined
   const url = useRequestURL()
   return `${url.origin}/api`
 }

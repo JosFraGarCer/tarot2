@@ -1,6 +1,8 @@
 // app/utils/status.ts
 // /app/utils/status.ts
+// This module delegates to badges.ts for unified status handling
 import type { CoreCardStatus } from '@/types/entities'
+import { statusColor, type BadgeResult } from './badges'
 
 type StatusMeta = { labelKey: string; color: 'neutral'|'primary'|'warning'|'success'|'error'; variant: 'subtle'|'soft'|'outline' }
 
@@ -25,3 +27,7 @@ export function useCardStatus() {
   const variant = (s?: CoreCardStatus) => meta(s).variant
   return { options, labelKey, color, variant }
 }
+
+// Re-export from badges.ts for unified usage
+export { statusColor }
+export type { BadgeResult }

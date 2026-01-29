@@ -1,5 +1,6 @@
 // shared/schemas/user.ts
 import { z } from 'zod'
+import { coerceBoolean } from './common'
 
 // User status enum
 export const userStatusEnum = z.enum([
@@ -17,7 +18,7 @@ export const userQuerySchema = z.object({
   q: z.string().optional(),
   search: z.string().optional(),
   status: userStatusEnum.optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_active: coerceBoolean.optional(),
   role_id: z.coerce.number().int().optional(),
   sort: z.enum([
     'username',

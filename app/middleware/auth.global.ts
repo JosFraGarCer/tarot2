@@ -1,14 +1,15 @@
 // app/middleware/auth.global.ts
 import { defineNuxtRouteMiddleware, navigateTo } from '#app'
 import { useUserStore } from '~/stores/user'
+import { useAuthRoles } from '~/composables/auth/useAuthRoles'
+import { authConfig, isPublicRoute, canAccessPath } from '~/config/auth.config'
 
 /**
  * Middleware global de autenticación y control de acceso
  * - Protege rutas privadas
  * - Redirige según rol o permisos
+ * - Configuración centralizada en auth.config.ts
  */
-const PUBLIC_ROUTES = ['/', '/login']
-
 export default defineNuxtRouteMiddleware(async (to) => {
   const store = useUserStore()
 
@@ -22,47 +23,32 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   const user = store.user
-  const isPublic = PUBLIC_ROUTES.includes(to.path)
+  const isPublic = isPublicRoute(to.path)
 
   // 1️⃣ Invitado → solo público
   if (!user && !isPublic) {
-    return navigateTo('/login')
+    return navigateTo(authConfig.redirectAfterLogout)
   }
 
   // 2️⃣ Logueado → no puede volver a login
   if (user && to.path === '/login') {
-    return navigateTo('/user')
+    return navigateTo(authConfig.redirectAfterLogin)
   }
 
-  // 3️⃣ Determinar rol y permisos
-  const role = user?.roles?.[0]?.name?.toLowerCase?.() || ''
-  const perms = user?.permissions || {}
+  // 3️⃣ Determinar rol y permisos usando composable
+  const { isAdmin, isStaff, isUser } = useAuthRoles()
 
-  const isAdmin =
-    role === 'admin' ||
-    perms.canManageUsers ||
-    perms.canAccessAdmin
-
-  const isStaff =
-    role === 'staff' ||
-    perms.canEditContent ||
-    perms.canReview ||
-    perms.canTranslate
-
-  // 4️⃣ Reglas de acceso
-  if (isAdmin) {
-    // ✅ Admin o manager puede ir a cualquier lado
-    return
-  }
-
-  if (isStaff) {
-    // 👷 Staff puede acceder a /manage o /user
-    if (to.path.startsWith('/admin')) return navigateTo('/manage')
-    return
-  }
-
-  // 👤 Usuario normal: solo /user
-  if (user && !to.path.startsWith('/user')) {
-    return navigateTo('/user')
+  // 4️⃣ Reglas de acceso basadas en configuración
+  if (!canAccessPath(to.path, isAdmin.value, isStaff.value, isUser.value)) {
+    // Redirect según rol
+    if (isAdmin.value) {
+      return // Admin puede acceder a todo
+    }
+    if (isStaff.value && to.path.startsWith('/admin')) {
+      return navigateTo(authConfig.adminRedirect)
+    }
+    if (isUser.value && !to.path.startsWith('/user')) {
+      return navigateTo(authConfig.redirectAfterLogin)
+    }
   }
 })

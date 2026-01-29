@@ -37,12 +37,22 @@ export const vCan: ObjectDirective = {
     const { keys, mode } = evaluate(binding)
     const store = useUserStore()
 
-    watchEffect(() => {
+    const cleanup = watchEffect(() => {
       // 💡 accedemos al usuario para reactividad completa
       const _user = store.user
       const allowed = keys.length ? keys.some((key) => store.hasPermission(key)) : false
       apply(el as HTMLElement, allowed, mode)
     })
+
+    // Cleanup when element is unmounted to prevent memory leaks
+    el.__vCanCleanup = cleanup
+  },
+  unmounted(el) {
+    // Cleanup watchEffect to prevent memory leaks
+    if (el.__vCanCleanup && typeof el.__vCanCleanup === 'function') {
+      el.__vCanCleanup()
+    }
+    delete el.__vCanCleanup
   },
 }
 

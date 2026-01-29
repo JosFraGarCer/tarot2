@@ -1,6 +1,6 @@
 // shared/schemas/entities/world-card.ts
 import { z } from 'zod'
-import { translationFields, languageCodeWithDefault, effectsSchema, cardStatusSchema } from '../common'
+import { translationFields, languageCodeWithDefault, effectsSchema, cardStatusSchema, coerceBoolean } from '../common'
 
 // Schema completo para WorldCard
 export const worldCardSchema = z.object({
@@ -66,7 +66,7 @@ export const worldCardQuerySchema = z.object({
   search: z.string().min(1).max(150).optional(),
   q: z.string().min(1).max(150).optional(),
   status: z.string().optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_active: coerceBoolean.optional(),
   created_by: z.coerce.number().int().optional(),
   world_id: z.coerce.number().int().optional(),
   base_card_id: z.coerce.number().int().optional(),

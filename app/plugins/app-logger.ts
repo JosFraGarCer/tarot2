@@ -1,50 +1,53 @@
 // app/plugins/app-logger.ts
-import type { Logger as PinoLogger } from 'pino'
+
+interface BaseLoggerBindings {
+  [key: string]: unknown
+}
 
 interface BaseLogger {
-  debug: (metaOrMessage?: any, maybeMessage?: string) => void
-  info: (metaOrMessage?: any, maybeMessage?: string) => void
-  warn: (metaOrMessage?: any, maybeMessage?: string) => void
-  error: (metaOrMessage?: any, maybeMessage?: string) => void
-  child?: (bindings: Record<string, any>) => BaseLogger
+  debug: (metaOrMessage?: unknown, maybeMessage?: string) => void
+  info: (metaOrMessage?: unknown, maybeMessage?: string) => void
+  warn: (metaOrMessage?: unknown, maybeMessage?: string) => void
+  error: (metaOrMessage?: unknown, maybeMessage?: string) => void
+  child?: (bindings: BaseLoggerBindings) => BaseLogger
+}
+
+export interface AppLoggerBindings {
+  [key: string]: unknown
 }
 
 export interface AppLogger {
-  debug(message: string, meta?: Record<string, any>): void
-  info(message: string, meta?: Record<string, any>): void
-  warn(message: string, meta?: Record<string, any>): void
-  error(message: string | Error, meta?: Record<string, any>): void
-  child(bindings: Record<string, any>): AppLogger
-}
-
-function isPinoLogger(logger: BaseLogger | PinoLogger): logger is PinoLogger {
-  return typeof (logger as PinoLogger).bindings === 'function'
+  debug(message: string, meta?: AppLoggerBindings): void
+  info(message: string, meta?: AppLoggerBindings): void
+  warn(message: string, meta?: AppLoggerBindings): void
+  error(message: string | Error, meta?: AppLoggerBindings): void
+  child(bindings: AppLoggerBindings): AppLogger
 }
 
 function createConsoleAdapter(): BaseLogger {
   return {
-    debug(metaOrMessage?: any, maybeMessage?: string) {
+    debug(metaOrMessage?: unknown, maybeMessage?: string) {
       if (typeof metaOrMessage === 'string' && maybeMessage === undefined) {
         console.debug(metaOrMessage)
         return
       }
       console.debug(maybeMessage ?? '', metaOrMessage)
     },
-    info(metaOrMessage?: any, maybeMessage?: string) {
+    info(metaOrMessage?: unknown, maybeMessage?: string) {
       if (typeof metaOrMessage === 'string' && maybeMessage === undefined) {
         console.info(metaOrMessage)
         return
       }
       console.info(maybeMessage ?? '', metaOrMessage)
     },
-    warn(metaOrMessage?: any, maybeMessage?: string) {
+    warn(metaOrMessage?: unknown, maybeMessage?: string) {
       if (typeof metaOrMessage === 'string' && maybeMessage === undefined) {
         console.warn(metaOrMessage)
         return
       }
       console.warn(maybeMessage ?? '', metaOrMessage)
     },
-    error(metaOrMessage?: any, maybeMessage?: string) {
+    error(metaOrMessage?: unknown, maybeMessage?: string) {
       if (typeof metaOrMessage === 'string' && maybeMessage === undefined) {
         console.error(metaOrMessage)
         return
@@ -57,9 +60,9 @@ function createConsoleAdapter(): BaseLogger {
   }
 }
 
-function createAdapter(base: BaseLogger, defaultBindings: Record<string, any> = {}): AppLogger {
-  const emit = (level: 'debug' | 'info' | 'warn' | 'error', message: string | Error, meta?: Record<string, any>) => {
-    const payload = { ...defaultBindings, ...(meta ?? {}) }
+function createAdapter(base: BaseLogger, defaultBindings: BaseLoggerBindings = {}): AppLogger {
+  const emit = (level: 'debug' | 'info' | 'warn' | 'error', message: string | Error, meta?: AppLoggerBindings) => {
+    const payload: BaseLoggerBindings = { ...defaultBindings, ...(meta ?? {}) }
     const text = typeof message === 'string' ? message : message?.message ?? String(message)
 
     if (Object.keys(payload).length > 0) {
@@ -83,8 +86,8 @@ function createAdapter(base: BaseLogger, defaultBindings: Record<string, any> = 
     error(message, meta) {
       emit('error', message, meta)
     },
-    child(bindings: Record<string, any>) {
-      const merged = { ...defaultBindings, ...bindings }
+    child(bindings: AppLoggerBindings) {
+      const merged: BaseLoggerBindings = { ...defaultBindings, ...bindings }
       if (typeof base.child === 'function') {
         return createAdapter(base.child(merged), {})
       }
@@ -95,11 +98,11 @@ function createAdapter(base: BaseLogger, defaultBindings: Record<string, any> = 
 
 export default defineNuxtPlugin((nuxtApp) => {
   const getBaseLogger = (): BaseLogger => {
-    if (process.server) {
+    if (import.meta.server) {
       const event = nuxtApp.ssrContext?.event
       const eventLogger = event?.context.logger as BaseLogger | undefined
       if (eventLogger) return eventLogger
-      const globalLogger = (globalThis as any).logger as BaseLogger | undefined
+      const globalLogger = (globalThis as unknown as { logger?: BaseLogger }).logger
       if (globalLogger) return globalLogger
     }
 
@@ -112,16 +115,19 @@ export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.provide('logger', appLogger)
 
   nuxtApp.hook('vue:error', (error, _instance, info) => {
-    appLogger.error(error, { scope: 'vue.error', info })
+    const errorMessage = error instanceof Error ? error : new Error(String(error))
+    appLogger.error(errorMessage, { scope: 'vue.error', info })
   })
 
   nuxtApp.hook('app:error', (error) => {
-    appLogger.error(error, { scope: 'app.error' })
+    const errorMessage = error instanceof Error ? error : new Error(String(error))
+    appLogger.error(errorMessage, { scope: 'app.error' })
   })
 
-  if (process.client) {
+  if (import.meta.client) {
     window.addEventListener('unhandledrejection', (event) => {
-      appLogger.error(event.reason, { scope: 'promise.unhandled' })
+      const errorMessage = event.reason instanceof Error ? event.reason : new Error(String(event.reason))
+      appLogger.error(errorMessage, { scope: 'promise.unhandled' })
     })
   }
 })

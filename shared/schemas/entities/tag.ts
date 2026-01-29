@@ -1,6 +1,6 @@
 // shared/schemas/entities/tag.ts
 import { z } from 'zod'
-import { translationFields, languageCodeWithDefault } from '../common'
+import { baseEntityFields, translationFields, languageCodeWithDefault, cardStatusSchema, coerceBoolean } from '../common'
 
 // Schema completo para Tag
 export const tagSchema = z.object({
@@ -54,7 +54,8 @@ export const tagQuerySchema = z.object({
   q: z.string().min(1).max(150).optional(),
   category: z.string().optional(),
   parent_id: z.coerce.number().int().optional(),
-  is_active: z.coerce.boolean().optional(),
+  parent_only: coerceBoolean.optional(),
+  is_active: coerceBoolean.optional(),
   created_by: z.coerce.number().int().optional(),
   sort: z.enum(['created_at', 'modified_at', 'code', 'category', 'name', 'is_active', 'created_by', 'parent_id']).optional(),
   direction: z.enum(['asc', 'desc']).optional(),
@@ -67,7 +68,7 @@ export const tagQuerySchema = z.object({
 export const tagBatchSchema = z
   .object({
     ids: z.array(z.coerce.number().int()).min(1),
-    is_active: z.coerce.boolean().optional(),
+    is_active: coerceBoolean.optional(),
     category: z.string().optional(),
     parent_id: z.coerce.number().int().nullable().optional(),
     sort: z.coerce.number().int().optional(),

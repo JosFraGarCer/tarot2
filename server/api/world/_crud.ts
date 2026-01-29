@@ -104,13 +104,14 @@ export const worldCrud = createCrudHandlers({
       base = base.where('w.created_by', '=', query.created_by)
     }
 
-    if (tagIds && tagIds.length > 0) {
+    const tagIdsArray = Array.isArray(tagIds) ? tagIds : (tagIds !== undefined ? [tagIds] : [])
+    if (tagIdsArray.length > 0) {
       base = base.where((eb: ExpressionBuilder<DB, any>) => eb.exists(
         eb.selectFrom('tag_links as tl')
           .select(['tl.tag_id'])
           .whereRef('tl.entity_id', '=', 'w.id')
           .where('tl.entity_type', '=', 'world')
-          .where('tl.tag_id', 'in', tagIds as any)
+          .where('tl.tag_id', 'in', tagIdsArray as any)
       ))
     }
 

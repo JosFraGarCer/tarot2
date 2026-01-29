@@ -1,5 +1,8 @@
 // app/utils/userStatus.ts
 // /app/utils/userStatus.ts
+// This module delegates to badges.ts for unified user status handling
+import { userStatusColor, type BadgeResult } from './badges'
+
 export type UserStatusColor = 'neutral' | 'primary' | 'warning' | 'success' | 'error'
 export type UserStatusVariant = 'subtle' | 'soft' | 'outline'
 
@@ -28,10 +31,10 @@ export function userStatusLabelKey(status?: string | null): string {
   return getUserStatusMeta(status)?.labelKey ?? 'domains.user.status'
 }
 
-export function userStatusColor(status?: string | null): UserStatusColor {
-  return getUserStatusMeta(status)?.color ?? 'neutral'
-}
-
 export function userStatusVariant(status?: string | null): UserStatusVariant {
   return getUserStatusMeta(status)?.variant ?? 'subtle'
 }
+
+// Re-export from badges.ts for unified usage
+export { userStatusColor }
+export type { BadgeResult }

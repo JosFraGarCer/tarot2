@@ -120,13 +120,14 @@ export const skillCrud = createCrudHandlers({
       base = base.where('s.facet_id', '=', query.facet_id)
     }
 
-    if (tagIds && tagIds.length > 0) {
+    const tagIdsArray = Array.isArray(tagIds) ? tagIds : (tagIds !== undefined ? [tagIds] : [])
+    if (tagIdsArray.length > 0) {
       base = base.where(sql`exists (
         select 1
         from tag_links tl
         where tl.entity_type = ${'base_skills'}
           and tl.entity_id = s.id
-          and tl.tag_id = any(${tagIds as any})
+          and tl.tag_id = any(${tagIdsArray as any})
       )`)
     }
     if (tagsLower && tagsLower.length > 0) {

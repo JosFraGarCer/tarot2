@@ -1,6 +1,6 @@
 // shared/schemas/entities/base-card.ts
 import { z } from 'zod'
-import { baseEntityFields, translationFields, languageCodeWithDefault, effectsSchema, cardStatusSchema } from '../common'
+import { baseEntityFields, translationFields, languageCodeWithDefault, effectsSchema, cardStatusSchema, coerceBoolean } from '../common'
 
 // Schema completo para BaseCard
 export const baseCardSchema = z.object({
@@ -56,7 +56,8 @@ export const baseCardQuerySchema = z.object({
   search: z.string().min(1).max(150).optional(),
   q: z.string().min(1).max(150).optional(),
   status: z.string().optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_active: coerceBoolean.optional(),
+  tag_ids: z.union([z.coerce.number().int(), z.array(z.coerce.number().int())]).optional(),
   created_by: z.coerce.number().int().optional(),
   card_type_id: z.coerce.number().int().optional(),
   sort: z.enum(['created_at', 'modified_at', 'code', 'status', 'name', 'is_active', 'created_by', 'card_type_id']).optional(),

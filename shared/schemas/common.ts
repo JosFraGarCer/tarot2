@@ -28,6 +28,14 @@ export const languageCodeSchema = z
 
 export const optionalLanguageCodeSchema = languageCodeSchema.optional()
 
+// Helper para coerceBoolean que maneja correctamente 'true'/'false' strings
+// z.coerce.boolean() convierte cualquier string no vacío a true, incluyendo 'false'
+export const coerceBoolean = z.union([
+  z.boolean(),
+  z.literal('true'),
+  z.literal('false'),
+]).transform((val) => val === true || val === 'true')
+
 export const languageCodeWithDefault = (defaultValue = 'en') => 
   languageCodeSchema.default(defaultValue)
 

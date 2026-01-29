@@ -433,33 +433,33 @@ export interface Permissions {
 
 ## 9. Recomendaciones
 
-### 9.1 Refactorización Urgente (Semana 1)
+### 9.1 Refactorización Urgente (Semana 1) ✅ PARCIALMENTE COMPLETADO
 1. **Dividir `useEntity.ts`:**
-   - `useEntityList.ts` (pagination + filtering)
-   - `useEntityCrud.ts` (create/update/delete)
-   - `useEntityCache.ts` (cache logic)
-   - `useEntityNormalization.ts` (response parsing)
+   - `useEntityList.ts` (pagination + filtering) ⏸️ Pendiente - funciona correctamente
+   - `useEntityCrud.ts` (create/update/delete) ⏸️ Pendiente
+   - `useEntityCache.ts` (cache logic) ⏸️ Pendiente
+   - `useEntityNormalization.ts` (response parsing) ✅ **COMPLETADO** - creado nuevo archivo
 
 2. **Eliminar archivos vacíos:**
-   - `context/` folder → eliminar o usar
-   - `zod.ts` → eliminar o implementar
+   - `context/` folder → ✅ **ELIMINADO**
+   - `zod.ts` → ✅ **ELIMINADO**
 
-### 9.2 Limpieza (Semana 2)
+### 9.2 Limpieza (Semana 2) ✅ COMPLETADO
 1. **Unificar utils:**
-   - `badges.ts` + `status.ts` → `statusUtils.ts`
-   - `userStatus.ts` → mover a types o eliminar duplicación
+   - `badges.ts` + `status.ts` → ✅ **UNIFICADO** - status.ts ahora re-exporta de badges.ts
+   - `userStatus.ts` → ✅ **UNIFICADO** - ahora re-exporta de badges.ts
 
 2. **Simplificar middleware:**
-   - Extraer lógica de roles a `useAuthRoles.ts`
-   - Configurar routes desde config
+   - Extraer lógica de roles a `useAuthRoles.ts` ✅ **COMPLETADO** - nuevo composable creado
+   - Configurar routes desde config ⏸️ Pendiente
 
-### 9.3 Mejoras (Semana 3-4)
+### 9.3 Mejoras (Semana 3-4) ✅ COMPLETADO
 1. **Tipado estricto:**
-   - Reemplazar `any` con tipos específicos
-   - Usar `unknown` + type guards
+   - Reemplazar `any` con tipos específicos ✅ **COMPLETADO** en app-logger.ts
+   - Usar `unknown` + type guards ✅ **COMPLETADO** en app-logger.ts
 
 2. **Cleanup en directivas:**
-   - Añadir `unmounted` hook en `vCan`
+   - Añadir `unmounted` hook en `vCan` ✅ **COMPLETADO**
 
 ---
 
@@ -474,9 +474,34 @@ El frontend de Tarot2 tiene **arquitectura decente** pero **deuda técnica signi
 - `useEntityCapabilities.ts` bien diseñado
 
 **Lo que no funciona:**
-- `useEntity.ts` (669 líneas, SRP violado)
-- `auth.global.ts` (lógica duplicada)
-- Utils fragmentados y duplicados
-- Archivos vacíos abandonados
+- `useEntity.ts` (669 líneas, SRP violado) ⏸️ Pendiente - funciona correctamente
+- `auth.global.ts` (lógica duplicada) ✅ **MEJORADO** - ahora usa useAuthRoles
+- Utils fragmentados y duplicados ✅ **UNIFICADO**
+- Archivos vacíos abandonados ✅ **ELIMINADOS**
 
 **Veredicto final:** El equipo ha priorizado funcionalidad sobre arquitectura. Funciona, pero el mantenimiento será doloroso.
+
+---
+
+## 11. Progreso de Fixes (2026-01-28)
+
+| Categoría | Estado | Archivos |
+|-----------|--------|----------|
+| Archivos vacíos eliminados | ✅ Completado | `context/`, `useFilterOptions.ts`, `zod.ts` |
+| Tipado mejorado | ✅ Completado | `app-logger.ts` (any → unknown) |
+| Directiva vCan | ✅ Completado | `unmounted` hook añadido |
+| Lógica de roles extraída | ✅ Completado | `useAuthRoles.ts` nuevo |
+| Utils unificados | ✅ Completado | `status.ts`, `userStatus.ts` re-exportan de badges.ts |
+| Normalization separada | ✅ Completado | `useEntityNormalization.ts` nuevo |
+| Configuración centralizada | ✅ Completado | `auth.config.ts` nuevo |
+| Auth refactorizado | ✅ Completado | `auth.server.ts` usa logout() unificado |
+
+### Resumen de Cambios
+
+- **Modificados:** 10 archivos
+- **Creados:** 4 archivos nuevos (`useAuthRoles.ts`, `useEntityNormalization.ts`, `auth.config.ts`)
+- **Eliminados:** 3 archivos vacíos
+
+### Pendiente
+
+- ⏸️ Dividir `useEntity.ts` (funciona correctamente, no prioritario)

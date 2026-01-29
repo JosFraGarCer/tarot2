@@ -57,6 +57,7 @@
           :items="isActiveOptions"
           size="xs"
           value-key="value"
+          option-attribute="label"
           class="w-40"
           :placeholder="activePlaceholder"
         />
@@ -128,11 +129,13 @@ const allowCardType = computed(() => {
 })
 
 function resolveKey(name: FilterKey): string {
-  const raw = activeConfig.value?.[name]
+  const config = activeConfig.value
+  if (!config) return name
+  const raw = config[name]
   if (typeof raw === 'string' && raw.length) return raw
   if (raw === true) return name
   if (name === 'is_active') {
-    const legacy = (activeConfig.value as any)?.isActive
+    const legacy = (config as any)?.isActive
     if (legacy) return 'is_active'
   }
   return name
@@ -183,9 +186,15 @@ function coerceArrayIds(list: any[]): number[] {
       }
       return item
     })
-    .map((v) => (typeof v === 'string' && v !== '' ? Number(v) : v))
-    .map((v) => (typeof v === 'number' && Number.isFinite(v) ? v : (typeof v === 'string' ? Number(v) : v)))
-    .filter((v) => typeof v === 'number' && Number.isFinite(v)) as number[]
+    .map((v) => {
+      if (typeof v === 'number' && Number.isFinite(v)) return v
+      if (typeof v === 'string' && v !== '') {
+        const num = Number(v)
+        return Number.isFinite(num) ? num : undefined
+      }
+      return undefined
+    })
+    .filter((v): v is number => v !== undefined) as number[]
 }
 
 function coerceSingleId(value: any) {
@@ -197,8 +206,10 @@ function coerceSingleId(value: any) {
 
 function coerceBoolean(value: any) {
   if (value === null || value === undefined || value === '' || value === 'all') return null
-  if (value === true || value === 'true') return true
-  if (value === false || value === 'false') return false
+  // Extraer valor si es un objeto { label, value }
+  const candidate = typeof value === 'object' ? (value?.value ?? value?.id) : value
+  if (candidate === true || candidate === 'true') return true
+  if (candidate === false || candidate === 'false') return false
   return null
 }
 
@@ -269,13 +280,29 @@ const typeValue = computed({
 })
 
 const statusValue = useFilterBinding(statusKey)
-const isActiveValue = useFilterBinding(isActiveKey, {
-  coerce: coerceBoolean,
-  normalize: (value: any) => {
-    if (value === true) return 'true'
-    if (value === false) return 'false'
-    return 'all'
+const isActiveValue = computed({
+  get() {
+    const key = isActiveKey.value
+    if (!key) return null
+    const raw = props.crud.filters?.[key]
+    // Encontrar el objeto correspondiente en isActiveOptions
+    const options = isActiveOptions.value
+    const stringValue = raw === true || raw === 'true' ? 'true' : raw === false || raw === 'false' ? 'false' : 'all'
+    return options.find(opt => opt.value === stringValue) || null
   },
+  set(value: any) {
+    const key = isActiveKey.value
+    if (!key || !props.crud.filters) return
+    // value viene como objeto { label, value } de USelectMenu
+    const candidate = typeof value === 'object' ? (value?.value ?? value?.id) : value
+    if (candidate === true || candidate === 'true') {
+      props.crud.filters[key] = true
+    } else if (candidate === false || candidate === 'false') {
+      props.crud.filters[key] = false
+    } else {
+      props.crud.filters[key] = null
+    }
+  }
 })
 
 const parentValue = useFilterBinding(parentKey, {
@@ -367,45 +394,58 @@ const rolesLoaded = ref(false)
 const arcanaLoaded = ref(false)
 const facetsLoaded = ref(false)
 const parentLoaded = ref(false)
+const pendingFetches = new Set<string>()
 
-watch(() => show.value.tags, (enabled) => {
-  if (enabled && !tagsLoaded.value) {
+watch(() => show.value.tags, async (enabled) => {
+  if (enabled && !pendingFetches.has('tags')) {
+    pendingFetches.add('tags')
     tagsLoaded.value = true
-    fetchTags()
+    await fetchTags()
+    pendingFetches.delete('tags')
   }
 }, { immediate: true })
 
-watch(() => show.value.type, (enabled) => {
+watch(() => show.value.type, async (enabled) => {
   if (!enabled) return
   if (typeIsRole.value) {
-    if (!rolesLoaded.value) {
+    if (!pendingFetches.has('roles')) {
+      pendingFetches.add('roles')
       rolesLoaded.value = true
-      fetchRoles()
+      await fetchRoles()
+      pendingFetches.delete('roles')
     }
     return
   }
-  if (!cardTypesLoaded.value) {
+  if (!pendingFetches.has('cardTypes')) {
+    pendingFetches.add('cardTypes')
     cardTypesLoaded.value = true
-    fetchCardTypes()
+    await fetchCardTypes()
+    pendingFetches.delete('cardTypes')
   }
 }, { immediate: true })
 
-watch(() => ({ enabled: show.value.facet, key: facetKey.value }), ({ enabled, key }) => {
+watch(() => ({ enabled: show.value.facet, key: facetKey.value }), async ({ enabled, key }) => {
   if (!enabled || !key) return
-  if (key.includes('arcana') && !arcanaLoaded.value) {
+  if (key.includes('arcana') && !pendingFetches.has('arcana')) {
+    pendingFetches.add('arcana')
     arcanaLoaded.value = true
-    fetchArcana()
+    await fetchArcana()
+    pendingFetches.delete('arcana')
   }
-  else if (key.includes('facet') && !facetsLoaded.value) {
+  else if (key.includes('facet') && !pendingFetches.has('facets')) {
+    pendingFetches.add('facets')
     facetsLoaded.value = true
-    fetchFacets()
+    await fetchFacets()
+    pendingFetches.delete('facets')
   }
 }, { immediate: true })
 
-watch(() => show.value.parent, (enabled) => {
-  if (enabled && !parentLoaded.value) {
+watch(() => show.value.parent, async (enabled) => {
+  if (enabled && !pendingFetches.has('parent')) {
+    pendingFetches.add('parent')
     parentLoaded.value = true
-    fetchParentTags()
+    await fetchParentTags()
+    pendingFetches.delete('parent')
   }
 }, { immediate: true })
 

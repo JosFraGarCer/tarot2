@@ -1,210 +1,13 @@
 // app/types/entities.ts
 // app/types/entities/entities.ts
 // /types/entities.ts
-// Tipos cliente optimizados para entidades del sistema (TTRPG Cards)
+// ⚠️ DEPRECADO: Este archivo ahora re-exporta desde entityTypes.ts
+// La fuente de verdad es shared/schemas/
 
-//
-// 🧩 Tipos base reutilizables
-//
+// Re-export desde entityTypes.ts (que viene de shared/schemas)
+export * from './entityTypes'
 
-export type CoreCardStatus =
-  | 'draft'
-  | 'review'
-  | 'pending_review'
-  | 'changes_requested'
-  | 'translation_review'
-  | 'approved'
-  | 'published'
-  | 'rejected'
-  | 'archived'
-
-export interface BaseEntity {
-  id: number
-  code: string
-  sort?: number | null
-  image?: string | null
-  is_active: boolean
-  created_at: string
-  modified_at: string
-  status: CoreCardStatus
-  created_by?: number | null
-  content_version_id?: number | null
-}
-
-export interface WithTranslation {
-  name?: string | null
-  short_text?: string | null
-  description?: string | null
-  language_code?: string | null
-}
-
-export interface WithEffects {
-  legacy_effects?: boolean
-  effects?: Record<string, unknown>[] | null
-}
-
-//
-// 🧠 Entidad base con idioma
-//
-export type CoreCard = BaseEntity & WithTranslation
-export type CoreCardList = BaseEntity & Partial<WithTranslation> & Partial<WithEffects>
-
-//
-// 🏗️ Utilitarios CRUD
-//
-export type CoreCardCreate =
-  Omit<BaseEntity, 'id' | 'created_at' | 'modified_at' | 'is_active' | 'status'> &
-  { is_active?: boolean; status?: CoreCardStatus } &
-  Required<Pick<WithTranslation, 'name'>> &
-  Partial<WithTranslation> &
-  Partial<WithEffects>
-
-export type CoreCardUpdate = Partial<Omit<CoreCardCreate, 'name'>> &
-  Pick<CoreCardCreate, 'name'>
-
-//
-// 🎴 Entidades concretas
-//
-
-// Arcana
-export type Arcana = CoreCard
-export type ArcanaCreate = CoreCardCreate
-export type ArcanaUpdate = CoreCardUpdate
-export type ArcanaList = CoreCardList
-
-// CardType
-export type CardType = CoreCard
-export type CardTypeCreate = CoreCardCreate
-export type CardTypeUpdate = CoreCardUpdate
-export type CardTypeList = CoreCardList
-
-// World
-export type World = CoreCard
-export type WorldCreate = CoreCardCreate
-export type WorldUpdate = CoreCardUpdate
-export type WorldList = CoreCardList
-
-// Facet
-export interface Facet extends CoreCard, WithEffects {
-  arcana_id: number
-  arcana_is_active?: boolean | null
-}
-export type FacetCreate = CoreCardCreate & {
-  arcana_id: number
-  arcana_is_active?: boolean | null
-}
-export type FacetUpdate = Partial<FacetCreate>
-export interface FacetList extends Facet {
-  arcana_code?: string | null
-  arcana_name?: string | null
-  arcana_language_code?: string | null
-}
-
-// BaseCard
-export interface BaseCard extends CoreCard, WithEffects {
-  card_type_id: number
-}
-export type BaseCardCreate = CoreCardCreate & {
-  card_type_id: number
-}
-export type BaseCardUpdate = Partial<BaseCardCreate>
-export interface BaseCardList extends BaseCard {
-  card_type_code?: string | null
-  card_type_name?: string | null
-  card_type_language_code?: string | null
-}
-
-// Skill
-export interface Skill extends CoreCard, WithEffects {
-  facet_id: number
-}
-export type SkillCreate = CoreCardCreate & {
-  facet_id: number
-}
-export type SkillUpdate = Partial<SkillCreate>
-export interface SkillList extends Skill {
-  facet_code?: string | null
-  facet_name?: string | null
-  facet_language_code?: string | null
-}
-
-export interface WorldCard extends Partial<WithTranslation>, WithEffects {
-  id: number
-  world_id: number
-  base_card_id: number | null
-  code: string
-  is_override: boolean | null
-  image: string | null
-}
-
-// Tag minimal types
-export interface Tag {
-  id: number
-  code: string
-  category: string
-  name?: string | null
-  short_text?: string | null
-  description?: string | null
-  parent_id?: number | null
-  is_active?: boolean
-  sort?: number
-  language_code?: string | null
-  created_at?: string
-  modified_at?: string
-  created_by?: number | null
-  updated_by?: number | null
-  created_by_user?: UserSummary
-  updated_by_user?: UserSummary
-}
-
-export interface TagCreate {
-  code: string
-  category: string
-  name: string
-  short_text?: string | null
-  description?: string | null
-  parent_id?: number | null
-  is_active?: boolean
-  sort?: number
-}
-
-export interface TagUpdate {
-  code?: string
-  category?: string
-  name: string
-  short_text?: string | null
-  description?: string | null
-  parent_id?: number | null
-  is_active?: boolean
-  sort?: number | null
-}
-
-export interface TagImportTranslation {
-  name: string
-  short_text?: string
-  description?: string
-}
-
-export interface TagImportItem {
-  code: string
-  category: string
-  sort?: number
-  is_active?: boolean
-  parent_code?: string
-  translations: Record<string, TagImportTranslation>
-}
-
-export interface TagImportPayload {
-  tags: TagImportItem[]
-}
-
-// Users
-export interface UserRole {
-  id: number
-  name: string
-  description: string | null
-}
-
+// Tipos específicos de UI (no duplicados en shared/schemas)
 export interface UserSummary {
   id: number
   email: string
@@ -214,6 +17,12 @@ export interface UserSummary {
   modified_at: string
   roles: UserRole[]
   image: string | null
+}
+
+export interface UserRole {
+  id: number
+  name: string
+  description: string | null
 }
 
 export interface CreateUserPayload {
@@ -241,7 +50,7 @@ export interface UpdateCurrentUserPayload {
   image?: string | null
 }
 
-// Import payloads for base cards (used by import UI)
+// Import payloads
 export interface BaseCardImportTranslation {
   name: string
   short_text?: string | null
@@ -267,7 +76,6 @@ export interface BaseCardImportResponse {
   }
 }
 
-// Import payloads for skills
 export interface SkillImportTranslation {
   name: string
   short_text?: string | null
@@ -292,4 +100,23 @@ export interface SkillImportResponse {
     created: number
     errors: { code: string; message: string }[]
   }
+}
+
+export interface TagImportTranslation {
+  name: string
+  short_text?: string
+  description?: string
+}
+
+export interface TagImportItem {
+  code: string
+  category: string
+  sort?: number
+  is_active?: boolean
+  parent_code?: string
+  translations: Record<string, TagImportTranslation>
+}
+
+export interface TagImportPayload {
+  tags: TagImportItem[]
 }

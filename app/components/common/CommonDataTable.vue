@@ -134,9 +134,10 @@ import PaginationControls from '~/components/common/PaginationControls.vue'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 import { useListMeta, type ListMeta } from '~/composables/common/useListMeta'
 import { useEntityCapabilities, type EntityCapabilities } from '~/composables/common/useEntityCapabilities'
+import type { EntityRow } from '~/types/entityTypes'
 
-export interface ColumnDefinition<T = any> {
-  key: string
+export interface ColumnDefinition<T = EntityRow> {
+  key: keyof T | string
   label?: string
   sortable?: boolean
   width?: string
@@ -146,13 +147,13 @@ export interface ColumnDefinition<T = any> {
 }
 
 const props = withDefaults(defineProps<{
-  items: any[]
-  columns: ColumnDefinition[]
+  items: EntityRow[]
+  columns: ColumnDefinition<EntityRow>[]
   meta?: Partial<ListMeta> | null
   loading?: boolean
   selectable?: boolean
   selectedKeys?: Array<string | number>
-  rowKey?: string
+  rowKey?: keyof EntityRow | string
   entityKind?: string | null
   capabilities?: Partial<EntityCapabilities> | null
   density?: 'comfortable' | 'regular' | 'compact'
@@ -162,10 +163,10 @@ const props = withDefaults(defineProps<{
   sort?: TableSort | null
   pageSizeItems?: Array<{ label: string; value: number }>
 }>(), {
-  items: () => [],
-  columns: () => [],
+  items: () => [] as EntityRow[],
+  columns: () => [] as ColumnDefinition<EntityRow>[],
   selectable: false,
-  selectedKeys: () => [],
+  selectedKeys: () => [] as Array<string | number>,
   rowKey: 'id',
   entityKind: null,
   capabilities: null,
@@ -186,8 +187,8 @@ const emit = defineEmits<{
   (e: 'update:page', value: number): void
   (e: 'update:pageSize', value: number): void
   (e: 'update:sort', value: TableSort): void
-  (e: 'row:click', value: any): void
-  (e: 'row:dblclick', value: any): void
+  (e: 'row:click', value: EntityRow): void
+  (e: 'row:dblclick', value: EntityRow): void
 }>()
 
 const slots = useSlots()

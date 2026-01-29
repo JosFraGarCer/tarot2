@@ -1,6 +1,6 @@
 // shared/schemas/entities/arcana.ts
 import { z } from 'zod'
-import { baseEntityFields, translationFields, languageCodeWithDefault, cardStatusSchema } from '../common'
+import { baseEntityFields, translationFields, languageCodeWithDefault, cardStatusSchema, coerceBoolean } from '../common'
 
 // Schema completo para Arcana (unificado frontend/backend)
 export const arcanaSchema = z.object({
@@ -47,7 +47,8 @@ export const arcanaQuerySchema = z.object({
   search: z.string().min(1).max(120).optional(),
   q: z.string().min(1).max(120).optional(),
   status: z.string().optional(),
-  is_active: z.coerce.boolean().optional(),
+  is_active: coerceBoolean.optional(),
+  tag_ids: z.union([z.coerce.number().int(), z.array(z.coerce.number().int())]).optional(),
   created_by: z.coerce.number().int().optional(),
   sort: z.enum(['created_at', 'modified_at', 'code', 'status', 'name', 'is_active', 'created_by']).optional(),
   direction: z.enum(['asc', 'desc']).optional(),

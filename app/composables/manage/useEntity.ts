@@ -5,11 +5,6 @@ Generic SSR-safe CRUD composable for any entity.
   - $fetch for fetchOne/create/update/remove
   - Reactive filters + pagination + i18n lang param
   - Optional Zod validation for create/update
-  
-  NOTE: Utilities moved to separate files for maintainability:
-  - useEntityNormalization.ts: API response normalization
-  - useEntityErrors.ts: Error handling
-  - useEntityFilters.ts: Filter utilities
 */
 
 import { ref, computed, watch, watchEffect, reactive, onMounted, onUnmounted, shallowRef } from 'vue'
@@ -18,12 +13,25 @@ import type { z } from 'zod'
 import { useAsyncData, useI18n } from '#imports'
 import { useApiFetch, clearApiFetchCache } from '@/utils/fetcher'
 import { usePaginatedList } from '~/composables/manage/usePaginatedList'
-import { normalizeListResponse, type ApiMeta, type NormalizedListResponse } from './useEntityNormalization'
-
 const $fetch = useApiFetch
 
+// API response contract
+interface ApiMeta {
+  page?: number
+  pageSize?: number
+  totalItems?: number
+  count?: number
+  search?: string
+}
+
+interface ApiResponse<T> {
+  success: boolean
+  data: T
+  meta?: ApiMeta
+}
+
 // Options accepted by the generic entity composable
-export type EntityFilterConfig = Record<string, string | true>
+export type EntityFilterConfig = Record<string, string | boolean | undefined | true>
 
 export interface EntityOptions<TList, TCreate, TUpdate> {
   resourcePath: string
@@ -93,6 +101,30 @@ function normalizeFilters(obj: Record<string, any>) {
     if (key === 'search' && typeof value !== 'string') continue
     if (value === '' || value === null || value === undefined || value === 'all') continue
     if (Array.isArray(value) && value.length === 0) continue
+    // is_active: true significa "all", no enviar al backend
+    if (key === 'is_active' && value === true) continue
+    // is_active: false o string se envía al backend
+    if (key === 'is_active') {
+      if (value === false) {
+        out[key] = 'false'
+      } else if (typeof value === 'boolean') {
+        out[key] = value ? 'true' : 'false'
+      } else if (value === 'true' || value === 'false') {
+        out[key] = value
+      } else if (value !== undefined && value !== null) {
+        out[key] = value
+      }
+      continue
+    }
+    // Procesar objetos anidados (ej: { min: 1, max: 10 } → range_min=1, range_max=10)
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      for (const [subKey, subValue] of Object.entries(value)) {
+        if (subValue !== null && subValue !== undefined && subValue !== '') {
+          out[`${key}_${subKey}`] = subValue
+        }
+      }
+      continue
+    }
     out[key] = value
   }
   return out
@@ -112,7 +144,7 @@ function sanitizeInitialFilters(raw: Record<string, any>): Record<string, any> {
   for (const [key, value] of Object.entries(raw)) {
     if (value === true) {
       if (key.endsWith('_ids')) sanitized[key] = []
-      else sanitized[key] = undefined
+      else sanitized[key] = true // is_active se inicializa como true (mostrar "all" en UI)
       continue
     }
     sanitized[key] = value

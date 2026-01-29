@@ -181,6 +181,7 @@ const entityConfigs: Record<EntityKey, {
 
 // Acción crear
 function onCreateEntity(type: EntityKey) {
-  console.log('Create new entity:', type)
+  const toast = useToast()
+  toast.add({ title: t('features.entity.createTitle'), description: t(`entities.${type}.createDescription`), color: 'primary' })
 }
 </script>

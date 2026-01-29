@@ -119,13 +119,14 @@ export const baseCardCrud = createCrudHandlers({
       base = base.where('c.card_type_id', '=', query.card_type_id)
     }
 
-    if (tagIds && tagIds.length > 0) {
+    const tagIdsArray = Array.isArray(tagIds) ? tagIds : (tagIds !== undefined ? [tagIds] : [])
+    if (tagIdsArray.length > 0) {
       base = base.where(sql`exists (
         select 1
         from tag_links tl
         where tl.entity_type = ${'base_card'}
           and tl.entity_id = c.id
-          and tl.tag_id = any(${tagIds as any})
+          and tl.tag_id = any(${tagIdsArray as any})
       )`)
     }
     if (tagsLower && tagsLower.length > 0) {

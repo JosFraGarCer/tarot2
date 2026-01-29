@@ -99,13 +99,14 @@ export const arcanaCrud = createCrudHandlers({
       base = base.where('a.created_by', '=', query.created_by)
     }
 
-    if (tagIds && tagIds.length > 0) {
+    const tagIdsArray = Array.isArray(tagIds) ? tagIds : (tagIds !== undefined ? [tagIds] : [])
+    if (tagIdsArray.length > 0) {
       base = base.where((eb: ExpressionBuilder<DB, any>) => eb.exists(
         eb.selectFrom('tag_links as tl')
           .select(['tl.tag_id'])
           .whereRef('tl.entity_id', '=', 'a.id')
           .where('tl.entity_type', '=', 'arcana')
-          .where('tl.tag_id', 'in', tagIds as any)
+          .where('tl.tag_id', 'in', tagIdsArray as any)
       ))
     }
     if (tagsLower && tagsLower.length > 0) {
@@ -143,6 +144,14 @@ export const arcanaCrud = createCrudHandlers({
           is_active: 'a.is_active',
           created_by: 'a.created_by',
         },
+        applySearch: (qb, term) =>
+          qb.where((eb) =>
+            eb.or([
+              sql`lower(coalesce(t_req_arcana_translations.name, t_en_arcana_translations.name)) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(t_req_arcana_translations.short_text, t_en_arcana_translations.short_text)) ilike ${'%' + term + '%'}`,
+              sql`lower(a.code) ilike ${'%' + term + '%'}`,
+            ]),
+          ),
       },
       transformRows: async (rows, ctx) => {
         // Eager load tags in batch instead of N+1 subqueries

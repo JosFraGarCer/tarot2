@@ -37,12 +37,14 @@ export function useManageFilters(crud: AnyManageCrud, options: ManageFiltersOpti
     if (!filters) return
 
     for (const [key, current] of Object.entries(filters)) {
-      if (current !== true) continue
-      const alias = aliasByApiKey.get(key) ?? key
-      if (multiAliases.has(alias) || key.endsWith('_ids')) {
-        filters[key] = []
-      } else {
-        filters[key] = undefined
+      // Inicializar tanto `true` como `undefined`
+      if (current === true || current === undefined) {
+        const alias = aliasByApiKey.get(key) ?? key
+        if (multiAliases.has(alias) || key.endsWith('_ids')) {
+          filters[key] = []
+        } else {
+          filters[key] = undefined
+        }
       }
     }
   }

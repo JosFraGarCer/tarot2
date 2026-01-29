@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
     if (query.is_active !== undefined) base = base.where('t.is_active', '=', query.is_active)
     if (query.category !== undefined) base = base.where('t.category', '=', query.category)
     if (query.parent_id !== undefined) base = base.where('t.parent_id', '=', query.parent_id)
+    if (query.parent_only === true) base = base.where('t.parent_id', 'is', null)
 
     const {
       query: filtered,
