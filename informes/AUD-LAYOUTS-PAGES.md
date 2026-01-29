@@ -1,7 +1,8 @@
-# Auditoría de Layouts y Pages - Tarot2 (v1.0)
+# Auditoría de Layouts y Pages - Tarot2 (v1.1)
 
 **Auditor:** Senior Developer (Modo Hater)
 **Fecha:** 2026-01-28
+**Última actualización:** 2026-01-29
 **Ámbito:** `app/layouts`, `app/pages`
 
 ---
@@ -12,10 +13,11 @@ He auditado la capa de layouts y páginas de Tarot2. El verdict es mixto: **exis
 
 **Hallazgos:**
 - ✅ Layout simple y efectivo
-- ⚠️ `user.vue` (545 líneas) es un "God Page"
-- ⚠️ `manage.vue` (187 líneas) con lógica duplicada
+- ⚠️ `user.vue` es un "God Page" (ha crecido)
+- ⚠️ `manage.vue` con lógica duplicada
 - ⚠️ `login.vue` bien estructurado pero con console.warn
 - ⚠️ Páginas de admin fragmentadas
+- ✅ `userDisplay.ts` creado para helpers de usuario
 
 ---
 
@@ -161,7 +163,7 @@ const entityConfigs: Record<EntityKey, {...}> = {
 
 ---
 
-### 3.4 `user.vue` (545 líneas) - 💀 GOD PAGE
+### 3.4 `user.vue` - 💀 GOD PAGE
 
 **Esta es la página más grande y problemática del frontend.**
 
@@ -184,13 +186,17 @@ function formatDate(date: string) { ... }
    - Date formatting
 
 2. **Helpers anidados** que deberían ser utilities:
-   - `statusColor()` (línea ~300)
-   - `statusLabel()` (línea ~310)
-   - `formatDate()` (línea ~320)
+   - `statusColor()` 
+   - `statusLabel()` 
+   - `formatDate()` 
 
 3. **Lógica de UI mezclada con lógica de negocio**
 
-**Veredicto:** Refactorización urgente. Dividir en sub-componentes.
+**Lo que está bien:**
+- ✅ `userDisplay.ts` creado con helpers extraídos
+- ✅ `statusColor`, `statusLabel`, `formatDate` movidos a utilities
+
+**Veredicto:** Helpers extraídos, pero sigue siendo grande. Refactorización pendiente.
 
 ---
 
@@ -230,14 +236,15 @@ import { useArcanaCrud } from '~/composables/manage/useArcana'
 // ... 5 más
 ```
 
+**Nota:** Los imports estáticos siguen presentes. Dynamic imports pendiente.
+
 ### 4.4 Console Statements
 ```typescript
 // login.vue línea 91
 console.warn('Login failed:', err)
-
-// manage.vue línea 184
-console.log('Create new entity:', type)
 ```
+
+**Nota:** El `console.warn` fue reemplazado por toast notifications ✅
 
 ---
 
@@ -273,13 +280,13 @@ console.log('Create new entity:', type)
    ```
 
 ### 6.2 Limpieza (Semana 2)
-1. Reemplazar `console.warn` con toast notifications
-2. Implementar `onCreateEntity` en `manage.vue`
-3. Completar `index.vue` con contenido real
+1. ✅ Reemplazar `console.warn` con toast notifications (COMPLETADO)
+2. ✅ Implementar `onCreateEntity` en `manage.vue` (COMPLETADO)
+3. ⏸️ Completar `index.vue` con contenido real (pendiente)
 
 ### 6.3 i18n (Semana 3)
-1. Agregar i18n a `index.vue`
-2. Verificar todas las páginas para strings hardcoded
+1. ⏸️ Agregar i18n a `index.vue`
+2. ⏸️ Verificar todas las páginas para strings hardcoded
 
 ---
 
@@ -289,16 +296,16 @@ Los layouts están bien, pero las páginas tienen deuda técnica significativa.
 
 **Lo que funciona:**
 - `default.vue` layout simple y efectivo
-- `login.vue` bien estructurado
+- `login.vue` bien estructurado con toast notifications ✅
 - `admin/users.vue` simple y funcional
+- `userDisplay.ts` creado con helpers extraídos ✅
 
 **Lo que no funciona:**
-- `user.vue` (545 líneas, SRP violado)
-- `manage.vue` (imports estáticos excesivos)
-- `index.vue` (placeholder sin desarrollar)
-- Console statements sin manejar
+- `user.vue` (God Page, helpers extraídos pero aún grande) ⏸️ Pendiente
+- `manage.vue` (imports estáticos excesivos) ⏸️ Pendiente
+- `index.vue` (placeholder sin desarrollar) ⏸️ Pendiente
 
-**Veredicto final:** Pages necesitan refactorización, especialmente `user.vue`.
+**Veredicto final:** Pages necesitan refactorización, especialmente `user.vue`. Helpers extraídos a `userDisplay.ts`.
 
 ---
 
@@ -309,8 +316,9 @@ Los layouts están bien, pero las páginas tienen deuda técnica significativa.
 | 🔴 Alta | Dividir en sub-componentes | `user.vue` | ⏸️ Pendiente |
 | 🔴 Alta | Dynamic imports | `manage.vue` | ⏸️ Pendiente |
 | 🟡 Media | Completar landing page | `index.vue` | ⏸️ Pendiente |
-| 🟡 Media | Reemplazar console con toast | `login.vue`, `manage.vue` | ✅ **COMPLETADO** |
-| 🟢 Baja | Completar onCreateEntity | `manage.vue` | ✅ **COMPLETADO** |
+| � Baja | Reemplazar console con toast | `login.vue` | ✅ Completado |
+| 🟢 Baja | Extraer helpers | `userDisplay.ts` | ✅ Completado |
+| 🟢 Baja | Implementar onCreateEntity | `manage.vue` | ✅ Completado |
 
 ---
 
@@ -373,8 +381,9 @@ function onCreateEntity(type: EntityKey) {
 ## 10. Archivos Nuevos Creados
 
 - `app/utils/userDisplay.ts` - Utilities de display para usuario
+- `app/utils/objectUtils.ts` - Utilities de manipulación de objetos (compartido)
 
-## 11. Fixes Completados (2026-01-28)
+## 11. Fixes Completados (2026-01-29)
 
 | Fix | Archivo | Estado |
 |-----|---------|--------|
@@ -382,6 +391,7 @@ function onCreateEntity(type: EntityKey) {
 | `console.log` → `toast.add` | `manage.vue` | ✅ |
 | Extraer helpers | `userDisplay.ts` nuevo | ✅ |
 | Variables no usadas | `login.vue` | ✅ |
+| Implementar onCreateEntity | `manage.vue` | ✅ |
 
 ## 12. Pendiente
 

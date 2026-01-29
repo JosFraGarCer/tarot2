@@ -110,5 +110,8 @@ export const baseQueryFields = {
 
 export const baseQuerySchema = z.object(baseQueryFields).transform(withLanguageTransform)
 
+// Pagination schema - parámetros de paginación comunes
+export const paginationSchema = baseQuerySchema
+
 // Tipos para utilidades de consulta
 export type BaseQuery = z.infer<typeof baseQuerySchema>

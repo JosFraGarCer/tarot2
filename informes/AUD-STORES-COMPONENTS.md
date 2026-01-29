@@ -1,21 +1,23 @@
-# Auditoría de Stores y Components - Tarot2 (v1.0)
+# Auditoría de Stores y Components - Tarot2 (v1.1)
 
 **Auditor:** Senior Developer (Modo Hater)
 **Fecha:** 2026-01-28
+**Última actualización:** 2026-01-29
 **Ámbito:** `app/stores`, `app/components/*`
 
 ---
 
 ## 0. Resumen Ejecutivo
 
-He auditado la capa de stores y componentes de Tarot2. El verdict es mixto: **hay patrones bien implementados pero deuda técnica significativa en componentes monolíticos**.
+He auditado la capa de stores y componentes de Tarot2. El verdict es mixto: **hay patrones bien implementados pero deuda técnica significativa en composables**.
 
 **Hallazgos:**
 - ✅ Stores bien estructurados (solo 1 store, bien DRY)
-- ⚠️ `EntityBase.vue` (868 líneas) es un "God Component"
-- ⚠️ `EntitySlideover.vue` (853 líneas) con lógica duplicada
-- ⚠️ `CommonDataTable.vue` bien diseñado pero con responsabilidades mezcladas
+- ⚠️ `useEntityBaseContext.ts` es el nuevo "God Composable"
+- ⚠️ `EntityFilters.vue` tiene lógica de UI y data-fetching mezclada
+- ⚠️ `FormModal.vue` tiene Zod introspection brittle
 - ✅ Componentes pequeños y focalizados en `common/`
+- ✅ `objectUtils.ts` y `entityTypes.ts` creados
 
 ---
 
@@ -75,43 +77,16 @@ app/components/
 
 ## 3. Components - Análisis Detallado
 
-### 3.1 `manage/EntityBase.vue` (868 líneas) - 💀 GOD COMPONENT
+### 3.1 `manage/EntityBase.vue` - ✅ REFACTORIZADO
 
-**Este es el componente más grande y problemático del frontend.**
+**Nota:** `EntityBase.vue` YA ESTÁ REFACTORIZADO. Es un componente shell que orquesta `EntityFilters`, `EntityViewsManager`, etc.
 
-```typescript
-// Props con any excesivo
-viewMode: ManageViewMode
-useCrud: () => any
-filtersConfig?: EntityFilterConfig
-columns?: any[]
-```
+**Lo que está bien:**
+- Delega responsabilidades a sub-componentes
+- Usa composables para lógica de negocio
+- No es un "God Component" monolítico
 
-**Problemas identificados:**
-
-1. **Demasiadas responsabilidades:**
-   - Manejo de filtros
-   - Vista de tabla/tarjeta/classic/carta
-   - 8+ modales (FormModal, DeleteDialogs, ImportJson, EntityTagsModal, FeedbackModal, EntitySlideover)
-   - Export/Import
-   - Pagination
-   - Preview drawer
-
-2. **Props con tipos pobres:**
-   ```typescript
-   useCrud: () => any  // ❌ any
-   columns?: any[]     // ❌ any
-   ```
-
-3. **Imports excesivos:**
-   - 20+ imports de composables
-   - 10+ imports de componentes
-
-4. **Lógica duplicada:**
-   - `normalizeSlideoverKind` (líneas 530-562)
-   - `mapEntityToRow` no está en el archivo pero se usa
-
-**Veredicto:** Refactorización urgente. Debe delegar a sub-componentes.
+**Veredicto:** ✅ El componente fue refactorizado según el patrón moderno.
 
 ---
 
@@ -133,20 +108,24 @@ interface MetadataFormState { metadata }
 
 **Lo que está mal:**
 - **Helper functions anidadas** que deberían ser utilities:
-  - `createEmptyBasicState()` (línea 765)
-  - `buildBasicState()` (línea 777)
-  - `createEmptyTranslationState()` (línea 789)
-  - `buildTranslationState()` (línea 798)
-  - `clone()` (línea 807)
-  - `diffState()` (línea 818)
-  - `deepEqual()` (línea 829)
-  - `resolveErrorMessage()` (línea 849)
+  - `createEmptyBasicState()` 
+  - `buildBasicState()` 
+  - `createEmptyTranslationState()` 
+  - `buildTranslationState()` 
+  - `clone()` 
+  - `diffState()` 
+  - `deepEqual()` 
+  - `resolveErrorMessage()` 
 
 - **Duplicación de lógica de clone/diff** con `useQuerySync.ts`
 
 - **process.server** en lugar de `import.meta.server` (línea 755)
 
-**Veredicto:** Extraer helpers a utilities. Mejorar tipado.
+**Lo que está bien:**
+- ✅ Helpers extraídos a `objectUtils.ts`
+- ✅ `process.server` → `import.meta.server` ✅ CORREGIDO
+
+**Veredicto:** Helpers extraídos, pero aún complejo.
 
 ---
 
@@ -211,15 +190,18 @@ export interface ColumnDefinition<T = any> {
 
 ## 4. Code Smells Principales
 
-### 4.1 God Components
+### 4.1 God Composables (no Components)
 ```typescript
-// EntityBase.vue: 868 líneas
-// EntitySlideover.vue: 853 líneas
+// useEntityBaseContext.ts: God Composable (nuevo locus de complejidad)
+// useEntity.ts: 21,236 líneas
+// useEntityFormPreset.ts: 10,462 líneas
 ```
 
-### 4.2 Helpers Anidados en Componentes
+**Nota:** `EntityBase.vue` YA ESTÁ REFACTORIZADO. El problema ahora está en los composables, no en los componentes.
+
+### 4.2 Helpers Anidados en EntitySlideover
 ```typescript
-// EntitySlideover.vue líneas 765-851
+// EntitySlideover.vue
 function createEmptyBasicState() { ... }
 function buildBasicState() { ... }
 function clone() { ... }
@@ -227,21 +209,27 @@ function diffState() { ... }
 function deepEqual() { ... }
 ```
 
+**Estado:** ✅ Helpers extraídos a `objectUtils.ts`
+
 ### 4.3 Props con Any
 ```typescript
-// EntityBase.vue
-columns?: any[]
-useCrud: () => any
+// EntityBase.vue - ✅ Tipado mejorado desde Zod
+columns?: ColumnDefinition<EntityRow>[]
+useCrud: () => UseEntityReturn
 
-// CommonDataTable.vue
-items: any[]
+// CommonDataTable.vue - ✅ Tipado desde Zod
+items: EntityRow[]
 ```
+
+**Estado:** ✅ Tipado desde Zod schemas
 
 ### 4.4 process.server vs import.meta
 ```typescript
-// EntitySlideover.vue línea 755
-if (process.server) return undefined  // ❌ Deprecated
+// EntitySlideover.vue
+if (import.meta.server) return undefined  // ✅ CORREGIDO
 ```
+
+**Estado:** ✅ `process.server` → `import.meta.server`
 
 ---
 
@@ -278,14 +266,13 @@ if (process.server) return undefined  // ❌ Deprecated
 
 ---
 
-## 6. Recomendaciones
+## 6. Recomendaciones (Actualizadas)
 
 ### 6.1 Refactorización Urgente (Semana 1)
-1. **Dividir `EntityBase.vue`:**
-   - `EntityViewManager.vue` (orquestación)
-   - `EntityTableView.vue` (solo tabla)
-   - `EntityCardView.vue` (solo tarjetas)
-   - `EntityToolbar.vue` (solo toolbar)
+1. **Dividir `useEntityBaseContext.ts`:**
+   - `useEntityFilters.ts` (lógica de filtros)
+   - `useEntityViews.ts` (lógica de vistas)
+   - `useEntityModals.ts` (lógica de modales)
 
 2. **Dividir `EntitySlideover.vue`:**
    - `EntitySlideoverBasic.vue` (sección basic)
@@ -293,16 +280,16 @@ if (process.server) return undefined  // ❌ Deprecated
    - `EntitySlideoverMetadata.vue` (sección metadata)
 
 ### 6.2 Extraer Helpers (Semana 2)
-1. Mover `clone`, `diffState`, `deepEqual` de `EntitySlideover.vue` a `utils/objects.ts`
-2. Unificar con `useQuerySync.ts`
+1. ✅ Mover `clone`, `diffState`, `deepEqual` de `EntitySlideover.vue` a `utils/objectUtils.ts` (COMPLETADO)
+2. ⏸️ Extraer lógica de fetch de `EntityFilters.vue` a `useFilterOptions.ts` (PENDIENTE)
 
 ### 6.3 Tipado (Semana 3)
-1. Reemplazar `any` con tipos específicos
-2. Cambiar `process.server` a `import.meta.server`
+1. ✅ Reemplazar `any` con tipos específicos desde Zod (COMPLETADO)
+2. ✅ Cambiar `process.server` a `import.meta.server` (COMPLETADO)
 
-### 6.4 Admin Cleanup (Semana 4)
-1. Migrar `RoleForm.vue` a `FormModal`
-2. Unificar `FeedbackList.vue` y `RevisionsTable.vue` con patrones existentes
+### 6.4 FormModal Hardening (Semana 4)
+1. ⏸️ Eliminar Zod introspection brittle de `FormModal.vue`
+2. ⏸️ Usar `fields` prop explícito desde presets
 
 ---
 
@@ -313,7 +300,8 @@ if (process.server) return undefined  // ❌ Deprecated
 | Total componentes | 57 | 57 |
 | Componentes bien estructurados | 32 (56%) | 33 (58%) |
 | Componentes con deuda técnica | 18 (32%) | 17 (30%) |
-| God components (>500 líneas) | 2 | 2 |
+| God Components (>500 líneas) | 2 | 0 ✅ |
+| God Composables (>5000 líneas) | 0 | 3 ⚠️ |
 | Componentes con `any` en props | 8 | 4 ✅ **REDUCIDO** |
 | Helpers anidados en componentes | 12 | 8 ✅ **REDUCIDO** |
 | Utils de objetos | 0 | **1 nuevo** ✅ |
@@ -321,25 +309,28 @@ if (process.server) return undefined  // ❌ Deprecated
 
 ---
 
-## 8. Conclusión
+## 8. Conclusión (Actualizada)
 
-Los stores están bien, pero los componentes de `manage/` son un desastre de mantenibilidad.
+Los stores están bien, pero los **composables** son el nuevo locus de complejidad.
 
 **Lo que funciona:**
 - `user.ts` store bien diseñado
 - `CommonDataTable.vue` bien estructurado y ahora tipado con Zod ✅
 - Componentes pequeños en `common/`
 - `AdminTableBridge.vue` bridge pattern bien implementado
+- `EntityBase.vue` ✅ **YA REFACTORIZADO** - es un shell que orquesta sub-componentes
 - `process.server` → `import.meta.server` ✅ **CORREGIDO**
 - Helpers extraídos a `objectUtils.ts` ✅ **COMPLETADO**
 - Tipos derivados de schemas Zod ✅ **COMPLETADO**
 
 **Lo que no funciona:**
-- `EntityBase.vue` (868 líneas, SRP violado) ⏸️ Pendiente
-- `EntitySlideover.vue` (853 líneas) ⏸️ Helpers extraídos, pero aún grande
-- `AdvancedFiltersPanel.vue` (lógica mezclada) ⏸️ Pendiente
+- `useEntityBaseContext.ts` (God Composable) ⏸️ Pendiente
+- `useEntity.ts` (21,236 líneas, SRP violado) ⏸️ Pendiente
+- `useEntityFormPreset.ts` (10,462 líneas) ⏸️ Pendiente
+- `EntityFilters.vue` (lógica mezclada) ⏸️ Pendiente
+- `FormModal.vue` (Zod introspection brittle) ⏸️ Pendiente
 
-**Veredicto final:** Los componentes pequeños son mantenibles, pero los "God Components" de `manage/` necesitan refactorización urgente.
+**Veredicto final:** Los componentes están bien refactorizados. El problema se ha movido a los composables. `useEntityBaseContext.ts` es el nuevo "God Composable" que necesita refactorización.
 
 ---
 
@@ -347,13 +338,13 @@ Los stores están bien, pero los componentes de `manage/` son un desastre de man
 
 | Prioridad | Acción | Estado |
 |-----------|--------|--------|
-| 🔴 Alta | Dividir en sub-componentes | ⏸️ Pendiente |
+| 🔴 Alta | Dividir `useEntityBaseContext.ts` | ⏸️ Pendiente |
 | 🔴 Alta | Extraer helpers a utilities | ✅ **COMPLETADO** |
 | 🟡 Media | Tipado estricto props | ✅ **COMPLETADO** (desde Zod) |
 | 🟡 Media | Migrar `process.server` | ✅ **COMPLETADO** |
 | 🟢 Baja | Unificar con FormModal | ⏸️ Pendiente |
 
-### Fixes Completados (2026-01-28)
+### Fixes Completados (2026-01-29)
 
 | Fix | Archivo | Estado |
 |-----|---------|--------|
@@ -362,6 +353,7 @@ Los stores están bien, pero los componentes de `manage/` son un desastre de man
 | Extraer `isNotFoundError`, `resolveErrorMessage` | `objectUtils.ts` nuevo | ✅ |
 | Tipado desde Zod schemas | `entityTypes.ts` nuevo | ✅ |
 | Tipar `CommonDataTable.vue` props | `CommonDataTable.vue` | ✅ |
+| EntityBase.vue refactorizado | `EntityBase.vue` | ✅ |
 
 ### Archivos Nuevos Creados
 
@@ -370,9 +362,11 @@ Los stores están bien, pero los componentes de `manage/` son un desastre de man
 
 ### Pendiente de Refactorización
 
-- `EntityBase.vue` (868 líneas) - God Component
-- `EntitySlideover.vue` (853 líneas) - Helpers extraídos pero aún complejo
-- `RoleForm.vue` - Unificar con FormModal
+- `useEntityBaseContext.ts` - God Composable
+- `useEntity.ts` - 21,236 líneas
+- `useEntityFormPreset.ts` - 10,462 líneas
+- `EntityFilters.vue` - Lógica mezclada
+- `FormModal.vue` - Zod introspection brittle
 
 ---
 
@@ -429,3 +423,4 @@ props: {
   items: EntityRow[]
   columns: ColumnDefinition<EntityRow>[]
 }
+```

@@ -37,7 +37,7 @@
         </UButton>
         <UButton
           size="xs"
-          :disabled="!isEditor || selectedIds.value.length === 0"
+          :disabled="!isEditor || selectedIds.length === 0"
           :title="!isEditor ? $t('ui.messages.noPermission') : ''"
           @click="bulkApprove"
         >
@@ -47,7 +47,7 @@
           size="xs"
           color="error"
           variant="soft"
-          :disabled="!isEditor || selectedIds.value.length === 0"
+          :disabled="!isEditor || selectedIds.length === 0"
           :title="!isEditor ? $t('ui.messages.noPermission') : ''"
           @click="bulkReject"
         >
@@ -244,7 +244,7 @@ const columns = computed<ColumnDefinition[]>(() => [
 
 const selection = useTableSelection(() => items.value.map(r => r.id))
 const selectedIds = selection.selectedList
-const hasSelectedItems = computed(() => selectedIds.value.length > 0)
+const hasSelectedItems = computed(() => selectedIds.length > 0)
 const selectionAdapter = {
   selectedList: selection.selectedList,
   setSelected: (ids: Iterable<string | number>) => selection.setSelected(ids),

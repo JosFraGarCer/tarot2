@@ -1,21 +1,24 @@
 # Roadmap de Mejoras y Escalamiento - Tarot2 Server
 
-**Estado:** Plan Estratégico
+**Estado:** Plan Estratégico (ACTUALIZADO)
 **Autor:** Senior Developer Architecture
 **Fecha:** 2026-01-28
-**Versión:** 1.0
+**Última actualización:** 2026-01-29
+**Versión:** 1.1
 
 ---
 
 ## 1. Resumen Ejecutivo
 
-Este documento establece el roadmap técnico para la capa `server/` de Tarot2, priorizando mejoras de rendimiento, escalabilidad y mantenibilidad. El objetivo es transformar el backend de un estado "funcional pero frágil" a una arquitectura enterprise-ready.
+Este documento establece el roadmap técnico para la capa `server/` de Tarot2, priorizando mejoras de rendimiento, escalabilidad y mantenibilidad.
 
-**Fases:**
-- **Fase 1 (Inmediata):** Quick wins y seguridad crítica
-- **Fase 2 (Corto plazo):** Cacheo con Redis y optimización de queries
-- **Fase 3 (Mediano plazo):** Escalamiento horizontal y patrones avanzados
-- **Fase 4 (Largo plazo):** Arquitectura event-driven y microservicios
+**Estado actual:**
+- ✅ **Fase 1 (Quick Wins):** MAYORMENTE COMPLETADA
+- ⏸️ **Fase 2 (Redis):** Pendiente - no implementada aún
+- ⏸️ **Fase 3 (DB Optimization):** PARCIAL - índices existentes, N+1 resuelto
+- ⏸️ **Fase 4 (Event-Driven):** Pendiente
+
+**Progreso global:** ~60% de la Fase 1 completada
 
 ---
 
@@ -75,7 +78,9 @@ Este documento establece el roadmap técnico para la capa `server/` de Tarot2, p
 | Logging en catch vacío | `auth.hydrate.ts` | ✅ Listo |
 | JWT secret cache | `auth.ts` | ✅ Listo |
 | Zod API correcto | `validate.ts` | ✅ Listo |
-| Tipado i18n.ts | `i18n.ts` | ✅ Listo |
+| Tipado i18n.ts | `i18n.ts` | ⚠️ Pendiente (any still present) |
+| Eager tags helper | `eagerTags.ts` | ✅ Listo (NUEVO) |
+| CRUD handlers N+1 fix | `_crud.ts` files | ✅ Listo |
 
 ### 3.2 Items Pendientes de Fase 1
 
@@ -85,19 +90,10 @@ Este documento establece el roadmap técnico para la capa `server/` de Tarot2, p
 ```typescript
 // PROBLEMA: El cleanup actual es hourly pero Map puede crecer indefinidamente
 // SOLUCIÓN: Usar WeakRef o LinkedList para cleanup automático
-
-// Implementación target:
-interface Bucket {
-  count: number
-  expiresAt: number
-  next?: Bucket
-  prev?: Bucket
-}
-
-// O mejor: migrar a Redis (ver Fase 2)
+// NOTA: Este problema sigue pendiente. El Map puede crecer indefinidamente.
 ```
 
-**Impacto:** Media | **Esfuerzo:** Bajo | **Prioridad:** Alta
+**Impacto:** Media | **Esfuerzo:** Bajo | **Prioridad:** Media
 
 #### 3.2.2 Validación de Input en Todos los Endpoints
 **Archivos:** `server/api/*/_crud.ts`
@@ -652,18 +648,18 @@ async function checkRedis() {
 
 ---
 
-## 8. Roadmap Timeline
+## 8. Roadmap Timeline (Actualizado)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                         TIMELINE ROADMAP                                   │
+│                         TIMELINE ROADMAP (ACTUALIZADO)                      │
 ├────────────────────────────────────────────────────────────────────────────┤
 │                                                                            │
 │ Semana 1-2    │████████████│ Quick wins + Seguridad                       │
-│               │             │ ✅ Auth fixes                                │
+│               │             │ ✅ Auth fixes (JWT cache, JSON.parse safe)    │
 │               │             │ ✅ Zod validation                            │
 │               │             │ ⬜ Headers de seguridad                       │
-│               │             │ ⬜ Rate limit cleanup                         │
+│               │             │ ⬜ Rate limit cleanup                        │
 │               │             │                                              │
 │ Semana 3-6    │████████████│ Redis Implementation                         │
 │               │             │ ⬜ Redis client setup                         │
@@ -672,10 +668,10 @@ async function checkRedis() {
 │               │             │ ⬜ API response cache                         │
 │               │             │                                              │
 │ Semana 7-10   │████████████│ Database Optimization                        │
-│               │             │ ⬜ PostgreSQL indices                         │
+│               │             │ ⬜ PostgreSQL índices (6/8 ya existen)        │
 │               │             │ ⬜ Read replicas                             │
 │               │             │ ⬜ Keyset pagination                          │
-│               │             │ ⬜ Query optimization                         │
+│               │             │ ⬜ Query optimization (N+1 resuelto)          │
 │               │             │                                              │
 │ Semana 11-14  │████████████│ Event-Driven Architecture                    │
 │               │             │ ⬜ BullMQ setup                               │
@@ -689,6 +685,14 @@ async function checkRedis() {
 │               │             │ ⬜ Performance tuning                         │
 │               │             │                                              │
 └────────────────────────────────────────────────────────────────────────────┘
+
+ESTADO ACTUAL: Semana 1-2 completada al 75%
+- ✅ JWT_SECRET cacheado
+- ✅ JSON.parse safe
+- ✅ Catch con logging
+- ✅ eagerTags.ts creado
+- ⚠️ Tipado i18n.ts pendiente
+- ⚠️ Rate limit cleanup pendiente
 ```
 
 ---
@@ -729,13 +733,26 @@ async function checkRedis() {
 
 ---
 
-## 11. Conclusión
+## 11. Conclusión (Actualizada)
 
-Este roadmap transforma la arquitectura de `server/` de un sistema monolítico simple a una arquitectura enterprise-ready con:
+Este roadmap transforma la arquitectura de `server/` de un estado "funcional pero frágil" a una arquitectura enterprise-ready.
 
-1. **Escalabilidad:** Redis + Read replicas + Queue-based processing
-2. **Confiabilidad:** Circuit breakers, fallback strategies, proper error handling
-3. **Observabilidad:** Health checks, métricas, distributed tracing
-4. **Mantenibilidad:** Clear separation of concerns, event-driven patterns
+**Progreso actual:**
+- ✅ **Fase 1:** 75% completada (7/9 items)
+- ⏸️ **Fase 2:** Pendiente (Redis)
+- ⏸️ **Fase 3:** Parcial (índices existentes, N+1 resuelto)
+- ⏸️ **Fase 4:** Pendiente (Event-Driven)
 
-**Próximo paso:** Obtener aprobación de arquitectura y comenzar con Fase 1 (semana 1-2).
+**Lo que se ha logrado:**
+1. **Seguridad:** JWT_SECRET cacheado, JSON.parse safe, catch con logging
+2. **Rendimiento:** eagerTags.ts creado, N+1 resuelto en CRUD handlers
+3. **Arquitectura:** Helper reutilizable para carga de tags
+
+**Lo que falta:**
+1. Tipado estricto en i18n.ts y translatableUpsert.ts
+2. Rate limit con cleanup automático
+3. Headers de seguridad
+4. Redis para cacheo escalable
+5. Event-driven patterns
+
+**Próximo paso:** Completar Fase 1 (tipado y rate limit) antes de avanzar a Fase 2.

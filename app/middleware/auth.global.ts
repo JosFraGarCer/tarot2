@@ -38,12 +38,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // 3️⃣ Determinar rol y permisos usando composable
   const { isAdmin, isStaff, isUser } = useAuthRoles()
 
-  // 4️⃣ Reglas de acceso basadas en configuración
+  // 4️⃣ Admin tiene acceso a todo directamente
+  if (isAdmin.value) {
+    return
+  }
+
+  // 5️⃣ Verificar acceso para staff y users
   if (!canAccessPath(to.path, isAdmin.value, isStaff.value, isUser.value)) {
-    // Redirect según rol
-    if (isAdmin.value) {
-      return // Admin puede acceder a todo
-    }
     if (isStaff.value && to.path.startsWith('/admin')) {
       return navigateTo(authConfig.adminRedirect)
     }
