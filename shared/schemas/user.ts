@@ -1,6 +1,11 @@
 // shared/schemas/user.ts
 import { z } from 'zod'
-import { coerceBoolean } from './common'
+import {
+  coerceBoolean,
+  baseQueryFields,
+  withLanguageTransform,
+  baseEntityCreateFields,
+} from './common'
 
 // User status enum
 export const userStatusEnum = z.enum([
@@ -13,10 +18,7 @@ export const userStatusEnum = z.enum([
 
 // Schema for user queries
 export const userQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  q: z.string().optional(),
-  search: z.string().optional(),
+  ...baseQueryFields,
   status: userStatusEnum.optional(),
   is_active: coerceBoolean.optional(),
   role_id: z.coerce.number().int().optional(),
@@ -28,26 +30,34 @@ export const userQuerySchema = z.object({
     'status',
     'is_active'
   ]).optional(),
-  direction: z.enum(['asc', 'desc']).optional(),
-})
+}).transform(withLanguageTransform)
 
 // Schema for creating users
 export const userCreateSchema = z.object({
+  ...baseEntityCreateFields,
   username: z.string().min(3, 'Username must have at least 3 characters'),
   email: z.string().email('Invalid email format'),
   password: z.string().min(6, 'Password must have at least 6 characters'),
-  image: z.string().url('Invalid image URL').nullable().optional(),
-  status: userStatusEnum.default('active'),
-  is_active: z.boolean().default(true),
-  role_ids: z.array(z.coerce.number().int().positive(), {
-    errorMap: () => ({ message: 'Role IDs must be positive integers' })
-  }).optional().default([1]), // Default to role ID 1 for initial setup
+  role_ids: z.array(z.coerce.number().int().positive()).optional().default([1]), // Default to role ID 1 for initial setup
 })
 
-// Schema for updating users
-export const userUpdateSchema = userCreateSchema.partial().omit({ password: true }).extend({
+// Schema for updating own profile (Self)
+export const userUpdateSelfSchema = z.object({
+  username: z.string().min(3, 'Username must have at least 3 characters').optional(),
+  email: z.string().email('Invalid email format').optional(),
   password: z.string().min(6, 'Password must have at least 6 characters').optional(),
+  image: z.string().url('Invalid image URL').nullable().optional(),
 })
+
+// Schema for admin updates (Full access)
+export const userUpdateAdminSchema = userUpdateSelfSchema.extend({
+  status: userStatusEnum.optional(),
+  is_active: z.boolean().optional(),
+  role_ids: z.array(z.coerce.number().int().positive()).optional(),
+})
+
+// Legacy alias for backward compatibility
+export const userUpdateSchema = userUpdateAdminSchema
 
 // Schema for user login
 export const userLoginSchema = z.object({

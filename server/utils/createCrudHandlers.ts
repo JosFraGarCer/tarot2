@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // server/utils/createCrudHandlers.ts
-import { defineEventHandler, readBody, createError } from 'h3'
-import type { H3Event } from 'h3'
-import type { ZodSchema, ZodTypeAny } from 'zod'
+import { defineEventHandler, readBody, createError, type H3Event } from 'h3'
+import type { ZodTypeAny } from 'zod'
 import { z } from 'zod'
 import type { Kysely, SelectQueryBuilder } from 'kysely'
 import type { DB } from '../database/types'
@@ -12,15 +12,22 @@ import { markLanguageFallback } from './language'
 import { translatableUpsert } from './translatableUpsert'
 import { deleteLocalizedEntity } from './deleteLocalizedEntity'
 import { getRequestedLanguage } from './i18n'
+import type { AuthenticatedUser } from '@shared/schemas/common'
 
-interface CrudContext<TQuery> {
+export interface CrudContext<TQuery> {
   event: H3Event
   db: Kysely<DB>
   query: TQuery
   lang: string
+  user: AuthenticatedUser | null
 }
 
-interface ListBuilder<TQuery, TRow> {
+export interface EagerLoadConfig<TQuery> {
+  key: string
+  fetch: (db: Kysely<DB>, ids: number[], lang: string, ctx: CrudContext<TQuery>) => Promise<Map<number, any>>
+}
+
+export interface ListBuilder<TQuery, TRow> {
   baseQuery: SelectQueryBuilder<DB, any, any>
   filters?: Partial<BuildFiltersOptions>
   transformRows?: (rows: TRow[], ctx: CrudContext<TQuery>) => Promise<TRow[]> | TRow[]
@@ -34,7 +41,7 @@ interface ListBuilder<TQuery, TRow> {
   skipFallbackMark?: boolean
 }
 
-interface MutationsPayload<TCreate, TUpdate> {
+export interface MutationsPayload<TCreate, TUpdate> {
   buildCreatePayload: (input: TCreate, ctx: CrudContext<TCreate>) => {
     baseData?: Record<string, unknown>
     translationData?: Record<string, unknown> | null
@@ -72,6 +79,11 @@ interface CrudHandlersConfig<
     update: TUpdateSchema
   }
   translation?: TranslationConfig | false
+  /**
+   * Declarative eager loading of related entities (e.g., tags)
+   * This runs automatically after buildListQuery and before transformRows
+   */
+  eagerLoad?: EagerLoadConfig<TQuery, TRow>[]
   buildListQuery: (
     ctx: CrudContext<TQuery>,
   ) => Promise<ListBuilder<TQuery, TRow>> | ListBuilder<TQuery, TRow>
@@ -81,7 +93,7 @@ interface CrudHandlersConfig<
   ) => Promise<TRow | undefined>
   mutations: MutationsPayload<TCreate, TUpdate>
   logScope?: string
-  deleteQuerySchema?: ZodSchema<any>
+  deleteQuerySchema?: z.ZodSchema<any>
 }
 
 interface CrudHandlers {
@@ -124,22 +136,41 @@ export function createCrudHandlers<
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as any).logger
     const query = parseQuery(event, config.schema.query, { scope: `${config.logScope ?? config.entity}.list.query` })
-    const lang = resolveLangFromQuery(query as any)
-    const ctx: CrudContext<any> = { event, db, query, lang }
+    const lang = resolveLangFromQuery(query as Record<string, any>)
+    const user = (event.context.user as AuthenticatedUser) ?? null
+    const ctx: CrudContext<TQuery> = { event, db, query, lang, user }
 
     const builder = await config.buildListQuery(ctx)
+    const q = query as any
     const filters: BuildFiltersOptions = {
-      page: (query as any).page,
-      pageSize: (query as any).pageSize,
-      search: (query as any).search ?? (query as any).q,
-      sort: { field: (query as any).sort, direction: (query as any).direction },
-      status: (query as any).status,
+      page: q.page,
+      pageSize: q.pageSize,
+      search: q.search ?? q.q,
+      sort: { field: q.sort, direction: q.direction },
+      status: q.status,
       ...(builder.filters ?? {}),
     }
 
     const { query: filteredQuery, totalItems, page, pageSize, resolvedSortField, resolvedSortDirection } = await buildFilters(builder.baseQuery, filters)
 
     const rows = (await filteredQuery.execute()) as TRow[]
+
+    // --- Declarative Eager Loading ---
+    if (config.eagerLoad && rows.length > 0) {
+      const ids = rows
+        .map((r: any) => r[idColumn])
+        .filter((id) => id != null) as number[]
+
+      if (ids.length > 0) {
+        for (const loader of config.eagerLoad) {
+          const dataMap = await loader.fetch(db, ids, lang, ctx)
+          for (const row of rows as any[]) {
+            row[loader.key] = dataMap.get(row[idColumn]) || []
+          }
+        }
+      }
+    }
+
     const transformed = builder.transformRows ? await builder.transformRows(rows, ctx) : rows
     const data = builder.skipFallbackMark ? transformed : (Array.isArray(transformed) ? markLanguageFallback(transformed, lang) : transformed)
 
@@ -173,9 +204,10 @@ export function createCrudHandlers<
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as any).logger
     const raw = await readBody(event)
-    const body = config.schema.create.parse(raw)
+    const body = config.schema.create.parse(raw) as TCreate
     const lang = (body as any).lang ? String((body as any).lang).toLowerCase() : 'en'
-    const ctx: CrudContext<any> = { event, db, query: body, lang }
+    const user = (event.context.user as AuthenticatedUser) ?? null
+    const ctx: CrudContext<TCreate> = { event, db, query: body, lang, user }
 
     const { baseData, translationData } = config.mutations.buildCreatePayload(body, ctx)
 

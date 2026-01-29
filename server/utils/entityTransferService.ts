@@ -45,7 +45,7 @@ export async function exportEntityData(options: TransferOptions) {
     }, 'Entity export failed')
 
     throw createError({
-      statusCode: error?.statusCode ?? 500,
+      statusCode: error?.statusCode ?? (error?.message?.includes('not found') ? 404 : 500),
       statusMessage: error?.statusMessage ?? 'Failed to export entities',
     })
   }

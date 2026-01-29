@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // server/api/role/index.post.ts
 // server/api/roles/index.post.ts
 import { defineEventHandler, readBody } from 'h3'
@@ -7,9 +8,24 @@ import { roleCreateSchema } from '@shared/schemas/role'
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
+  const user = (event.context.user as any)
+  // Check permissions: only admins can create roles
+  if (!user?.permissions?.canManageUsers) {
+    throw createError({ statusCode: 403, statusMessage: 'Permission denied: canManageUsers required' })
+  }
+
   try {
     const raw = await readBody(event)
     const body = safeParseOrThrow(roleCreateSchema, raw)
+
+    // Validate permissions structure
+    if (body.permissions && typeof body.permissions === 'object') {
+      const validKeys = ['canManageUsers', 'canManageContent', 'canReview', 'canPublish', 'canRevert', 'canExport', 'canImport']
+      const invalidKeys = Object.keys(body.permissions).filter(k => !validKeys.includes(k))
+      if (invalidKeys.length > 0) {
+        throw createError({ statusCode: 400, statusMessage: `Invalid permission keys: ${invalidKeys.join(', ')}` })
+      }
+    }
 
     const created = await globalThis.db
       .insertInto('roles')

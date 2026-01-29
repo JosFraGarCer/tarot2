@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // server/api/user/[id].patch.ts
 // server/api/users/[id].patch.ts
 // PATCH: update partial fields for User entity
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
       if (body.username !== undefined) update.username = body.username
       if (body.image !== undefined) update.image = body.image ?? null
       if (body.status !== undefined) update.status = body.status
+      // is_active only sets status if status is not explicitly provided
       if (body.is_active !== undefined && body.status === undefined) {
         update.status = body.is_active ? 'active' : 'inactive'
       }
@@ -44,7 +46,21 @@ export default defineEventHandler(async (event) => {
       }
 
       if (Array.isArray(body.role_ids)) {
-        // Replace roles
+        // Validate role_ids exist before modifying
+        if (body.role_ids.length > 0) {
+          const existingRoles = await trx
+            .selectFrom('roles')
+            .select(['id'])
+            .where('id', 'in', body.role_ids)
+            .execute()
+          const validRoleIds = new Set(existingRoles.map(r => r.id))
+          const invalidIds = body.role_ids.filter(rid => !validRoleIds.has(rid))
+          if (invalidIds.length > 0) {
+            throw createError({ statusCode: 400, statusMessage: `Invalid role_ids: ${invalidIds.join(', ')}` })
+          }
+        }
+
+        // Atomic replace: delete old, insert new in same transaction
         await trx.deleteFrom('user_roles').where('user_id', '=', id).execute()
         if (body.role_ids.length > 0) {
           await trx

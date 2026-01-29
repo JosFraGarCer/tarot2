@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
     chunks.push('BEGIN;')
 
     for (const table of tables) {
-      const rows = await globalThis.db.selectFrom(sql`${sql.ref(table)} as t`).selectAll('t').execute()
+      const rows = await globalThis.db.selectFrom(sql`${sql.ref(table)} as t`).selectAll('t').limit(10000).execute()
       chunks.push(`\n-- ${table}`)
       chunks.push(`DELETE FROM ${table};`)
       if (!rows || rows.length === 0) continue

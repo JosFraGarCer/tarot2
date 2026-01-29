@@ -1,12 +1,11 @@
 // app/utils/status.ts
 // /app/utils/status.ts
-// This module delegates to badges.ts for unified status handling
-import type { CoreCardStatus } from '@/types/entities'
-import { statusColor, type BadgeResult } from './badges'
+// This module provides card status helpers
+import type { CardStatus } from '~/../../shared/schemas/common'
 
 type StatusMeta = { labelKey: string; color: 'neutral'|'primary'|'warning'|'success'|'error'; variant: 'subtle'|'soft'|'outline' }
 
-const MAP: Record<CoreCardStatus, StatusMeta> = {
+const MAP: Record<CardStatus, StatusMeta> = {
   draft: { labelKey: 'system.status.draft', color: 'neutral', variant: 'subtle' },
   review: { labelKey: 'system.status.review', color: 'warning', variant: 'soft' },
   pending_review: { labelKey: 'system.status.pending_review', color: 'warning', variant: 'soft' },
@@ -19,15 +18,11 @@ const MAP: Record<CoreCardStatus, StatusMeta> = {
 }
 
 export function useCardStatus() {
-  const all = Object.keys(MAP) as CoreCardStatus[]
-  const meta = (s?: CoreCardStatus) => (s ? MAP[s] : MAP.draft)
+  const all = Object.keys(MAP) as CardStatus[]
+  const meta = (s?: CardStatus) => (s ? MAP[s] : MAP.draft)
   const options = () => all.map((s) => ({ value: s, ...MAP[s] }))
-  const labelKey = (s?: CoreCardStatus) => meta(s).labelKey
-  const color = (s?: CoreCardStatus) => meta(s).color
-  const variant = (s?: CoreCardStatus) => meta(s).variant
+  const labelKey = (s?: CardStatus) => meta(s).labelKey
+  const color = (s?: CardStatus) => meta(s).color
+  const variant = (s?: CardStatus) => meta(s).variant
   return { options, labelKey, color, variant }
 }
-
-// Re-export from badges.ts for unified usage
-export { statusColor }
-export type { BadgeResult }

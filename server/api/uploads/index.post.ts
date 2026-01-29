@@ -140,7 +140,9 @@ export default defineEventHandler(async (event) => {
       finalExtension = '.avif'
       finalFilename = `${base}-${timestamp}-${hash}${finalExtension}`
     } catch (err) {
-      logger.warn({ err }, 'AVIF optimization failed, using original file')
+      logger.error({ err }, 'AVIF optimization failed, using original file')
+      // Optionally, you could add a warning header or field to inform the client
+      // that the optimization failed and they received a larger file.
     }
   }
 

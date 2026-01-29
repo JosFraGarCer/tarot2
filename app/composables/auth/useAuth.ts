@@ -44,7 +44,7 @@ export function useAuth() {
     store.setError(null)
     try {
       await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-      // ⚠️ el backend aún no limpia cookie (ver SECURITY.md)
+      // Backend clears the auth_token cookie
       store.logout()
     } catch (err: any) {
       const msg = err?.data?.message || err?.message || 'Logout failed'

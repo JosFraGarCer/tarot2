@@ -39,6 +39,25 @@ export const coerceBoolean = z.union([
 export const languageCodeWithDefault = (defaultValue = 'en') => 
   languageCodeSchema.default(defaultValue)
 
+// Tipo para el usuario autenticado en el contexto de H3
+export interface AuthenticatedUser {
+  id: number
+  username: string
+  email: string
+  status: string
+  roles: Array<{ id: number; name: string; permissions: Record<string, boolean> }>
+  permissions: Record<string, boolean>
+}
+
+// Campos comunes de entidades para creación/actualización (con defaults explícitos)
+export const baseEntityCreateFields = {
+  code: z.string().min(1),
+  image: z.string().url().nullable().optional(),
+  is_active: z.boolean().default(true),
+  status: cardStatusSchema.default('draft'),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional().default({}),
+}
+
 // Campos comunes de entidades
 export const baseEntityFields = {
   id: z.number().int().positive(),
@@ -67,12 +86,29 @@ export const effectsSchema = z.union([
   z.record(z.string(), z.unknown())
 ]).nullable().optional()
 
-// Utilidades de consulta
-export const paginationSchema = z.object({
+// Helper para unificar parámetros de idioma en schemas de consulta
+export const withLanguageTransform = <T extends { lang?: string; language?: string; locale?: string }>(data: T) => {
+  const lang = data.lang || data.language || data.locale
+  return {
+    ...data,
+    lang,
+  }
+}
+
+// Raw query object definition to allow extension
+export const baseQueryFields = {
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().min(1).max(150).optional(),
   q: z.string().min(1).max(150).optional(),
   sort: z.string().optional(),
   direction: z.enum(['asc', 'desc']).optional(),
-})
+  lang: z.string().min(2).max(10).optional(),
+  language: z.string().min(2).max(10).optional(),
+  locale: z.string().min(2).max(10).optional(),
+}
+
+export const baseQuerySchema = z.object(baseQueryFields).transform(withLanguageTransform)
+
+// Tipos para utilidades de consulta
+export type BaseQuery = z.infer<typeof baseQuerySchema>

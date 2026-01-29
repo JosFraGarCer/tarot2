@@ -18,7 +18,37 @@ export interface CrudHelperOptions {
   userId?: number | null
 }
 
-const defaultTextColumnNames = new Set(['name', 'short_text', 'description', 'story', 'title', 'subtitle'])
+const ALLOWED_TABLES = new Set([
+  'roles',
+  'users',
+  'user_roles',
+  'base_card_type',
+  'arcana',
+  'facet',
+  'base_card',
+  'base_skills',
+  'world',
+  'world_card',
+  'tags',
+  'base_card_type_translations',
+  'arcana_translations',
+  'facet_translations',
+  'base_card_translations',
+  'base_skills_translations',
+  'world_translations',
+  'world_card_translations',
+  'tags_translations',
+  'tag_links',
+  'content_versions',
+  'content_revisions',
+])
+
+function validateTable(table: string): string {
+  if (!ALLOWED_TABLES.has(table)) {
+    throw createError({ statusCode: 400, statusMessage: `Invalid table: ${table}` })
+  }
+  return table
+}
 
 async function detectTranslationsConfig(opts: CrudHelperOptions) {
   const idField = opts.idField ?? 'id'
@@ -97,7 +127,8 @@ function parseIdsParam(q: Record<string, any> | undefined, key = 'ids'): number[
 
 export async function exportEntities(opts: CrudHelperOptions) {
   const startedAt = Date.now()
-  const { event, table } = opts
+  const { event } = opts
+  const table = validateTable(opts.table)
   try {
     const q = getQuery(event)
     const idField = opts.idField ?? 'id'
@@ -156,7 +187,8 @@ const importSchema = z.object({}).passthrough()
 
 export async function importEntities(opts: CrudHelperOptions) {
   const startedAt = Date.now()
-  const { event, table } = opts
+  const { event } = opts
+  const table = validateTable(opts.table)
   try {
     const body = await readBody(event)
     if (!body || typeof body !== 'object' || !(table in body)) {
@@ -267,7 +299,8 @@ export async function importEntities(opts: CrudHelperOptions) {
 
 export async function batchUpdateEntities(opts: CrudHelperOptions) {
   const startedAt = Date.now()
-  const { event, table } = opts
+  const { event } = opts
+  const table = validateTable(opts.table)
   const idField = opts.idField ?? 'id'
   try {
     const body = await readBody(event)

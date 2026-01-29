@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // server/api/user/index.post.ts
 // server/api/users/index.post.ts
 import { defineEventHandler, readBody } from 'h3'
@@ -15,10 +16,13 @@ export default defineEventHandler(async (event) => {
     const raw = await readBody(event)
     const body = safeParseOrThrow(userCreateSchema, raw)
 
+    // Sanitize email: trim and lowercase
+    const emailNormalized = body.email.trim().toLowerCase()
+
     const existing = await globalThis.db
       .selectFrom('users')
       .select('id')
-      .where('email', '=', body.email)
+      .where('email', '=', emailNormalized)
       .executeTakeFirst()
     if (existing) conflict('Email already in use')
 
@@ -27,7 +31,7 @@ export default defineEventHandler(async (event) => {
     const created = await globalThis.db
       .insertInto('users')
       .values({
-        email: body.email,
+        email: emailNormalized,
         username: body.username,
         password_hash,
         image: body.image ?? null,
@@ -36,8 +40,12 @@ export default defineEventHandler(async (event) => {
       .returning(['id', 'email', 'username', 'image', 'status', 'created_at', 'modified_at'])
       .executeTakeFirstOrThrow()
 
-    // Insert roles
+    // Insert roles with limit
     if (body.role_ids?.length) {
+      const MAX_ROLES = 20
+      if (body.role_ids.length > MAX_ROLES) {
+        throw createError({ statusCode: 400, statusMessage: `Too many roles (max ${MAX_ROLES})` })
+      }
       await globalThis.db
         .insertInto('user_roles')
         .values(body.role_ids.map((rid) => ({ user_id: created.id, role_id: rid })))
@@ -74,9 +82,12 @@ export default defineEventHandler(async (event) => {
     globalThis.logger?.info('User created', { id: created.id, username: created.username, timeMs: Date.now() - startedAt })
     return createResponse(out, null)
   } catch (error) {
+    // Sanitize error message to prevent password exposure
+    const message = error instanceof Error ? error.message : String(error)
+    const sanitizedMessage = message.includes('password') ? 'Internal server error' : message
     globalThis.logger?.error('Failed to create user', {
-      error: error instanceof Error ? error.message : String(error),
+      error: sanitizedMessage,
     })
-    throw error
+    throw createError({ statusCode: 500, statusMessage: sanitizedMessage })
   }
 })

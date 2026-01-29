@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // server/api/world/_crud.ts
-import { sql, type ExpressionBuilder } from 'kysely'
+import { type Kysely, sql } from 'kysely'
 import { createCrudHandlers } from '../../utils/createCrudHandlers'
 import {
   worldQuerySchema,
@@ -9,12 +10,12 @@ import {
 import { buildTranslationSelect } from '../../utils/i18n'
 import type { DB } from '../../database/types'
 
-function buildSelect(db: any, lang: string) {
+function buildSelect(db: Kysely<DB>, lang: string) {
   const base = db
     .selectFrom('world as w')
     .leftJoin('users as u', 'u.id', 'w.created_by')
 
-  const { query, selects } = buildTranslationSelect(base, {
+  const translation = buildTranslationSelect(base, {
     baseAlias: 'w',
     translationTable: 'world_translations',
     foreignKey: 'world_id',
@@ -22,23 +23,27 @@ function buildSelect(db: any, lang: string) {
     fields: ['name', 'short_text', 'description'],
   })
 
-  return query.select([
-    'w.id',
-    'w.code',
-    'w.status',
-    'w.is_active',
-    'w.created_by',
-    'w.image',
-    'w.created_at',
-    'w.modified_at',
-    ...selects,
-    sql`u.username`.as('create_user'),
-  ])
+  return {
+    query: translation.query.select([
+      'w.id',
+      'w.code',
+      'w.status',
+      'w.is_active',
+      'w.created_by',
+      'w.image',
+      'w.created_at',
+      'w.modified_at',
+      ...translation.selects,
+      sql`u.username`.as('create_user'),
+    ] as any[]),
+    tReq: translation.tReq,
+    tEn: translation.tEn,
+  }
 }
 
 // Eager load tags for a list of world IDs - batch fetch to avoid N+1
-async function eagerLoadTags(db: any, worldIds: number[], lang: string) {
-  if (worldIds.length === 0) return new Map<number, Array<{id: number, name: string, language_code_resolved: string}>>()
+async function eagerLoadTags(db: Kysely<DB>, worldIds: number[], lang: string) {
+  if (worldIds.length === 0) return new Map<number, Array<{ id: number; name: string; language_code_resolved: string }>>()
 
   const { query, selects } = buildTranslationSelect(
     db.selectFrom('tag_links as tl')
@@ -57,12 +62,12 @@ async function eagerLoadTags(db: any, worldIds: number[], lang: string) {
       'tl.entity_id as world_id',
       'tg.id',
       ...selects,
-    ])
+    ] as any[])
     .where('tl.entity_type', '=', 'world')
     .where('tl.entity_id', 'in', worldIds)
     .execute()
 
-  const tagMap = new Map<number, Array<{id: number, name: string, language_code_resolved: string}>>()
+  const tagMap = new Map<number, Array<{ id: number; name: string; language_code_resolved: string }>>()
   for (const row of tagLinks) {
     const wid = row.world_id as number
     if (!tagMap.has(wid)) {
@@ -91,32 +96,39 @@ export const worldCrud = createCrudHandlers({
     languageKey: 'language_code',
     defaultLang: 'en',
   },
+  eagerLoad: [
+    {
+      key: 'tags',
+      fetch: (db: any, ids: number[], lang: string) => eagerLoadTags(db, ids, lang),
+    },
+  ],
   buildListQuery: ({ db, query, lang }) => {
-    const tagsLower = query.tags?.map((tag: string) => tag.toLowerCase())
+    const tagsLower = query.tags?.map((tag) => tag.toLowerCase())
     const tagIds = query.tag_ids
+    const tagIdsArray = Array.isArray(tagIds) ? tagIds : (tagIds !== undefined ? [tagIds] : [])
 
-    let base = buildSelect(db, lang)
+    const { query: baseQuery, tReq, tEn } = buildSelect(db, lang)
+    let base = baseQuery
 
     if (query.is_active !== undefined) {
-      base = base.where('w.is_active', '=', query.is_active)
+      base = base.where(sql.ref('w.is_active') as any, '=', query.is_active)
     }
     if (query.created_by !== undefined) {
-      base = base.where('w.created_by', '=', query.created_by)
+      base = base.where(sql.ref('w.created_by'), '=', query.created_by)
     }
 
-    const tagIdsArray = Array.isArray(tagIds) ? tagIds : (tagIds !== undefined ? [tagIds] : [])
     if (tagIdsArray.length > 0) {
-      base = base.where((eb: ExpressionBuilder<DB, any>) => eb.exists(
+      base = base.where((eb: any) => eb.exists(
         eb.selectFrom('tag_links as tl')
           .select(['tl.tag_id'])
-          .whereRef('tl.entity_id', '=', 'w.id')
+          .whereRef('tl.entity_id', '=', sql.ref('w.id'))
           .where('tl.entity_type', '=', 'world')
-          .where('tl.tag_id', 'in', tagIdsArray as any)
+          .where('tl.tag_id', 'in', tagIdsArray)
       ))
     }
 
     if (tagsLower && tagsLower.length > 0) {
-      base = base.where((eb: ExpressionBuilder<DB, any>) => eb.exists(
+      base = base.where((eb: any) => eb.exists(
         eb.selectFrom('tag_links as tl')
           .innerJoin('tags as t', 't.id', 'tl.tag_id')
           .leftJoin('tags_translations as tt_req', (join: any) =>
@@ -126,9 +138,9 @@ export const worldCrud = createCrudHandlers({
             join.onRef('tt_en.tag_id', '=', 't.id').on('tt_en.language_code', '=', 'en'),
           )
           .select(['tl.tag_id'])
-          .whereRef('tl.entity_id', '=', 'w.id')
+          .whereRef('tl.entity_id', '=', sql.ref('w.id'))
           .where('tl.entity_type', '=', 'world')
-          .where(sql`lower(coalesce(tt_req.name, tt_en.name))`, 'in', tagsLower as any)
+          .where(sql`lower(coalesce(tt_req.name, tt_en.name))`, 'in', tagsLower)
       ))
     }
 
@@ -146,27 +158,19 @@ export const worldCrud = createCrudHandlers({
           modified_at: 'w.modified_at',
           code: 'w.code',
           status: 'w.status',
-          name: sql`lower(coalesce(t_req_world_translations.name, t_en_world_translations.name))`,
+          name: sql`lower(coalesce(${sql.ref(`${tReq}.name`)}, ${sql.ref(`${tEn}.name`)}))`,
           is_active: 'w.is_active',
           created_by: 'w.created_by',
         },
         applySearch: (qb, term) =>
-          qb.where((eb: ExpressionBuilder<DB, any>) =>
+          qb.where((eb) =>
             eb.or([
-              sql`coalesce(t_req_world_translations.name, t_en_world_translations.name) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req_world_translations.short_text, t_en_world_translations.short_text) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req_world_translations.description, t_en_world_translations.description) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(${sql.ref(`${tReq}.name`)}, ${sql.ref(`${tEn}.name`)})) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(${sql.ref(`${tReq}.short_text`)}, ${sql.ref(`${tEn}.short_text`)})) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(${sql.ref(`${tReq}.description`)}, ${sql.ref(`${tEn}.description`)})) ilike ${'%' + term + '%'}`,
               sql`w.code ilike ${'%' + term + '%'}`,
-            ]),
+            ] as any[]),
           ),
-      },
-      transformRows: async (rows, ctx) => {
-        const worldIds = rows.map((r: any) => r.id).filter((id: any) => id != null)
-        const tagMap = await eagerLoadTags(ctx.db, worldIds, ctx.lang)
-        return rows.map((row: any) => ({
-          ...row,
-          tags: tagMap.get(row.id) || [],
-        }))
       },
       logMeta: ({ rows }) => ({
         status: query.status ?? null,
@@ -174,20 +178,17 @@ export const worldCrud = createCrudHandlers({
         created_by: query.created_by ?? null,
         tag_ids: tagIds ?? null,
         tags: tagsLower ?? null,
-        count_tags: rows.reduce(
-          (acc: number, row: any) => acc + (Array.isArray(row?.tags) ? row.tags.length : 0),
-          0,
-        ),
+        count_tags: rows.reduce((acc: number, row: any) => acc + (Array.isArray(row.tags) ? row.tags.length : 0), 0),
       }),
     }
   },
   selectOne: ({ db, lang }, id) =>
-    buildSelect(db, lang)
-      .where('w.id', '=', id)
+    buildSelect(db as Kysely<DB>, lang)
+      .query.where(sql.ref('w.id') as any, '=', id)
       .executeTakeFirst(),
   mutations: {
     buildCreatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+      const userId = ctx.user?.id ?? null
       const baseData = {
         code: input.code,
         image: input.image ?? null,
@@ -204,7 +205,7 @@ export const worldCrud = createCrudHandlers({
       return { baseData, translationData, lang: input.lang }
     },
     buildUpdatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+      const userId = ctx.user?.id ?? null
       const baseData = {
         code: input.code,
         image: input.image ?? null,

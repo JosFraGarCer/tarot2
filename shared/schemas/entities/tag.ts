@@ -1,6 +1,6 @@
 // shared/schemas/entities/tag.ts
 import { z } from 'zod'
-import { baseEntityFields, translationFields, languageCodeWithDefault, cardStatusSchema, coerceBoolean } from '../common'
+import { baseEntityFields, translationFields, languageCodeWithDefault, cardStatusSchema, coerceBoolean, baseQueryFields, withLanguageTransform, baseEntityCreateFields } from '../common'
 
 // Schema completo para Tag
 export const tagSchema = z.object({
@@ -20,13 +20,12 @@ export const tagSchema = z.object({
   language_code: translationFields.language_code,
 })
 
-// Schema para creación
+// Schema para creación (con defaults explícitos)
 export const tagCreateSchema = z.object({
-  code: z.string().min(1, 'Code is required'),
+  ...baseEntityCreateFields,
   category: z.string().min(1, 'Category is required'),
   parent_id: z.coerce.number().int().nullable().optional(),
-  is_active: z.boolean().optional(),
-  sort: z.number().int().optional(),
+  sort: z.number().int().optional().default(0),
   lang: languageCodeWithDefault('en'),
   name: z.string().min(2, 'Name must have at least 2 characters'),
   short_text: z.string().nullable().optional(),
@@ -48,21 +47,14 @@ export const tagUpdateSchema = z.object({
 
 // Schema para consulta
 export const tagQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  search: z.string().min(1).max(150).optional(),
-  q: z.string().min(1).max(150).optional(),
+  ...baseQueryFields,
   category: z.string().optional(),
   parent_id: z.coerce.number().int().optional(),
   parent_only: coerceBoolean.optional(),
   is_active: coerceBoolean.optional(),
   created_by: z.coerce.number().int().optional(),
   sort: z.enum(['created_at', 'modified_at', 'code', 'category', 'name', 'is_active', 'created_by', 'parent_id']).optional(),
-  direction: z.enum(['asc', 'desc']).optional(),
-  lang: z.string().min(2, 'Language code must have at least 2 characters').max(10).optional(),
-  language: z.string().min(2, 'Language code must have at least 2 characters').max(10).optional(),
-  locale: z.string().min(2, 'Language code must have at least 2 characters').max(10).optional(),
-})
+}).transform(withLanguageTransform)
 
 // Schema for batch operations
 export const tagBatchSchema = z

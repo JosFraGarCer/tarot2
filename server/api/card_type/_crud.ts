@@ -1,20 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // server/api/card_type/_crud.ts
-import { sql } from 'kysely'
+import { type Kysely, sql } from 'kysely'
 import { createCrudHandlers } from '../../utils/createCrudHandlers'
 import {
-  baseCardTypeQuerySchema,
-  baseCardTypeCreateSchema,
-  baseCardTypeUpdateSchema,
+  cardTypeQuerySchema,
+  cardTypeCreateSchema,
+  cardTypeUpdateSchema,
 } from '@shared/schemas/entities/cardtype'
 import { buildTranslationSelect } from '../../utils/i18n'
 import type { DB } from '../../database/types'
 
-function buildSelect(db: any, lang: string) {
+function buildSelect(db: Kysely<DB>, lang: string) {
   const base = db
     .selectFrom('base_card_type as ct')
     .leftJoin('users as u', 'u.id', 'ct.created_by')
 
-  const { query, selects } = buildTranslationSelect(base, {
+  const translation = buildTranslationSelect(base, {
     baseAlias: 'ct',
     translationTable: 'base_card_type_translations',
     foreignKey: 'card_type_id',
@@ -22,27 +23,31 @@ function buildSelect(db: any, lang: string) {
     fields: ['name', 'short_text', 'description'],
   })
 
-  return query.select([
-    'ct.id',
-    'ct.code',
-    'ct.status',
-    'ct.is_active',
-    'ct.created_by',
-    'ct.image',
-    'ct.created_at',
-    'ct.modified_at',
-    ...selects,
-    sql`u.username`.as('create_user'),
-  ])
+  return {
+    query: translation.query.select([
+      'ct.id',
+      'ct.code',
+      'ct.status',
+      'ct.is_active',
+      'ct.created_by',
+      'ct.image',
+      'ct.created_at',
+      'ct.modified_at',
+      ...translation.selects,
+      sql`u.username`.as('create_user'),
+    ]),
+    tReq: translation.tReq,
+    tEn: translation.tEn,
+  }
 }
 
 export const cardTypeCrud = createCrudHandlers({
   entity: 'card_type',
   baseTable: 'base_card_type',
   schema: {
-    query: baseCardTypeQuerySchema,
-    create: baseCardTypeCreateSchema,
-    update: baseCardTypeUpdateSchema,
+    query: cardTypeQuerySchema,
+    create: cardTypeCreateSchema,
+    update: cardTypeUpdateSchema,
   },
   translation: {
     table: 'base_card_type_translations',
@@ -51,13 +56,14 @@ export const cardTypeCrud = createCrudHandlers({
     defaultLang: 'en',
   },
   buildListQuery: ({ db, query, lang }) => {
-    let base = buildSelect(db, lang)
+    const { query: baseQuery, tReq, tEn } = buildSelect(db, lang)
+    let base = baseQuery
 
     if (query.is_active !== undefined) {
-      base = base.where('ct.is_active', '=', query.is_active)
+      base = base.where(sql.ref('ct.is_active') as any, '=', query.is_active)
     }
     if (query.created_by !== undefined) {
-      base = base.where('ct.created_by', '=', query.created_by)
+      base = base.where(sql.ref('ct.created_by') as any, '=', query.created_by)
     }
 
     return {
@@ -74,30 +80,30 @@ export const cardTypeCrud = createCrudHandlers({
           modified_at: 'ct.modified_at',
           code: 'ct.code',
           status: 'ct.status',
-          name: sql`lower(coalesce(t_req_base_card_type_translations.name, t_en_base_card_type_translations.name))`,
+          name: sql`lower(coalesce(${sql.ref(`${tReq}.name`)}, ${sql.ref(`${tEn}.name`)}))`,
           is_active: 'ct.is_active',
           created_by: 'ct.created_by',
         },
         applySearch: (qb, term) =>
-          qb.where((eb: any) =>
+          qb.where((eb) =>
             eb.or([
-              sql`coalesce(t_req_base_card_type_translations.name, t_en_base_card_type_translations.name) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req_base_card_type_translations.short_text, t_en_base_card_type_translations.short_text) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req_base_card_type_translations.description, t_en_base_card_type_translations.description) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(${sql.ref(`${tReq}.name`)}, ${sql.ref(`${tEn}.name`)})) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(${sql.ref(`${tReq}.short_text`)}, ${sql.ref(`${tEn}.short_text`)})) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(${sql.ref(`${tReq}.description`)}, ${sql.ref(`${tEn}.description`)})) ilike ${'%' + term + '%'}`,
               sql`ct.code ilike ${'%' + term + '%'}`,
-            ]),
+            ] as any[]),
           ),
       },
       logMeta: () => ({}),
     }
   },
   selectOne: ({ db, lang }, id) =>
-    buildSelect(db, lang)
-      .where('ct.id', '=', id)
+    buildSelect(db as Kysely<DB>, lang)
+      .query.where(sql.ref('ct.id') as any, '=', id)
       .executeTakeFirst(),
   mutations: {
     buildCreatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+      const userId = ctx.user?.id ?? null
       const baseData = {
         code: input.code,
         image: input.image ?? null,
@@ -114,7 +120,7 @@ export const cardTypeCrud = createCrudHandlers({
       return { baseData, translationData, lang: input.lang }
     },
     buildUpdatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+      const userId = ctx.user?.id ?? null
       const baseData = {
         code: input.code,
         image: input.image ?? null,

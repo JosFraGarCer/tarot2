@@ -1,6 +1,6 @@
 // shared/schemas/entities/world-card.ts
 import { z } from 'zod'
-import { translationFields, languageCodeWithDefault, effectsSchema, cardStatusSchema, coerceBoolean } from '../common'
+import { translationFields, languageCodeWithDefault, effectsSchema, cardStatusSchema, coerceBoolean, baseQueryFields, withLanguageTransform, baseEntityCreateFields } from '../common'
 
 // Schema completo para WorldCard
 export const worldCardSchema = z.object({
@@ -25,17 +25,14 @@ export const worldCardSchema = z.object({
   language_code: translationFields.language_code,
 })
 
-// Schema para creación
+// Schema para creación (con defaults explícitos)
 export const worldCardCreateSchema = z.object({
+  ...baseEntityCreateFields,
   world_id: z.coerce.number().int().positive(),
   base_card_id: z.coerce.number().int().nullable().optional(),
-  code: z.string().min(1, 'Code is required'),
-  image: z.string().url().nullable().optional(),
-  is_override: z.boolean().nullable().optional(),
-  is_active: z.boolean().optional(), // has DEFAULT in DB
-  legacy_effects: z.coerce.boolean().optional(), // has DEFAULT in DB
-  effects: effectsSchema.optional(), // has DEFAULT in DB
-  metadata: z.record(z.string(), z.any()).nullable().optional(), // has DEFAULT in DB
+  is_override: z.boolean().nullable().optional().default(false),
+  legacy_effects: z.coerce.boolean().optional().default(false),
+  effects: effectsSchema.optional().default({}),
   lang: languageCodeWithDefault('en'),
   name: z.string().min(2, 'Name must have at least 2 characters'),
   short_text: z.string().nullable().optional(),
@@ -61,21 +58,14 @@ export const worldCardUpdateSchema = z.object({
 
 // Schema para consulta
 export const worldCardQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  search: z.string().min(1).max(150).optional(),
-  q: z.string().min(1).max(150).optional(),
+  ...baseQueryFields,
   status: z.string().optional(),
   is_active: coerceBoolean.optional(),
   created_by: z.coerce.number().int().optional(),
   world_id: z.coerce.number().int().optional(),
   base_card_id: z.coerce.number().int().optional(),
   sort: z.enum(['created_at', 'modified_at', 'code', 'status', 'name', 'is_active', 'created_by', 'world_id', 'base_card_id']).optional(),
-  direction: z.enum(['asc', 'desc']).optional(),
-  lang: z.string().min(2, 'Language code must have at least 2 characters').max(10).optional(),
-  language: z.string().min(2, 'Language code must have at least 2 characters').max(10).optional(),
-  locale: z.string().min(2, 'Language code must have at least 2 characters').max(10).optional(),
-})
+}).transform(withLanguageTransform)
 
 // Types exportados
 export type WorldCard = z.infer<typeof worldCardSchema>

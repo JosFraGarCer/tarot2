@@ -2,23 +2,6 @@
 // Utility functions for user display
 // Extracted from user.vue to reduce duplication
 
-export function statusColor(status: string | undefined): string {
-  switch (status) {
-    case 'active':
-      return 'success'
-    case 'inactive':
-      return 'neutral'
-    case 'suspended':
-      return 'warning'
-    case 'banned':
-      return 'error'
-    case 'pending':
-      return 'warning'
-    default:
-      return 'neutral'
-  }
-}
-
 export function statusLabel(status: string | undefined): string {
   switch (status) {
     case 'active':
@@ -33,19 +16,6 @@ export function statusLabel(status: string | undefined): string {
       return 'Pendiente'
     default:
       return status || 'Desconocido'
-  }
-}
-
-export function formatDate(date: string | undefined): string {
-  if (!date) return ''
-  try {
-    return new Date(date).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  } catch {
-    return date
   }
 }
 

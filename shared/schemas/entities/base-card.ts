@@ -1,6 +1,6 @@
 // shared/schemas/entities/base-card.ts
 import { z } from 'zod'
-import { baseEntityFields, translationFields, languageCodeWithDefault, effectsSchema, cardStatusSchema, coerceBoolean } from '../common'
+import { baseEntityFields, translationFields, languageCodeWithDefault, effectsSchema, cardStatusSchema, coerceBoolean, baseQueryFields, withLanguageTransform, baseEntityCreateFields } from '../common'
 
 // Schema completo para BaseCard
 export const baseCardSchema = z.object({
@@ -15,17 +15,13 @@ export const baseCardSchema = z.object({
   language_code: translationFields.language_code,
 })
 
-// Schema para creación
+// Schema para creación (con defaults explícitos)
 export const baseCardCreateSchema = z.object({
-  code: z.string().min(1, 'Code is required'),
+  ...baseEntityCreateFields,
   card_type_id: z.coerce.number().int().positive(),
-  card_family: z.string().optional(), // Make optional as test expects
-  image: z.string().url().nullable().optional(),
-  status: cardStatusSchema.optional(), // Use common schema instead of custom enum
-  is_active: z.boolean().optional(), // has DEFAULT in DB
-  legacy_effects: z.coerce.boolean().optional(), // has DEFAULT in DB
-  effects: effectsSchema.optional(), // has DEFAULT in DB
-  metadata: z.record(z.string(), z.any()).nullable().optional(), // has DEFAULT in DB
+  card_family: z.string().optional(),
+  legacy_effects: z.coerce.boolean().optional().default(false),
+  effects: effectsSchema.optional().default({}),
   lang: languageCodeWithDefault('en'),
   name: z.string().min(2, 'Name must contain at least 2 characters'),
   short_text: z.string().nullable().optional(),
@@ -51,21 +47,14 @@ export const baseCardUpdateSchema = z.object({
 
 // Schema para consulta
 export const baseCardQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  search: z.string().min(1).max(150).optional(),
-  q: z.string().min(1).max(150).optional(),
+  ...baseQueryFields,
   status: z.string().optional(),
   is_active: coerceBoolean.optional(),
   tag_ids: z.union([z.coerce.number().int(), z.array(z.coerce.number().int())]).optional(),
   created_by: z.coerce.number().int().optional(),
   card_type_id: z.coerce.number().int().optional(),
   sort: z.enum(['created_at', 'modified_at', 'code', 'status', 'name', 'is_active', 'created_by', 'card_type_id']).optional(),
-  direction: z.enum(['asc', 'desc']).optional(),
-  lang: z.string().min(2, 'Language code must have at least 2 characters').max(10).optional(),
-  language: z.string().min(2, 'Language code must have at least 2 characters').max(10).optional(),
-  locale: z.string().min(2, 'Language code must have at least 2 characters').max(10).optional(),
-})
+}).transform(withLanguageTransform)
 
 // Types exportados
 export type BaseCard = z.infer<typeof baseCardSchema>

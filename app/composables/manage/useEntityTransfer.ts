@@ -88,6 +88,13 @@ export function useEntityTransfer(options: UseEntityTransferOptions) {
       return false
     }
 
+    // Limit file size to 10MB to prevent DoS
+    const MAX_FILE_SIZE = 10 * 1024 * 1024
+    if (file.size > MAX_FILE_SIZE) {
+      importError.value = `File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)`
+      return false
+    }
+
     importing.value = true
     importError.value = null
 

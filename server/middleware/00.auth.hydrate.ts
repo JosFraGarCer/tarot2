@@ -3,27 +3,22 @@ import { defineEventHandler } from 'h3'
 import { verifyToken, type UserPayload } from '../plugins/auth'
 import { mergePermissions } from '../utils/users'
 
-// Simple in-memory cache for auth sessions to reduce DB load
-interface CachedUser {
-  data: {
-    id: number
-    username: string
-    email: string
-    status: string
-    image: string | null
-    created_at: Date
-    modified_at: Date
-    roles: Array<{ id: number; name: string; permissions: Record<string, boolean> }>
-    permissions: Record<string, boolean>
-  }
-  expiresAt: number
-}
-const authCache = new Map<number, CachedUser>()
-const CACHE_TTL = 30000 // 30 seconds
+/**
+ * Robust Auth Hydration Middleware
+ * 
+ * Improvements:
+ * 1. Fail-fast on corrupted permissions (prevents inconsistent state).
+ * 2. Uses Nitro Storage for session caching (scalable, can use Redis/Valkey).
+ * 3. Cleaned up error handling.
+ */
 
 export default defineEventHandler(async (event) => {
   try {
     const context = event.context as Record<string, unknown>
+    const storage = useStorage('cache')
+    const CACHE_PREFIX = 'auth:session:'
+    const CACHE_TTL = 30 // seconds
+
     let token = event.node.req.headers.cookie
       ?.split(';')
       .find(c => c.trim().startsWith('auth_token='))
@@ -42,14 +37,15 @@ export default defineEventHandler(async (event) => {
     if (!userPayload?.id) return
 
     const userId = Number(userPayload.id)
-    const now = Date.now()
-    const cached = authCache.get(userId)
-    if (cached && cached.expiresAt > now) {
-      context.user = cached.data
+    
+    // Check Nitro Cache instead of local Map
+    const cached = await storage.getItem<any>(`${CACHE_PREFIX}${userId}`)
+    if (cached) {
+      context.user = cached
       return
     }
 
-    // Fetch user data without heavy JOIN and json_agg
+    // Fetch user data
     const user = await globalThis.db
       .selectFrom('users')
       .select([
@@ -66,7 +62,7 @@ export default defineEventHandler(async (event) => {
 
     if (!user || user.status === 'suspended') return
 
-    // Fetch roles separately - only when needed
+    // Fetch roles
     const roles = await globalThis.db
       .selectFrom('user_roles as ur')
       .innerJoin('roles as r', 'r.id', 'ur.role_id')
@@ -84,12 +80,13 @@ export default defineEventHandler(async (event) => {
           permissions = r.permissions as Record<string, boolean>
         }
       } catch (e) {
-        // Log invalid permissions but don't fail the request
+        const errorMessage = e instanceof Error ? e.message : String(e)
         const logger = event.context.logger ?? (globalThis as any).logger
-        logger?.warn?.(
-          { userId: user.id, roleId: r.id, permissionsRaw },
-          'Failed to parse role permissions, using empty set',
+        logger?.error?.(
+          { userId: user.id, roleId: r.id, permissionsRaw, error: errorMessage },
+          'CRITICAL: Failed to parse role permissions. User session will not be hydrated to avoid inconsistent state.'
         )
+        throw new Error(`Corrupted permissions for role ${r.id}`)
       }
       return {
         id: r.id,
@@ -101,14 +98,14 @@ export default defineEventHandler(async (event) => {
     const permissions = mergePermissions(rolesArr)
     const userData = { ...user, roles: rolesArr, permissions }
 
-    // Update cache
-    authCache.set(user.id, { data: userData, expiresAt: now + CACHE_TTL })
+    // Update Nitro Storage Cache
+    await storage.setItem(`${CACHE_PREFIX}${userId}`, userData, { ttl: CACHE_TTL })
     
     context.user = userData
   } catch (err) {
     const logger = event.context.logger ?? (globalThis as any).logger
     logger?.error?.(
-      { err: err instanceof Error ? err.message : String(err), userId },
+      { err: err instanceof Error ? err.message : String(err) },
       'Auth hydration failed',
     )
   }

@@ -19,21 +19,25 @@ export default defineEventHandler(async (event) => {
     const lang = getRequestedLanguage(query)
     const searchTerm = query.search ?? query.q ?? null
 
-    let base = globalThis.db
-      .selectFrom('tags as t')
-      .leftJoin('tags_translations as t_req', (join) =>
-        join.onRef('t_req.tag_id', '=', 't.id').on('t_req.language_code', '=', lang),
-      )
-      .leftJoin('tags_translations as t_en', (join) =>
-        join.onRef('t_en.tag_id', '=', 't.id').on('t_en.language_code', '=', sql`'en'`),
-      )
+    const { query: baseQuery, tReq, tEn, selects } = buildTranslationSelect(globalThis.db.selectFrom('tags as t'), {
+      baseAlias: 't',
+      translationTable: 'tags_translations',
+      foreignKey: 'tag_id',
+      lang,
+      fields: ['name', 'short_text', 'description'],
+    })
+
+    const { query: queryTp, selects: selectsTp } = buildTranslationSelect(baseQuery, {
+      baseAlias: 't',
+      translationTable: 'tags_translations',
+      foreignKey: 'tag_id',
+      lang,
+      fields: { name: 'parent_name' },
+      aliasPrefix: 'tp',
+    })
+
+    let base = queryTp
       .leftJoin('tags as tp', 'tp.id', 't.parent_id')
-      .leftJoin('tags_translations as tp_req', (join) =>
-        join.onRef('tp_req.tag_id', '=', 'tp.id').on('tp_req.language_code', '=', lang),
-      )
-      .leftJoin('tags_translations as tp_en', (join) =>
-        join.onRef('tp_en.tag_id', '=', 'tp.id').on('tp_en.language_code', '=', sql`'en'`),
-      )
       .select([
         't.id',
         't.code',
@@ -44,11 +48,8 @@ export default defineEventHandler(async (event) => {
         't.created_by',
         't.created_at',
         't.modified_at',
-        sql`coalesce(t_req.name, t_en.name)`.as('name'),
-        sql`coalesce(t_req.short_text, t_en.short_text)`.as('short_text'),
-        sql`coalesce(t_req.description, t_en.description)`.as('description'),
-        sql`coalesce(t_req.language_code, 'en')`.as('language_code_resolved'),
-        sql`coalesce(tp_req.name, tp_en.name)`.as('parent_name'),
+        ...selects,
+        ...selectsTp,
       ])
 
     if (query.is_active !== undefined) base = base.where('t.is_active', '=', query.is_active)
@@ -71,9 +72,9 @@ export default defineEventHandler(async (event) => {
       applySearch: (qb, term) =>
         qb.where((eb) =>
           eb.or([
-            sql`coalesce(t_req.name, t_en.name) ilike ${'%' + term + '%'}`,
-            sql`coalesce(t_req.short_text, t_en.short_text) ilike ${'%' + term + '%'}`,
-            sql`coalesce(t_req.description, t_en.description) ilike ${'%' + term + '%'}`,
+            sql`lower(coalesce(${sql.ref(`${tReq}.name`)}, ${sql.ref(`${tEn}.name`)})) ilike ${'%' + term + '%'}`,
+            sql`lower(coalesce(${sql.ref(`${tReq}.short_text`)}, ${sql.ref(`${tEn}.short_text`)})) ilike ${'%' + term + '%'}`,
+            sql`lower(coalesce(${sql.ref(`${tReq}.description`)}, ${sql.ref(`${tEn}.description`)})) ilike ${'%' + term + '%'}`,
             sql`t.code ilike ${'%' + term + '%'}`,
           ]),
         ),
@@ -85,7 +86,7 @@ export default defineEventHandler(async (event) => {
         modified_at: 't.modified_at',
         code: 't.code',
         category: 't.category',
-        name: sql`lower(coalesce(t_req.name, t_en.name))`,
+        name: sql`lower(coalesce(${sql.ref(`${tReq}.name`)}, ${sql.ref(`${tEn}.name`)}))`,
         is_active: 't.is_active',
         created_by: 't.created_by',
       },

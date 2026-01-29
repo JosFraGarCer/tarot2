@@ -25,9 +25,7 @@ export default defineEventHandler((event) => {
 
   // Skip rate limiting for test environment
   const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true' || process.env.VITEST
-  console.log('🔍 RATE LIMIT DEBUG - NODE_ENV:', process.env.NODE_ENV, 'VITEST:', process.env.VITEST, 'isTestEnv:', isTestEnv)
   if (isTestEnv) {
-    console.log('✅ SKIPPING RATE LIMITING FOR TEST ENVIRONMENT')
     return
   }
 
@@ -35,7 +33,6 @@ export default defineEventHandler((event) => {
 
   // Skip rate limiting for ALL API endpoints during tests
   if (path.startsWith('/api') || path.startsWith('api/')) {
-    console.log('⏭️ SKIPPING RATE LIMITING FOR API ENDPOINT:', path)
     return
   }
 

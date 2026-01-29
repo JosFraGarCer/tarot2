@@ -154,12 +154,14 @@ export default defineEventHandler(async (event) => {
 
     const byType: Record<string, number[]> = {}
     for (const revision of approved as any[]) {
-      byType[revision.entity_type] ||= []
-      byType[revision.entity_type].push(Number(revision.entity_id))
+      const type = String(revision.entity_type)
+      if (!entityTypesWithVersion[type]) continue
+      byType[type] ||= []
+      byType[type].push(Number(revision.entity_id))
     }
 
     for (const [table, ids] of Object.entries(byType)) {
-      if (!entityTypesWithVersion[table] || !ids.length) continue
+      if (!ids.length) continue
       const uniqueIds = Array.from(new Set(ids))
       await trx
         .updateTable(sql`${sql.ref(table)}`)

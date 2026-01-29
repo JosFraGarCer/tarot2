@@ -3,7 +3,15 @@ import { defineEventHandler, readBody } from 'h3'
 import { sql } from 'kysely'
 import { paramsSchema, contentRevisionRevertSchema } from '@shared/schemas/content-revision'
 
+const REVERTIBLE_ENTITIES = new Set(['arcana', 'base_card', 'world', 'world_card', 'facet', 'base_skills'])
 const DISALLOWED_FIELDS = new Set(['id', 'created_at', 'modified_at', 'updated_by', 'created_by'])
+
+function validateEntityType(type: string): string {
+  if (!REVERTIBLE_ENTITIES.has(type)) {
+    throw createError({ statusCode: 400, statusMessage: `Invalid entity type: ${type}` })
+  }
+  return type
+}
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
@@ -35,7 +43,7 @@ export default defineEventHandler(async (event) => {
 
   if (!revision) notFound('Content revision not found')
 
-  const entityType = String((revision as any).entity_type ?? '')
+  const entityType = validateEntityType(String((revision as any).entity_type ?? ''))
   const entityId = Number((revision as any).entity_id)
   const snapshot = (revision as any).prev_snapshot as Record<string, any> | null
 
@@ -51,55 +59,63 @@ export default defineEventHandler(async (event) => {
 
   let newRevisionId: number | null = null
 
-  await globalThis.db.transaction().execute(async (trx) => {
-    const entityExists = await trx
-      .selectFrom(sql`${sql.ref(entityType)}`)
-      .select(sql`1`.as('one'))
-      .where(sql`id`, '=', entityId)
-      .executeTakeFirst()
+  try {
+    await globalThis.db.transaction().execute(async (trx) => {
+      const entityExists = await trx
+        .selectFrom(sql`${sql.ref(entityType)}`)
+        .select(sql`1`.as('one'))
+        .where(sql`id`, '=', entityId)
+        .executeTakeFirst()
 
-    if (!entityExists) notFound('Target entity not found for revert')
+      if (!entityExists) notFound('Target entity not found for revert')
 
-    const updatePayload = {
-      ...patch,
-      ...(user?.id ? { updated_by: user.id } : {}),
-    }
+      const updatePayload = {
+        ...patch,
+        ...(user?.id ? { updated_by: user.id } : {}),
+      }
 
-    await trx
-      .updateTable(sql`${sql.ref(entityType)}`)
-      .set(updatePayload)
-      .where(sql`id`, '=', entityId)
-      .execute()
+      await trx
+        .updateTable(sql`${sql.ref(entityType)}`)
+        .set(updatePayload)
+        .where(sql`id`, '=', entityId)
+        .execute()
 
-    const maxVersionRow = await trx
-      .selectFrom('content_revisions')
-      .select([sql`max(version_number)`.as('vmax')])
-      .where('entity_type', '=', entityType)
-      .where('entity_id', '=', entityId)
-      .executeTakeFirst()
+      const maxVersionRow = await trx
+        .selectFrom('content_revisions')
+        .select([sql`max(version_number)`.as('vmax')])
+        .where('entity_type', '=', entityType)
+        .where('entity_id', '=', entityId)
+        .executeTakeFirst()
 
-    const nextVersion = Number((maxVersionRow as any)?.vmax ?? 0) + 1
+      const nextVersion = Number((maxVersionRow as any)?.vmax ?? 0) + 1
 
-    const inserted = await trx
-      .insertInto('content_revisions')
-      .values({
-        entity_type: entityType,
-        entity_id: entityId,
-        version_number: nextVersion,
-        status: 'reverted',
-        language_code: (revision as any).language_code ?? null,
-        diff: { reverted_from_revision_id: id },
-        notes: body.notes ?? `Reverted from revision ${id}`,
-        prev_snapshot: null,
-        next_snapshot: (revision as any).next_snapshot ?? null,
-        content_version_id: (revision as any).content_version_id ?? null,
-        created_by: user?.id ?? null,
-      })
-      .returning('id')
-      .executeTakeFirst()
+      const inserted = await trx
+        .insertInto('content_revisions')
+        .values({
+          entity_type: entityType,
+          entity_id: entityId,
+          version_number: nextVersion,
+          status: 'reverted',
+          language_code: (revision as any).language_code ?? null,
+          diff: { reverted_from_revision_id: id },
+          notes: body.notes ?? `Reverted from revision ${id}`,
+          prev_snapshot: null,
+          next_snapshot: (revision as any).next_snapshot ?? null,
+          content_version_id: (revision as any).content_version_id ?? null,
+          created_by: user?.id ?? null,
+        })
+        .returning('id')
+        .executeTakeFirst()
 
-    newRevisionId = Number(inserted?.id ?? 0)
-  })
+      newRevisionId = Number(inserted?.id ?? 0)
+    })
+  } catch (error) {
+    throw createError({ statusCode: 500, statusMessage: 'Revert transaction failed', cause: error })
+  }
+
+  if (newRevisionId === null) {
+    throw createError({ statusCode: 500, statusMessage: 'Revert transaction failed: new revision ID not generated' })
+  }
 
   logger?.info?.(
     {

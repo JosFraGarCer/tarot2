@@ -26,9 +26,7 @@ const TRANSLATION_MAP: Record<
 
 export function getRequestedLanguage(query: Record<string, unknown> | undefined): string {
   const lang = typeof query?.lang === 'string' ? query!.lang : undefined
-  const language = typeof query?.language === 'string' ? query!.language : undefined
-  const locale = typeof query?.locale === 'string' ? query!.locale : undefined
-  return (lang || language || locale || 'en').toLowerCase()
+  return (lang || 'en').toLowerCase()
 }
 
 export async function getLanguageWithFallback<T extends {

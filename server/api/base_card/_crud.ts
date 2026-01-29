@@ -1,5 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // server/api/base_card/_crud.ts
-import { sql } from 'kysely'
+import { type Kysely, sql } from 'kysely'
 import { createCrudHandlers } from '../../utils/createCrudHandlers'
 import {
   baseCardQuerySchema,
@@ -7,13 +8,14 @@ import {
   baseCardUpdateSchema,
 } from '@shared/schemas/entities/base-card'
 import { buildTranslationSelect } from '../../utils/i18n'
+import type { DB } from '../../database/types'
 
-function buildSelect(db: any, lang: string) {
+function buildSelect(db: Kysely<DB>, lang: string) {
   const base = db
     .selectFrom('base_card as c')
     .leftJoin('users as u', 'u.id', 'c.created_by')
 
-  const { query, selects } = buildTranslationSelect(base, {
+  const translation = buildTranslationSelect(base, {
     baseAlias: 'c',
     translationTable: 'base_card_translations',
     foreignKey: 'card_id',
@@ -21,7 +23,7 @@ function buildSelect(db: any, lang: string) {
     fields: ['name', 'short_text', 'description'],
   })
 
-  const { query: queryCt, selects: selectsCt } = buildTranslationSelect(query, {
+  const translationCt = buildTranslationSelect(translation.query, {
     baseAlias: 'c',
     translationTable: 'base_card_type_translations',
     foreignKey: 'card_type_id',
@@ -30,27 +32,31 @@ function buildSelect(db: any, lang: string) {
     aliasPrefix: 'ct',
   })
 
-  return queryCt.select([
-    'c.id',
-    'c.code',
-    'c.card_type_id',
-    'c.status',
-    'c.is_active',
-    'c.created_by',
-    'c.image',
-    'c.legacy_effects',
-    sql`coalesce(c.effects, '{}'::jsonb)`.as('effects'),
-    'c.created_at',
-    'c.modified_at',
-    ...selects,
-    ...selectsCt,
-    sql`u.username`.as('create_user'),
-  ])
+  return {
+    query: translationCt.query.select([
+      'c.id',
+      'c.code',
+      'c.card_type_id',
+      'c.status',
+      'c.is_active',
+      'c.created_by',
+      'c.image',
+      'c.legacy_effects',
+      sql`coalesce(c.effects, '{}'::jsonb)`.as('effects'),
+      'c.created_at',
+      'c.modified_at',
+      ...translation.selects,
+      ...translationCt.selects,
+      sql`u.username`.as('create_user'),
+    ] as any[]),
+    tReq: translation.tReq,
+    tEn: translation.tEn,
+  }
 }
 
 // Eager load tags for a list of card IDs - batch fetch to avoid N+1
-async function eagerLoadTags(db: any, cardIds: number[], lang: string) {
-  if (cardIds.length === 0) return new Map<number, Array<{id: number, name: string, language_code_resolved: string}>>()
+async function eagerLoadTags(db: Kysely<DB>, cardIds: number[], lang: string) {
+  if (cardIds.length === 0) return new Map<number, Array<{ id: number; name: string; language_code_resolved: string }>>()
 
   const { query, selects } = buildTranslationSelect(
     db.selectFrom('tag_links as tl')
@@ -66,21 +72,21 @@ async function eagerLoadTags(db: any, cardIds: number[], lang: string) {
 
   const tagLinks = await query
     .select([
-      'tl.entity_id as card_id',
+      'tl.entity_id',
       'tg.id',
       ...selects,
-    ])
+    ] as any[])
     .where('tl.entity_type', '=', 'base_card')
     .where('tl.entity_id', 'in', cardIds)
     .execute()
 
-  const tagMap = new Map<number, Array<{id: number, name: string, language_code_resolved: string}>>()
+  const tagMap = new Map<number, Array<{ id: number; name: string; language_code_resolved: string }>>()
   for (const row of tagLinks) {
-    const cid = row.card_id as number
-    if (!tagMap.has(cid)) {
-      tagMap.set(cid, [])
+    const cardId = row.entity_id as number
+    if (!tagMap.has(cardId)) {
+      tagMap.set(cardId, [])
     }
-    tagMap.get(cid)!.push({
+    tagMap.get(cardId)!.push({
       id: row.id as number,
       name: row.name as string,
       language_code_resolved: row.language_code_resolved as string,
@@ -103,43 +109,54 @@ export const baseCardCrud = createCrudHandlers({
     languageKey: 'language_code',
     defaultLang: 'en',
   },
+  eagerLoad: [
+    {
+      key: 'tags',
+      fetch: (db: any, ids: number[], lang: string) => eagerLoadTags(db, ids, lang),
+    },
+  ],
   buildListQuery: ({ db, query, lang }) => {
     const tagsLower = query.tags?.map((tag: string) => tag.toLowerCase())
     const tagIds = query.tag_ids
 
-    let base = buildSelect(db, lang)
+    const { query: baseQuery, tReq, tEn } = buildSelect(db, lang)
+    let base = baseQuery
 
     if (query.is_active !== undefined) {
-      base = base.where('c.is_active', '=', query.is_active)
+      base = base.where(sql.ref('c.is_active') as any, '=', query.is_active)
     }
     if (query.created_by !== undefined) {
-      base = base.where('c.created_by', '=', query.created_by)
+      base = base.where(sql.ref('c.created_by') as any, '=', query.created_by)
     }
     if (query.card_type_id !== undefined) {
-      base = base.where('c.card_type_id', '=', query.card_type_id)
+      base = base.where(sql.ref('c.card_type_id') as any, '=', query.card_type_id)
     }
 
     const tagIdsArray = Array.isArray(tagIds) ? tagIds : (tagIds !== undefined ? [tagIds] : [])
     if (tagIdsArray.length > 0) {
-      base = base.where(sql`exists (
-        select 1
-        from tag_links tl
-        where tl.entity_type = ${'base_card'}
-          and tl.entity_id = c.id
-          and tl.tag_id = any(${tagIdsArray as any})
-      )`)
+      base = base.where((eb: any) => eb.exists(
+        eb.selectFrom('tag_links as tl')
+          .select(['tl.tag_id'])
+          .whereRef('tl.entity_id', '=', sql.ref('c.id') as any)
+          .where('tl.entity_type', '=', 'base_card')
+          .where('tl.tag_id', 'in', tagIdsArray)
+      ))
     }
     if (tagsLower && tagsLower.length > 0) {
-      base = base.where(sql`exists (
-        select 1
-        from tag_links tl
-        join tags t on t.id = tl.tag_id
-        left join tags_translations tt_req on tt_req.tag_id = t.id and tt_req.language_code = ${lang}
-        left join tags_translations tt_en on tt_en.tag_id = t.id and tt_en.language_code = 'en'
-        where tl.entity_type = ${'base_card'}
-          and tl.entity_id = c.id
-          and lower(coalesce(tt_req.name, tt_en.name)) = any(${tagsLower as any})
-      )`)
+      base = base.where((eb: any) => eb.exists(
+        eb.selectFrom('tag_links as tl')
+          .innerJoin('tags as t', 't.id', 'tl.tag_id')
+          .leftJoin('tags_translations as tt_req', (join: any) =>
+            join.onRef('tt_req.tag_id', '=', 't.id').on('tt_req.language_code', '=', lang),
+          )
+          .leftJoin('tags_translations as tt_en', (join: any) =>
+            join.onRef('tt_en.tag_id', '=', 't.id').on('tt_en.language_code', '=', 'en'),
+          )
+          .select(['tl.tag_id'])
+          .whereRef('tl.entity_id', '=', sql.ref('c.id') as any)
+          .where('tl.entity_type', '=', 'base_card')
+          .where(sql`lower(coalesce(tt_req.name, tt_en.name))`, 'in', tagsLower)
+      ))
     }
 
     return {
@@ -156,7 +173,7 @@ export const baseCardCrud = createCrudHandlers({
           modified_at: 'c.modified_at',
           code: 'c.code',
           status: 'c.status',
-          name: sql`lower(coalesce(t_req_base_card_translations.name, t_en_base_card_translations.name))`,
+          name: sql`lower(coalesce(${sql.ref(`${tReq}.name`)}, ${sql.ref(`${tEn}.name`)}))`,
           is_active: 'c.is_active',
           created_by: 'c.created_by',
           card_type_id: 'c.card_type_id',
@@ -164,35 +181,27 @@ export const baseCardCrud = createCrudHandlers({
         applySearch: (qb, term) =>
           qb.where((eb: any) =>
             eb.or([
-              sql`coalesce(t_req_base_card_translations.name, t_en_base_card_translations.name) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req_base_card_translations.short_text, t_en_base_card_translations.short_text) ilike ${'%' + term + '%'}`,
-              sql`coalesce(t_req_base_card_translations.description, t_en_base_card_translations.description) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(${sql.ref(`${tReq}.name`)}, ${sql.ref(`${tEn}.name`)})) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(${sql.ref(`${tReq}.short_text`)}, ${sql.ref(`${tEn}.short_text`)})) ilike ${'%' + term + '%'}`,
+              sql`lower(coalesce(${sql.ref(`${tReq}.description`)}, ${sql.ref(`${tEn}.description`)})) ilike ${'%' + term + '%'}`,
               sql`c.code ilike ${'%' + term + '%'}`,
             ]),
           ),
       },
-      transformRows: async (rows, ctx) => {
-        const cardIds = rows.map((r: any) => r.id).filter((id: any) => id != null)
-        const tagMap = await eagerLoadTags(ctx.db, cardIds, ctx.lang)
-        return rows.map((row: any) => ({
-          ...row,
-          tags: tagMap.get(row.id) || [],
-        }))
-      },
       logMeta: ({ rows }) => ({
         tag_ids: tagIds ?? null,
         tags: tagsLower ?? null,
-        count_tags: rows.reduce((acc: number, row: any) => acc + (Array.isArray(row?.tags) ? row.tags.length : 0), 0),
+        count_tags: rows.reduce((acc, row) => acc + (Array.isArray(row.tags) ? row.tags.length : 0), 0),
       }),
     }
   },
   selectOne: ({ db, lang }, id) =>
-    buildSelect(db, lang)
-      .where('c.id', '=', id)
+    buildSelect(db as Kysely<DB>, lang)
+      .query.where(sql.ref('c.id'), '=', id)
       .executeTakeFirst(),
   mutations: {
     buildCreatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+      const userId = ctx.user?.id ?? null
       const baseData = {
         code: input.code,
         card_type_id: input.card_type_id,
@@ -213,7 +222,7 @@ export const baseCardCrud = createCrudHandlers({
       return { baseData, translationData, lang: input.lang }
     },
     buildUpdatePayload: (input, ctx) => {
-      const userId = (ctx.event.context.user as any)?.id ?? null
+      const userId = ctx.user?.id ?? null
       const baseData = {
         code: input.code,
         card_type_id: input.card_type_id,

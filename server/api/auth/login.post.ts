@@ -98,7 +98,6 @@ export default defineEventHandler(async (event) => {
 
     globalThis.logger?.info('User login', {
       id: user.id,
-      identifier,
       ip,
       timeMs: Date.now() - startedAt,
     })
