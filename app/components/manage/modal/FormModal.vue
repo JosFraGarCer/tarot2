@@ -127,12 +127,14 @@ const props = withDefaults(defineProps<{
     create?: ZodTypeAny
     update?: ZodTypeAny
   } | null
+  fields?: Record<string, unknown> | null
 }>(), {
   loading: false,
   submitLabel: 'Save',
   cancelLabel: 'Cancel',
   englishItem: null,
   schema: null,
+  fields: null,
   description: '',
   ui: () => ({}),
   imageFile: null,
@@ -236,72 +238,12 @@ const normalizedLabel = computed(() =>
     .trim() || ''
 )
 
-// Build fields from Zod schema if provided; fallback to presets
+// Build fields from explicit prop; fallback to presets
 const schemaResolvedFields = computed<Record<string, unknown>>(() => {
-  try {
-    const s = props.schema?.update || props.schema?.create
-    if (!s || typeof (s as { _def?: unknown })._def === 'undefined') return {}
-    const obj = (s as { _def?: { shape?: unknown } })
-    const shapeDef = obj?._def?.shape
-    const shape = typeof shapeDef === 'function' ? shapeDef() : shapeDef
-    if (!shape) return {}
-
-    function unwrap(t: unknown): unknown {
-      // unwrap Optional/Nullable/Effects
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      while (t && (t as any) && ((t as any)._def?.typeName === 'ZodOptional' || (t as any)._def?.typeName === 'ZodNullable' || (t as any)._def?.typeName === 'ZodEffects')) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        t = (t as any)._def?.innerType || (t as any)._def?.schema || (t as any)._def?.inner
-      }
-      return t
-    }
-
-    const fields: Record<string, unknown> = {}
-    for (const key of Object.keys(shape as Record<string, unknown>)) {
-      const raw = (shape as Record<string, unknown>)[key]
-      const t = unwrap(raw)
-      let field: Record<string, unknown> = { label: key, placeholder: '', required: false, disabled: false }
-
-      // Heurística para relaciones por nombre
-      if (/(^|_)arcana_id$/.test(key)) field = { ...field, type: 'select', relation: 'arcana' }
-      else if (/(^|_)facet_id$/.test(key)) field = { ...field, type: 'select', relation: 'facet' }
-      else if (/(^|_)card_type_id$/.test(key)) field = { ...field, type: 'select', relation: 'card_type' }
-      else if (key === 'image') field = { ...field, type: 'upload' }
-      else if (t?._def?.typeName === 'ZodBoolean') field = { ...field, type: 'toggle' }
-      else if (t?._def?.typeName === 'ZodEnum' || t?._def?.typeName === 'ZodNativeEnum') {
-        const options = (t?._def?.values || t?._def?.options || [])
-        field = { ...field, type: 'select', relation: undefined, options }
-      } else {
-        field = { ...field, type: 'input' }
-      }
-
-      // Ensure known keys map to correct UI controls regardless of Zod internals
-      if (key === 'status') {
-        const options = (t?._def?.values || t?._def?.options || field.options || [])
-        field = { ...field, type: 'select', relation: undefined, options }
-      }
-      if (key === 'is_active') {
-        field = { ...field, type: 'toggle' }
-      }
-
-      // Ajustes por clave conocida
-      if (key === 'description') field.rows = 5
-      if (key === 'short_text') field.rows = 3
-      if (key === 'legacy_effects') field = { ...field, type: 'toggle', hidden: true }
-      if (key === 'effects') field = { ...field, type: 'effects' }
-
-      // Ocultar/ignorar campos que no se editan desde el formulario
-      if (['id', 'created_by', 'content_version_id', 'sort', 'language_code', 'lang', 'metadata'].includes(key)) {
-        field.hidden = true
-      }
-
-      fields[key] = field
-    }
-    return fields
-  } catch {
-    // fallback silencioso a presets
-    return {}
+  if (props.fields && Object.keys(props.fields).length) {
+    return props.fields
   }
+  return {}
 })
 
 const resolvedFields = computed(() => {
@@ -310,7 +252,8 @@ const resolvedFields = computed(() => {
   const label = normalizedLabel.value
   const preset = entityFieldPresets[label]
   if (!preset) {
-    console.warn(`⚠️ No preset found for entityLabel="${props.entityLabel}" → normalized="${label}`)
+    const { $logger } = useNuxtApp() as { $logger: { warn: (msg: string, meta?: unknown) => void } }
+    $logger.warn(`⚠️ No preset found for entityLabel="${props.entityLabel}" → normalized="${label}`)
   }
   return preset || {}
 })

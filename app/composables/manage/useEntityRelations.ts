@@ -1,11 +1,20 @@
 // app/composables/manage/useEntityRelations.ts
 import { computed, ref, unref } from 'vue'
 import { useI18n } from '#imports'
+import type { Arcana } from '~/shared/schemas/entities/arcana'
+import type { CardType as CardTypeSchema } from '~/shared/schemas/entities/cardtype'
+import type { Facet as FacetSchema } from '~/shared/schemas/entities/facet'
 
-type Option = { label: string; value: number }
+type Option = { label: string; value: number | string }
 
 interface RelationFetchOptions {
   locale?: string | { value: string | undefined | null }
+}
+
+interface ListResponse<T> {
+  data?: T[]
+  results?: T[]
+  items?: T[]
 }
 
 function unwrapLocale(locale: RelationFetchOptions['locale']): string {
@@ -14,9 +23,22 @@ function unwrapLocale(locale: RelationFetchOptions['locale']): string {
   return (value || 'en').toString()
 }
 
-async function fetchRelation(endpoint: string, locale: string): Promise<Option[]> {
+function extractItems<T>(response: unknown): T[] {
+  if (!response) return []
+  const res = response as ListResponse<T>
+  if (Array.isArray(res)) return res
+  if (Array.isArray(res?.data)) return res.data
+  if (Array.isArray(res?.results)) return res.results
+  if (Array.isArray(res?.items)) return res.items
+  return []
+}
+
+async function fetchRelation<T extends { id: number | string; name?: string; title?: string; code?: string }>(
+  endpoint: string,
+  locale: string
+): Promise<Option[]> {
   try {
-    const response = await $fetch<any>(`/api${endpoint}`, {
+    const response = await $fetch<ListResponse<T>>(`/api${endpoint}`, {
       method: 'GET',
       params: {
         pageSize: 100,
@@ -24,19 +46,16 @@ async function fetchRelation(endpoint: string, locale: string): Promise<Option[]
         lang: locale,
       },
     })
-    const rows: any[] = Array.isArray(response?.data)
-      ? response.data
-      : Array.isArray((response as any)?.results)
-        ? (response as any).results
-        : []
+    const rows = extractItems<T>(response)
 
     return rows.map((item) => ({
-      label: item?.name ?? item?.title ?? item?.code ?? `#${item?.id ?? ''}`,
-      value: item?.id ?? item?.value ?? item?.code,
+      label: item.name ?? item.title ?? item.code ?? `#${item.id}`,
+      value: item.id,
     }))
       .filter((option) => option.label && option.value !== undefined)
   } catch (error) {
-    console.warn(`[useEntityRelations] Failed to fetch ${endpoint}`, error)
+    const { $logger } = useNuxtApp() as { $logger: { warn: (msg: string, meta?: unknown) => void } }
+    $logger.warn(`[useEntityRelations] Failed to fetch ${endpoint}`, error)
     return []
   }
 }
@@ -58,9 +77,9 @@ export function useEntityRelations(options: RelationFetchOptions = {}) {
     const lang = unwrapLocale(localeRef.value)
 
     const [arcana, cardTypes, facets] = await Promise.all([
-      fetchRelation('/arcana', lang),
-      fetchRelation('/card_type', lang),
-      fetchRelation('/facet', lang),
+      fetchRelation<Arcana>('/arcana', lang),
+      fetchRelation<CardTypeSchema>('/card_type', lang),
+      fetchRelation<FacetSchema>('/facet', lang),
     ])
 
     arcanaOptions.value = arcana

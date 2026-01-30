@@ -13,6 +13,15 @@ import type { z } from 'zod'
 import { useAsyncData, useI18n } from '#imports'
 import { useApiFetch, clearApiFetchCache } from '@/utils/fetcher'
 import { usePaginatedList } from '~/composables/manage/usePaginatedList'
+import {
+  normalizeFilters,
+  pruneUndefined,
+  sanitizeInitialFilters,
+  normalizeListResponse,
+  escapeRegExp,
+  type NormalizedListResponse,
+} from '~/composables/manage/useEntityFetch'
+
 const $fetch = useApiFetch
 
 // API response contract
@@ -95,63 +104,6 @@ function toErrorMessage(err: any): string {
   )
 }
 
-function normalizeFilters(obj: Record<string, any>) {
-  const out: Record<string, any> = {}
-  for (const [key, value] of Object.entries(obj)) {
-    if (key === 'search' && typeof value !== 'string') continue
-    if (value === '' || value === null || value === undefined || value === 'all') continue
-    if (Array.isArray(value) && value.length === 0) continue
-    // is_active: true significa "all", no enviar al backend
-    if (key === 'is_active' && value === true) continue
-    // is_active: false o string se envía al backend
-    if (key === 'is_active') {
-      if (value === false) {
-        out[key] = 'false'
-      } else if (typeof value === 'boolean') {
-        out[key] = value ? 'true' : 'false'
-      } else if (value === 'true' || value === 'false') {
-        out[key] = value
-      } else if (value !== undefined && value !== null) {
-        out[key] = value
-      }
-      continue
-    }
-    // Procesar objetos anidados (ej: { min: 1, max: 10 } → range_min=1, range_max=10)
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      for (const [subKey, subValue] of Object.entries(value)) {
-        if (subValue !== null && subValue !== undefined && subValue !== '') {
-          out[`${key}_${subKey}`] = subValue
-        }
-      }
-      continue
-    }
-    out[key] = value
-  }
-  return out
-}
-
-function pruneUndefined<T extends Record<string, any>>(obj: T): T {
-  const out: Record<string, any> = {}
-  for (const k in obj) {
-    const v = obj[k]
-    if (v !== undefined) out[k] = v
-  }
-  return out as T
-}
-
-function sanitizeInitialFilters(raw: Record<string, any>): Record<string, any> {
-  const sanitized: Record<string, any> = {}
-  for (const [key, value] of Object.entries(raw)) {
-    if (value === true) {
-      if (key.endsWith('_ids')) sanitized[key] = []
-      else sanitized[key] = true // is_active se inicializa como true (mostrar "all" en UI)
-      continue
-    }
-    sanitized[key] = value
-  }
-  return sanitized
-}
-
 function normalizeFilterConfig(raw?: EntityFilterConfig | Record<string, any>): EntityFilterConfig {
   if (!raw) return {}
   const normalized: EntityFilterConfig = {}
@@ -163,151 +115,6 @@ function normalizeFilterConfig(raw?: EntityFilterConfig | Record<string, any>): 
     }
   }
   return normalized
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-type GenericMeta = Partial<ApiMeta> & Record<string, any>
-
-interface NormalizedListResponse<TItem> {
-  items: TItem[]
-  meta?: GenericMeta
-  totalItems: number
-}
-
-function toNumber(value: any): number | undefined {
-  if (value === null || value === undefined) return undefined
-  const num = typeof value === 'number' ? value : Number(value)
-  return Number.isFinite(num) ? num : undefined
-}
-
-function normalizeMeta(metaCandidate: any): GenericMeta | undefined {
-  if (!metaCandidate || typeof metaCandidate !== 'object') return undefined
-  const meta: GenericMeta = { ...metaCandidate }
-
-  const page = toNumber(
-    metaCandidate.page ??
-    metaCandidate.page_number ??
-    metaCandidate.current_page ??
-    metaCandidate.pageNumber ??
-    metaCandidate.currentPage
-  )
-  if (page !== undefined) meta.page = page
-
-  const pageSize = toNumber(
-    metaCandidate.pageSize ??
-    metaCandidate.page_size ??
-    metaCandidate.per_page ??
-    metaCandidate.perPage ??
-    metaCandidate.limit
-  )
-  if (pageSize !== undefined) meta.pageSize = pageSize
-
-  const totalItems = toNumber(
-    metaCandidate.totalItems ??
-    metaCandidate.total ??
-    metaCandidate.total_count ??
-    metaCandidate.totalResults ??
-    metaCandidate.total_records ??
-    metaCandidate.count
-  )
-  if (totalItems !== undefined) meta.totalItems = totalItems
-
-  const count = toNumber(metaCandidate.count)
-  if (count !== undefined) meta.count = count
-
-  return meta
-}
-
-function normalizeListResponse<TItem>(raw: any): NormalizedListResponse<TItem> {
-  if (!raw) {
-    return { items: [], totalItems: 0 }
-  }
-
-  if (Array.isArray(raw)) {
-    return { items: raw as TItem[], totalItems: raw.length }
-  }
-
-  const containers = [raw, raw.data, raw.payload, raw.body, raw.result]
-  let items: TItem[] = []
-
-  for (const container of containers) {
-    if (!container) continue
-    if (Array.isArray(container)) {
-      items = container as TItem[]
-      break
-    }
-    for (const key of ['data', 'results', 'items', 'rows', 'list', 'records']) {
-      const candidate = (container as any)?.[key]
-      if (Array.isArray(candidate)) {
-        items = candidate as TItem[]
-        break
-      }
-    }
-    if (items.length) break
-  }
-
-  const metaCandidates = [
-    raw.meta,
-    raw.pagination,
-    raw.pageInfo,
-    raw.metaData,
-    raw.meta_data,
-    raw.paging,
-    raw.data?.meta,
-    raw.data?.pagination,
-    raw.payload?.meta,
-  ].filter(Boolean)
-
-  let meta: GenericMeta | undefined
-  for (const candidate of metaCandidates) {
-    const normalized = normalizeMeta(candidate)
-    if (normalized) {
-      meta = normalized
-      break
-    }
-  }
-  if (!meta) {
-    const inline = normalizeMeta(raw)
-    if (inline) meta = inline
-  }
-
-  const totalCandidates: Array<any> = [
-    meta?.totalItems,
-    meta?.total,
-    meta?.count,
-    raw.totalItems,
-    raw.total,
-    raw.count,
-    raw.total_count,
-    raw.size,
-    raw.data?.total,
-    raw.data?.count,
-    raw.data?.total_count,
-    raw.pagination?.total,
-    raw.pagination?.totalItems,
-  ]
-
-  let totalItems = items.length
-  for (const candidate of totalCandidates) {
-    const num = toNumber(candidate)
-    if (num !== undefined) {
-      totalItems = num
-      break
-    }
-  }
-
-  if (meta) {
-    if (meta.totalItems === undefined) meta.totalItems = totalItems
-    const coercedPage = toNumber(meta.page ?? raw.page ?? raw.currentPage)
-    if (coercedPage !== undefined) meta.page = coercedPage
-    const coercedPageSize = toNumber(meta.pageSize ?? raw.pageSize ?? raw.perPage)
-    if (coercedPageSize !== undefined) meta.pageSize = coercedPageSize
-  }
-
-  return { items, meta, totalItems }
 }
 
 // Main composable
@@ -387,24 +194,13 @@ export function useEntity<TList, TCreate, TUpdate>(
     { immediate: true }
   )
 
+  // Consolidate pagination sync watchers into single bidirectional watcher
   watch(
-    () => pagination.value.page,
-    (value) => {
-      if (value !== paginated.page.value) paginated.setPage(value)
-    }
-  )
-
-  watch(
-    () => pagination.value.pageSize,
-    (value) => {
-      if (value !== paginated.pageSize.value) paginated.setPageSize(value)
-    }
-  )
-
-  watch(
-    () => pagination.value.totalItems,
-    (value) => {
-      if (value !== paginated.totalItems.value) paginated.syncMeta({ totalItems: value })
+    () => [pagination.value.page, pagination.value.pageSize, pagination.value.totalItems],
+    ([pageValue, pageSizeValue, totalItemsValue]) => {
+      if (pageValue !== paginated.page.value) paginated.setPage(pageValue)
+      if (pageSizeValue !== paginated.pageSize.value) paginated.setPageSize(pageSizeValue)
+      if (totalItemsValue !== paginated.totalItems.value) paginated.syncMeta({ totalItems: totalItemsValue })
     }
   )
 
@@ -484,9 +280,9 @@ export function useEntity<TList, TCreate, TUpdate>(
       meta?.totalItems ?? meta?.count ?? val.totalItems ?? items.value.length
 
     paginated.syncMeta({
-      page: !pending ? meta?.page : undefined,
-      pageSize: !pending ? meta?.pageSize : undefined,
-      totalItems: totalItemsFromMeta,
+      page: !pending ? (meta?.page as number | undefined) : undefined,
+      pageSize: !pending ? (meta?.pageSize as number | undefined) : undefined,
+      totalItems: Number(totalItemsFromMeta),
     })
 
     const snapshot = pagination.value

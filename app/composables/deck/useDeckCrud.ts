@@ -1,33 +1,27 @@
 // app/composables/deck/useDeckCrud.ts
-// /app/composables/deck/useDeckCrud.ts
 import { computed, unref, type ComputedRef, type MaybeRef } from 'vue'
 import type { ManageCrud } from '@/types/manage'
-import type {
-  ArcanaCreate,
-  ArcanaList,
-  ArcanaUpdate,
-  BaseCardCreate,
-  BaseCardList,
-  BaseCardUpdate,
-  CardTypeCreate,
-  CardTypeList,
-  CardTypeUpdate,
-  FacetCreate,
-  FacetList,
-  FacetUpdate,
-  SkillCreate,
-  SkillList,
-  SkillUpdate,
-  WorldCreate,
-  WorldList,
-  WorldUpdate,
-} from '@/types/entities'
+import type { ArcanaCreate, ArcanaUpdate } from '../../../shared/schemas/entities/arcana'
+import type { CardTypeCreate, CardTypeUpdate } from '../../../shared/schemas/entities/cardtype'
+import type { FacetCreate, FacetUpdate } from '../../../shared/schemas/entities/facet'
+import type { WorldCreate, WorldUpdate } from '../../../shared/schemas/entities/world'
+import type { BaseCardCreate, BaseCardUpdate } from '../../../shared/schemas/entities/base-card'
+import type { SkillCreate, SkillUpdate } from '../../../shared/schemas/entities/skill'
 import { useCardTypeCrud } from '~/composables/manage/useCardType'
 import { useBaseCardCrud } from '~/composables/manage/useBaseCard'
 import { useWorldCrud } from '~/composables/manage/useWorld'
 import { useArcanaCrud } from '~/composables/manage/useArcana'
 import { useFacetCrud } from '~/composables/manage/useFacet'
 import { useSkillCrud } from '~/composables/manage/useSkill'
+
+type EntityList = unknown[]
+
+type CardTypeList = EntityList
+type BaseCardList = EntityList
+type WorldList = EntityList
+type ArcanaList = EntityList
+type FacetList = EntityList
+type SkillList = EntityList
 
 export const DECK_ENTITY_NAMES = ['cardType', 'baseCard', 'world', 'arcana', 'facet', 'skill'] as const
 export type DeckEntityName = typeof DECK_ENTITY_NAMES[number]
@@ -122,7 +116,7 @@ function createDeckCrud<TKey extends DeckEntityKey>(entityKey: TKey): DeckCrudSu
   }
 
   const isDev = import.meta.dev
-  const log = (...args: any[]) => {
+  const log = (...args: Parameters<Console['debug']>) => {
     if (!isDev) return
     console.debug('[useDeckCrud]', ...args)
   }
@@ -134,7 +128,7 @@ function createDeckCrud<TKey extends DeckEntityKey>(entityKey: TKey): DeckCrudSu
     }
   }
 
-  const fetch: DeckCrudSuccess<TKey>['fetch'] = async (options) => {
+  const fetch = async (options: DeckCrudFetchOptions | undefined): Promise<CrudItems<TKey>> => {
     if (isDev) {
       log('fetch:start', {
         options,
@@ -170,10 +164,10 @@ function createDeckCrud<TKey extends DeckEntityKey>(entityKey: TKey): DeckCrudSu
       })
     }
 
-    return result
+    return result as CrudItems<TKey>
   }
 
-  const items = computed<CrudItems<TKey>>(() => crud.items.value)
+  const items = computed(() => crud.items.value as CrudItems<TKey>)
   const loading = computed(() => crud.loading?.value ?? false)
   const error = computed(() => crud.error?.value ?? null)
 
@@ -185,7 +179,8 @@ export function useDeckCrud(entity: MaybeRef<string>): DeckCrudResult {
 
   if (!entityKey) {
     if (import.meta.dev) {
-      console.warn('[useDeckCrud] Unsupported entity provided:', unref(entity))
+      const { $logger } = useNuxtApp() as unknown as { $logger: { warn: (msg: string, meta?: unknown) => void } }
+      $logger.warn('[useDeckCrud] Unsupported entity provided:', unref(entity))
     }
     const emptyItems = computed<never[]>(() => [])
     const constantFalse = computed(() => false)

@@ -3,6 +3,7 @@ import { defineNuxtRouteMiddleware, navigateTo } from '#app'
 import { useUserStore } from '~/stores/user'
 import { useAuthRoles } from '~/composables/auth/useAuthRoles'
 import { authConfig, isPublicRoute, canAccessPath } from '~/config/auth.config'
+import type { AppLogger } from '~/plugins/app-logger'
 
 /**
  * Middleware global de autenticación y control de acceso
@@ -11,6 +12,7 @@ import { authConfig, isPublicRoute, canAccessPath } from '~/config/auth.config'
  * - Configuración centralizada en auth.config.ts
  */
 export default defineNuxtRouteMiddleware(async (to) => {
+  const { $logger } = useNuxtApp() as { $logger: AppLogger }
   const store = useUserStore()
 
   // 🧩 Hidratar usuario si no está inicializado
@@ -18,7 +20,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     try {
       await store.fetchCurrentUser()
     } catch (err) {
-      console.warn('[auth.global] fetchCurrentUser failed:', err)
+      $logger.warn('[auth.global] fetchCurrentUser failed:', err)
     }
   }
 
