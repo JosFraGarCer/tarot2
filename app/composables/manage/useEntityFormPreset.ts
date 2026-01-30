@@ -73,7 +73,18 @@ function normalizeKind(rawKind: string | null | undefined): string {
     .replace(/[\s-]+/g, '_')
     .toLowerCase()
 
-  switch (normalized) {
+  // Normalizar plurales comunes a singular
+  const singular = normalized
+    .replace(/_types$/, '_type')
+    .replace(/_cards$/, '_card')
+    .replace(/_worlds$/, '_world')
+    .replace(/_arcana$/, '_arcana')
+    .replace(/_facets$/, '_facet')
+    .replace(/_skills$/, '_skill')
+    .replace(/_tags$/, '_tag')
+    .replace(/_ids$/, '_id')
+
+  switch (singular) {
     case 'cardtype':
       return 'card_type'
     case 'basecard':
@@ -81,8 +92,54 @@ function normalizeKind(rawKind: string | null | undefined): string {
     case 'worldcard':
       return 'world_card'
     default:
-      return normalized
+      return singular
   }
+}
+
+// Mapeo directo de labels a keys de presets (sin normalización)
+const LABEL_TO_KEY: Record<string, string> = {
+  'Arcana': 'arcana',
+  'arcana': 'arcana',
+  'Base Cards': 'base_card',
+  'base_cards': 'base_card',
+  'base_card': 'base_card',
+  'Base Card Types': 'card_type',
+  'card_types': 'card_type',
+  'card_type': 'card_type',
+  'Facets': 'facet',
+  'facets': 'facet',
+  'facet': 'facet',
+  'Skills': 'skill',
+  'skills': 'skill',
+  'skill': 'skill',
+  'Worlds': 'world',
+  'worlds': 'world',
+  'world': 'world',
+  'Tags': 'tag',
+  'tags': 'tag',
+  'tag': 'tag',
+  'World Cards': 'world_card',
+  'world_cards': 'world_card',
+  'world_card': 'world_card',
+  'Effects': 'effect_type',
+  'effects': 'effect_type',
+  'effect_type': 'effect_type',
+  'Targets': 'effect_target',
+  'targets': 'effect_target',
+  'effect_target': 'effect_target',
+}
+
+function resolveEntityKey(rawLabel: string | null | undefined): string {
+  if (!rawLabel) return 'entity'
+  const label = rawLabel.toString().trim()
+  
+  // Buscar en el mapeo directo
+  if (LABEL_TO_KEY[label]) {
+    return LABEL_TO_KEY[label]
+  }
+  
+  // Si no está en el mapeo, usar normalización
+  return normalizeKind(label)
 }
 
 function cloneDefaultValue<T>(value: T): T {
@@ -140,6 +197,7 @@ function buildCoreCardPreset(capabilities: EntityCapabilities, config: CorePrese
       label: 'ui.release.stage',
       type: 'select',
       options: RELEASE_STAGE_OPTIONS,
+      hidden: true, // Mover a Admin/bulk actions
     }
   }
 
@@ -147,7 +205,7 @@ function buildCoreCardPreset(capabilities: EntityCapabilities, config: CorePrese
     fields.tag_ids = {
       label: 'entities.tags',
       type: 'select',
-      hidden: !capabilities.hasTags,
+      hidden: true, // Usar EntityTagsModal en lugar de select
     }
   }
 
@@ -258,7 +316,7 @@ const PRESET_FACTORIES: Record<string, EntityFormPresetBuilder> = {
   card_type: (capabilities) => buildCoreCardPreset(capabilities, {
     schema: { create: cardTypeCreateSchema, update: cardTypeUpdateSchema },
     supportsEffects: false,
-    supportsImage: false,
+    supportsImage: true,
   }),
   facet: (capabilities) => buildCoreCardPreset(capabilities, {
     schema: { create: facetCreateSchema, update: facetUpdateSchema },
@@ -281,7 +339,7 @@ const PRESET_FACTORIES: Record<string, EntityFormPresetBuilder> = {
 }
 
 export function useEntityFormPreset(entityKind: MaybeRefOrGetter<string | null | undefined>) {
-  const normalizedKind = computed(() => normalizeKind(toValue(entityKind)))
+  const normalizedKind = computed(() => resolveEntityKey(toValue(entityKind)))
   const capabilities = useEntityCapabilities({ kind: normalizedKind })
 
   const preset = computed<EntityFormPreset>(() => {

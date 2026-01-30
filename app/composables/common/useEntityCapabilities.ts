@@ -48,6 +48,14 @@ const ENTITY_CAPABILITIES_MAP: Record<string, Partial<EntityCapabilities>> = {
     hasReleaseStage: true,
     actionsBatch: true,
   },
+  card_type: {
+    translatable: true,
+    hasTags: false,
+    hasPreview: true,
+    hasRevisions: false,
+    hasStatus: true,
+    hasReleaseStage: false,
+  },
   world: {
     translatable: true,
     hasTags: true,

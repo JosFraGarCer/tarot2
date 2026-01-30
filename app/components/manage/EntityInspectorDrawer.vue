@@ -22,14 +22,38 @@
             {{ displaySubtitle }}
           </p>
         </div>
-        <UButton
-          icon="i-heroicons-x-mark"
-          size="xs"
-          variant="ghost"
-          color="neutral"
-          :aria-label="tt('ui.actions.close', 'Close preview')"
-          @click="emitClose"
-        />
+        <div class="flex items-center gap-1">
+          <UButton
+            icon="i-lucide-chevron-left"
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            :disabled="!hasNavigation || isFirst"
+            :aria-label="tt('ui.actions.previous', 'Previous entity')"
+            @click="navigatePrevious"
+          />
+          <span v-if="hasNavigation" class="text-xs text-neutral-500 dark:text-neutral-400 px-1">
+            {{ currentIndex + 1 }}/{{ totalItems }}
+          </span>
+          <UButton
+            icon="i-lucide-chevron-right"
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            :disabled="!hasNavigation || isLast"
+            :aria-label="tt('ui.actions.next', 'Next entity')"
+            @click="navigateNext"
+          />
+          <UDivider orientation="vertical" class="mx-1 h-6" />
+          <UButton
+            icon="i-heroicons-x-mark"
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            :aria-label="tt('ui.actions.close', 'Close preview')"
+            @click="emitClose"
+          />
+        </div>
       </div>
     </template>
 
@@ -167,6 +191,8 @@ const props = withDefaults(defineProps<{
   kind?: string | null
   capabilities?: Partial<EntityCapabilities> | null
   lang?: string | null
+  entityList?: Array<EntityRow | Record<string, any>> | null
+  currentIndex?: number
 }>(), {
   open: false,
   entity: null,
@@ -174,10 +200,13 @@ const props = withDefaults(defineProps<{
   kind: null,
   capabilities: null,
   lang: null,
+  entityList: null,
+  currentIndex: 0,
 })
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
+  (e: 'navigate', direction: 'previous' | 'next', index: number): void
 }>()
 
 const { t } = useI18n()
@@ -186,6 +215,26 @@ const internalOpen = computed({
   get: () => props.open,
   set: (value: boolean) => emit('update:open', value),
 })
+
+const hasNavigation = computed(() => props.entityList && props.entityList.length > 1)
+
+const totalItems = computed(() => props.entityList?.length ?? 0)
+
+const currentIndex = computed(() => props.currentIndex ?? 0)
+
+const isFirst = computed(() => currentIndex.value <= 0)
+
+const isLast = computed(() => currentIndex.value >= totalItems.value - 1)
+
+function navigatePrevious() {
+  if (isFirst.value) return
+  emit('navigate', 'previous', currentIndex.value - 1)
+}
+
+function navigateNext() {
+  if (isLast.value) return
+  emit('navigate', 'next', currentIndex.value + 1)
+}
 
 const resolvedKind = computed(() => props.kind || props.rawEntity?.entity_type || props.rawEntity?.kind || null)
 

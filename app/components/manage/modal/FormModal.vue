@@ -45,7 +45,7 @@
               />
             </template>
             <ImageUploadField
-              v-else-if="field.type === 'upload'"
+              v-else-if="field.type === 'upload' || field.type === 'image'"
               :model-value="imageFile"
               :preview="resolvedImagePreview"
               :field="imageFieldConfig"
@@ -103,7 +103,7 @@ import { useI18n } from '#imports'
 import ImageUploadField from '~/components/manage/common/ImageUploadField.vue'
 import MarkdownEditor from '~/components/common/MarkdownEditor.vue'
 import { useEntityRelations } from '~/composables/manage/useEntityRelations'
-import { entityFieldPresets } from '~/composables/manage/entityFieldPresets'
+import { useEntityFormPreset } from '~/composables/manage/useEntityFormPreset'
 import type { ZodTypeAny } from 'zod'
 import { useCardStatus } from '~/utils/status'
 
@@ -229,16 +229,10 @@ function formatEffectsFallback(): string {
   return '—'
 }
 
-const normalizedLabel = computed(() =>
-  props.entityLabel
-    ?.toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/-/g, '_')
-    .replace(/s$/, '') // quita plural final
-    .trim() || ''
-)
+// Usar useEntityFormPreset para obtener los campos - pasar el label original
+const { fields: presetFields } = useEntityFormPreset(() => props.entityLabel)
 
-// Build fields from explicit prop; fallback to presets
+// Build fields from explicit prop; fallback to preset
 const schemaResolvedFields = computed<Record<string, unknown>>(() => {
   if (props.fields && Object.keys(props.fields).length) {
     return props.fields
@@ -249,13 +243,7 @@ const schemaResolvedFields = computed<Record<string, unknown>>(() => {
 const resolvedFields = computed(() => {
   const fromSchema = schemaResolvedFields.value
   if (fromSchema && Object.keys(fromSchema).length) return fromSchema
-  const label = normalizedLabel.value
-  const preset = entityFieldPresets[label]
-  if (!preset) {
-    const { $logger } = useNuxtApp() as { $logger: { warn: (msg: string, meta?: unknown) => void } }
-    $logger.warn(`⚠️ No preset found for entityLabel="${props.entityLabel}" → normalized="${label}`)
-  }
-  return preset || {}
+  return presetFields.value || {}
 })
 
 // 🔧 Estado local sincronizado con form.effects
@@ -322,7 +310,13 @@ function handleCancel() {
 
 // i18n label helper: try fields.<key>, else fallback label/key
 function trLabel(key: string, fallback?: string) {
-  const entityKey = normalizedLabel.value
+  // Usar normalización simple basada en el label original
+  const entityKey = props.entityLabel
+    ?.toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_')
+    .trim() || 'entity'
+  
   const tryKeys = [
     entityKey ? `fields.${entityKey}.${key}` : '',
     `fields.${key}`,
