@@ -1,82 +1,111 @@
 ---
 trigger: always_on
 ---
+# 🧩 TAROT2 — ADDITIONAL RULES (GUIDED, NON-BLOCKING)
 
-# 🧩 **REGLAS ADICIONALES PARA TAROT2 (RECOMENDADAS)**
-
-*(Seguras, no intrusivas, y elevan la calidad de Windsurf muchísimo)*
-
----
-
-# ⭐ 1. Regla Anti-Confusión:
-
-### **“Nunca asumas que un componente es global si no está importado”**
-
-**Razón:**
-Nuxt 4 autoimporta composables pero **NO todos los componentes**.
-Windsurf a veces cree que un componente existe globalmente aunque solo exista en un folder específico.
-
-### 🔒 Regla:
-
-> **Nunca uses un componente sin verificar primero si existe en el proyecto.
-> Si no existe, créalo explícitamente con la API de Nuxt/Nuxt UI y siguiendo patrones existentes.**
-
----
-
-# ⭐ 2. Regla de Modales:
-
-### **“Todos los modales deben seguir patrones accesibles y con foco manejado”**
-
-Tu proyecto ya tiene modales accesibles, pero Windsurf podría olvidarlo.
-Esta regla fija el estándar.
-
-### 🔒 Regla:
-
-> **Todo modal nuevo debe usar UModal con:
+> **Purpose**: These rules refine and support `tarot2.md`.
+> They exist to **reduce common Windsurf failure modes** without freezing evolution.
 >
-> * `role="dialog"`
-> * `aria-modal="true"`
-> * encabezados accesibles
-> * focus trap (`UFocusTrap` si corresponde)
-> * retorno de foco al disparador**
-
-> **Los modales legacy deben migrarse gradualmente a este patrón.**
+> These rules are **advisory but enforceable** when they protect consistency, accessibility or data integrity.
 
 ---
 
-# ⭐ 3. Regla de Funciones Asíncronas SEGURAS
+## 0. How to Read These Rules
 
-### **“Evitar `.then()`/`.catch()` salvo necesidad explícita”**
-
-En tu repo usáis `async/await` en prácticamente todo.
-Windsurf a veces introduce `.then()` por error.
-
-### 🔒 Regla:
-
-> **Usa siempre `async/await` para llamadas a API, mutations y fetches.
-> No introduzcas `.then()` o `.catch()` salvo que ya exista en el archivo.**
+* These rules **do not override** the core axioms or invariants.
+* They focus on **DX, clarity and safety**.
+* When a rule conflicts with an explicit design change, the design change wins — **but the intent must be preserved**.
 
 ---
 
-# ⭐ 4. Regla de Limpieza:
+## ⭐ 1. Anti-Confusion Rule — Component Reality Check
 
-### **“No dejar logs temporales, console.log, console.warn, debugger”**
+### Objective
 
-En Tarot2 hay cada vez menos logs en frontend.
-Windsurf podría insertar alguno para debug.
+Avoid accidental use of non-existent or non-global components.
 
-### 🔒 Regla:
+### Invariants
 
-> **No dejes `console.log`, `console.warn`, `debugger`, ni logs temporales en el PR final,
-> salvo que formen parte del sistema de logging del backend.**
+* Nuxt auto-imports composables, **not all components**.
+* Components must exist and be importable at the usage site.
+
+### Rule
+
+> Never assume a component is globally available unless explicitly documented.
+> If a component does not exist, create it explicitly following existing patterns.
+
+### Forbidden
+
+* Using components based on name similarity or intuition
+* Relying on undocumented auto-import behavior
 
 ---
 
-# ⭐ 5. Regla de Estabilidad del Árbol de Componentes
+## ⭐ 2. Modal Rules — Accessibility First
 
-### **Prohibido alterar los nombres o paths de componentes core**
+### Objective
 
-Los siguientes nombres SON parte de la arquitectura de Tarot2 y Windsurf NO debe renombrarlos nunca:
+Ensure all modals remain accessible and predictable.
+
+### Invariants
+
+* Keyboard navigation must always work
+* Focus must be trapped and restored
+* Screen readers must identify modal context
+
+### Rule
+
+> All modals must:
+>
+> * use `UModal`
+> * declare `role="dialog"` and `aria-modal="true"`
+> * manage focus correctly (trap + restore)
+
+### Note
+
+Implementation details may evolve, but **accessibility guarantees must not**.
+
+---
+
+## ⭐ 3. Async Safety Rule
+
+### Objective
+
+Maintain consistent async control flow.
+
+### Invariants
+
+* Async logic must be readable and predictable
+
+### Rule
+
+> Prefer `async/await` for all async operations.
+> Avoid `.then()` / `.catch()` unless the file already uses that style.
+
+---
+
+## ⭐ 4. Clean Output Rule
+
+### Objective
+
+Prevent debug noise from leaking into production.
+
+### Rule
+
+> No `console.log`, `console.warn`, `debugger`, or temporary logs in final code.
+> Backend logging must use the structured logging system.
+
+---
+
+## ⭐ 5. Component Tree Stability
+
+### Objective
+
+Protect architectural anchor points.
+
+### Invariants
+
+The following components are **structural** and must not be renamed or moved:
 
 * `CommonDataTable`
 * `ManageTableBridge`
@@ -86,102 +115,229 @@ Los siguientes nombres SON parte de la arquitectura de Tarot2 y Windsurf NO debe
 * `FormModal`
 * `EntitySlideover`
 
-### 🔒 Regla:
+### Rule
 
-> **Nunca renombres ni muevas archivos de infraestructura sin petición explícita.
-> (Puedes refactorizar internamente, pero no cambiar nombres/paths.)**
-
----
-
-# ⭐ 6. Regla de Tipos y Zod
-
-### **“Todo campo nuevo en formularios debe ser tipado y validado”**
-
-Si añades un campo a un formulario Manage:
-
-* debe existir en el Zod schema
-* debe existir en presets (`useEntityFormPreset`)
-* debe validarse
-* debe pasar al backend con el tipo correcto
-
-### 🔒 Regla:
-
-> **Cada campo nuevo debe mapearse en:
-> Zod → presets → FormModal → payload del CRUD → BD (si aplica).**
+> Internal refactors are allowed.
+> Renaming, moving or repurposing these components requires explicit approval.
 
 ---
 
-# ⭐ 7. Regla de Performance
+## ⭐ 6. Zod & Schema Discipline
 
-### **“No introducir watchers o efectos sin necesidad”**
+### Objective
 
-Tu proyecto está optimizado en:
+Guarantee end-to-end data integrity.
 
-* fetch perezoso
-* caching basado en `useAsyncData`
-* TTL en previews
-* reactividad bien delimitada
+### Invariants
 
-Windsurf podría meter watchers innecesarios.
+* Zod schemas in `shared/schemas` are the **canonical definition** of domain data
 
-### 🔒 Regla:
+### Rule
 
-> **Evita watchers (`watch`, `watchEffect`) si el mismo efecto puede lograrse
-> con computeds o props.**
+> Any new field introduced in the UI must:
+>
+> * exist in a shared Zod schema
+> * be validated in frontend and backend
+> * be mapped through presets and payloads
 
----
+### Forbidden
 
-# ⭐ 8. Regla Anti-Duplicación
-
-### **“Antes de crear una utilidad nueva, buscar si ya existe en:
-
-utils/, composables/ o CodeMaps”**
-
-Por ejemplo:
-
-* no crear nuevas funciones de mapeo → ya existe `entityRows.ts`
-* no crear nuevos helpers para tables → ya hay bridges
-* no crear nuevos badges → ya está `StatusBadge`
-
-### 🔒 Regla:
-
-> **Reutiliza utilidades existentes antes de crear nuevas.
-> No dupliques lógicas que ya existen en `utils/` o `composables/`.**
+* UI-only fields without schema backing
+* Backend-only fields not reflected in schemas
 
 ---
 
-# ⭐ 9. Regla de coherencia de rutas
+## ⭐ 7. Performance Discipline
 
-### **“Cualquier ruta nueva debe seguir los patrones de /server/api/<entity>”**
+### Objective
 
-Si Windsurf crea una nueva ruta:
+Avoid accidental reactivity overhead.
 
-* debe tener:
+### Invariants
 
-  * index.get
-  * index.post
-  * [id].get
-  * [id].patch
-  * [id].delete
-* debe usar `createCrudHandlers`
-* debe usar Zod query/body schemas
-* debe respetar filters y paginación
+* Reactivity must be intentional
+
+### Rule
+
+> Avoid `watch` / `watchEffect` unless strictly necessary.
+> Prefer computed properties and explicit triggers.
 
 ---
 
-# ⭐ 10. Regla para evitar breaking changes invisibles
+## ⭐ 8. Anti-Duplication Rule
 
-### **“Si cambias algo que afecta Manage o Admin, revisa ambos”**
+### Objective
 
-Ejemplo:
+Prevent logic fragmentation.
 
-* `entityRows.ts`
-* `useEntityCapabilities`
-* `FormModal`
+### Rule
 
-Estas funciones afectan los dos lados.
+> Before creating a new utility or helper, search:
+>
+> * `utils/`
+> * `composables/`
+> * CodeMaps
 
-### 🔒 Regla:
+### Forbidden
 
-> **Toda modificación en módulos compartidos (common/, utils/manage, bridges)
-> debe considerarse un cambio global y comprobar efecto en Admin y Manage.**
+* Reimplementing existing helpers
+* Slight variations of the same utility
+
+---
+
+## ⭐ 9. Route Consistency Rule
+
+### Objective
+
+Keep backend APIs predictable.
+
+### Invariants
+
+* Entity APIs follow `/server/api/<entity>` patterns
+
+### Rule
+
+> New entity routes must:
+>
+> * use `createCrudHandlers`
+> * define Zod schemas for query and body
+> * respect filters and pagination contracts
+
+---
+
+## ⭐ 10. Cross-Surface Awareness
+
+### Objective
+
+Prevent invisible breaking changes.
+
+### Rule
+
+> Changes to shared modules must be reviewed in both:
+>
+> * Manage
+> * Admin
+
+Affected areas include:
+
+* table bridges
+* entity rows
+* capabilities
+* form infrastructure
+
+---
+
+## ⭐ 11. PR & Change Hygiene
+
+### Objective
+
+Keep changes reviewable and intentional.
+
+### Rule
+
+> Prefer small, focused PRs.
+> Each PR should document:
+>
+> * intent
+> * affected areas
+> * invariants preserved
+
+---
+
+## ⭐ 12. Manual QA Reminder
+
+### Objective
+
+Compensate for lack of automated tests.
+
+### Rule
+
+> Before finalizing a PR, manually verify:
+>
+> * CRUD flows
+> * bulk actions
+> * previews
+> * filters & pagination
+> * console cleanliness
+
+This checklist should be included in the PR description.
+
+---
+
+## ⭐ 13. Backend Query Optimization Rule
+
+### Objective
+
+Prevent N+1 queries and expensive joins in hot paths.
+
+### Invariants
+
+* Auth hydration must fetch only essential user data
+* Tags and relations must use batch fetching via `eagerTags` utility
+* Avoid json_agg/LEFT JOIN in auth middleware and session validation
+
+### Rule
+
+> Auth middleware should never perform heavy joins for roles or permissions.
+> Use targeted queries or cached lookups instead.
+
+---
+
+## ⭐ 14. UI/Logic Separation Rule
+
+### Objective
+
+Keep data fetching logic decoupled from presentation components.
+
+### Invariants
+
+* Filter options → `useFilterOptions` composable
+* Entity preview → `useEntityPreviewFetch` composable
+
+### Rule
+
+> Never mix API calls directly in Vue components.
+> Extract fetching into composables that return reactive state.
+
+---
+
+## ⭐ 15. Explicit Zod Rule
+
+### Objective
+
+Avoid brittle schema introspection in forms.
+
+### Invariants
+
+* Forms receive explicit `fields` prop from presets
+* No runtime schema field inference in FormModal
+
+### Rule
+
+> Schemas define structure; presets define UI behavior.
+> Forms must not infer fields from Zod schema at runtime.
+
+---
+
+## ⭐ 16. Module Scope Initialization Rule
+
+### Objective
+
+Prevent per-request overhead from module-level initialization.
+
+### Invariants
+
+* Encoders/decoders (JWT, etc.) instantiated at module scope
+* Database clients and adapters reused, not recreated
+
+### Rule
+
+> Heavy initialization must happen once per module load, not per request.
+> Use lazy initialization with caching when needed.
+
+---
+
+## Final Note
+
+> These rules exist to **support evolution, not prevent it**.
+> If a rule becomes an obstacle, reassess its intent — not just its wording.

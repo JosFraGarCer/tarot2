@@ -1,5 +1,4 @@
 <!-- app/components/manage/ViewControls.vue -->
-<!-- /app/components/manage/ViewControls.vue -->
 <template>
   <div class="flex items-center gap-2">
     <USelectMenu

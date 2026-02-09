@@ -1,5 +1,4 @@
 <!-- app/components/manage/EntityFilters.vue -->
-<!-- /app/components/manage/filters/ManageEntityFilters.vue -->
 <template>
   <div class="flex flex-col gap-3">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

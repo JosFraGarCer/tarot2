@@ -458,6 +458,7 @@ import { useFeedback } from '~/composables/manage/useFeedback'
 import EntitySlideover from '~/components/manage/EntitySlideover.vue'
 import { provideEntityCapabilities, provideEntityCapabilitiesDefaults, resolveEntityCapabilities, useEntityCapabilities, type EntityCapabilities } from '~/composables/common/useEntityCapabilities'
 import { useTableSelection } from '@/composables/common/useTableSelection'
+import { mapEntityToRow } from '~/utils/manage/entityRows'
 
 type ManageViewMode = 'tabla' | 'tarjeta' | 'classic' | 'carta'
 
