@@ -1,10 +1,10 @@
 <!-- app/pages/manage.vue -->
 <!-- /app/pages/manage.vue -->
 <template>
-  <div class="px-4">
+  <div class="px-4 mb-6">
     <UCard>
       <template #header>
-        <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center justify-between gap-3 pb-2 border-b border-gray-100 dark:border-gray-800">
           <h1 class="text-xl font-bold text-gray-900 dark:text-white">
             {{ t('navigation.menu.manage') }}
           </h1>

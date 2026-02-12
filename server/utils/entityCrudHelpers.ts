@@ -1,4 +1,11 @@
 // server/utils/entityCrudHelpers.ts
+//
+// EDITORIAL INTEGRITY RULE:
+// Batch update and import helpers must NEVER modify the `status` field.
+// Editorial status transitions are only valid through createCrudHandlers.update,
+// which enforces workflow transitions, content guards, and permissions via
+// shared/editorial/guard.ts → canTransition() → enforceEditorialTransition().
+//
 import type { H3Event } from 'h3'
 import { createError, getQuery, readBody } from 'h3'
 import { sql, type Expression, type SelectQueryBuilder } from 'kysely'
@@ -233,10 +240,11 @@ export async function importEntities(opts: CrudHelperOptions) {
             } catch { /* code column might not exist */ }
           }
 
-          // Remove immutable fields
+          // Remove immutable and protected fields
           delete base[idField]
           delete base.created_at
           delete base.modified_at
+          delete base.status
 
           if (opts.userId != null) base.updated_by = opts.userId
 
@@ -310,8 +318,14 @@ export async function batchUpdateEntities(opts: CrudHelperOptions) {
     const parsed = schema.parse(body)
 
     const ids: number[] = parsed.ids
-    const patch: Record<string, any> = { ...parsed }
+    const { status: _strippedStatus, ...rest } = parsed as Record<string, any>
+    const patch: Record<string, any> = { ...rest }
     delete patch.ids
+
+    if (_strippedStatus !== undefined) {
+      const logger = event.context.logger ?? (globalThis as any).logger
+      logger?.warn?.({ table, ids }, 'Batch update attempted to set status — stripped. Status changes must go through editorial workflow (createCrudHandlers.update).')
+    }
 
     if (Object.keys(patch).length === 0) {
       throw createError({ statusCode: 400, statusMessage: 'No fields to update' })

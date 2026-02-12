@@ -3,7 +3,14 @@
 <template>
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
   <div v-for="item in crud.items?.value ?? crud.items" :key="item.id" class="flex flex-col items-center w-full">
-    <div class="flex items-start justify-center w-fit">
+    <div
+      class="flex items-start justify-center w-fit focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-xl p-1 transition-all cursor-pointer"
+      tabindex="0"
+      role="button"
+      :aria-label="t('ui.actions.view') + ': ' + (item.name || item.code || item.id)"
+      @click="onPreview(item)"
+      @keydown.enter.prevent="onPreview(item)"
+    >
       <!-- Card principal -->
       <div>
         <component
@@ -98,11 +105,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', entity: any): void
-  (e: 'delete', entity: any): void
-  (e: 'feedback', entity: any): void
-  (e: 'tags', entity: any): void
-  (e: 'preview', entity: any): void
+  'edit': [entity: any]
+  'delete': [entity: any]
+  'feedback': [entity: any]
+  'tags': [entity: any]
+  'preview': [entity: any]
 }>()
 
 const { t, locale } = useI18n()
@@ -160,10 +167,10 @@ function resolveEffectsMarkdown(item: any): string | null {
   if (!item?.legacy_effects) return null
   const raw = item?.effects
   if (!raw) return null
-  const record = typeof raw === 'string' ? parseJsonSafe(raw) : raw
+  const record = (typeof raw === 'string' ? parseJsonSafe(raw) : raw) as Record<string, unknown> | null
   if (!record || typeof record !== 'object') return null
 
-  const localeCode = typeof locale === 'string' ? locale : locale.value
+  const localeCode = (typeof locale === 'string' ? locale : locale.value) as string
   const normalizedLocale = String(localeCode || 'en').toLowerCase()
   const localesToTry = [normalizedLocale]
 
@@ -171,9 +178,9 @@ function resolveEffectsMarkdown(item: any): string | null {
   if (resolvedLang && !localesToTry.includes(resolvedLang)) localesToTry.unshift(resolvedLang)
   if (!localesToTry.includes('en')) localesToTry.push('en')
 
-  const values = Object.values(record as Record<string, unknown>)
+  const values = Object.values(record)
   for (const value of localesToTry
-    .map(code => (record as Record<string, unknown>)[code])
+    .map(code => record[code])
     .concat(values)) {
     const lines = toLines(value)
     if (lines && lines.length) {

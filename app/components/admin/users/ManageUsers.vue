@@ -202,6 +202,7 @@
                   size="xs"
                   icon="i-heroicons-pencil"
                   variant="soft"
+                  :aria-label="tt('ui.actions.edit', 'Edit')"
                   @click="openEdit(row.original)"
                 />
                 <UButton
@@ -210,6 +211,7 @@
                   color="warning"
                   variant="soft"
                   :disabled="row.original?.status === 'suspended'"
+                  :aria-label="tt('system.status.suspended', 'Suspend')"
                   @click="handleSetStatus(row.original?.id, 'suspended')"
                 />
                 <UButton
@@ -218,6 +220,7 @@
                   color="success"
                   variant="soft"
                   :disabled="row.original?.status === 'active'"
+                  :aria-label="tt('system.status.active', 'Activate')"
                   @click="handleSetStatus(row.original?.id, 'active')"
                 />
                 <UButton
@@ -225,6 +228,7 @@
                   icon="i-heroicons-arrow-path"
                   color="primary"
                   variant="soft"
+                  :aria-label="tt('ui.actions.reset', 'Reset password')"
                   @click="handleResetPassword(row.original)"
                 >
                   {{ tt('ui.actions.reset', 'Reset') }}
@@ -234,6 +238,7 @@
                   icon="i-heroicons-trash"
                   color="error"
                   variant="soft"
+                  :aria-label="tt('ui.actions.delete', 'Delete')"
                   @click="openDelete(row.original)"
                 />
               </div>

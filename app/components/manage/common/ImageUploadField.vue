@@ -26,6 +26,7 @@
         variant="ghost"
         size="sm"
         :label="field.removeLabel"
+        :aria-label="field.removeLabel"
         :disabled="field.disabled || disabled"
         @click="onRemove"
       />

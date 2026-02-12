@@ -14,12 +14,14 @@
     <template #bulk-actions="{ selected: selectedIdsSlot }">
       <div class="flex flex-wrap items-center gap-2">
         <UButton
-          size="xs"
+          size="sm"
           color="primary"
+          icon="i-heroicons-check"
           :disabled="!isEditor || !selectedIdsSlot.length"
+          :aria-label="tt('feedback.resolveSelected', 'Resolve')"
           @click="emit('bulk-resolve')"
         >
-          {{ tt('feedback.resolveSelected', 'Resolve selected') }}
+          {{ tt('feedback.resolveSelected', 'Resolve') }}
         </UButton>
         <UButton
           size="xs"
@@ -27,9 +29,10 @@
           variant="soft"
           icon="i-heroicons-arrow-path"
           :disabled="!selectedIdsSlot.length"
+          :aria-label="tt('admin.feedback.actions.reopenSelected', 'Reopen')"
           @click="emit('bulk-reopen')"
         >
-          {{ tt('admin.feedback.actions.reopenSelected', 'Reopen selected') }}
+          {{ tt('admin.feedback.actions.reopenSelected', 'Reopen') }}
         </UButton>
         <UButton
           size="xs"
@@ -37,9 +40,10 @@
           variant="soft"
           icon="i-heroicons-trash"
           :disabled="!selectedIdsSlot.length"
+          :aria-label="tt('admin.feedback.actions.deleteSelected', 'Delete')"
           @click="emit('bulk-delete')"
         >
-          {{ tt('admin.feedback.actions.deleteSelected', 'Delete selected') }}
+          {{ tt('admin.feedback.actions.deleteSelected', 'Delete') }}
         </UButton>
       </div>
     </template>
@@ -63,12 +67,14 @@
                 v-if="isRecentlyCreated(row.original)"
                 name="i-heroicons-sparkles"
                 class="text-primary-400"
+                aria-hidden="true"
                 :title="tt('features.admin.feedback.new', 'New feedback')"
               />
               <UIcon
                 v-if="hasInternalNotes(row.original)"
                 name="i-heroicons-chat-bubble-left-ellipsis"
                 class="text-neutral-400"
+                aria-hidden="true"
                 :title="tt('features.admin.feedback.notes.hasNotes', 'Has internal notes')"
               />
             </span>
@@ -102,7 +108,7 @@
         :color="row.original.status === 'resolved' ? 'success' : 'primary'"
         variant="soft"
       >
-        {{ row.original.status }}
+        {{ localizeStatus(row.original.status) }}
       </UBadge>
     </template>
 
@@ -119,6 +125,7 @@
           icon="i-heroicons-code-bracket-square"
           variant="soft"
           :title="tt('features.admin.feedback.viewJson', 'View JSON')"
+          :aria-label="tt('features.admin.feedback.viewJson', 'View JSON')"
           @click="emit('view-json', row.original)"
         />
         <UButton
@@ -126,6 +133,7 @@
           icon="i-heroicons-eye"
           variant="soft"
           :title="tt('ui.actions.preview', 'Preview')"
+          :aria-label="tt('ui.actions.preview', 'Preview')"
           @click="handlePreview(row.original)"
         />
         <UButton
@@ -134,6 +142,7 @@
           variant="soft"
           :disabled="!isEditor"
           :title="!isEditor ? tt('ui.messages.noPermission', 'No permission') : tt('features.admin.feedback.actions.viewNotes', 'View notes')"
+          :aria-label="tt('features.admin.feedback.actions.viewNotes', 'View notes')"
           @click="emit('notes', row.original)"
         />
         <UButton
@@ -142,6 +151,7 @@
           icon="i-heroicons-link"
           variant="soft"
           :title="tt('features.admin.feedback.actions.openEntity', 'Open related entity')"
+          :aria-label="tt('features.admin.feedback.actions.openEntity', 'Open related entity')"
           @click="openEntity(row.original)"
         />
         <UButton
@@ -150,6 +160,7 @@
           icon="i-heroicons-arrow-path"
           variant="soft"
           :title="tt('features.admin.feedback.actions.reopen', 'Reopen')"
+          :aria-label="tt('features.admin.feedback.actions.reopen', 'Reopen')"
           @click="emit('reopen', row.original)"
         />
         <UButton
@@ -159,6 +170,7 @@
           variant="soft"
           :disabled="!isEditor || row.original.status === 'resolved'"
           :title="!isEditor ? tt('ui.messages.noPermission', 'No permission') : tt('ui.actions.resolve', 'Resolve')"
+          :aria-label="tt('ui.actions.resolve', 'Resolve')"
           @click="emit('resolve', row.original)"
         />
         <UButton
@@ -167,6 +179,7 @@
           color="error"
           variant="soft"
           :title="tt('ui.actions.delete', 'Delete')"
+          :aria-label="tt('ui.actions.delete', 'Delete')"
           @click="emit('delete', row.original)"
         />
       </div>
@@ -315,6 +328,13 @@ function renderTitle(item: any) {
     return trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed
   }
   return '—'
+}
+
+function localizeStatus(status: string | null | undefined): string {
+  if (!status) return '—'
+  if (status === 'open') return tt('system.status.open', 'Open')
+  if (status === 'resolved') return tt('system.status.resolved', 'Resolved')
+  return status
 }
 
 function renderCategory(item: FeedbackListItem) {

@@ -28,7 +28,7 @@
       :card-type="cardType"
       :on-create="onCreateClickWrapper"
     />
-    <div class="flex gap-2">
+    <div class="flex items-center gap-2">
       <UButton
         size="sm"
         icon="i-heroicons-arrow-up-tray"
@@ -47,11 +47,20 @@
         :loading="importing"
         @click="openImportModal"
       />
+      <USeparator orientation="vertical" class="mx-1 h-6" />
+      <UButton
+        size="sm"
+        icon="i-heroicons-plus"
+        color="primary"
+        variant="solid"
+        :label="$t('ui.actions.create') || 'Create'"
+        @click="onCreateClickWrapper"
+      />
     </div>
 
     <ClientOnly>
       <template #fallback>
-        <div class="h-48 w-full"></div>
+        <div class="h-48 w-full" />
       </template>
       <div v-if="viewMode === 'tabla'">
         <ManageTableBridge
@@ -72,22 +81,23 @@
           :page-size-items="pageSizeItems || defaultPageSizes"
           density="regular"
           @update:page="onPageChange"
-          @update:pageSize="onPageSizeChange"
+          @update:page-size="onPageSizeChange"
           @row:click="handleRowClick"
           @row:dblclick="handleRowDblClick"
         >
           <template #toolbar="{ selected }">
             <div class="flex flex-wrap items-center gap-2">
               <UButton
-                size="sm"
                 color="primary"
-                variant="soft"
                 icon="i-heroicons-plus"
+                variant="solid"
+                :aria-label="t('ui.actions.create') + ' ' + label"
                 @click="onCreateClickWrapper"
               >
                 {{ $t('ui.actions.create') }}
               </UButton>
-              <UBadge v-if="selected?.length" size="xs" variant="soft" color="primary">
+              <UBadge v-if="selected?.length" size="md" color="primary" variant="soft" class="animate-pulse">
+                <UIcon name="i-heroicons-check" class="mr-1" aria-hidden="true" />
                 {{ selected.length }}
               </UBadge>
             </div>
@@ -120,35 +130,43 @@
 
           <template #selection="{ selected }">
             <div class="flex flex-wrap items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-              <UBadge size="xs" color="primary" variant="soft">
+              <UBadge size="md" color="primary" variant="soft">
+                <UIcon name="i-heroicons-check-circle" class="mr-1" aria-hidden="true" />
                 {{ selected.length }} {{ $t('ui.table.selected') }}
               </UBadge>
               <UButton
                 size="xs"
                 color="neutral"
                 variant="ghost"
+                icon="i-heroicons-x-mark"
+                :title="$t('ui.actions.clearSelection', 'Clear selection')"
+                :aria-label="$t('ui.actions.clearSelection', 'Clear selection')"
                 @click="tableSelectionSource.clear()"
-              >
-                {{ $t('ui.actions.clear') }}
-              </UButton>
+              />
             </div>
           </template>
 
           <template #empty>
             <div class="flex flex-col items-center justify-center gap-4 py-10 text-center">
-              <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" />
+              <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
               <div class="space-y-2">
                 <p class="text-lg font-semibold text-neutral-700 dark:text-neutral-200">{{ emptyTitle }}</p>
                 <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ emptySubtitle }}</p>
               </div>
               <div class="flex flex-wrap items-center justify-center gap-2">
-                <UButton color="primary" icon="i-heroicons-plus" @click="onCreateClickWrapper">
+                <UButton
+                  color="primary"
+                  icon="i-heroicons-plus"
+                  :aria-label="t('ui.actions.create') + ' ' + label"
+                  @click="onCreateClickWrapper"
+                >
                   {{ emptyCreateLabel }}
                 </UButton>
                 <UButton
-                  variant="ghost"
+                  variant="soft"
                   color="neutral"
                   icon="i-heroicons-arrow-path"
+                  :aria-label="emptyResetLabel"
                   @click="resetFilters"
                 >
                   {{ emptyResetLabel }}
@@ -159,6 +177,10 @@
 
           <template #loading>
             <div class="space-y-2 py-6">
+              <div class="flex items-center justify-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
+                <UIcon name="i-heroicons-arrow-path" class="animate-spin h-4 w-4" aria-hidden="true" />
+                <span>{{ $t('ui.states.loading', 'Loading entities...') }}</span>
+              </div>
               <USkeleton v-for="n in 6" :key="`row-skeleton-${n}`" class="h-10 w-full rounded" />
             </div>
           </template>
@@ -168,17 +190,19 @@
               <UButton
                 icon="i-heroicons-pencil"
                 color="primary"
-                variant="soft"
+                variant="solid"
                 size="xs"
-                :aria-label="$t('ui.actions.quickEdit')"
+                :title="$t('ui.actions.quickEdit', 'Quick edit')"
+                :aria-label="$t('ui.actions.quickEdit', 'Quick edit')"
                 @click="onEdit(row.raw ?? row)"
               />
               <UButton
                 icon="i-heroicons-arrows-pointing-out"
                 color="primary"
-                variant="ghost"
+                variant="soft"
                 size="xs"
-                :aria-label="$t('ui.actions.fullEdit')"
+                :title="$t('ui.actions.fullEdit', 'Full editor')"
+                :aria-label="$t('ui.actions.fullEdit', 'Full editor')"
                 @click="openFullEditor(row.raw ?? row)"
               />
               <UButton
@@ -187,9 +211,9 @@
                 color="neutral"
                 variant="ghost"
                 size="xs"
-                :aria-label="$t('ui.actions.preview')"
-                @click="onPreview(row.raw ?? row)
-                "
+                :title="$t('ui.actions.preview', 'Preview')"
+                :aria-label="$t('ui.actions.preview', 'Preview')"
+                @click="onPreview(row.raw ?? row)"
               />
               <UButton
                 v-if="row.raw"
@@ -197,24 +221,38 @@
                 color="warning"
                 variant="soft"
                 size="xs"
-                aria-label="Feedback"
+                :title="$t('ui.actions.feedback', 'Report issue')"
+                :aria-label="$t('ui.actions.feedback', 'Report issue')"
                 @click="onFeedback(row.raw ?? row)"
               />
-              <UButton
-                v-if="row.raw && allowTags"
-                icon="i-heroicons-tag"
-                color="neutral"
-                variant="soft"
-                size="xs"
-                aria-label="Tags"
-                @click="onTags(row.raw ?? row)"
-              />
+              <div v-if="row.raw && allowTags" class="relative">
+                <UButton
+                  icon="i-heroicons-tag"
+                  color="neutral"
+                  variant="soft"
+                  size="xs"
+                  :title="$t('ui.fields.tags', 'Manage tags')"
+                  :aria-label="$t('ui.fields.tags', 'Manage tags')"
+                  @click="onTags(row.raw ?? row)"
+                />
+                <UBadge
+                  v-if="row.raw?.tags?.length"
+                  color="primary"
+                  variant="solid"
+                  size="xs"
+                  class="absolute -top-1 -right-1 h-4 min-w-4 px-1"
+                >
+                  {{ row.raw.tags.length }}
+                </UBadge>
+              </div>
+              <USeparator direction="vertical" class="mx-1 h-4" />
               <UButton
                 icon="i-heroicons-trash"
                 color="error"
                 variant="soft"
                 size="xs"
-                aria-label="Delete"
+                :title="$t('ui.actions.delete', 'Delete')"
+                :aria-label="$t('ui.actions.delete', 'Delete')"
                 @click="onDelete(row.raw ?? row)"
               />
             </div>
@@ -324,6 +362,7 @@
             color="primary"
             variant="soft"
             icon="i-heroicons-pencil"
+            :title="$t('ui.actions.quickEdit')"
             :aria-label="$t('ui.actions.quickEdit')"
             @click="inspectedEntity && onEdit(inspectedEntity.raw ?? inspectedEntity)"
           />
@@ -332,6 +371,7 @@
             color="primary"
             variant="ghost"
             icon="i-heroicons-arrows-pointing-out"
+            :title="$t('ui.actions.fullEdit')"
             :aria-label="$t('ui.actions.fullEdit')"
             @click="inspectedEntity && openFullEditor(inspectedEntity.raw ?? inspectedEntity)"
           />
@@ -413,8 +453,8 @@
 
     <EntitySlideover
       v-if="slideoverOpen"
-      v-model:open="slideoverOpen"
       :id="slideoverEntityId"
+      v-model:open="slideoverOpen"
       :kind="resolvedSlideoverKind"
       :neighbors="slideoverNeighbors"
       @close="slideoverOpen = false"
@@ -425,7 +465,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick } from 'vue'
 import { useI18n, useToast } from '#imports'
 import PaginationControls from '~/components/common/PaginationControls.vue'
 import ManageEntityFilters from '~/components/manage/EntityFilters.vue'
@@ -443,7 +483,6 @@ import { useImageUpload } from '~/composables/manage/useImageUpload'
 import { useEntityDeletion } from '~/composables/manage/useEntityDeletion'
 import { useOptimisticStatus } from '~/composables/manage/useOptimisticStatus'
 import { useEntityModals } from '~/composables/manage/useEntityModals'
-import type { TableColumn } from '@nuxt/ui'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
 import { useManageFilters } from '~/composables/manage/useManageFilters'
 import { useManageColumns } from '~/composables/manage/useManageColumns'
@@ -476,6 +515,8 @@ const props = withDefaults(defineProps<{
   onCreate?: () => void
   translatable?: boolean
 }>(), {
+  templateKey: '',
+  filtersConfig: undefined,
   columns: () => [],
   cardType: false,
   noTags: false,
@@ -515,14 +556,6 @@ function openPreviewFromEntity(entity: any) {
   previewEntityRow.value = row
   previewRawEntity.value = entity
   previewOpen.value = true
-}
-
-function setPreviewOpen(value: boolean) {
-  previewOpen.value = value
-  if (!value) {
-    previewEntityRow.value = null
-    previewRawEntity.value = null
-  }
 }
 
 const allowedSlideoverKinds = ['arcana', 'card_type', 'base_card', 'skill', 'world', 'world_card'] as const
@@ -692,7 +725,6 @@ const {
   deleteModalOpen,
   deleteTranslationModalOpen,
   deleteTranslationLoading,
-  deleteTarget,
   pendingDeleteTranslationItem,
   saving: deletingSaving,
   cancelDeleteDialogs,
@@ -797,7 +829,7 @@ async function onFeedback(entity: any) {
 }
 
 function onPreview(entity: any) {
-  openPreviewFromEntity(entity, { t, locale: localeCode.value })
+  openPreviewFromEntity(entity)
 }
 function onCreateClickWrapper() {
   onCreateClick((e: 'create') => emit(e))
@@ -851,7 +883,7 @@ function handleSlideoverNavigate(id: number) {
 }
 
 // Optimistic status update
-const { onChangeStatus } = useOptimisticStatus(crud as any, t, toast)
+const { onChangeStatus: _onChangeStatus } = useOptimisticStatus(crud as any, t, toast)
 
 // Translation actions
 async function onTranslate(entity: any, payload?: { name: string; short_text?: string|null; description?: string|null }) {
@@ -862,8 +894,16 @@ async function onTranslate(entity: any, payload?: { name: string; short_text?: s
     await tr.upsert(entity.id, payload)
     await crud.fetchList?.()
     toast?.add?.({ title: t('common.saved') || 'Saved', color: 'success' })
-  } catch (e) {
+  } catch (_e) {
     toast?.add?.({ title: t('errors.update_failed') || 'Update failed', description: crud.actionError?.value || crud.listError?.value || '', color: 'error' })
   }
 }
+
+// Ensure unused but exported/intended functions don't trigger lints if needed
+// or just remove them if truly unused. For now, cleaning up _e.
+// We keep onTranslate as it might be used in template eventually.
+// We use _onChangeStatus to avoid lint error.
+void _onChangeStatus
+void onTranslate
+
 </script>

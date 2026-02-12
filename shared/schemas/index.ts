@@ -4,6 +4,11 @@
 // Common schemas y enums
 export * from './common'
 
+// Editorial / Translation / Version schemas
+export * from './editorial-state'
+export * from './translation-state'
+export * from './version-context'
+
 // Entity schemas
 export * from './entities/arcana'
 export * from './entities/base-card'

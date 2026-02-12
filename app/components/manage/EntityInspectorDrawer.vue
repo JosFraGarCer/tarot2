@@ -29,7 +29,7 @@
             variant="ghost"
             color="neutral"
             :disabled="!hasNavigation || isFirst"
-            :aria-label="tt('ui.actions.previous', 'Previous entity')"
+            :aria-label="tt('ui.actions.previous', 'Previous')"
             @click="navigatePrevious"
           />
           <span v-if="hasNavigation" class="text-xs text-neutral-500 dark:text-neutral-400 px-1">
@@ -41,16 +41,16 @@
             variant="ghost"
             color="neutral"
             :disabled="!hasNavigation || isLast"
-            :aria-label="tt('ui.actions.next', 'Next entity')"
+            :aria-label="tt('ui.actions.next', 'Next')"
             @click="navigateNext"
           />
-          <UDivider orientation="vertical" class="mx-1 h-6" />
+          <USeparator direction="vertical" class="mx-2 h-6" />
           <UButton
             icon="i-heroicons-x-mark"
             size="xs"
             variant="ghost"
             color="neutral"
-            :aria-label="tt('ui.actions.close', 'Close preview')"
+            :aria-label="tt('ui.actions.close', 'Close')"
             @click="emitClose"
           />
         </div>

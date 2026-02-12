@@ -1,7 +1,7 @@
 <!-- app/components/admin/RevisionsTable.vue -->
 <template>
   <div class="space-y-4">
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex flex-wrap items-center gap-3">
       <UInput
         v-model="search"
         :placeholder="$t('ui.actions.search','Search')"
@@ -16,7 +16,7 @@
         class="w-64"
       />
       <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-600 dark:text-gray-300">{{ $t('ui.fields.status','Status') }}</span>
+        <span class="text-sm text-neutral-500 dark:text-neutral-400">{{ $t('ui.fields.status','Status') }}</span>
         <USelectMenu
           v-model="status"
           :items="statusItems"
@@ -30,18 +30,22 @@
           size="xs"
           variant="soft"
           color="neutral"
+          icon="i-heroicons-arrow-path"
           :disabled="pending"
+          :aria-label="$t('ui.actions.refresh','Refresh')"
           @click="reload"
         >
           {{ $t('ui.actions.refresh','Refresh') }}
         </UButton>
         <UButton
-          size="xs"
+          size="sm"
           :disabled="!isEditor || selectedIds.length === 0"
           :title="!isEditor ? $t('ui.messages.noPermission') : ''"
+          :aria-label="$t('features.admin.revisions.approveSelected','Approve')"
           @click="bulkApprove"
         >
-          {{ $t('features.admin.revisions.approveSelected','Approve selected') }}
+          <UIcon name="i-heroicons-check" class="mr-1" />
+          {{ $t('features.admin.revisions.approveSelected','Approve') }}
         </UButton>
         <UButton
           size="xs"
@@ -49,9 +53,10 @@
           variant="soft"
           :disabled="!isEditor || selectedIds.length === 0"
           :title="!isEditor ? $t('ui.messages.noPermission') : ''"
+          :aria-label="$t('features.admin.revisions.rejectSelected','Reject')"
           @click="bulkReject"
         >
-          {{ $t('features.admin.revisions.rejectSelected','Reject selected') }}
+          {{ $t('features.admin.revisions.rejectSelected','Reject') }}
         </UButton>
       </div>
     </div>
@@ -136,14 +141,15 @@
             icon="i-heroicons-document-magnifying-glass"
             variant="soft"
             :title="$t('features.admin.revisions.viewDiff','View diff')"
-            @click="onViewDiff(row.raw)
-            "
+            :aria-label="$t('features.admin.revisions.viewDiff','View diff')"
+            @click="onViewDiff(row.raw)"
           />
           <UButton
             size="xs"
             icon="i-heroicons-eye"
             variant="soft"
             :title="$t('ui.actions.preview','Preview')"
+            :aria-label="$t('ui.actions.preview','Preview')"
             @click="openPreview(row)"
           />
           <UButton
@@ -153,6 +159,7 @@
             variant="soft"
             :disabled="!isEditor"
             :title="!isEditor ? $t('ui.messages.noPermission') : $t('system.status.approved','Approve')"
+            :aria-label="$t('system.status.approved','Approve')"
             @click="setOne(Number(row.id), 'approved')"
           />
           <UButton
@@ -162,6 +169,7 @@
             variant="soft"
             :disabled="!isEditor"
             :title="!isEditor ? $t('ui.messages.noPermission') : $t('system.status.draft','Reject')"
+            :aria-label="$t('system.status.draft','Reject')"
             @click="setOne(Number(row.id), 'rejected')"
           />
         </div>

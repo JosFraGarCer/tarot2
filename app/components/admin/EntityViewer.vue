@@ -4,31 +4,34 @@
     <template #header>
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h2 class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
             {{ $t('features.admin.entityViewer.title', 'Entity snapshot') }}
           </h2>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
+          <p class="text-xs text-neutral-500 dark:text-neutral-400">
             {{ $t('features.admin.entityViewer.subtitle', 'Preview of the current entity data.') }}
           </p>
         </div>
-        <div v-if="languageCode" class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <UBadge variant="soft" color="primary">{{ String(languageCode).toUpperCase() }}</UBadge>
-          <span>{{ $t('ui.fields.language', 'Language') }}</span>
+        <div v-if="languageCode" class="flex items-center gap-2 text-xs">
+          <UBadge variant="soft" color="primary">
+            <UIcon name="i-heroicons-language" class="mr-1" />
+            {{ String(languageCode).toUpperCase() }}
+          </UBadge>
         </div>
       </div>
     </template>
 
-    <div v-if="isEmpty" class="py-10 text-center text-gray-500 dark:text-gray-400 text-sm">
-      {{ $t('features.admin.entityViewer.empty', 'No data available for this entity.') }}
+    <div v-if="isEmpty" class="py-10 text-center">
+      <UIcon name="i-heroicons-inbox" class="h-10 w-10 text-neutral-300 mx-auto mb-2" />
+      <p class="text-neutral-500 dark:text-neutral-400 text-sm">{{ $t('features.admin.entityViewer.empty', 'No data available for this entity.') }}</p>
     </div>
     <div v-else>
-      <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <dl class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <template v-for="(value, key) in flatEntity" :key="key">
           <div
-            class="rounded border p-3 text-sm transition-colors"
+            class="rounded-lg border p-3 text-sm transition-colors"
             :class="highlightClass(key)"
           >
-            <dt class="font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+            <dt class="font-medium text-neutral-700 dark:text-neutral-200 flex items-center gap-2">
               <span class="truncate" :title="key">{{ key }}</span>
               <UBadge
                 v-if="diffMap[key]"
@@ -37,18 +40,19 @@
                 variant="soft"
               >{{ badgeLabel(diffMap[key]) }}</UBadge>
             </dt>
-            <dd class="mt-1 text-gray-600 dark:text-gray-300 break-words whitespace-pre-wrap text-xs">
+            <dd class="mt-1 text-neutral-600 dark:text-neutral-300 break-words whitespace-pre-wrap text-xs">
               {{ formatValue(value) }}
             </dd>
           </div>
         </template>
       </dl>
 
-      <details class="mt-4">
-        <summary class="cursor-pointer text-sm text-primary-600 dark:text-primary-400">
+      <details class="mt-4 rounded-lg border border-neutral-200 dark:border-neutral-800">
+        <summary class="cursor-pointer text-sm text-primary-600 dark:text-primary-400 px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-900/50 rounded-lg transition-colors flex items-center gap-2">
+          <UIcon name="i-heroicons-code-bracket" />
           {{ $t('features.admin.entityViewer.viewJson', 'View raw JSON') }}
         </summary>
-        <pre class="mt-2 text-xs bg-gray-100 dark:bg-gray-900 rounded p-3 overflow-auto max-h-96">{{ formattedJson }}</pre>
+        <pre class="mt-2 text-xs bg-neutral-100 dark:bg-neutral-900 rounded p-3 overflow-auto max-h-96 mx-2 mb-2">{{ formattedJson }}</pre>
       </details>
     </div>
   </UCard>

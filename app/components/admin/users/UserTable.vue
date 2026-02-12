@@ -2,10 +2,19 @@
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-        <UBadge color="primary" variant="soft">{{ tt('features.admin.users.count', '{n} accounts').replace('{n}', String(totalUsers)) }}</UBadge>
-        <UBadge color="success" variant="soft">{{ tt('features.admin.users.active', '{n} active').replace('{n}', String(activeUsers)) }}</UBadge>
-        <UBadge v-if="pendingInvites" color="warning" variant="soft">{{ tt('features.admin.users.pending', '{n} pending').replace('{n}', String(pendingInvites)) }}</UBadge>
+      <div class="flex flex-wrap items-center gap-2">
+        <UBadge color="primary" variant="soft">
+          <UIcon name="i-heroicons-users" class="mr-1" />
+          {{ tt('features.admin.users.count', '{n} accounts').replace('{n}', String(totalUsers)) }}
+        </UBadge>
+        <UBadge color="success" variant="soft">
+          <UIcon name="i-heroicons-check-circle" class="mr-1" />
+          {{ tt('features.admin.users.active', '{n} active').replace('{n}', String(activeUsers)) }}
+        </UBadge>
+        <UBadge v-if="pendingInvites" color="warning" variant="soft">
+          <UIcon name="i-heroicons-clock" class="mr-1" />
+          {{ tt('features.admin.users.pending', '{n} pending').replace('{n}', String(pendingInvites)) }}
+        </UBadge>
       </div>
       <div class="flex items-center gap-2">
         <UButton
@@ -14,12 +23,12 @@
           color="neutral"
           variant="soft"
           icon="i-heroicons-funnel"
-          :label="tt('ui.actions.reset', 'Reset filters')"
+          :label="tt('ui.actions.reset', 'Reset')"
           @click="onResetFilters()"
         />
         <UButton
           v-if="onCreate"
-          size="xs"
+          size="sm"
           color="primary"
           icon="i-heroicons-plus"
           :label="tt('ui.actions.new', 'New user')"

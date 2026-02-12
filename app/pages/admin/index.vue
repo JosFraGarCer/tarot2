@@ -41,7 +41,7 @@
             </ul>
 
             <div class="flex justify-end">
-              <UButton :to="localePath(section.href)" color="primary" variant="soft" trailing-icon="i-heroicons-arrow-right-20-solid">
+              <UButton :to="localePath(section.href)" color="primary" variant="solid" trailing-icon="i-heroicons-arrow-right-20-solid" class="shadow-sm">
                 {{ section.actionLabel }}
               </UButton>
             </div>

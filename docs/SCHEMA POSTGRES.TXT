@@ -4,6 +4,18 @@ CREATE SCHEMA public AUTHORIZATION bulu;
 
 COMMENT ON SCHEMA public IS 'standard public schema';
 
+-- DROP TYPE public.admin_event_type;
+
+CREATE TYPE public.admin_event_type AS ENUM (
+	'world_pin_set',
+	'world_pin_changed',
+	'world_pin_removed',
+	'version_frozen',
+	'version_unfrozen',
+	'manifest_entity_added',
+	'manifest_entity_removed',
+	'version_cloned');
+
 -- DROP TYPE public.card_status;
 
 CREATE TYPE public.card_status AS ENUM (
@@ -45,6 +57,14 @@ CREATE TYPE public.release_stage AS ENUM (
 	'release',
 	'revision');
 
+-- DROP TYPE public.translation_status;
+
+CREATE TYPE public.translation_status AS ENUM (
+	'draft',
+	'review',
+	'approved',
+	'rejected');
+
 -- DROP TYPE public.user_status;
 
 CREATE TYPE public.user_status AS ENUM (
@@ -54,6 +74,15 @@ CREATE TYPE public.user_status AS ENUM (
 	'banned',
 	'pending');
 
+-- DROP SEQUENCE public.admin_audit_log_id_seq;
+
+CREATE SEQUENCE public.admin_audit_log_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 9223372036854775807
+	START 1
+	CACHE 1
+	NO CYCLE;
 -- DROP SEQUENCE public.arcana_id_seq;
 
 CREATE SEQUENCE public.arcana_id_seq
@@ -156,6 +185,24 @@ CREATE SEQUENCE public.content_revisions_id_seq
 -- DROP SEQUENCE public.content_versions_id_seq;
 
 CREATE SEQUENCE public.content_versions_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.editorial_audit_log_id_seq;
+
+CREATE SEQUENCE public.editorial_audit_log_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 9223372036854775807
+	START 1
+	CACHE 1
+	NO CYCLE;
+-- DROP SEQUENCE public.editorial_state_id_seq;
+
+CREATE SEQUENCE public.editorial_state_id_seq
 	INCREMENT BY 1
 	MINVALUE 1
 	MAXVALUE 2147483647
@@ -287,7 +334,37 @@ CREATE SEQUENCE public.world_translations_id_seq
 	MAXVALUE 2147483647
 	START 1
 	CACHE 1
-	NO CYCLE;-- public.kysely_migration definition
+	NO CYCLE;-- public.editorial_metrics definition
+
+-- Drop table
+
+-- DROP TABLE public.editorial_metrics;
+
+CREATE TABLE public.editorial_metrics (
+	entity_type int2 NULL,
+	entity_id int4 NULL,
+	open_feedback_count int4 DEFAULT 0 NULL,
+	revision_count int4 DEFAULT 0 NULL,
+	translation_count int4 DEFAULT 0 NULL,
+	updated_at timestamptz NULL
+);
+
+
+-- public.entity_types definition
+
+-- Drop table
+
+-- DROP TABLE public.entity_types;
+
+CREATE TABLE public.entity_types (
+	id int2 NOT NULL,
+	code varchar(50) NOT NULL,
+	CONSTRAINT entity_types_code_key UNIQUE (code),
+	CONSTRAINT entity_types_pkey PRIMARY KEY (id)
+);
+
+
+-- public.kysely_migration definition
 
 -- Drop table
 
@@ -436,6 +513,63 @@ CREATE INDEX idx_content_versions_semver ON public.content_versions USING btree 
 COMMENT ON TABLE public.content_versions IS 'Releases globales del contenido (ej. 0.0.1.1).';
 
 
+-- public.editorial_audit_log definition
+
+-- Drop table
+
+-- DROP TABLE public.editorial_audit_log;
+
+CREATE TABLE public.editorial_audit_log (
+	id bigserial NOT NULL,
+	entity_type int2 NOT NULL,
+	entity_id int4 NOT NULL,
+	from_status public.card_status NULL,
+	to_status public.card_status NOT NULL,
+	content_version_id int4 NULL,
+	is_active bool NULL,
+	changed_by int4 NULL,
+	changed_at timestamptz DEFAULT now() NOT NULL,
+	reason text NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+	CONSTRAINT editorial_audit_log_pkey PRIMARY KEY (id),
+	CONSTRAINT editorial_audit_log_changed_by_fkey FOREIGN KEY (changed_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT editorial_audit_log_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL,
+	CONSTRAINT editorial_audit_log_entity_type_fkey FOREIGN KEY (entity_type) REFERENCES public.entity_types(id)
+);
+CREATE INDEX idx_editorial_audit_changed_at ON public.editorial_audit_log USING btree (changed_at DESC);
+CREATE INDEX idx_editorial_audit_changed_by_time ON public.editorial_audit_log USING btree (changed_by, changed_at DESC);
+CREATE INDEX idx_editorial_audit_entity_time ON public.editorial_audit_log USING btree (entity_type, entity_id, changed_at DESC);
+CREATE INDEX idx_editorial_audit_to_status ON public.editorial_audit_log USING btree (to_status);
+CREATE INDEX idx_editorial_audit_to_status_time ON public.editorial_audit_log USING btree (to_status, changed_at DESC);
+
+
+-- public.editorial_state definition
+
+-- Drop table
+
+-- DROP TABLE public.editorial_state;
+
+CREATE TABLE public.editorial_state (
+	id serial4 NOT NULL,
+	entity_type int2 NOT NULL,
+	entity_id int4 NOT NULL,
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL,
+	is_active bool DEFAULT true NOT NULL,
+	content_version_id int4 NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	modified_at timestamptz DEFAULT now() NOT NULL,
+	CONSTRAINT editorial_state_entity_type_entity_id_key UNIQUE (entity_type, entity_id),
+	CONSTRAINT editorial_state_pkey PRIMARY KEY (id),
+	CONSTRAINT fk_editorial_created_by FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT fk_editorial_entity_type FOREIGN KEY (entity_type) REFERENCES public.entity_types(id),
+	CONSTRAINT fk_editorial_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT fk_editorial_version FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_editorial_status_created ON public.editorial_state USING btree (status, created_at DESC);
+
+
 -- public.effect_target definition
 
 -- Drop table
@@ -489,7 +623,6 @@ CREATE TABLE public.effect_target_translations (
 	CONSTRAINT effect_target_translations_effect_target_id_fkey FOREIGN KEY (effect_target_id) REFERENCES public.effect_target(id) ON DELETE CASCADE
 );
 CREATE INDEX idx_effect_target_translations_lang ON public.effect_target_translations USING btree (language_code);
-CREATE UNIQUE INDEX idx_effect_target_translations_unique ON public.effect_target_translations USING btree (effect_target_id, language_code);
 
 
 -- public.effect_type definition
@@ -551,11 +684,48 @@ CREATE TABLE public.effect_type_translations (
 	CONSTRAINT effect_type_translations_effect_type_id_fkey FOREIGN KEY (effect_type_id) REFERENCES public.effect_type(id) ON DELETE CASCADE
 );
 CREATE INDEX idx_effect_type_translations_lang ON public.effect_type_translations USING btree (language_code);
-CREATE UNIQUE INDEX idx_effect_type_translations_unique ON public.effect_type_translations USING btree (effect_type_id, language_code);
 
 -- Column comments
 
 COMMENT ON COLUMN public.effect_type_translations.template_text IS 'Plantilla traducible del efecto en idioma correspondiente.';
+
+
+-- public.entity_relations definition
+
+-- Drop table
+
+-- DROP TABLE public.entity_relations;
+
+CREATE TABLE public.entity_relations (
+	source_type int2 NOT NULL,
+	source_id int4 NOT NULL,
+	relation_type varchar(50) NOT NULL,
+	target_type int2 NOT NULL,
+	target_id int4 NOT NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NULL,
+	CONSTRAINT fk_rel_source_type FOREIGN KEY (source_type) REFERENCES public.entity_types(id),
+	CONSTRAINT fk_rel_target_type FOREIGN KEY (target_type) REFERENCES public.entity_types(id)
+);
+CREATE INDEX idx_entity_relations_relation_type ON public.entity_relations USING btree (relation_type);
+CREATE INDEX idx_entity_relations_source ON public.entity_relations USING btree (source_type, source_id);
+CREATE INDEX idx_entity_relations_target ON public.entity_relations USING btree (target_type, target_id);
+CREATE UNIQUE INDEX uq_entity_relations_unique ON public.entity_relations USING btree (source_type, source_id, relation_type, target_type, target_id);
+
+
+-- public.system_settings definition
+
+-- Drop table
+
+-- DROP TABLE public.system_settings;
+
+CREATE TABLE public.system_settings (
+	"key" text NOT NULL,
+	value jsonb NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	updated_by int4 NULL,
+	CONSTRAINT system_settings_pkey PRIMARY KEY (key),
+	CONSTRAINT system_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
 
 
 -- public.tags definition
@@ -629,6 +799,39 @@ update
     public.tags_translations for each row execute function set_modified_at();
 
 
+-- public.translation_state definition
+
+-- Drop table
+
+-- DROP TABLE public.translation_state;
+
+CREATE TABLE public.translation_state (
+	entity_type int2 NOT NULL,
+	entity_id int4 NOT NULL,
+	language_code public.language_code NOT NULL,
+	status public.translation_status DEFAULT 'draft'::translation_status NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
+	created_by int4 NULL,
+	updated_by int4 NULL,
+	CONSTRAINT translation_state_pkey PRIMARY KEY (entity_type, entity_id, language_code),
+	CONSTRAINT fk_translation_created_by FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT fk_translation_entity_type FOREIGN KEY (entity_type) REFERENCES public.entity_types(id),
+	CONSTRAINT fk_translation_updated_by FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
+);
+CREATE INDEX idx_translation_state_entity ON public.translation_state USING btree (entity_type, entity_id);
+CREATE INDEX idx_translation_state_lang ON public.translation_state USING btree (language_code);
+CREATE INDEX idx_translation_state_lang_status ON public.translation_state USING btree (language_code, status);
+CREATE INDEX idx_translation_state_status ON public.translation_state USING btree (status);
+
+-- Table Triggers
+
+create trigger trg_translation_state_modified before
+update
+    on
+    public.translation_state for each row execute function translation_state_set_modified_at();
+
+
 -- public.user_roles definition
 
 -- Drop table
@@ -670,6 +873,7 @@ CREATE TABLE public.world (
 );
 CREATE INDEX idx_world_code ON public.world USING btree (code);
 CREATE INDEX idx_world_content_version ON public.world USING btree (content_version_id);
+CREATE INDEX idx_world_status_created_desc ON public.world USING btree (status, created_at DESC);
 COMMENT ON TABLE public.world IS 'Mundos o ambientaciones de juego.';
 
 -- Column comments
@@ -682,6 +886,25 @@ create trigger world_set_modified_at before
 update
     on
     public.world for each row execute function set_modified_at();
+
+
+-- public.world_content_pins definition
+
+-- Drop table
+
+-- DROP TABLE public.world_content_pins;
+
+CREATE TABLE public.world_content_pins (
+	world_id int4 NOT NULL,
+	content_version_id int4 NOT NULL,
+	pinned_at timestamptz DEFAULT now() NOT NULL,
+	pinned_by int4 NULL,
+	CONSTRAINT world_content_pins_pkey PRIMARY KEY (world_id),
+	CONSTRAINT world_content_pins_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE RESTRICT,
+	CONSTRAINT world_content_pins_pinned_by_fkey FOREIGN KEY (pinned_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT world_content_pins_world_id_fkey FOREIGN KEY (world_id) REFERENCES public.world(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_world_content_pins_version ON public.world_content_pins USING btree (content_version_id);
 
 
 -- public.world_translations definition
@@ -718,6 +941,35 @@ update
     public.world_translations for each row execute function set_modified_at();
 
 
+-- public.admin_audit_log definition
+
+-- Drop table
+
+-- DROP TABLE public.admin_audit_log;
+
+CREATE TABLE public.admin_audit_log (
+	id bigserial NOT NULL,
+	event_type public.admin_event_type NOT NULL,
+	world_id int4 NULL,
+	content_version_id int4 NULL,
+	entity_type int2 NULL,
+	entity_id int4 NULL,
+	performed_by int4 NULL,
+	performed_at timestamptz DEFAULT now() NOT NULL,
+	reason text NULL,
+	metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+	CONSTRAINT admin_audit_log_pkey PRIMARY KEY (id),
+	CONSTRAINT admin_audit_log_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE SET NULL,
+	CONSTRAINT admin_audit_log_entity_type_fkey FOREIGN KEY (entity_type) REFERENCES public.entity_types(id),
+	CONSTRAINT admin_audit_log_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT admin_audit_log_world_id_fkey FOREIGN KEY (world_id) REFERENCES public.world(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_admin_audit_event_time ON public.admin_audit_log USING btree (event_type, performed_at DESC);
+CREATE INDEX idx_admin_audit_time ON public.admin_audit_log USING btree (performed_at DESC);
+CREATE INDEX idx_admin_audit_version ON public.admin_audit_log USING btree (content_version_id, performed_at DESC);
+CREATE INDEX idx_admin_audit_world ON public.admin_audit_log USING btree (world_id, performed_at DESC);
+
+
 -- public.arcana definition
 
 -- Drop table
@@ -746,6 +998,7 @@ CREATE TABLE public.arcana (
 );
 CREATE INDEX idx_arcana_code ON public.arcana USING btree (code);
 CREATE INDEX idx_arcana_content_version ON public.arcana USING btree (content_version_id);
+CREATE INDEX idx_arcana_status_created_desc ON public.arcana USING btree (status, created_at DESC);
 COMMENT ON TABLE public.arcana IS 'Categorías o escuelas de poder.';
 
 -- Table Triggers
@@ -805,6 +1058,7 @@ CREATE TABLE public.base_card_type (
 	CONSTRAINT base_card_type_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL,
 	CONSTRAINT base_card_type_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
 );
+CREATE INDEX idx_base_card_type_status_created_desc ON public.base_card_type USING btree (status, created_at DESC);
 
 -- Column comments
 
@@ -924,7 +1178,7 @@ CREATE TABLE public.content_revisions (
 	notes text NULL,
 	created_by int4 NULL,
 	created_at timestamptz DEFAULT now() NOT NULL,
-	status text DEFAULT 'draft'::text NOT NULL,
+	status public.card_status DEFAULT 'draft'::card_status NOT NULL,
 	language_code public.language_code NULL,
 	prev_snapshot jsonb NULL,
 	next_snapshot jsonb NULL,
@@ -944,6 +1198,27 @@ COMMENT ON TABLE public.content_revisions IS 'Historial incremental (diffs) por 
 -- Column comments
 
 COMMENT ON COLUMN public.content_revisions.diff IS 'JSONB con cambios aplicados (p.ej. {"name":{"old":"A","new":"B"}}).';
+
+
+-- public.content_version_entities definition
+
+-- Drop table
+
+-- DROP TABLE public.content_version_entities;
+
+CREATE TABLE public.content_version_entities (
+	content_version_id int4 NOT NULL,
+	entity_type int2 NOT NULL,
+	entity_id int4 NOT NULL,
+	added_at timestamptz DEFAULT now() NOT NULL,
+	added_by int4 NULL,
+	CONSTRAINT content_version_entities_pkey PRIMARY KEY (content_version_id, entity_type, entity_id),
+	CONSTRAINT content_version_entities_added_by_fkey FOREIGN KEY (added_by) REFERENCES public.users(id) ON DELETE SET NULL,
+	CONSTRAINT content_version_entities_content_version_id_fkey FOREIGN KEY (content_version_id) REFERENCES public.content_versions(id) ON DELETE CASCADE,
+	CONSTRAINT content_version_entities_entity_type_fkey FOREIGN KEY (entity_type) REFERENCES public.entity_types(id)
+);
+CREATE INDEX idx_cve_entity ON public.content_version_entities USING btree (entity_type, entity_id);
+CREATE INDEX idx_cve_version ON public.content_version_entities USING btree (content_version_id);
 
 
 -- public.facet definition
@@ -979,6 +1254,7 @@ CREATE TABLE public.facet (
 CREATE INDEX idx_facet_code ON public.facet USING btree (code);
 CREATE INDEX idx_facet_content_version ON public.facet USING btree (content_version_id);
 CREATE INDEX idx_facet_legacy_effects ON public.facet USING btree (legacy_effects);
+CREATE INDEX idx_facet_status_created_desc ON public.facet USING btree (status, created_at DESC);
 COMMENT ON TABLE public.facet IS 'Aspectos o dominios vinculados a las Arcanas.';
 
 -- Column comments
@@ -1038,10 +1314,8 @@ CREATE TABLE public.tag_links (
 );
 CREATE INDEX idx_tag_links_entity ON public.tag_links USING btree (entity_type, entity_id);
 CREATE INDEX idx_tag_links_entity_id ON public.tag_links USING btree (entity_id);
-CREATE INDEX idx_tag_links_entity_lookup ON public.tag_links USING btree (entity_type, entity_id);
 CREATE INDEX idx_tag_links_entity_type ON public.tag_links USING btree (entity_type);
 CREATE INDEX idx_tag_links_tag ON public.tag_links USING btree (tag_id);
-CREATE INDEX idx_tag_links_tag_id ON public.tag_links USING btree (tag_id);
 
 
 -- public.base_card definition
@@ -1075,8 +1349,11 @@ CREATE TABLE public.base_card (
 );
 CREATE INDEX idx_base_card_code ON public.base_card USING btree (code);
 CREATE INDEX idx_base_card_content_version ON public.base_card USING btree (content_version_id);
+CREATE INDEX idx_base_card_created_status ON public.base_card USING btree (created_by, status);
 CREATE INDEX idx_base_card_legacy_effects ON public.base_card USING btree (legacy_effects);
 CREATE INDEX idx_base_card_status ON public.base_card USING btree (status);
+CREATE INDEX idx_base_card_status_active ON public.base_card USING btree (status, is_active);
+CREATE INDEX idx_base_card_version_status ON public.base_card USING btree (content_version_id, status);
 COMMENT ON TABLE public.base_card IS 'Carta base genérica del sistema.';
 
 -- Column comments
@@ -1117,6 +1394,7 @@ CREATE TABLE public.base_card_translations (
 	CONSTRAINT base_card_translations_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.users(id) ON DELETE SET NULL
 );
 CREATE INDEX idx_base_card_translations_card_lang ON public.base_card_translations USING btree (card_id, language_code);
+CREATE INDEX idx_base_card_translations_name_lower ON public.base_card_translations USING btree (lower((name)::text));
 CREATE INDEX idx_language_code_base_card ON public.base_card_translations USING btree (language_code);
 
 -- Table Triggers
@@ -1159,6 +1437,7 @@ CREATE TABLE public.base_skills (
 CREATE INDEX idx_base_skills_content_version ON public.base_skills USING btree (content_version_id);
 CREATE INDEX idx_base_skills_legacy_effects ON public.base_skills USING btree (legacy_effects);
 CREATE INDEX idx_base_skills_status ON public.base_skills USING btree (status);
+CREATE INDEX idx_base_skills_status_created_desc ON public.base_skills USING btree (status, created_at DESC);
 COMMENT ON TABLE public.base_skills IS 'Habilidades base del sistema.';
 
 -- Column comments
@@ -1241,6 +1520,7 @@ CREATE TABLE public.world_card (
 CREATE INDEX idx_world_card_content_version ON public.world_card USING btree (content_version_id);
 CREATE INDEX idx_world_card_legacy_effects ON public.world_card USING btree (legacy_effects);
 CREATE INDEX idx_world_card_status ON public.world_card USING btree (is_override, created_at);
+CREATE INDEX idx_world_card_status_created_desc ON public.world_card USING btree (status, created_at DESC);
 COMMENT ON TABLE public.world_card IS 'Versión de una carta base adaptada a un mundo.';
 
 -- Column comments
@@ -1292,6 +1572,30 @@ update
     public.world_card_translations for each row execute function set_modified_at();
 
 
+-- public.v_editorial_last_transition source
+
+CREATE OR REPLACE VIEW public.v_editorial_last_transition
+AS SELECT DISTINCT ON (editorial_audit_log.entity_type, editorial_audit_log.entity_id) editorial_audit_log.entity_type,
+    editorial_audit_log.entity_id,
+    editorial_audit_log.from_status,
+    editorial_audit_log.to_status,
+    editorial_audit_log.changed_by,
+    editorial_audit_log.changed_at,
+    editorial_audit_log.reason
+   FROM editorial_audit_log
+  ORDER BY editorial_audit_log.entity_type, editorial_audit_log.entity_id, editorial_audit_log.changed_at DESC;
+
+
+-- public.v_empty_content_versions source
+
+CREATE OR REPLACE VIEW public.v_empty_content_versions
+AS SELECT cv.id
+   FROM content_versions cv
+     LEFT JOIN content_version_entities cve ON cve.content_version_id = cv.id
+  GROUP BY cv.id
+ HAVING count(cve.*) = 0;
+
+
 -- public.v_latest_revision source
 
 CREATE OR REPLACE VIEW public.v_latest_revision
@@ -1318,6 +1622,36 @@ AS SELECT f.entity_type,
   WHERE f.status = 'open'::feedback_status;
 
 
+-- public.v_world_pin_history source
+
+CREATE OR REPLACE VIEW public.v_world_pin_history
+AS SELECT aal.world_id,
+    w.code AS world_code,
+    aal.content_version_id,
+    cv.version_semver,
+    aal.performed_by,
+    u.username AS performed_by_name,
+    aal.performed_at,
+    aal.event_type,
+    aal.reason
+   FROM admin_audit_log aal
+     LEFT JOIN world w ON w.id = aal.world_id
+     LEFT JOIN content_versions cv ON cv.id = aal.content_version_id
+     LEFT JOIN users u ON u.id = aal.performed_by
+  WHERE aal.event_type = ANY (ARRAY['world_pin_set'::admin_event_type, 'world_pin_changed'::admin_event_type, 'world_pin_removed'::admin_event_type])
+  ORDER BY aal.performed_at DESC;
+
+
+
+-- DROP FUNCTION public.get_entity_type_id(text);
+
+CREATE OR REPLACE FUNCTION public.get_entity_type_id(p_code text)
+ RETURNS smallint
+ LANGUAGE sql
+AS $function$
+  SELECT id::smallint FROM entity_types WHERE code = p_code;
+$function$
+;
 
 -- DROP FUNCTION public.set_default_permissions();
 
@@ -1368,4 +1702,17 @@ AS $function$
       RETURN NEW;
     END;
     $function$
+;
+
+-- DROP FUNCTION public.translation_state_set_modified_at();
+
+CREATE OR REPLACE FUNCTION public.translation_state_set_modified_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$function$
 ;

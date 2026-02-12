@@ -9,6 +9,9 @@ import {
 } from '@shared/schemas/entities/base-card'
 import { buildTranslationSelect } from '../../utils/i18n'
 import type { DB } from '../../database/types'
+import { fetchEditorialStateBatch } from '../../utils/editorialStateLoader'
+import { upsertEditorialState, deleteEditorialState } from '../../utils/editorialStateSync'
+import { upsertTranslationState, deleteTranslationState, deleteAllTranslationStates } from '../../utils/translationStateSync'
 
 function buildSelect(db: Kysely<DB>, lang: string) {
   const base = db
@@ -113,6 +116,11 @@ export const baseCardCrud = createCrudHandlers({
     {
       key: 'tags',
       fetch: (db: any, ids: number[], lang: string) => eagerLoadTags(db, ids, lang),
+    },
+    {
+      key: 'editorial_state',
+      fetch: (db: any, ids: number[]) => fetchEditorialStateBatch(db, 'base_card', ids),
+      defaultValue: null,
     },
   ],
   buildListQuery: ({ db, query, lang }) => {
@@ -240,6 +248,32 @@ export const baseCardCrud = createCrudHandlers({
       }
       return { baseData, translationData, lang: input.lang }
     },
+  },
+  onEntityCreate: async (entityId, baseData, userId) => {
+    const db = globalThis.db
+    if (!db) return
+    await upsertEditorialState(db, 'base_card', entityId, {
+      status: typeof baseData.status === 'string' ? baseData.status : 'draft',
+      isActive: typeof baseData.is_active === 'boolean' ? baseData.is_active : true,
+      createdBy: userId,
+      updatedBy: userId,
+    })
+  },
+  onTranslationUpsert: async (entityId, lang, userId) => {
+    const db = globalThis.db
+    if (!db) return
+    await upsertTranslationState(db, 'base_card', entityId, lang, userId)
+  },
+  onTranslationDelete: async (entityId, lang) => {
+    const db = globalThis.db
+    if (!db) return
+    await deleteTranslationState(db, 'base_card', entityId, lang)
+  },
+  onBaseDelete: async (entityId) => {
+    const db = globalThis.db
+    if (!db) return
+    await deleteAllTranslationStates(db, 'base_card', entityId)
+    await deleteEditorialState(db, 'base_card', entityId)
   },
   logScope: 'base_card',
 })

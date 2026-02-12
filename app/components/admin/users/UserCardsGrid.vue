@@ -4,7 +4,12 @@
     <UCard
       v-for="user in users"
       :key="user.id"
-      class="h-full flex flex-col justify-between"
+      tabindex="0"
+      role="button"
+      class="h-full flex flex-col justify-between cursor-pointer transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+      :aria-label="tt('ui.actions.view', 'View') + ': ' + (user.username || user.email)"
+      @click="$emit('edit', user)"
+      @keydown.enter.prevent="$emit('edit', user)"
     >
       <div class="space-y-3">
         <div class="flex items-start justify-between gap-3">
@@ -56,10 +61,24 @@
       </div>
 
       <div class="mt-4 flex justify-end gap-2">
-        <UButton size="xs" variant="soft" color="primary" icon="i-heroicons-pencil" @click="$emit('edit', user)">
+        <UButton
+          size="xs"
+          variant="soft"
+          color="primary"
+          icon="i-heroicons-pencil"
+          :aria-label="tt('ui.actions.edit', 'Edit')"
+          @click="emit('edit', user)"
+        >
           {{ tt('ui.actions.edit', 'Edit') }}
         </UButton>
-        <UButton size="xs" variant="soft" color="error" icon="i-heroicons-trash" @click="$emit('delete', user)">
+        <UButton
+          size="xs"
+          variant="soft"
+          color="error"
+          icon="i-heroicons-trash"
+          :aria-label="tt('ui.actions.delete', 'Delete')"
+          @click="emit('delete', user)"
+        >
           {{ tt('ui.actions.delete', 'Delete') }}
         </UButton>
       </div>
@@ -77,9 +96,9 @@ const props = defineProps<{
   users: AdminUserEntity[]
 }>()
 
-defineEmits<{
-  (e: 'edit', payload: AdminUserEntity): void
-  (e: 'delete', payload: AdminUserEntity): void
+const emit = defineEmits<{
+  'edit': [user: AdminUserEntity]
+  'delete': [user: AdminUserEntity]
 }>()
 
 const { t, te } = useI18n()

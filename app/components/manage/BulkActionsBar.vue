@@ -3,11 +3,13 @@
   <Transition name="fade">
     <div
       v-if="hasSelection"
+      role="toolbar"
+      :aria-label="selectionLabel"
       class="bulk-actions-bar sticky top-24 z-30 w-full rounded-lg border border-neutral-200 bg-white/95 px-4 py-3 shadow-sm ring-1 ring-neutral-200 backdrop-blur dark:border-neutral-700 dark:bg-neutral-900/95 dark:ring-neutral-700"
     >
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200">
-          <UIcon name="i-heroicons-check-circle" class="h-5 w-5 text-primary-500" />
+        <div class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200" role="status">
+          <UIcon name="i-heroicons-check-circle" class="h-5 w-5 text-primary-500" aria-hidden="true" />
           <span>{{ selectionLabel }}</span>
         </div>
         <div class="flex flex-wrap items-center gap-2">

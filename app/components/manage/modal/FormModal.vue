@@ -8,8 +8,14 @@
         <div v-for="(field, key) in resolvedFields" :key="key">
           <UFormField :label="trLabel(key as string, field.label)" :required="field.required" :class="{ hidden: field.hidden }">
 
+            <EditorialWorkflow
+              v-if="field.type === 'select' && key === 'status' && formEditorial"
+              :editorial="formEditorial"
+              :disabled="loading"
+              @transition="(s) => { form.status = s }"
+            />
             <USelectMenu
-              v-if="field.type === 'select'"
+              v-else-if="field.type === 'select'"
               v-model="form[key]"
               :items="selectItems(field, key as string)"
               option-attribute="label"
@@ -89,7 +95,7 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-end gap-2">
+      <div class="flex justify-end gap-3">
         <UButton color="neutral" variant="soft" :label="cancelLabel" @click="handleCancel" />
         <UButton color="primary" :label="submitLabel" :loading="loading" @click="emit('submit')" />
       </div>
@@ -182,6 +188,12 @@ watch(
   },
   { deep: true, immediate: true }
 )
+
+const formEditorial = computed(() => {
+  const editorial = (form as Record<string, any>)?.editorial
+  if (!editorial || typeof editorial.status !== 'string') return null
+  return editorial as { status: string; allowedTransitions: string[]; publishReady: boolean; blockingReasons: string[] }
+})
 
 const { arcanaOptions, cardTypeOptions, facetOptions, loadAll } = useEntityRelations()
 
@@ -286,9 +298,17 @@ function selectItems(field: Record<string, unknown>, key: string) {
   const raw = field?.options
   const statusUtil = useCardStatus()
 
-  // Special handling for status: map to localized labels
+  // Special handling for status: map to localized labels, filtered by editorial.allowedTransitions
   if (key === 'status') {
-    return statusUtil.options().map(o => ({ label: t(o.labelKey), value: o.value }))
+    const allOptions = statusUtil.options().map(o => ({ label: t(o.labelKey), value: o.value }))
+    const editorial = (form as Record<string, any>)?.editorial
+    const allowed: string[] | undefined = editorial?.allowedTransitions
+    if (Array.isArray(allowed)) {
+      const currentStatus = (form as Record<string, any>)?.status
+      const validSet = new Set([...allowed, ...(currentStatus ? [currentStatus] : [])])
+      return allOptions.filter(o => validSet.has(o.value))
+    }
+    return allOptions
   }
 
   if (Array.isArray(raw)) {

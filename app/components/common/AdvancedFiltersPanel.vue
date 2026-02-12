@@ -82,6 +82,7 @@
                     color="neutral"
                     icon="i-heroicons-calendar-days-20-solid"
                     class="justify-between"
+                    :aria-label="field.label + ': ' + dateRangeLabel(field)"
                   >
                     <span class="truncate">{{ dateRangeLabel(field) }}</span>
                   </UButton>

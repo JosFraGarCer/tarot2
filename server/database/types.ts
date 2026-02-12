@@ -32,7 +32,11 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type UserStatus = "active" | "banned" | "inactive" | "pending" | "suspended";
 
+export type AdminEventType = "manifest_entity_added" | "manifest_entity_removed" | "version_cloned" | "version_frozen" | "version_unfrozen" | "world_pin_changed" | "world_pin_removed" | "world_pin_set";
+
 export type ReleaseStage = "alfa" | "beta" | "candidate" | "dev" | "release" | "revision";
+
+export type TranslationStatus = "approved" | "draft" | "rejected" | "review";
 
 export interface Arcana {
   code: string;
@@ -203,6 +207,102 @@ export interface CardEffects {
    */
   validation_state: Generated<string>;
   value: Numeric | null;
+}
+
+export interface AdminAuditLog {
+  content_version_id: number | null;
+  entity_id: number | null;
+  entity_type: number | null;
+  event_type: AdminEventType;
+  id: Generated<number>;
+  metadata: Generated<Json>;
+  performed_at: Generated<Timestamp>;
+  performed_by: number | null;
+  reason: string | null;
+  world_id: number | null;
+}
+
+export interface EditorialAuditLog {
+  changed_at: Generated<Timestamp>;
+  changed_by: number | null;
+  content_version_id: number | null;
+  entity_id: number;
+  entity_type: number;
+  from_status: CardStatus | null;
+  id: Generated<number>;
+  is_active: boolean | null;
+  metadata: Generated<Json>;
+  reason: string | null;
+  to_status: CardStatus;
+}
+
+export interface EditorialMetrics {
+  entity_id: number | null;
+  entity_type: number | null;
+  open_feedback_count: Generated<number | null>;
+  revision_count: Generated<number | null>;
+  translation_count: Generated<number | null>;
+  updated_at: Timestamp | null;
+}
+
+export interface EditorialState {
+  content_version_id: number | null;
+  created_at: Generated<Timestamp>;
+  created_by: number | null;
+  entity_id: number;
+  entity_type: number;
+  id: Generated<number>;
+  is_active: Generated<boolean>;
+  modified_at: Generated<Timestamp>;
+  status: Generated<CardStatus>;
+  updated_by: number | null;
+}
+
+export interface EntityRelations {
+  metadata: Generated<Json | null>;
+  relation_type: string;
+  source_id: number;
+  source_type: number;
+  target_id: number;
+  target_type: number;
+}
+
+export interface EntityTypes {
+  code: string;
+  id: number;
+}
+
+export interface ContentVersionEntities {
+  added_at: Generated<Timestamp>;
+  added_by: number | null;
+  content_version_id: number;
+  entity_id: number;
+  entity_type: number;
+}
+
+export interface TranslationState {
+  created_at: Generated<Timestamp>;
+  created_by: number | null;
+  entity_id: number;
+  entity_type: number;
+  language_code: string;
+  status: Generated<TranslationStatus>;
+  updated_at: Generated<Timestamp>;
+  updated_by: number | null;
+}
+
+export interface WorldContentPins {
+  content_version_id: number;
+  pinned_at: Generated<Timestamp>;
+  pinned_by: number | null;
+  world_id: number;
+}
+
+export interface SystemSettings {
+  key: string;
+  updated_at: Generated<Timestamp>;
+  updated_by: number | null;
+  value: Json;
 }
 
 export interface ContentFeedback {
@@ -449,6 +549,16 @@ export interface Users {
   username: string;
 }
 
+export interface VEditorialLastTransition {
+  changed_at: Timestamp | null;
+  changed_by: number | null;
+  entity_id: number | null;
+  entity_type: number | null;
+  from_status: CardStatus | null;
+  reason: string | null;
+  to_status: CardStatus | null;
+}
+
 export interface VLatestRevision {
   entity_id: number | null;
   entity_type: string | null;
@@ -541,6 +651,7 @@ export interface WorldTranslations {
 }
 
 export interface DB {
+  admin_audit_log: AdminAuditLog;
   arcana: Arcana;
   arcana_translations: ArcanaTranslations;
   base_card: BaseCard;
@@ -552,23 +663,33 @@ export interface DB {
   card_effects: CardEffects;
   content_feedback: ContentFeedback;
   content_revisions: ContentRevisions;
+  content_version_entities: ContentVersionEntities;
   content_versions: ContentVersions;
+  editorial_audit_log: EditorialAuditLog;
+  editorial_metrics: EditorialMetrics;
+  editorial_state: EditorialState;
   effect_target: EffectTarget;
   effect_target_translations: EffectTargetTranslations;
   effect_type: EffectType;
   effect_type_translations: EffectTypeTranslations;
+  entity_relations: EntityRelations;
+  entity_types: EntityTypes;
   facet: Facet;
   facet_translations: FacetTranslations;
   roles: Roles;
+  system_settings: SystemSettings;
   tag_links: TagLinks;
   tags: Tags;
   tags_translations: TagsTranslations;
+  translation_state: TranslationState;
   user_roles: UserRoles;
   users: Users;
+  v_editorial_last_transition: VEditorialLastTransition;
   v_latest_revision: VLatestRevision;
   v_open_feedback: VOpenFeedback;
   world: World;
   world_card: WorldCard;
   world_card_translations: WorldCardTranslations;
+  world_content_pins: WorldContentPins;
   world_translations: WorldTranslations;
 }

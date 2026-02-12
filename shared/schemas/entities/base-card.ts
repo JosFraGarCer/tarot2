@@ -19,7 +19,7 @@ export const baseCardSchema = z.object({
 export const baseCardCreateSchema = z.object({
   ...baseEntityCreateFields,
   card_type_id: z.coerce.number().int().positive(),
-  card_family: z.string().optional(),
+  card_family: z.string().min(1, 'card_family is required'),
   legacy_effects: z.coerce.boolean().optional().default(false),
   effects: effectsSchema.optional().default({}),
   lang: languageCodeWithDefault('en'),

@@ -52,6 +52,7 @@ function handleEditClick() {
         size="xs"
         color="primary"
         variant="soft"
+        :aria-label="t('ui.actions.edit')"
         @click="handleEditClick"
       />
     </div>
@@ -63,6 +64,7 @@ function handleEditClick() {
         size="xs"
         color="warning"
         variant="soft"
+        :aria-label="t('ui.actions.feedback')"
         @click="$emit('feedback', props.entity)"
       />
     </div>
@@ -74,6 +76,7 @@ function handleEditClick() {
         size="xs"
         color="neutral"
         variant="soft"
+        :aria-label="t('ui.fields.tags')"
         @click="$emit('tags', props.entity)"
       />
     </div>
@@ -85,6 +88,7 @@ function handleEditClick() {
         size="xs"
         color="error"
         variant="soft"
+        :aria-label="t('ui.actions.delete')"
         @click="$emit('delete', props.entity)"
       />
     </div>

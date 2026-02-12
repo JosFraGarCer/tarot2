@@ -5,6 +5,9 @@ import { createCrudHandlers } from '../../utils/createCrudHandlers'
 import { arcanaQuerySchema, arcanaCreateSchema, arcanaUpdateSchema } from '@shared/schemas/entities/arcana'
 import { buildTranslationSelect } from '../../utils/i18n'
 import type { DB } from '../../database/types'
+import { upsertTranslationState, deleteTranslationState, deleteAllTranslationStates } from '../../utils/translationStateSync'
+import { deleteEditorialState } from '../../utils/editorialStateSync'
+import { fetchEditorialStateBatch } from '../../utils/editorialStateLoader'
 
 function buildSelect(db: Kysely<DB>, lang: string) {
   const base = db
@@ -96,6 +99,11 @@ export const arcanaCrud = createCrudHandlers({
     {
       key: 'tags',
       fetch: (db, ids, lang) => eagerLoadTags(db, ids, lang),
+    },
+    {
+      key: 'editorial_state',
+      fetch: (db: any, ids: number[]) => fetchEditorialStateBatch(db, 'arcana', ids),
+      defaultValue: null,
     },
   ],
   buildListQuery: ({ db, lang, query }) => {
@@ -218,6 +226,22 @@ export const arcanaCrud = createCrudHandlers({
         lang: input.lang,
       }
     },
+  },
+  onTranslationUpsert: async (entityId, lang, userId) => {
+    const db = globalThis.db
+    if (!db) return
+    await upsertTranslationState(db, 'arcana', entityId, lang, userId)
+  },
+  onTranslationDelete: async (entityId, lang) => {
+    const db = globalThis.db
+    if (!db) return
+    await deleteTranslationState(db, 'arcana', entityId, lang)
+  },
+  onBaseDelete: async (entityId) => {
+    const db = globalThis.db
+    if (!db) return
+    await deleteAllTranslationStates(db, 'arcana', entityId)
+    await deleteEditorialState(db, 'arcana', entityId)
   },
   logScope: 'arcana',
 })

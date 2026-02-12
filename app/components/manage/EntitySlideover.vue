@@ -30,6 +30,15 @@
               :aria-label="tt('ui.actions.next', 'Next')"
               @click="goNext"
             />
+            <USeparator direction="vertical" class="h-4 mx-1" />
+            <UButton
+              icon="i-heroicons-x-mark"
+              variant="ghost"
+              color="neutral"
+              size="xs"
+              :aria-label="tt('ui.actions.close', 'Close')"
+              @click="handleClose"
+            />
           </div>
           <div>
             <div v-if="loading" class="space-y-2">
@@ -43,15 +52,15 @@
               <p class="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                 #{{ props.id }} · {{ kindLabel }}
               </p>
-              <div class="mt-3 flex flex-wrap items-center gap-2">
+                <div v-if="entity && entity.value" class="mt-3 flex flex-wrap items-center gap-2">
                 <StatusBadge
-                  v-if="entity.value?.status && capabilities.value.hasStatus"
+                  v-if="entity.value.status && capabilities.hasStatus"
                   type="status"
                   :value="entity.value.status"
                   size="sm"
                 />
                 <StatusBadge
-                  v-if="entity.value?.release_stage && capabilities.value.hasReleaseStage"
+                  v-if="entity.value.release_stage && capabilities.hasReleaseStage"
                   type="release"
                   :value="entity.value.release_stage"
                   size="sm"
@@ -65,13 +74,6 @@
             </template>
           </div>
         </div>
-        <UButton
-          icon="i-heroicons-x-mark"
-          variant="ghost"
-          color="neutral"
-          aria-label="Close"
-          @click="handleClose"
-        />
       </div>
     </template>
     <template #body>
@@ -90,6 +92,14 @@
                 icon="i-heroicons-exclamation-triangle"
                 :title="tt('ui.notifications.error', 'Error')"
                 :description="errorMessage"
+            />
+
+            <UAlert
+                v-if="editorialWarning"
+                color="warning"
+                icon="i-heroicons-exclamation-triangle"
+                :title="tt('ui.editorial.notPublishReady', 'Not ready to publish')"
+                :description="editorialWarning"
             />
 
             <UCard>
@@ -156,7 +166,7 @@
                     <UInput v-model="basicSection.state.code" />
                     </UFormField>
 
-                    <UFormField :label="tt('ui.fields.status', 'Status')">
+                    <UFormField v-if="!entityEditorial" :label="tt('ui.fields.status', 'Status')">
                     <USelectMenu
                         v-model="basicSection.state.status"
                         :items="statusOptions"
@@ -187,6 +197,14 @@
                     {{ tt('ui.fields.active', 'Active') }}
                     </span>
                 </div>
+
+                <EditorialWorkflow
+                    v-if="entityEditorial"
+                    ref="editorialWorkflowRef"
+                    :editorial="entityEditorial"
+                    :disabled="basicSection.loading.value"
+                    @transition="handleEditorialTransition"
+                />
                 </UForm>
             </UCard>
 
@@ -220,6 +238,7 @@
                         icon="i-heroicons-arrow-path"
                         :disabled="!selectedTranslationLang"
                         :loading="translationLoading.value"
+                        :aria-label="tt('ui.actions.refresh', 'Refresh')"
                         @click="reloadTranslation"
                     />
                     </div>
@@ -541,7 +560,17 @@ const metadataSection = useFormSection<MetadataFormState>(
   },
 )
 
-const statusOptions = computed(() => statusUtil.options().map(option => ({ value: option.value, label: t(option.labelKey) as string })))
+const statusOptions = computed(() => {
+  const allOptions = statusUtil.options().map(option => ({ value: option.value, label: t(option.labelKey) as string }))
+  const editorial = (entity.value as any)?.editorial
+  const allowed: string[] | undefined = editorial?.allowedTransitions
+  if (Array.isArray(allowed)) {
+    const currentStatus = (entity.value as any)?.status
+    const validSet = new Set([...allowed, ...(currentStatus ? [currentStatus] : [])])
+    return allOptions.filter(o => validSet.has(o.value))
+  }
+  return allOptions
+})
 
 const currentTranslationMeta = computed(() => {
   const lang = selectedTranslationLang.value || DEFAULT_LANG
@@ -585,6 +614,42 @@ const summaryMetadata = computed(() => {
 const headerTitle = computed(() => entity.value?.name || entity.value?.code || `#${props.id}`)
 const kindLabel = computed(() => tt(`entities.${props.kind}`, props.kind))
 const errorMessage = computed(() => error.value ? resolveErrorMessage(error.value) : null)
+
+const entityEditorial = computed(() => {
+  const editorial = (entity.value as any)?.editorial
+  if (!editorial || typeof editorial.status !== 'string') return null
+  return editorial as { status: string; allowedTransitions: string[]; publishReady: boolean; blockingReasons: string[] }
+})
+
+const editorialWorkflowRef = ref<{ setError: (msg: string) => void; clearError: () => void } | null>(null)
+
+async function handleEditorialTransition(nextStatus: string) {
+  try {
+    await apiFetch(`${props.kind}/${props.id}`, {
+      method: 'PATCH',
+      body: {
+        status: nextStatus,
+        lang: DEFAULT_LANG,
+      },
+      ...apiBaseOptions(),
+    })
+    toast.add({ title: tt('ui.notifications.saved', 'Status updated'), color: 'success' })
+    emit('saved')
+    await refreshEntity()
+    editorialWorkflowRef.value?.clearError()
+  } catch (err: any) {
+    const message = resolveErrorMessage(err)
+    toast.add({ title: tt('ui.notifications.error', 'Error'), description: message, color: 'error' })
+    editorialWorkflowRef.value?.setError(message)
+  }
+}
+
+const editorialWarning = computed(() => {
+  const editorial = (entity.value as any)?.editorial
+  if (!editorial || editorial.publishReady !== false) return null
+  const reasons: string[] = editorial.blockingReasons ?? []
+  return reasons.length ? reasons.join('. ') : tt('ui.editorial.notPublishReadyGeneric', 'This entity does not meet all publishing requirements.')
+})
 function normalizeNeighbor(value: number | string | null | undefined): number | null {
   if (value === null || value === undefined) return null
   const numeric = typeof value === 'number' ? value : Number(value)

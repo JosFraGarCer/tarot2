@@ -9,6 +9,9 @@ import {
 } from '@shared/schemas/entities/world-card'
 import { buildTranslationSelect } from '../../utils/i18n'
 import type { DB } from '../../database/types'
+import { upsertTranslationState, deleteTranslationState, deleteAllTranslationStates } from '../../utils/translationStateSync'
+import { deleteEditorialState } from '../../utils/editorialStateSync'
+import { fetchEditorialStateBatch } from '../../utils/editorialStateLoader'
 
 function buildSelect(db: Kysely<DB>, lang: string) {
   const base = db
@@ -129,6 +132,11 @@ export const worldCardCrud = createCrudHandlers({
     {
       key: 'tags',
       fetch: (db, ids, lang) => eagerLoadTags(db, ids, lang),
+    },
+    {
+      key: 'editorial_state',
+      fetch: (db: any, ids: number[]) => fetchEditorialStateBatch(db, 'world_card', ids),
+      defaultValue: null,
     },
   ],
   buildListQuery: ({ db, query, lang }) => {
@@ -264,6 +272,22 @@ export const worldCardCrud = createCrudHandlers({
       }
       return { baseData, translationData, lang: input.lang }
     },
+  },
+  onTranslationUpsert: async (entityId, lang, userId) => {
+    const db = globalThis.db
+    if (!db) return
+    await upsertTranslationState(db, 'world_card', entityId, lang, userId)
+  },
+  onTranslationDelete: async (entityId, lang) => {
+    const db = globalThis.db
+    if (!db) return
+    await deleteTranslationState(db, 'world_card', entityId, lang)
+  },
+  onBaseDelete: async (entityId) => {
+    const db = globalThis.db
+    if (!db) return
+    await deleteAllTranslationStates(db, 'world_card', entityId)
+    await deleteEditorialState(db, 'world_card', entityId)
   },
   logScope: 'world_card',
 })

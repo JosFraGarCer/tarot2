@@ -158,13 +158,11 @@ async function submit() {
 
 function validateSemver() {
   const value = form.version_semver?.trim() || ''
-  console.log('DEBUG validateSemver:', { originalValue: value, cleanValue: value.replace(/^version\s*/i, '') })
   // Remover prefijo 'version' si existe
   const cleanValue = value.replace(/^version\s*/i, '')
   // Remover puntos al final
   const finalValue = cleanValue.replace(/\.$/, '')
   const re = /^\d+\.\d+\.\d+(?:-[\w.-]+)?(?:\+[\w.-]+)?$/
-  console.log('DEBUG regex test:', { cleanValue, finalValue, regexMatch: re.test(finalValue) })
   if (!finalValue) {
     semverError.value = tt('versions.semverRequired', 'Version is required')
   } else if (!re.test(finalValue)) {

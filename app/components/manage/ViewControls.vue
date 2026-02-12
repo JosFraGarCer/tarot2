@@ -16,6 +16,7 @@
         size="md"
         :variant="modelValue === 'tarjeta' ? 'solid' : 'soft'"
         color="neutral"
+        :aria-label="$t('viewModes.card')"
         @click="setMode('tarjeta')"
       />
     </UTooltip>
@@ -25,6 +26,7 @@
         size="md"
         :variant="modelValue === 'classic' ? 'solid' : 'soft'"
         color="neutral"
+        :aria-label="$t('viewModes.classic')"
         @click="setMode('classic')"
       />
     </UTooltip>
@@ -34,6 +36,7 @@
         size="md"
         :variant="modelValue === 'carta' ? 'solid' : 'soft'"
         color="neutral"
+        :aria-label="$t('viewModes.carta')"
         @click="setMode('carta')"
       />
     </UTooltip>
@@ -45,6 +48,7 @@
         color="neutral"
         :disabled="disableTable"
         :title="disableTable ? $t('viewModes.tableSoon') : ''"
+        :aria-label="$t('viewModes.table')"
         @click="setMode('tabla')"
       />
     </UTooltip>

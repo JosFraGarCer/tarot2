@@ -38,7 +38,7 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-end gap-2">
+      <div class="flex justify-end gap-3">
         <UButton
           color="neutral" variant="soft"
           :label="cancelLabel"

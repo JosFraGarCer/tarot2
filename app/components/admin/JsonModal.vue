@@ -14,6 +14,7 @@
             color="neutral"
             icon="i-heroicons-clipboard"
             :label="copyLabel || 'Copy'"
+            :aria-label="copyLabel || 'Copy'"
             @click="copy"
           />
         </div>

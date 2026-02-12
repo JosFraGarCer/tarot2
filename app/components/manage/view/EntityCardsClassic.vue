@@ -18,19 +18,20 @@
     <template v-else-if="(crud.items?.value ?? crud.items)?.length === 0">
       <div class="col-span-full">
         <UCard class="flex flex-col items-center justify-center gap-4 py-10 text-center">
-          <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" />
+          <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
           <div class="space-y-2">
             <p class="text-lg font-semibold text-neutral-700 dark:text-neutral-200">{{ t('common.noResults') }}</p>
             <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ t('common.tryAdjustFilters') }}</p>
           </div>
           <div class="flex flex-wrap items-center justify-center gap-2">
-            <UButton color="primary" icon="i-heroicons-plus" @click="onCreateFromEmpty">
+            <UButton color="primary" icon="i-heroicons-plus" :aria-label="t('ui.actions.create') + ' ' + label" @click="onCreateFromEmpty">
               {{ t('ui.actions.create') }} {{ label }}
             </UButton>
             <UButton
               variant="ghost"
               color="neutral"
               icon="i-heroicons-arrow-path"
+              :aria-label="t('common.resetFilters')"
               @click="onResetFiltersFromEmpty"
             >
               {{ t('common.resetFilters') }}
@@ -39,7 +40,17 @@
         </UCard>
       </div>
     </template>
-    <UCard v-else v-for="item in crud.items?.value ?? crud.items" :key="item.id" class="flex flex-col gap-3 h-full text-sm">
+    <UCard
+      v-else
+      v-for="item in crud.items?.value ?? crud.items"
+      :key="item.id"
+      tabindex="0"
+      role="button"
+      class="flex flex-col gap-3 h-full text-sm cursor-pointer transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+      :aria-label="t('ui.actions.view') + ': ' + (item.name || item.code || item.id)"
+      @click="onEditClick(item)"
+      @keydown.enter.prevent="onEditClick(item)"
+    >
       <div class="flex justify-between items-start gap-3">
         <div class="flex items-start gap-3 flex-1">
           <img
@@ -60,6 +71,7 @@
                 color="neutral"
                 variant="ghost"
                 :title="$t('ui.actions.preview')"
+                :aria-label="$t('ui.actions.preview')"
                 @click="onPreviewClick(item)"
               />
                <UBadge v-if="langBadge(item)" color="neutral" variant="subtle" size="sm">
@@ -152,13 +164,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', entity: any): void
-  (e: 'delete', entity: any): void
-  (e: 'feedback', entity: any): void
-  (e: 'tags', entity: any): void
-  (e: 'preview', entity: any): void
-  (e: 'create'): void
-  (e: 'reset-filters'): void
+  'edit': [entity: any]
+  'delete': [entity: any]
+  'feedback': [entity: any]
+  'tags': [entity: any]
+  'preview': [entity: any]
+  'create': []
+  'reset-filters': []
 }>()
 
 const { t, locale } = useI18n()

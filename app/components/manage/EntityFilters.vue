@@ -1,6 +1,6 @@
 <!-- app/components/manage/EntityFilters.vue -->
 <template>
-  <div class="flex flex-col gap-3">
+  <div class="flex flex-col gap-4">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-2">
         <UInput
@@ -20,6 +20,7 @@
           value-key="value"
           class="w-56"
           :placeholder="tagsPlaceholder"
+          :aria-label="tagsPlaceholder"
         />
         <USelectMenu
           v-if="show.facet"
@@ -30,6 +31,7 @@
           value-key="value"
           class="w-40"
           :placeholder="facetPlaceholder"
+          :aria-label="facetPlaceholder"
         />
         <USelectMenu
           v-if="show.type"
@@ -40,6 +42,7 @@
           value-key="value"
           class="w-40"
           :placeholder="typePlaceholder"
+          :aria-label="typePlaceholder"
         />
         <USelectMenu
           v-if="show.status"
@@ -49,6 +52,7 @@
           value-key="value"
           class="w-40"
           :placeholder="statusPlaceholder"
+          :aria-label="statusPlaceholder"
         />
         <USelectMenu
           v-if="show.is_active"
@@ -59,6 +63,7 @@
           option-attribute="label"
           class="w-40"
           :placeholder="activePlaceholder"
+          :aria-label="activePlaceholder"
         />
         <USelectMenu
           v-if="show.parent"
@@ -68,6 +73,7 @@
           value-key="value"
           class="w-40"
           :placeholder="parentPlaceholder"
+          :aria-label="parentPlaceholder"
         />
       </div>
 
@@ -76,6 +82,8 @@
           icon="i-heroicons-plus-20-solid"
           size="md"
           color="primary"
+          variant="solid"
+          class="shadow-sm font-medium"
           :label="`${t('ui.actions.create')} ${label}`"
           @click="onCreate?.()"
         />

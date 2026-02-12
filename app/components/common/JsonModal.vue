@@ -25,6 +25,7 @@
               color="neutral"
               icon="i-heroicons-arrow-down-tray"
               :label="tt('ui.actions.download', 'Download')"
+              :aria-label="tt('ui.actions.download', 'Download')"
               @click="handleDownload"
             />
             <UButton
@@ -33,6 +34,7 @@
               color="neutral"
               icon="i-heroicons-clipboard"
               :label="copyLabel"
+              :aria-label="copyLabel"
               @click="handleCopy"
             />
             <UButton
@@ -42,6 +44,7 @@
               color="primary"
               :icon="isEditing ? 'i-heroicons-eye' : 'i-heroicons-pencil-square'"
               :label="isEditing ? tt('ui.actions.view', 'View') : tt('ui.actions.edit', 'Edit')"
+              :aria-label="isEditing ? tt('ui.actions.view', 'View') : tt('ui.actions.edit', 'Edit')"
               @click="toggleMode"
             />
           </div>
@@ -120,8 +123,9 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{
-  (e: 'save', value: any): void
-  (e: 'update:value', value: any): void
+  'update:modelValue': [value: any]
+  'save': [value: any]
+  'update:value': [value: any]
 }>()
 
 const { t } = useI18n()
@@ -182,7 +186,7 @@ watch(open, (value) => {
 const shortcutCleanup = ref<(() => void) | null>(null)
 
 function startListening() {
-  if (!process.client || shortcutCleanup.value) return
+  if (!import.meta.client || shortcutCleanup.value) return
   const stop = useEventListener(window, 'keydown', (event: KeyboardEvent) => {
     if (!(event.metaKey || event.ctrlKey)) return
     if (event.key === 's') {
@@ -240,7 +244,7 @@ async function handleSave() {
 }
 
 function handleDownload() {
-  if (!props.allowDownload || !process.client) return
+  if (!props.allowDownload || !import.meta.client) return
   try {
     const blob = new Blob([isEditing.value ? editorValue.value : prettyValue.value], { type: 'application/json;charset=utf-8' })
     const url = URL.createObjectURL(blob)

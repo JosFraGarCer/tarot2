@@ -175,23 +175,20 @@
     />
 
     <!-- Resolve Confirm Modal -->
-    <UModal
-      v-model:open="resolveOpen"
+    <ConfirmDialog
+      :open="resolveOpen"
       :title="tt('features.admin.feedback.actions.confirmResolve','Confirm resolve')"
-      :description="tt('features.admin.feedback.actions.confirmResolveDescription', 'Confirm resolving the selected feedback items')"
-    >
-      <template #body>
-        <p class="text-sm text-gray-600 dark:text-gray-300">{{ tt('features.admin.feedback.actions.confirmResolve','Confirm resolve') }} — {{ tt('ui.table.selectedCount','{n} selected').replace('{n}', String(selectedIds.length)) }}</p>
-      </template>
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <UButton variant="soft" @click="resolveOpen=false">{{ tt('ui.actions.cancel','Cancel') }}</UButton>
-          <UButton color="primary" :disabled="resolving" @click="confirmResolveSelected">{{ tt('feedback.resolveSelected','Resolve selected') }}</UButton>
-        </div>
-      </template>
-    </UModal>
+      :description="tt('ui.table.selectedCount','{n} selected').replace('{n}', String(selectedIds.length))"
+      :confirm-label="tt('feedback.resolveSelected','Resolve selected')"
+      :cancel-label="tt('ui.actions.cancel','Cancel')"
+      confirm-color="primary"
+      :loading="resolving"
+      @update:open="v => resolveOpen = v"
+      @confirm="confirmResolveSelected"
+      @cancel="() => { resolveOpen = false }"
+    />
 
-    <!-- Global Delete Modal -->
+    <!-- Global Delete Modal (single item) -->
     <ConfirmDeleteModal
       :open="deleteOpen"
       :title="tt('features.admin.feedbackDeleteTitle', 'Delete feedback')"
@@ -199,9 +196,22 @@
       :confirm-label="tt('ui.dialogs.confirm.deleteConfirm', 'Delete')"
       :cancel-label="tt('ui.actions.cancel', 'Cancel')"
       :loading="deleting"
-      @update:open="v => deleteOpen.value = v"
+      @update:open="v => deleteOpen = v"
       @confirm="confirmDelete"
-      @cancel="() => { deleteOpen.value = false; toDelete.value = null }"
+      @cancel="() => { deleteOpen = false; toDelete = null }"
+    />
+
+    <!-- Bulk Delete Modal -->
+    <ConfirmDeleteModal
+      :open="bulkDeleteOpen"
+      :title="tt('admin.feedback.confirmDelete', 'Delete selected feedback')"
+      :description="tt('admin.feedback.confirmDeleteDescription', 'This will permanently delete the selected feedback entries. This action cannot be undone.').replace('{n}', String(selectedIds.length))"
+      :confirm-label="tt('ui.dialogs.confirm.deleteConfirm', 'Delete')"
+      :cancel-label="tt('ui.actions.cancel', 'Cancel')"
+      :loading="bulkDeleting"
+      @update:open="v => bulkDeleteOpen = v"
+      @confirm="confirmBulkDelete"
+      @cancel="() => { bulkDeleteOpen = false }"
     />
   </div>
 </template>
@@ -209,6 +219,7 @@
 <script setup lang="ts">
 import FeedbackList from '@/components/admin/FeedbackList.vue'
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal.vue'
+import ConfirmDialog from '@/components/manage/modal/ConfirmDialog.vue'
 import JsonModal from '@/components/common/JsonModal.vue'
 import FeedbackNotesModal from '@/components/admin/FeedbackNotesModal.vue'
 import FeedbackDashboard from '@/components/admin/FeedbackDashboard.vue'
@@ -875,16 +886,27 @@ async function bulkReopen() {
   }
 }
 
-async function bulkDelete() {
+const bulkDeleteOpen = ref(false)
+const bulkDeleting = ref(false)
+
+function bulkDelete() {
   if (selectedIds.value.length === 0) return
-  if (typeof window !== 'undefined' && !window.confirm(tt('admin.feedback.confirmDelete', 'Delete selected feedback?'))) return
+  bulkDeleteOpen.value = true
+}
+
+async function confirmBulkDelete() {
+  if (selectedIds.value.length === 0) return
+  bulkDeleting.value = true
   try {
     await Promise.all(selectedIds.value.map(id => remove(id)))
     toast.add({ title: tt('ui.notifications.deleteSuccess', 'Deleted successfully'), color: 'success' })
     selectedIds.value = []
     await reload()
-  } catch (err) {
+  } catch (_err) {
     toast.add({ title: tt('ui.notifications.error', 'Error'), description: tt('admin.feedback.deleteError', 'Error deleting feedback'), color: 'error' })
+  } finally {
+    bulkDeleting.value = false
+    bulkDeleteOpen.value = false
   }
 }
 </script>

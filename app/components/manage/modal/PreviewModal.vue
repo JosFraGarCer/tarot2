@@ -1,9 +1,10 @@
 <!-- app/components/manage/modal/PreviewModal.vue -->
 <!-- app/components/manage/Modal/PreviewModal.vue -->
 <script setup lang="ts">
+import { useI18n } from '#imports'
 import Preview from '~/components/manage/Preview.vue'
 
-
+const { t } = useI18n()
 const props = defineProps<{
   open: boolean
   title: string
@@ -27,7 +28,15 @@ const close = () => emit('update:open', false)
     <template #header>
       <div class="flex items-center justify-between w-full">
         <h3 class="text-base font-semibold">{{ title }}</h3>
-        <UButton icon="i-heroicons-x-mark" color="neutral" variant="ghost" size="xs" @click="close" />
+        <UButton
+          icon="i-heroicons-x-mark"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          :title="t('ui.actions.close')"
+          :aria-label="t('ui.actions.close')"
+          @click="close"
+        />
       </div>
     </template>
     <template #body>

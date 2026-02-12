@@ -9,6 +9,9 @@ import {
 } from '@shared/schemas/entities/skill'
 import { buildTranslationSelect } from '../../utils/i18n'
 import type { DB } from '../../database/types'
+import { upsertTranslationState, deleteTranslationState, deleteAllTranslationStates } from '../../utils/translationStateSync'
+import { deleteEditorialState } from '../../utils/editorialStateSync'
+import { fetchEditorialStateBatch } from '../../utils/editorialStateLoader'
 
 function buildSelect(db: Kysely<DB>, lang: string) {
   const base = db
@@ -113,6 +116,11 @@ export const skillCrud = createCrudHandlers({
     {
       key: 'tags',
       fetch: (db, ids, lang) => eagerLoadTags(db, ids, lang),
+    },
+    {
+      key: 'editorial_state',
+      fetch: (db: any, ids: number[]) => fetchEditorialStateBatch(db, 'base_skills', ids),
+      defaultValue: null,
     },
   ],
   buildListQuery: ({ db, query, lang }) => {
@@ -243,6 +251,22 @@ export const skillCrud = createCrudHandlers({
       }
       return { baseData, translationData, lang: input.lang }
     },
+  },
+  onTranslationUpsert: async (entityId, lang, userId) => {
+    const db = globalThis.db
+    if (!db) return
+    await upsertTranslationState(db, 'base_skills', entityId, lang, userId)
+  },
+  onTranslationDelete: async (entityId, lang) => {
+    const db = globalThis.db
+    if (!db) return
+    await deleteTranslationState(db, 'base_skills', entityId, lang)
+  },
+  onBaseDelete: async (entityId) => {
+    const db = globalThis.db
+    if (!db) return
+    await deleteAllTranslationStates(db, 'base_skills', entityId)
+    await deleteEditorialState(db, 'base_skills', entityId)
   },
   logScope: 'skill',
 })

@@ -4,7 +4,12 @@
     <div
       v-for="user in users"
       :key="user.id"
-      class="rounded-lg border border-primary-200 bg-gradient-to-br from-primary-50 to-white p-4 shadow dark:border-primary-700 dark:from-primary-900/40 dark:to-gray-900"
+      tabindex="0"
+      role="button"
+      class="rounded-lg border border-primary-200 bg-gradient-to-br from-primary-50 to-white p-4 shadow dark:border-primary-700 dark:from-primary-900/40 dark:to-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 cursor-pointer transition-all"
+      :aria-label="tt('ui.actions.view', 'View') + ': ' + (user.username || user.email)"
+      @click="$emit('edit', user)"
+      @keydown.enter.prevent="$emit('edit', user)"
     >
       <header class="flex items-center justify-between">
         <div>
@@ -58,12 +63,22 @@
           </span>
         </div>
         <div class="flex items-center gap-2">
-          <UButton size="xs" color="primary" variant="soft" icon="i-heroicons-pencil" @click="$emit('edit', user)">
-            {{ tt('ui.actions.edit', 'Edit') }}
-          </UButton>
-          <UButton size="xs" color="error" variant="soft" icon="i-heroicons-trash" @click="$emit('delete', user)">
-            {{ tt('ui.actions.delete', 'Delete') }}
-          </UButton>
+          <UButton
+            size="xs"
+            color="primary"
+            variant="soft"
+            icon="i-heroicons-pencil"
+            :aria-label="tt('ui.actions.edit', 'Edit')"
+            @click="$emit('edit', user)"
+          />
+          <UButton
+            size="xs"
+            color="error"
+            variant="soft"
+            icon="i-heroicons-trash"
+            :aria-label="tt('ui.actions.delete', 'Delete')"
+            @click="$emit('delete', user)"
+          />
         </div>
       </footer>
     </div>

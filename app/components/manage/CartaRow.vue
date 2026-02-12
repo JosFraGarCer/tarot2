@@ -1,6 +1,13 @@
 <!-- app/components/manage/CartaRow.vue -->
 <template>
-  <div class="flex flex-col items-center w-full">
+  <div
+    class="flex flex-col items-center w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg p-1 transition-all"
+    tabindex="0"
+    role="button"
+    :aria-label="t('ui.actions.view') + ': ' + name"
+    @keydown.enter.prevent="emit('click')"
+    @click="emit('click')"
+  >
     <div class="flex items-start justify-center w-fit">
       <div>
         <component
@@ -105,14 +112,15 @@ const props = withDefaults(defineProps<{
   effects: null,
 })
 
+const emit = defineEmits<{
+  'click': []
+}>()
+
 const { t, locale } = useI18n()
 const { resolveTemplate } = useCardTemplates()
 const cardStatus = useCardStatus()
 const {
   resolveImage,
-  imageFallback,
-  statusColor,
-  statusVariant,
   statusLabelKey
 } = useCardViewHelpers({
   entity: computed(() => props.entity || ''),
@@ -155,14 +163,14 @@ const showStatusRow = computed(() => active.value !== undefined || statusMeta.va
 
 const resolvedTags = computed(() => props.tags?.filter(tag => tag !== undefined && tag !== null) ?? [])
 
-function tagKey(tag: any, idx: number) {
+function tagKey(tag: { id?: number; code?: string; name?: string; label?: string }, idx: number) {
   if (tag && typeof tag === 'object') {
     return tag.id ?? tag.code ?? tag.name ?? tag.label ?? idx
   }
   return `${idx}-${String(tag)}`
 }
 
-function tagLabel(tag: any) {
+function tagLabel(tag: { name?: string; label?: string; code?: string; id?: number | string }) {
   if (tag && typeof tag === 'object') {
     return tag.name ?? tag.label ?? tag.code ?? String(tag.id ?? '')
   }

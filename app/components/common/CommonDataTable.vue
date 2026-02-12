@@ -1,7 +1,7 @@
 <!-- app/components/common/CommonDataTable.vue -->
 <template>
   <div :class="rootClasses">
-    <header v-if="showHeader" class="flex flex-wrap items-center justify-between gap-3">
+    <header v-if="showHeader" class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
         <slot name="title">
           <span v-if="title">{{ title }}</span>
@@ -10,7 +10,7 @@
           {{ metaState.totalItems }}
         </UBadge>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-3">
         <slot name="toolbar" :selected="selectedInternal" :meta="metaState" />
         <ClientOnly v-if="showDensityToggle">
           <UFieldGroup
@@ -34,6 +34,7 @@
                 :color="densityInternal === option.value ? 'primary' : 'neutral'"
                 variant="soft"
                 :aria-pressed="densityInternal === option.value"
+                :aria-label="tt('ui.table.densityLabel', 'Density') + ': ' + option.label"
                 @click="setDensity(option.value)"
               />
             </div>
@@ -85,12 +86,12 @@
       >
         <slot :name="`cell-${column.key}`" v-bind="ctx">
           <component
-            v-if="column.component"
             :is="column.component"
+            v-if="column.component"
             v-bind="buildComponentProps(column, ctx)"
           />
           <span v-else class="block truncate">
-            {{ ctx.getValue?.() ?? ctx.row.original?.[column.key] ?? '' }}
+            {{ ctx.getValue?.() ?? (ctx.row.original as any)?.[column.key] ?? '' }}
           </span>
         </slot>
       </template>
@@ -121,7 +122,7 @@
       :total-pages="metaState.totalPages"
       :page-size-items="pageSizeItems"
       @update:page="(page) => emit('update:page', page)"
-      @update:pageSize="(size) => emit('update:pageSize', size)"
+      @update:page-size="(size) => emit('update:page-size', size)"
     />
   </div>
 </template>
@@ -147,10 +148,9 @@ export interface ColumnDefinition<T = EntityRow> {
 }
 
 const props = withDefaults(defineProps<{
-  items: EntityRow[]
-  columns: ColumnDefinition<EntityRow>[]
+  items?: EntityRow[]
+  columns?: ColumnDefinition<EntityRow>[]
   meta?: Partial<ListMeta> | null
-  loading?: boolean
   selectable?: boolean
   selectedKeys?: Array<string | number>
   rowKey?: keyof EntityRow | string
@@ -162,9 +162,11 @@ const props = withDefaults(defineProps<{
   showToolbar?: boolean
   sort?: TableSort | null
   pageSizeItems?: Array<{ label: string; value: number }>
+  loading?: boolean
 }>(), {
   items: () => [] as EntityRow[],
   columns: () => [] as ColumnDefinition<EntityRow>[],
+  meta: () => null,
   selectable: false,
   selectedKeys: () => [] as Array<string | number>,
   rowKey: 'id',
@@ -180,15 +182,16 @@ const props = withDefaults(defineProps<{
     { label: '50', value: 50 },
     { label: '100', value: 100 },
   ],
+  loading: false,
 })
 
 const emit = defineEmits<{
-  (e: 'update:selected', value: Array<string | number>): void
-  (e: 'update:page', value: number): void
-  (e: 'update:pageSize', value: number): void
-  (e: 'update:sort', value: TableSort): void
-  (e: 'row:click', value: EntityRow): void
-  (e: 'row:dblclick', value: EntityRow): void
+  'update:selected': [value: Array<string | number>]
+  'update:page': [value: number]
+  'update:page-size': [value: number]
+  'update:sort': [value: TableSort]
+  'row:click': [value: EntityRow]
+  'row:dblclick': [value: EntityRow]
 }>()
 
 const slots = useSlots()
@@ -202,11 +205,11 @@ function tt(key: string, fallback: string): string {
 const densityInternal = ref(props.density)
 watch(() => props.density, (value) => { densityInternal.value = value })
 
-const densityOptions = computed(() => ([
-  { label: tt('ui.table.densityComfortable', 'Comfort'), value: 'comfortable' },
-  { label: tt('ui.table.densityRegular', 'Regular'), value: 'regular' },
-  { label: tt('ui.table.densityCompact', 'Compact'), value: 'compact' },
-]))
+const densityOptions = [
+  { label: tt('ui.table.densityComfortable', 'Comfort'), value: 'comfortable' as const },
+  { label: tt('ui.table.densityRegular', 'Regular'), value: 'regular' as const },
+  { label: tt('ui.table.densityCompact', 'Compact'), value: 'compact' as const },
+]
 
 function setDensity(value: 'comfortable' | 'regular' | 'compact') {
   if (densityInternal.value === value) return
@@ -387,17 +390,15 @@ defineExpose({
 
 const tableUi = computed(() => ({
   thead: 'text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400',
-  td: {
-    base: densityInternal.value === 'compact'
-      ? 'text-xs py-2'
-      : densityInternal.value === 'comfortable'
-        ? 'text-sm py-4'
-        : 'text-sm py-3',
-  },
+  td: densityInternal.value === 'compact'
+    ? 'text-xs py-2'
+    : densityInternal.value === 'comfortable'
+      ? 'text-sm py-4'
+      : 'text-sm py-3'
 }))
 
 const showHeader = computed(() => props.showToolbar || Boolean(slots.toolbar) || Boolean(slots.title) || Boolean(props.title))
-const showDensityToggle = computed(() => props.densityToggle && densityOptions.value.length > 1)
+const showDensityToggle = computed(() => props.densityToggle && densityOptions.length > 1)
 const hasSelectionSlot = computed(() => Boolean(slots.selection))
 const rootClasses = computed(() => ([
   'common-data-table space-y-4',
@@ -407,9 +408,23 @@ const rootClasses = computed(() => ([
 
 const showPagination = computed(() => metaState.totalPages > 1 || metaState.totalItems > metaState.pageSize)
 
-const rowAttr = () => ({
-  class: 'cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800',
+const rowAttr = (row: { original: EntityRow }) => ({
+  class: 'cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500',
   tabindex: 0,
+  role: 'row',
+  'aria-selected': selectedInternal.value.includes(rowKeyValue(row.original)),
+  onKeydown: (event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      emit('row:click', row.original)
+    } else if (event.key === ' ') {
+      // Space to toggle selection if selectable
+      if (selectable.value) {
+        event.preventDefault()
+        toggleRow(row.original, !selectedInternal.value.includes(rowKeyValue(row.original)))
+      }
+    }
+  }
 })
 
 const selectionAlertTitle = computed(() => t('ui.table.itemsSelected', { count: selectedInternal.value.length }) as string)
@@ -421,13 +436,13 @@ const allSelected = computed({
   },
 })
 
-function rowKeyValue(row: any): string | number {
+function rowKeyValue(row: EntityRow): string | number {
   const key = props.rowKey ?? 'id'
-  const value = row?.[key]
+  const value = (row as any)?.[key]
   return typeof value === 'number' || typeof value === 'string' ? value : String(value)
 }
 
-function toggleRow(row: any, include: boolean) {
+function toggleRow(row: EntityRow, include: boolean) {
   const key = rowKeyValue(row)
   const next = new Set(selectedInternal.value)
   if (include) next.add(key)

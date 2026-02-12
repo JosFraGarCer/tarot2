@@ -5,15 +5,17 @@
     <!-- Selection toolbar -->
     <div v-if="internalSelected.length" v-can="['canEditContent','canPublish']" class="mb-3 flex items-center gap-2">
       <span class="text-sm text-gray-500">{{ internalSelected.length }} selected</span>
-      <UButton icon="i-heroicons-arrow-up-tray" color="primary" variant="soft" :label="$t('ui.actions.export') || 'Export'" @click="onExportSelected" />
-      <UButton icon="i-heroicons-arrow-path" color="neutral" variant="soft" :label="$t('ui.actions.update') || 'Update'" @click="onUpdateSelected" />
+      <UButton icon="i-heroicons-arrow-up-tray" color="primary" variant="soft" :label="$t('ui.actions.export') || 'Export'" :aria-label="$t('ui.actions.export') || 'Export'" @click="onExportSelected" />
+      <UButton icon="i-heroicons-arrow-path" color="neutral" variant="soft" :label="$t('ui.actions.update') || 'Update'" :aria-label="$t('ui.actions.update') || 'Update'" @click="onUpdateSelected" />
     </div>
 
     <UTable
       :data="rows"
       :columns="tableColumns"
       :loading="loading"
+      :row-attr="rowAttr"
       class="w-full"
+      @row-click="(row: any) => emit('row:click', row.original)"
     >
       <template #loading>
         <slot name="loading" />
@@ -23,12 +25,13 @@
       </template>
     <!-- Select all / row select -->
     <template #select-header>
-      <UCheckbox v-model="allSelectedComputed" />
+      <UCheckbox v-model="allSelectedComputed" :aria-label="t('ui.table.selectAll')" />
     </template>
 
     <template #select-cell="{ row }">
       <UCheckbox
         :model-value="internalSelected.includes(row.original.id)"
+        :aria-label="t('ui.table.selectRow')"
         @update:model-value="(v) => toggleSelect(row.original.id, v)"
       />
     </template>
@@ -173,9 +176,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:selectedIds', value: number[]): void
-  (e: 'export-selected', value: number[]): void
-  (e: 'update-selected', value: number[]): void
+  'update:selectedIds': [value: number[]]
+  'export-selected': [value: number[]]
+  'update-selected': [value: number[]]
+  'row:click': [value: EntityRow]
 }>()
 
 const { t, locale } = useI18n()
@@ -241,11 +245,11 @@ function onUpdateSelected() {
 
 function formatDate(value: unknown) {
   if (!value) return ''
-  const date = value instanceof Date ? value : new Date(value as any)
+  const date = value instanceof Date ? value : new Date(String(value))
   if (Number.isNaN(date.getTime())) return ''
   const localeCode = typeof locale === 'string' ? locale : locale.value
   try {
-    return new Intl.DateTimeFormat(localeCode || 'en', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+    return new Intl.DateTimeFormat((localeCode as string) || 'en', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
   } catch {
     return date.toISOString()
   }
@@ -257,4 +261,21 @@ function resolveImage(src?: string) {
   
   return `/img/${src}`
 }
+
+const rowAttr = (row: EntityRow) => ({
+  class: 'cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500',
+  tabindex: 0,
+  role: 'row',
+  'aria-selected': internalSelected.value.includes(row.id),
+  onKeydown: (event: KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      emit('row:click', row)
+    } else if (event.key === ' ') {
+      // Space to toggle selection
+      event.preventDefault()
+      toggleSelect(row.id, !internalSelected.value.includes(row.id))
+    }
+  }
+})
 </script>

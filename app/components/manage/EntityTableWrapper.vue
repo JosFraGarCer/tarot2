@@ -12,19 +12,25 @@
   >
     <template #empty>
       <div class="flex flex-col items-center justify-center gap-4 py-10 text-center">
-        <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" />
+        <UIcon name="i-heroicons-magnifying-glass-circle" class="h-14 w-14 text-neutral-300 dark:text-neutral-600" aria-hidden="true" />
         <div class="space-y-2">
           <p class="text-lg font-semibold text-neutral-700 dark:text-neutral-200">{{ emptyTitle }}</p>
           <p class="text-sm text-neutral-500 dark:text-neutral-400">{{ emptySubtitle }}</p>
         </div>
         <div class="flex flex-wrap items-center justify-center gap-2">
-          <UButton color="primary" icon="i-heroicons-plus" @click="emit('create')">
+          <UButton
+            color="primary"
+            icon="i-heroicons-plus"
+            :aria-label="t('ui.actions.create') + ' ' + label"
+            @click="emit('create')"
+          >
             {{ emptyCreateLabel }}
           </UButton>
           <UButton
-            variant="ghost"
+            variant="soft"
             color="neutral"
             icon="i-heroicons-arrow-path"
+            :aria-label="emptyResetLabel"
             @click="emit('reset-filters')"
           >
             {{ emptyResetLabel }}
@@ -34,6 +40,10 @@
     </template>
     <template #loading>
       <div class="space-y-2 py-6">
+        <div class="flex items-center justify-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
+          <UIcon name="i-heroicons-arrow-path" class="animate-spin h-4 w-4" aria-hidden="true" />
+          <span>{{ t('ui.states.loading', 'Loading entities...') }}</span>
+        </div>
         <USkeleton v-for="n in 6" :key="`row-skeleton-${n}`" class="h-10 w-full rounded" />
       </div>
     </template>
@@ -42,17 +52,19 @@
         <UButton
           icon="i-heroicons-pencil"
           color="primary"
-          variant="soft"
+          variant="solid"
           size="xs"
-          :aria-label="t('ui.actions.quickEdit', 'Edición rápida')"
+          :title="t('ui.actions.quickEdit', 'Quick edit')"
+          :aria-label="t('ui.actions.quickEdit', 'Quick edit')"
           @click="emit('edit', row.raw ?? row)"
         />
         <UButton
           icon="i-heroicons-arrows-pointing-out"
           color="primary"
-          variant="ghost"
+          variant="soft"
           size="xs"
-          :aria-label="t('ui.actions.fullEdit', 'Edición completa')"
+          :title="t('ui.actions.fullEdit', 'Full editor')"
+          :aria-label="t('ui.actions.fullEdit', 'Full editor')"
           @click="handleFullEdit(row)"
         />
         <UButton
@@ -61,24 +73,38 @@
           color="warning"
           variant="soft"
           size="xs"
-          aria-label="Feedback"
+          :title="t('ui.actions.feedback', 'Report issue')"
+          :aria-label="t('ui.actions.feedback', 'Report issue')"
           @click="emit('feedback', row.raw ?? row)"
         />
-        <UButton
-          v-if="row.raw && canTags(row.raw)"
-          icon="i-heroicons-tag"
-          color="neutral"
-          variant="soft"
-          size="xs"
-          aria-label="Tags"
-          @click="emit('tags', row.raw ?? row)"
-        />
+        <div v-if="row.raw && canTags(row.raw)" class="relative">
+          <UButton
+            icon="i-heroicons-tag"
+            color="neutral"
+            variant="soft"
+            size="xs"
+            :title="t('ui.fields.tags', 'Manage tags')"
+            :aria-label="t('ui.fields.tags', 'Manage tags')"
+            @click="emit('tags', row.raw ?? row)"
+          />
+          <UBadge
+            v-if="row.raw?.tags?.length"
+            color="primary"
+            variant="solid"
+            size="xs"
+            class="absolute -top-1 -right-1 h-4 min-w-4 px-1"
+          >
+            {{ row.raw.tags.length }}
+          </UBadge>
+        </div>
+        <USeparator direction="vertical" class="mx-1 h-4" />
         <UButton
           icon="i-heroicons-trash"
           color="error"
           variant="soft"
           size="xs"
-          aria-label="Delete"
+          :title="t('ui.actions.delete', 'Delete')"
+          :aria-label="t('ui.actions.delete', 'Delete')"
           @click="emit('delete', row.raw ?? row)"
         />
       </div>
@@ -91,6 +117,7 @@ import { computed } from 'vue'
 import { useI18n } from '#imports'
 import EntityTable from '~/components/manage/view/EntityTable.vue'
 import type { EntityRow } from '~/components/manage/view/EntityTable.vue'
+import type { ColumnDefinition } from '~/components/common/CommonDataTable.vue'
 import type { ManageCrud } from '@/types/manage'
 import { useTableSelection } from '@/composables/common/useTableSelection'
 import { useEntityCapabilities } from '~/composables/common/useEntityCapabilities'
@@ -98,21 +125,21 @@ import { useEntityCapabilities } from '~/composables/common/useEntityCapabilitie
 const props = defineProps<{
   crud: ManageCrud
   label: string
-  columns?: any[]
+  columns?: ColumnDefinition<EntityRow>[]
   noTags?: boolean
   entity?: string
 }>()
 
 const emit = defineEmits<{
-  (e: 'edit', entity: any): void
-  (e: 'full-edit', id: number): void
-  (e: 'delete', entity: any): void
-  (e: 'export', ids: number[]): void
-  (e: 'batchUpdate', ids: number[]): void
-  (e: 'create'): void
-  (e: 'reset-filters'): void
-  (e: 'feedback', entity: any): void
-  (e: 'tags', entity: any): void
+  'edit': [entity: EntityRow]
+  'full-edit': [id: number]
+  'delete': [entity: EntityRow]
+  'export': [ids: number[]]
+  'batchUpdate': [ids: number[]]
+  'create': []
+  'reset-filters': []
+  'feedback': [entity: EntityRow]
+  'tags': [entity: EntityRow]
 }>()
 
 const selection = useTableSelection(() => props.crud.items.value.map(item => item?.id ?? item?.uuid ?? item?.code))
@@ -139,7 +166,7 @@ const tableLoading = computed<boolean>(() => {
   return props.crud.loading.value
 })
 
-function normalizeEntity(entity: any): EntityRow {
+function normalizeEntity(entity: Record<string, any>): EntityRow {
   const resourcePathValue = resourcePath.value
   const isUserEntity = resourcePathValue.includes('/user')
   if (isUserEntity) {
@@ -149,17 +176,17 @@ function normalizeEntity(entity: any): EntityRow {
       .filter((val: any): val is string => typeof val === 'string' && val.length > 0)
 
     const id = Number(entity?.id ?? 0) || 0
-    const name = entity?.username ?? entity?.email ?? `#${id || '—'}`
+    const name = (entity?.username ?? entity?.email ?? `#${id || '—'}`) as string
     const image = resolveImage(entity)
     const permissions = typeof entity?.permissions === 'object' && entity?.permissions !== null
-      ? entity.permissions as Record<string, boolean>
+      ? (entity.permissions as Record<string, boolean>)
       : {}
 
     return {
       id,
       name,
       short_text: entity?.email ?? '',
-      description: null,
+      description: undefined,
       status: typeof entity?.status === 'string' ? entity.status : null,
       statusKind: 'user',
       img: image,
@@ -167,20 +194,20 @@ function normalizeEntity(entity: any): EntityRow {
       username: entity?.username ?? null,
       roles: roleNames,
       permissions,
-      created_at: entity?.created_at ?? null,
-      updated_at: entity?.modified_at ?? null,
+      created_at: (entity?.created_at ?? null) as string | null,
+      updated_at: (entity?.modified_at ?? null) as string | null,
       raw: entity,
     }
   }
 
   const id = Number(entity?.id ?? entity?.uuid ?? entity?.code ?? 0)
-  const name = entity?.name
+  const name = (entity?.name
     ?? entity?.title
     ?? entity?.label
     ?? entity?.code
-    ?? `#${entity?.id ?? '—'}`
-  const shortText = entity?.short_text ?? entity?.summary ?? ''
-  const description = entity?.description ?? entity?.long_text ?? ''
+    ?? `#${entity?.id ?? '—'}`) as string
+  const shortText = (entity?.short_text ?? entity?.summary ?? '') as string
+  const description = (entity?.description ?? entity?.long_text ?? '') as string
   const status = entity?.status ?? entity?.state ?? null
   const isActive = entity?.is_active ?? entity?.isActive ?? null
   const image = resolveImage(entity)
@@ -196,38 +223,33 @@ function normalizeEntity(entity: any): EntityRow {
     status: typeof status === 'string' ? status : null,
     is_active: typeof isActive === 'boolean' ? isActive : null,
     img: image,
-    code: entity?.code ?? null,
-    lang: entity?.language_code_resolved ?? entity?.language_code ?? entity?.lang ?? null,
+    code: (entity?.code ?? null) as string | null,
+    lang: (entity?.language_code_resolved ?? entity?.language_code ?? entity?.lang ?? null) as string | null,
     card_type: (
       // snake_case direct fields
       entity?.card_type_name
       ?? entity?.card_type_code
       ?? entity?.card_type_label
       ?? entity?.card_type_title
-      // snake_case relation
       ?? entity?.card_type?.name
       ?? entity?.card_type?.code
       ?? entity?.card_type?.label
       ?? entity?.card_type?.title
-      // camelCase direct fields
       ?? entity?.cardType_name
       ?? entity?.cardType_code
       ?? entity?.cardType_label
       ?? entity?.cardType_title
-      // camelCase relation
       ?? entity?.cardType?.name
       ?? entity?.cardType?.code
       ?? entity?.cardType?.label
       ?? entity?.cardType?.title
-      // generic 'type' relation sometimes used for base cards
       ?? entity?.type?.name
       ?? entity?.type?.code
       ?? entity?.type?.label
       ?? entity?.type?.title
-      // direct string field
       ?? entity?.card_type
       ?? null
-    ),
+    ) as string | null,
     arcana: (
       entity?.arcana_name
       ?? entity?.arcana_code
@@ -237,15 +259,13 @@ function normalizeEntity(entity: any): EntityRow {
       ?? entity?.arcana?.code
       ?? entity?.arcana?.label
       ?? entity?.arcana?.title
-      // alternative keys
       ?? entity?.Arcana?.name
       ?? entity?.Arcana?.code
       ?? entity?.Arcana?.label
       ?? entity?.Arcana?.title
-      // direct string field
       ?? entity?.arcana
       ?? null
-    ),
+    ) as string | null,
     facet: (
       entity?.facet_name
       ?? entity?.facet_code
@@ -255,7 +275,6 @@ function normalizeEntity(entity: any): EntityRow {
       ?? entity?.facet?.code
       ?? entity?.facet?.label
       ?? entity?.facet?.title
-      // camelCase variants
       ?? entity?.Facet?.name
       ?? entity?.Facet?.code
       ?? entity?.Facet?.label
@@ -264,14 +283,13 @@ function normalizeEntity(entity: any): EntityRow {
       ?? entity?.facetRel?.code
       ?? entity?.facetRel?.label
       ?? entity?.facetRel?.title
-      // direct string field
       ?? entity?.facet
       ?? null
-    ),
-    parent: entity?.parent_name ?? entity?.parent_code ?? null,
-    category: entity?.category ?? null,
+    ) as string | null,
+    parent: (entity?.parent_name ?? entity?.parent_code ?? null) as string | null,
+    category: (entity?.category ?? null) as string | null,
     tags,
-    updated_at: entity?.updated_at ?? null,
+    updated_at: (entity?.updated_at ?? null) as string | Date | null,
     raw: entity,
   }
 }

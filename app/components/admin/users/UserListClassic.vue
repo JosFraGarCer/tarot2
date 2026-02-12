@@ -4,7 +4,12 @@
     <div
       v-for="user in users"
       :key="user.id"
-      class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+      tabindex="0"
+      role="button"
+      class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 cursor-pointer transition-all"
+      :aria-label="tt('ui.actions.view', 'View') + ': ' + (user.username || user.email)"
+      @click="emit('edit', user)"
+      @keydown.enter.prevent="emit('edit', user)"
     >
       <div class="flex items-start justify-between gap-3">
         <div class="flex items-start gap-3">
@@ -33,10 +38,24 @@
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <UButton size="xs" variant="soft" color="primary" icon="i-heroicons-pencil" @click="$emit('edit', user)">
+          <UButton
+            size="xs"
+            variant="soft"
+            color="primary"
+            icon="i-heroicons-pencil"
+            :aria-label="tt('ui.actions.edit', 'Edit')"
+            @click="emit('edit', user)"
+          >
             {{ tt('ui.actions.edit', 'Edit') }}
           </UButton>
-          <UButton size="xs" variant="soft" color="error" icon="i-heroicons-trash" @click="$emit('delete', user)">
+          <UButton
+            size="xs"
+            variant="soft"
+            color="error"
+            icon="i-heroicons-trash"
+            :aria-label="tt('ui.actions.delete', 'Delete')"
+            @click="emit('delete', user)"
+          >
             {{ tt('ui.actions.delete', 'Delete') }}
           </UButton>
         </div>
@@ -69,6 +88,11 @@ import type { AdminUserEntity } from '@/types/admin'
 
 const props = defineProps<{
   users: AdminUserEntity[]
+}>()
+
+const emit = defineEmits<{
+  'edit': [user: AdminUserEntity]
+  'delete': [user: AdminUserEntity]
 }>()
 
 const { t, te } = useI18n()

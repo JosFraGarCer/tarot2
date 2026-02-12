@@ -16,6 +16,7 @@
         clearable="false"
         size="xs"
         class="w-24"
+        :aria-label="t('ui.pagination.pageSize')"
         @update:model-value="onPageSizeChange"
       />
     </div>

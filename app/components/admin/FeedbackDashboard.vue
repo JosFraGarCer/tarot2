@@ -2,41 +2,82 @@
 <template>
   <div class="space-y-4">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <UCard>
-        <template #header>{{ $t('features.admin.feedbackDashboard.total','Total feedbacks') }}</template>
-        <div class="text-2xl font-semibold">{{ totals.total }}</div>
+      <UCard class="bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-chat-bubble-left" class="h-4 w-4 text-primary-500" />
+            <span class="text-sm font-medium text-primary-700 dark:text-primary-300">{{ $t('features.admin.feedbackDashboard.total','Total feedbacks') }}</span>
+          </div>
+        </template>
+        <div class="text-3xl font-bold text-primary-700 dark:text-primary-200">{{ totals.total }}</div>
+      </UCard>
+      <UCard class="bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-folder-open" class="h-4 w-4 text-warning-500" />
+            <span class="text-sm font-medium text-warning-700 dark:text-warning-300">{{ $t('features.admin.feedbackDashboard.open','Open') }}</span>
+          </div>
+        </template>
+        <div class="text-3xl font-bold text-warning-700 dark:text-warning-200">{{ totals.open }}</div>
+      </UCard>
+      <UCard class="bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-check-circle" class="h-4 w-4 text-success-500" />
+            <span class="text-sm font-medium text-success-700 dark:text-success-300">{{ $t('features.admin.feedbackDashboard.resolved','Resolved') }}</span>
+          </div>
+        </template>
+        <div class="text-3xl font-bold text-success-700 dark:text-success-200">{{ totals.resolved }}</div>
       </UCard>
       <UCard>
-        <template #header>{{ $t('features.admin.feedbackDashboard.open','Open') }}</template>
-        <div class="text-2xl font-semibold">{{ totals.open }}</div>
-      </UCard>
-      <UCard>
-        <template #header>{{ $t('features.admin.feedbackDashboard.resolved','Resolved') }}</template>
-        <div class="text-2xl font-semibold">{{ totals.resolved }}</div>
-      </UCard>
-      <UCard>
-        <template #header>{{ $t('features.admin.feedbackDashboard.byType','By type') }}</template>
-        <div class="text-sm space-y-1">
-          <div class="flex justify-between"><span>translation</span><span>{{ totalsByType.translation }}</span></div>
-          <div class="flex justify-between"><span>content</span><span>{{ totalsByType.content }}</span></div>
-          <div class="flex justify-between"><span>technical</span><span>{{ totalsByType.technical }}</span></div>
-          <div class="flex justify-between"><span>design</span><span>{{ totalsByType.design }}</span></div>
-          <div class="flex justify-between"><span>other</span><span>{{ totalsByType.other }}</span></div>
-          <div class="flex justify-between"><span>bug</span><span>{{ totalsByType.bug }}</span></div>
-          <div class="flex justify-between"><span>suggestion</span><span>{{ totalsByType.suggestion }}</span></div>
-          <div class="flex justify-between"><span>balance</span><span>{{ totalsByType.balance }}</span></div>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-heroicons-squares-2x2" class="h-4 w-4 text-neutral-500" />
+            <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">{{ $t('features.admin.feedbackDashboard.byType','By type') }}</span>
+          </div>
+        </template>
+        <div class="text-sm space-y-2">
+          <div class="flex justify-between items-center py-1 border-b border-neutral-100 dark:border-neutral-800">
+            <span class="text-neutral-600 dark:text-neutral-400">translation</span>
+            <UBadge size="xs" color="primary" variant="soft">{{ totalsByType.translation }}</UBadge>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-neutral-100 dark:border-neutral-800">
+            <span class="text-neutral-600 dark:text-neutral-400">content</span>
+            <UBadge size="xs" color="primary" variant="soft">{{ totalsByType.content }}</UBadge>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-neutral-100 dark:border-neutral-800">
+            <span class="text-neutral-600 dark:text-neutral-400">technical</span>
+            <UBadge size="xs" color="primary" variant="soft">{{ totalsByType.technical }}</UBadge>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-neutral-100 dark:border-neutral-800">
+            <span class="text-neutral-600 dark:text-neutral-400">design</span>
+            <UBadge size="xs" color="primary" variant="soft">{{ totalsByType.design }}</UBadge>
+          </div>
+          <div class="flex justify-between items-center py-1 border-b border-neutral-100 dark:border-neutral-800">
+            <span class="text-neutral-600 dark:text-neutral-400">bug</span>
+            <UBadge size="xs" color="error" variant="soft">{{ totalsByType.bug }}</UBadge>
+          </div>
+          <div class="flex justify-between items-center py-1">
+            <span class="text-neutral-600 dark:text-neutral-400">suggestion</span>
+            <UBadge size="xs" color="neutral" variant="soft">{{ totalsByType.suggestion }}</UBadge>
+          </div>
         </div>
       </UCard>
     </div>
 
     <UCard>
-      <template #header>{{ $t('features.admin.feedbackDashboard.weekly','Weekly activity (last 30 days)') }}</template>
+      <template #header>
+        <div class="flex items-center gap-2">
+          <UIcon name="i-heroicons-chart-bar" class="h-4 w-4 text-neutral-500" />
+          <span class="text-sm font-medium">{{ $t('features.admin.feedbackDashboard.weekly','Weekly activity (last 30 days)') }}</span>
+        </div>
+      </template>
       <div class="flex items-end gap-1 h-24">
         <div v-for="b in weeklyBuckets" :key="b.label" class="flex-1">
-          <div class="bg-primary-500 dark:bg-primary-400" :style="{height: barHeight(b.count)}" title="{{ b.label }}: {{ b.count }}" />
+          <div class="bg-primary-500 dark:bg-primary-400 rounded-t transition-all hover:bg-primary-600 dark:hover:bg-primary-300" :style="{height: barHeight(b.count)}" :title="`${b.label}: ${b.count}`" />
         </div>
       </div>
-      <div class="mt-1 text-xs text-gray-500 flex justify-between">
+      <div class="mt-2 text-xs text-neutral-500 flex justify-between px-1">
         <span>{{ weeklyBuckets[0]?.label || '' }}</span>
         <span>{{ weeklyBuckets[weeklyBuckets.length-1]?.label || '' }}</span>
       </div>
