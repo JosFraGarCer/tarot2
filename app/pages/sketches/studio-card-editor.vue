@@ -1,0 +1,594 @@
+<!--
+  /pages/sketches/studio-card-editor.vue
+  POC 7: Visual-first "Studio" card editor
+
+  OBJECTIVE:
+  Replace the FormModal mental model with a visual card editor.
+  Centered tarot-style card preview + right-side metadata panel.
+  Top status bar with editorial indicator, language selector, quick transition.
+
+  SUCCESS CRITERIA:
+  - Visual-first: card preview dominates the viewport
+  - All editorial state visible at a glance (status bar)
+  - Language switching is instant (mock)
+  - Transitions are 1-click from the status bar
+  - Side panel organizes metadata, translations, editorial, feedback into tabs
+  - Accessible: all interactive elements have aria-labels
+
+  INTEGRATION INTO /manage:
+  1. New route: /manage/:entity/:id/studio (or replace EntitySlideover for card-type entities)
+  2. EntityEditorialIndicator in status bar from entity.editorial_state
+  3. Language selector wired to useEntity lang switching
+  4. Transitions call editorial API endpoints
+  5. Side panel tabs replace EntitySlideover sections
+  6. Image upload connects to useImageUpload composable
+  7. Card preview connects to entity detail response fields
+-->
+<script setup lang="ts">
+import { ref, computed, reactive } from 'vue'
+import {
+  generateMockEntities,
+  editorialStatusMeta,
+  translationCoverage,
+  EDITORIAL_TRANSITIONS,
+  computeEditorial,
+  type EditorialStatus,
+  type MockEntity,
+} from '~/components/sketches/mockData'
+import EntityEditorialIndicator from '~/components/sketches/EntityEditorialIndicator.vue'
+
+definePageMeta({ layout: 'default' })
+
+const toast = useToast()
+
+// --- Mock entity (the card being edited) ---
+const allEntities = generateMockEntities(10)
+const entity = ref<MockEntity>({ ...allEntities[0] })
+
+// --- Language ---
+const languages = ['en', 'fr', 'es'] as const
+const currentLang = ref<string>('en')
+
+// --- Editable card fields (per language mock) ---
+const cardFields = reactive<Record<string, { title: string; subtitle: string; description: string; keywords: string }>>({
+  en: { title: entity.value.name, subtitle: 'Major Arcana · 0', description: 'The Fool represents new beginnings, having faith in the future, being inexperienced, not knowing what to expect, having beginner\'s luck, improvisation and believing in the universe.', keywords: 'beginnings, faith, journey' },
+  fr: { title: 'Le Mat', subtitle: 'Arcane Majeur · 0', description: 'Le Mat représente les nouveaux départs, la foi en l\'avenir, l\'inexpérience et la confiance dans l\'univers.', keywords: 'débuts, foi, voyage' },
+  es: { title: 'El Loco', subtitle: 'Arcano Mayor · 0', description: 'El Loco representa nuevos comienzos, tener fe en el futuro, ser inexperto y creer en el universo.', keywords: 'comienzos, fe, viaje' },
+})
+
+const currentFields = computed(() => cardFields[currentLang.value] ?? cardFields.en)
+
+// --- Image mock ---
+const cardImageUrl = ref<string | null>(null)
+const isUploadHover = ref(false)
+
+function mockUploadImage() {
+  cardImageUrl.value = `https://picsum.photos/seed/${Date.now()}/400/700`
+  toast.add({ title: 'Image uploaded', description: 'Mock image assigned to card.', color: 'success', icon: 'i-lucide-image' })
+}
+
+function removeImage() {
+  cardImageUrl.value = null
+  toast.add({ title: 'Image removed', color: 'neutral', icon: 'i-lucide-image-off' })
+}
+
+// --- Editorial ---
+const statusMeta = computed(() => editorialStatusMeta(entity.value.editorial_state?.status ?? null))
+const coverage = computed(() => {
+  const cov = translationCoverage(entity.value.translations)
+  return { current: cov.done, total: cov.total }
+})
+const nextTransitions = computed(() => {
+  if (!entity.value.editorial_state) return []
+  return EDITORIAL_TRANSITIONS[entity.value.editorial_state.status] ?? []
+})
+const primaryTransition = computed(() => nextTransitions.value[0] ?? null)
+
+function applyTransition(target: EditorialStatus) {
+  entity.value = {
+    ...entity.value,
+    status: target,
+    editorial_state: { status: target, updated_by: 'current_user', updated_at: new Date().toISOString() },
+    editorial: computeEditorial(target, entity.value.translations),
+  }
+  const meta = editorialStatusMeta(target)
+  toast.add({ title: `Transitioned to ${meta.label}`, color: 'success', icon: meta.icon })
+}
+
+// --- Side panel ---
+const panelOpen = ref(true)
+type PanelTab = 'metadata' | 'translations' | 'editorial' | 'feedback'
+const activeTab = ref<PanelTab>('metadata')
+
+const panelTabs = [
+  { value: 'metadata', label: 'Metadata', icon: 'i-lucide-file-text' },
+  { value: 'translations', label: 'Translations', icon: 'i-lucide-languages' },
+  { value: 'editorial', label: 'Editorial', icon: 'i-lucide-git-branch' },
+  { value: 'feedback', label: 'Feedback', icon: 'i-lucide-message-square' },
+]
+
+// --- Mock feedback ---
+const feedbackItems = ref([
+  { id: 1, author: 'alice', text: 'Card description needs more detail about the journey aspect.', status: 'open' as const, created_at: '2026-02-10T14:30:00Z' },
+  { id: 2, author: 'bob', text: 'Image looks great, approved for this card.', status: 'resolved' as const, created_at: '2026-02-09T10:15:00Z' },
+  { id: 3, author: 'carol', text: 'FR translation needs review — "Le Mat" vs "Le Fou" debate.', status: 'open' as const, created_at: '2026-02-11T09:00:00Z' },
+])
+
+// --- Entity selector (switch between mock entities) ---
+const entitySelectorOpen = ref(false)
+function selectEntity(e: MockEntity) {
+  entity.value = { ...e }
+  cardFields.en.title = e.name
+  entitySelectorOpen.value = false
+  toast.add({ title: `Editing: ${e.name}`, color: 'neutral', icon: 'i-lucide-edit' })
+}
+</script>
+
+<template>
+  <div class="min-h-screen bg-default flex flex-col">
+    <!-- Status bar -->
+    <header class="sticky top-0 z-30 border-b border-default bg-default/95 backdrop-blur-sm">
+      <div class="flex items-center justify-between px-4 py-2 max-w-[1600px] mx-auto">
+        <!-- Left: back + entity name -->
+        <div class="flex items-center gap-3 min-w-0">
+          <NuxtLink to="/sketches" class="text-muted hover:text-primary transition-colors shrink-0" aria-label="Back to sketches">
+            <UIcon name="i-lucide-arrow-left" />
+          </NuxtLink>
+          <button
+            class="flex items-center gap-1.5 min-w-0 hover:text-primary transition-colors"
+            aria-label="Switch entity"
+            @click="entitySelectorOpen = !entitySelectorOpen"
+          >
+            <h1 class="text-sm font-bold truncate">{{ entity.name }}</h1>
+            <UIcon name="i-lucide-chevron-down" class="text-xs text-muted shrink-0" />
+          </button>
+          <UBadge color="neutral" variant="outline" size="xs">
+            {{ entity.entity_type }}
+          </UBadge>
+        </div>
+
+        <!-- Center: editorial indicator -->
+        <div class="hidden md:flex items-center gap-3">
+          <EntityEditorialIndicator
+            :editorial-state="entity.editorial_state"
+            :translation-coverage="coverage"
+            :next-action="primaryTransition ? editorialStatusMeta(primaryTransition).label : null"
+          />
+        </div>
+
+        <!-- Right: language + transition + panel toggle -->
+        <div class="flex items-center gap-2">
+          <!-- Language selector -->
+          <div class="flex items-center rounded-md border border-default overflow-hidden">
+            <button
+              v-for="lang in languages"
+              :key="lang"
+              class="px-2 py-1 text-xs font-medium transition-colors"
+              :class="currentLang === lang ? 'bg-primary text-white' : 'text-muted hover:text-primary'"
+              :aria-label="`Switch to ${lang.toUpperCase()}`"
+              :aria-pressed="currentLang === lang"
+              @click="currentLang = lang"
+            >
+              {{ lang.toUpperCase() }}
+            </button>
+          </div>
+
+          <!-- Quick transition -->
+          <UButton
+            v-if="primaryTransition"
+            :label="editorialStatusMeta(primaryTransition).label"
+            :icon="editorialStatusMeta(primaryTransition).icon"
+            size="xs"
+            variant="soft"
+            :aria-label="`Transition to ${editorialStatusMeta(primaryTransition).label}`"
+            @click="applyTransition(primaryTransition!)"
+          />
+
+          <!-- Panel toggle -->
+          <UButton
+            :icon="panelOpen ? 'i-lucide-panel-right-close' : 'i-lucide-panel-right-open'"
+            size="xs"
+            variant="ghost"
+            color="neutral"
+            :aria-label="panelOpen ? 'Close side panel' : 'Open side panel'"
+            @click="panelOpen = !panelOpen"
+          />
+        </div>
+      </div>
+
+      <!-- Mobile editorial indicator -->
+      <div class="md:hidden px-4 pb-2">
+        <EntityEditorialIndicator
+          :editorial-state="entity.editorial_state"
+          :translation-coverage="coverage"
+        />
+      </div>
+    </header>
+
+    <!-- Entity selector dropdown -->
+    <div v-if="entitySelectorOpen" class="fixed inset-0 z-20" @click="entitySelectorOpen = false">
+      <div class="absolute top-12 left-16 w-72 rounded-lg border border-default bg-default shadow-lg p-2 space-y-1" @click.stop>
+        <button
+          v-for="e in allEntities"
+          :key="e.id"
+          class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-muted/30 transition-colors flex items-center justify-between"
+          :class="e.id === entity.id ? 'bg-primary/10 text-primary' : ''"
+          :aria-label="`Edit ${e.name}`"
+          @click="selectEntity(e)"
+        >
+          <span class="truncate">{{ e.name }}</span>
+          <UBadge color="neutral" variant="outline" size="xs">{{ e.entity_type }}</UBadge>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="flex-1 flex overflow-hidden">
+      <!-- Card preview area -->
+      <main class="flex-1 flex items-start justify-center p-6 overflow-y-auto">
+        <div class="w-full max-w-md">
+          <!-- Card frame -->
+          <div class="relative rounded-2xl border-2 border-default bg-elevated shadow-xl overflow-hidden">
+            <!-- Status overlay -->
+            <div class="absolute top-3 left-3 z-10">
+              <UBadge
+                :color="statusMeta.color"
+                :variant="statusMeta.variant"
+                :icon="statusMeta.icon"
+                size="sm"
+                class="shadow-sm"
+                :aria-label="`Status: ${statusMeta.label}`"
+              >
+                {{ statusMeta.label }}
+              </UBadge>
+            </div>
+
+            <!-- Language badge -->
+            <div class="absolute top-3 right-3 z-10">
+              <UBadge color="neutral" variant="soft" size="xs">
+                {{ currentLang.toUpperCase() }}
+              </UBadge>
+            </div>
+
+            <!-- Image area (tarot ratio ~2:3.5) -->
+            <div
+              class="relative w-full bg-muted/20 transition-colors"
+              style="aspect-ratio: 2 / 3;"
+              :class="{ 'bg-primary/5 border-2 border-dashed border-primary/30': isUploadHover && !cardImageUrl }"
+              @dragover.prevent="isUploadHover = true"
+              @dragleave="isUploadHover = false"
+              @drop.prevent="isUploadHover = false; mockUploadImage()"
+            >
+              <img
+                v-if="cardImageUrl"
+                :src="cardImageUrl"
+                :alt="`Card image for ${currentFields.title}`"
+                class="w-full h-full object-cover"
+              >
+              <div v-else class="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                <UIcon name="i-lucide-image-plus" class="text-4xl text-muted" />
+                <p class="text-xs text-muted text-center px-4">
+                  Drag & drop an image or click to upload
+                </p>
+                <UButton
+                  label="Upload Image"
+                  icon="i-lucide-upload"
+                  size="xs"
+                  variant="soft"
+                  aria-label="Upload card image"
+                  @click="mockUploadImage"
+                />
+              </div>
+
+              <!-- Image actions overlay -->
+              <div v-if="cardImageUrl" class="absolute bottom-2 right-2 flex gap-1">
+                <UButton
+                  icon="i-lucide-refresh-cw"
+                  size="xs"
+                  variant="soft"
+                  color="neutral"
+                  class="backdrop-blur-sm"
+                  aria-label="Replace image"
+                  @click="mockUploadImage"
+                />
+                <UButton
+                  icon="i-lucide-trash-2"
+                  size="xs"
+                  variant="soft"
+                  color="error"
+                  class="backdrop-blur-sm"
+                  aria-label="Remove image"
+                  @click="removeImage"
+                />
+              </div>
+            </div>
+
+            <!-- Card text content -->
+            <div class="p-5 space-y-3">
+              <!-- Title (editable) -->
+              <input
+                v-model="cardFields[currentLang].title"
+                type="text"
+                class="w-full text-xl font-bold bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted/50"
+                :placeholder="`Title (${currentLang.toUpperCase()})`"
+                :aria-label="`Card title in ${currentLang.toUpperCase()}`"
+              >
+
+              <!-- Subtitle -->
+              <input
+                v-model="cardFields[currentLang].subtitle"
+                type="text"
+                class="w-full text-sm text-muted bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted/50"
+                :placeholder="`Subtitle (${currentLang.toUpperCase()})`"
+                :aria-label="`Card subtitle in ${currentLang.toUpperCase()}`"
+              >
+
+              <USeparator />
+
+              <!-- Description -->
+              <textarea
+                v-model="cardFields[currentLang].description"
+                rows="4"
+                class="w-full text-sm bg-transparent border-none outline-none focus:ring-0 resize-none placeholder:text-muted/50 leading-relaxed"
+                :placeholder="`Description (${currentLang.toUpperCase()})`"
+                :aria-label="`Card description in ${currentLang.toUpperCase()}`"
+              />
+
+              <!-- Keywords -->
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-tag" class="text-xs text-muted shrink-0" />
+                <input
+                  v-model="cardFields[currentLang].keywords"
+                  type="text"
+                  class="w-full text-xs text-muted bg-transparent border-none outline-none focus:ring-0 placeholder:text-muted/50"
+                  :placeholder="`Keywords (${currentLang.toUpperCase()})`"
+                  :aria-label="`Card keywords in ${currentLang.toUpperCase()}`"
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Card actions below -->
+          <div class="mt-4 flex items-center justify-between">
+            <span class="text-xs text-muted">
+              #{{ entity.code }} · Last edited by {{ entity.updated_by }}
+            </span>
+            <div class="flex gap-2">
+              <UButton label="Save" icon="i-lucide-save" size="xs" aria-label="Save card changes" @click="toast.add({ title: 'Changes saved (mock)', color: 'success', icon: 'i-lucide-check' })" />
+              <UButton label="Preview" icon="i-lucide-eye" size="xs" variant="soft" color="neutral" aria-label="Preview card" @click="toast.add({ title: 'Preview mode (mock)', color: 'neutral', icon: 'i-lucide-eye' })" />
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Side panel -->
+      <aside
+        v-if="panelOpen"
+        class="w-80 lg:w-96 border-l border-default bg-default overflow-y-auto shrink-0"
+      >
+        <!-- Panel tabs -->
+        <div class="sticky top-0 z-10 bg-default border-b border-default">
+          <div class="flex">
+            <button
+              v-for="tab in panelTabs"
+              :key="tab.value"
+              class="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs font-medium transition-colors border-b-2"
+              :class="activeTab === tab.value ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-primary'"
+              :aria-label="tab.label"
+              :aria-selected="activeTab === tab.value"
+              role="tab"
+              @click="activeTab = tab.value as PanelTab"
+            >
+              <UIcon :name="tab.icon" class="text-sm" />
+              <span class="hidden lg:inline">{{ tab.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="p-4">
+          <!-- Metadata tab -->
+          <div v-if="activeTab === 'metadata'" class="space-y-4">
+            <UFormField label="Code" description="Unique identifier">
+              <UInput :model-value="entity.code" readonly class="w-full" />
+            </UFormField>
+
+            <UFormField label="Entity Type">
+              <UInput :model-value="entity.entity_type" readonly class="w-full" />
+            </UFormField>
+
+            <UFormField label="Tags">
+              <div class="flex flex-wrap gap-1">
+                <UBadge
+                  v-for="tag in entity.tags"
+                  :key="tag.id"
+                  color="neutral"
+                  variant="soft"
+                  size="xs"
+                >
+                  {{ tag.name }}
+                </UBadge>
+                <UButton icon="i-lucide-plus" size="xs" variant="ghost" color="neutral" aria-label="Add tag" @click="toast.add({ title: 'Tag picker (mock)', color: 'neutral' })" />
+              </div>
+            </UFormField>
+
+            <UFormField label="Created">
+              <p class="text-xs text-muted">{{ new Date(entity.created_at).toLocaleDateString() }}</p>
+            </UFormField>
+
+            <UFormField label="Last Modified">
+              <p class="text-xs text-muted">{{ new Date(entity.modified_at).toLocaleDateString() }} by {{ entity.updated_by }}</p>
+            </UFormField>
+
+            <UFormField label="Active">
+              <USwitch :model-value="entity.is_active" aria-label="Toggle active status" @update:model-value="entity.is_active = $event" />
+            </UFormField>
+          </div>
+
+          <!-- Translations tab -->
+          <div v-if="activeTab === 'translations'" class="space-y-4">
+            <div class="p-3 rounded-lg bg-muted/10 border border-default">
+              <EntityEditorialIndicator
+                :editorial-state="entity.editorial_state"
+                :translation-coverage="coverage"
+              />
+            </div>
+
+            <div
+              v-for="t in entity.translations"
+              :key="t.lang"
+              class="rounded-lg border border-default overflow-hidden"
+            >
+              <div class="flex items-center justify-between px-3 py-2 bg-muted/10">
+                <div class="flex items-center gap-2">
+                  <UBadge color="neutral" variant="outline" size="xs">{{ t.lang.toUpperCase() }}</UBadge>
+                  <span class="text-xs font-medium">
+                    {{ t.lang === 'en' ? 'English (base)' : t.lang === 'fr' ? 'French' : 'Spanish' }}
+                  </span>
+                </div>
+                <UBadge
+                  :color="t.has_translation && !t.is_fallback ? 'success' : 'warning'"
+                  variant="soft"
+                  size="xs"
+                >
+                  {{ t.has_translation && !t.is_fallback ? 'Complete' : 'Missing' }}
+                </UBadge>
+              </div>
+              <div class="px-3 py-2">
+                <button
+                  class="text-xs text-primary hover:underline"
+                  :aria-label="`Edit ${t.lang.toUpperCase()} translation`"
+                  @click="currentLang = t.lang"
+                >
+                  {{ currentLang === t.lang ? '← Currently editing' : `Switch to ${t.lang.toUpperCase()}` }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Editorial tab -->
+          <div v-if="activeTab === 'editorial'" class="space-y-4">
+            <!-- Current status -->
+            <div class="p-3 rounded-lg border border-default">
+              <p class="text-xs text-muted mb-2">Current Status</p>
+              <UBadge
+                :color="statusMeta.color"
+                :variant="statusMeta.variant"
+                :icon="statusMeta.icon"
+                size="sm"
+                :aria-label="`Current status: ${statusMeta.label}`"
+              >
+                {{ statusMeta.label }}
+              </UBadge>
+            </div>
+
+            <!-- Available transitions -->
+            <div>
+              <p class="text-xs text-muted mb-2">Available Transitions</p>
+              <div v-if="nextTransitions.length" class="space-y-2">
+                <UButton
+                  v-for="t in nextTransitions"
+                  :key="t"
+                  :label="editorialStatusMeta(t).label"
+                  :icon="editorialStatusMeta(t).icon"
+                  size="xs"
+                  variant="soft"
+                  :color="editorialStatusMeta(t).color"
+                  class="w-full justify-start"
+                  :aria-label="`Transition to ${editorialStatusMeta(t).label}`"
+                  @click="applyTransition(t)"
+                />
+              </div>
+              <p v-else class="text-xs text-muted italic">No transitions available from this state.</p>
+            </div>
+
+            <!-- Blocking reasons -->
+            <div v-if="entity.editorial?.blockingReasons.length">
+              <p class="text-xs text-muted mb-2">Blocking Reasons</p>
+              <div class="space-y-1">
+                <div
+                  v-for="(reason, idx) in entity.editorial.blockingReasons"
+                  :key="idx"
+                  class="flex items-start gap-2 text-xs text-warning"
+                >
+                  <UIcon name="i-lucide-alert-triangle" class="shrink-0 mt-0.5" />
+                  <span>{{ reason }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Publish readiness -->
+            <div class="p-3 rounded-lg border border-default">
+              <div class="flex items-center gap-2">
+                <UIcon
+                  :name="entity.editorial?.publishReady ? 'i-lucide-check-circle' : 'i-lucide-circle-x'"
+                  :class="entity.editorial?.publishReady ? 'text-success' : 'text-muted'"
+                />
+                <span class="text-xs font-medium">
+                  {{ entity.editorial?.publishReady ? 'Ready to publish' : 'Not ready to publish' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feedback tab -->
+          <div v-if="activeTab === 'feedback'" class="space-y-4">
+            <div class="flex items-center justify-between">
+              <p class="text-xs text-muted">{{ feedbackItems.length }} comments</p>
+              <UButton
+                label="Add"
+                icon="i-lucide-plus"
+                size="xs"
+                variant="soft"
+                aria-label="Add feedback comment"
+                @click="toast.add({ title: 'Add comment (mock)', color: 'neutral' })"
+              />
+            </div>
+
+            <div
+              v-for="fb in feedbackItems"
+              :key="fb.id"
+              class="rounded-lg border border-default p-3 space-y-2"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-medium">{{ fb.author }}</span>
+                  <span class="text-[10px] text-muted">{{ new Date(fb.created_at).toLocaleDateString() }}</span>
+                </div>
+                <UBadge
+                  :color="fb.status === 'open' ? 'warning' : 'success'"
+                  variant="soft"
+                  size="xs"
+                  :aria-label="`Feedback status: ${fb.status}`"
+                >
+                  {{ fb.status }}
+                </UBadge>
+              </div>
+              <p class="text-xs leading-relaxed">{{ fb.text }}</p>
+              <div v-if="fb.status === 'open'" class="flex justify-end">
+                <UButton
+                  label="Resolve"
+                  size="xs"
+                  variant="ghost"
+                  color="success"
+                  icon="i-lucide-check"
+                  :aria-label="`Resolve feedback from ${fb.author}`"
+                  @click="fb.status = 'resolved'"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Integration notes (bottom) -->
+    <div class="border-t border-default p-4 bg-muted/10">
+      <p class="text-xs text-muted text-center max-w-3xl mx-auto leading-relaxed">
+        <strong>Integration:</strong> Replace <code class="text-xs">EntitySlideover</code> for visual entities.
+        Route: <code class="text-xs">/manage/:entity/:id/studio</code>.
+        Connect card fields to entity detail API, image to <code class="text-xs">useImageUpload</code>,
+        transitions to editorial API, feedback to <code class="text-xs">useFeedback</code>.
+      </p>
+    </div>
+  </div>
+</template>

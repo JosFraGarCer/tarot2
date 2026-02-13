@@ -13,7 +13,24 @@ export interface AuthConfig {
 
 export const authConfig: AuthConfig = {
   // Routes that don't require authentication
-  publicRoutes: ['/', '/login', '/about', '/contact'],
+  publicRoutes: ['/', 
+    '/login', 
+    '/about', 
+    '/contact', 
+    '/sketches', 
+    '/sketches/editorial-list', 
+    '/sketches/entity-row-actions',
+    '/sketches/editorial-indicator',
+    '/sketches/create-flow',
+    '/sketches/delete-preview',
+    '/sketches/dashboard-v2',
+    '/sketches/studio-card-editor',
+    '/sketches/editorial-board',
+    '/sketches/image-system',
+    '/sketches/feedback-workflow',
+    '/sketches/card-views',
+    '/sketches/entity-map'
+    ],
   
   // Redirect destinations
   redirectAfterLogin: '/user',
