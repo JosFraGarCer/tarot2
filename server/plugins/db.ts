@@ -18,6 +18,10 @@ export default defineNitroPlugin((nitroApp) => {
 
   globalThis.db = db
 
+  nitroApp.hooks.hook('request', (event) => {
+    ;(event.context as Record<string, unknown>).db = db
+  })
+
   nitroApp.hooks.hook('close', async () => {
     await pool.end().catch(() => {})
   })

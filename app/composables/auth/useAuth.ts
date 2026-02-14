@@ -4,6 +4,19 @@ import { computed } from 'vue'
 import { useUserStore } from '~/stores/user'
 import type { LoginResponse, MeResponse, UserDTO } from '@/types/api'
 
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error && typeof error === 'object') {
+    const errObj = error as { message?: unknown; data?: { message?: unknown } }
+    if (typeof errObj.data?.message === 'string' && errObj.data.message.length > 0) {
+      return errObj.data.message
+    }
+    if (typeof errObj.message === 'string' && errObj.message.length > 0) {
+      return errObj.message
+    }
+  }
+  return fallback
+}
+
 export function useAuth() {
   const store = useUserStore()
 
@@ -19,18 +32,14 @@ export function useAuth() {
         credentials: 'include',
       })
 
-      const { token, user } = res.data
+      const { user } = res.data
       if (!user) throw new Error('Invalid login response')
 
       store.setUser(user)
-      store.setToken(token)
 
       return user
-    } catch (err: any) {
-      const msg =
-        err?.data?.message ||
-        err?.message ||
-        'Login failed. Please check your credentials.'
+    } catch (err: unknown) {
+      const msg = extractErrorMessage(err, 'Login failed. Please check your credentials.')
       store.setError(msg)
       throw err
     } finally {
@@ -46,8 +55,8 @@ export function useAuth() {
       await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
       // Backend clears the auth_token cookie
       store.logout()
-    } catch (err: any) {
-      const msg = err?.data?.message || err?.message || 'Logout failed'
+    } catch (err: unknown) {
+      const msg = extractErrorMessage(err, 'Logout failed')
       store.setError(msg)
       throw err
     } finally {
@@ -67,9 +76,9 @@ export function useAuth() {
       } else {
         store.logout()
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       store.logout()
-      store.setError(err?.data?.message || err?.message || 'Session expired')
+      store.setError(extractErrorMessage(err, 'Session expired'))
     } finally {
       store.setLoading(false)
     }

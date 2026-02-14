@@ -31,7 +31,13 @@
 -->
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { editorialStatusMeta, type EditorialStatus } from '~/components/sketches/mockData'
+import {
+  editorialStatusMeta,
+  releaseStageDot,
+  releaseStageLabel,
+  type EditorialStatus,
+  type ReleaseStage,
+} from '~/components/sketches/mockData'
 
 definePageMeta({ layout: 'default' })
 
@@ -46,6 +52,10 @@ interface GraphNode {
   x: number
   y: number
   description: string
+  version_semver: string | null
+  release_stage: ReleaseStage | null
+  blockers: string[]
+  translationHealth: 'complete' | 'partial' | 'none'
 }
 
 interface GraphEdge {
@@ -77,18 +87,18 @@ function circlePos(index: number, total: number, radius: number): { x: number; y
 }
 
 const outerNodes: Omit<GraphNode, 'x' | 'y'>[] = [
-  { id: 'bc1', label: 'The Fool', type: 'base_card', status: 'published', description: 'Major Arcana 0. Journey begins.' },
-  { id: 'bc2', label: 'The Magician', type: 'base_card', status: 'approved', description: 'Major Arcana 1. Manifestation.' },
-  { id: 'bc3', label: 'High Priestess', type: 'base_card', status: 'review', description: 'Major Arcana 2. Intuition.' },
-  { id: 'wc1', label: 'Fool of Ether', type: 'world_card', status: 'draft', description: 'The Fool in the Ethereal Realm.' },
-  { id: 'wc2', label: 'Magician of Shadow', type: 'world_card', status: 'pending_review', description: 'The Magician in Shadow Domain.' },
-  { id: 'f1', label: 'Innocence', type: 'facet', status: 'published', description: 'Core facet: purity and new beginnings.' },
-  { id: 'f2', label: 'Wisdom', type: 'facet', status: 'approved', description: 'Core facet: knowledge and insight.' },
-  { id: 'a1', label: 'Major Arcana', type: 'arcana', status: 'published', description: 'The 22 trump cards.' },
-  { id: 'sk1', label: 'Journey', type: 'skill', status: 'draft', description: 'Skill: traversal and exploration.' },
-  { id: 'sk2', label: 'Illusion', type: 'skill', status: 'review', description: 'Skill: deception and misdirection.' },
-  { id: 'w1', label: 'Ethereal Realm', type: 'world', status: 'published', description: 'A world of light and spirit.' },
-  { id: 'w2', label: 'Shadow Domain', type: 'world', status: 'approved', description: 'A world of darkness and mystery.' },
+  { id: 'bc1', label: 'The Fool', type: 'base_card', status: 'published', description: 'Major Arcana 0. Journey begins.', version_semver: '2.0.0', release_stage: 'release', blockers: [], translationHealth: 'complete' },
+  { id: 'bc2', label: 'The Magician', type: 'base_card', status: 'approved', description: 'Major Arcana 1. Manifestation.', version_semver: '1.3.0', release_stage: 'candidate', blockers: [], translationHealth: 'complete' },
+  { id: 'bc3', label: 'High Priestess', type: 'base_card', status: 'review', description: 'Major Arcana 2. Intuition.', version_semver: '1.1.0', release_stage: 'beta', blockers: ['Missing translations: FR'], translationHealth: 'partial' },
+  { id: 'wc1', label: 'Fool of Ether', type: 'world_card', status: 'draft', description: 'The Fool in the Ethereal Realm.', version_semver: '0.1.0', release_stage: 'dev', blockers: ['No effects defined', 'No image assigned'], translationHealth: 'none' },
+  { id: 'wc2', label: 'Magician of Shadow', type: 'world_card', status: 'pending_review', description: 'The Magician in Shadow Domain.', version_semver: '0.2.0', release_stage: 'alfa', blockers: ['Missing translations: ES'], translationHealth: 'partial' },
+  { id: 'f1', label: 'Innocence', type: 'facet', status: 'published', description: 'Core facet: purity and new beginnings.', version_semver: '1.0.0', release_stage: 'release', blockers: [], translationHealth: 'complete' },
+  { id: 'f2', label: 'Wisdom', type: 'facet', status: 'approved', description: 'Core facet: knowledge and insight.', version_semver: '1.2.0', release_stage: 'candidate', blockers: [], translationHealth: 'complete' },
+  { id: 'a1', label: 'Major Arcana', type: 'arcana', status: 'published', description: 'The 22 trump cards.', version_semver: '3.0.0', release_stage: 'release', blockers: [], translationHealth: 'complete' },
+  { id: 'sk1', label: 'Journey', type: 'skill', status: 'draft', description: 'Skill: traversal and exploration.', version_semver: '0.1.0', release_stage: 'dev', blockers: ['No effects defined', 'Entity is still in draft'], translationHealth: 'none' },
+  { id: 'sk2', label: 'Illusion', type: 'skill', status: 'review', description: 'Skill: deception and misdirection.', version_semver: '0.3.0', release_stage: 'beta', blockers: ['No image assigned'], translationHealth: 'partial' },
+  { id: 'w1', label: 'Ethereal Realm', type: 'world', status: 'published', description: 'A world of light and spirit.', version_semver: '1.0.0', release_stage: 'release', blockers: [], translationHealth: 'complete' },
+  { id: 'w2', label: 'Shadow Domain', type: 'world', status: 'approved', description: 'A world of darkness and mystery.', version_semver: '1.1.0', release_stage: 'candidate', blockers: [], translationHealth: 'complete' },
 ]
 
 const nodes = ref<GraphNode[]>(
@@ -191,8 +201,34 @@ function edgePath(edge: GraphEdge): string {
   return `M ${from.x} ${from.y} L ${to.x} ${to.y}`
 }
 
+// --- Translation halo color ---
+function translationHaloColor(health: GraphNode['translationHealth']): string {
+  if (health === 'complete') return '#22c55e'
+  if (health === 'partial') return '#f59e0b'
+  return '#ef4444'
+}
+
+// --- Edge health color (based on worst endpoint status) ---
+function edgeHealthColor(edge: GraphEdge): string {
+  const fromNode = getNode(edge.from)
+  const toNode = getNode(edge.to)
+  if (!fromNode || !toNode) return '#666'
+  const badStatuses = ['draft', 'rejected', 'archived']
+  const warnStatuses = ['pending_review', 'review', 'changes_requested', 'translation_review']
+  const fromBad = badStatuses.includes(fromNode.status)
+  const toBad = badStatuses.includes(toNode.status)
+  const fromWarn = warnStatuses.includes(fromNode.status)
+  const toWarn = warnStatuses.includes(toNode.status)
+  if (fromBad || toBad) return '#ef4444'
+  if (fromWarn || toWarn) return '#f59e0b'
+  return '#22c55e'
+}
+
 // --- Edge style ---
+const colorEdgesByHealth = ref(false)
+
 function edgeStroke(edge: GraphEdge): string {
+  if (colorEdgesByHealth.value) return edgeHealthColor(edge)
   if (edge.type === 'belongs_to') return '#6366f1'
   if (edge.type === 'has_many') return '#22c55e'
   if (edge.type === 'references') return '#f59e0b'
@@ -268,6 +304,12 @@ const filteredEdges = computed(() =>
             </label>
           </div>
 
+          <!-- Color by health toggle -->
+          <label class="flex items-center gap-1 text-xs cursor-pointer">
+            <UCheckbox v-model="colorEdgesByHealth" aria-label="Color edges by dependency health" />
+            <span class="text-muted">Health edges</span>
+          </label>
+
           <!-- Clear selection -->
           <UButton
             v-if="selectedNodeId"
@@ -331,6 +373,19 @@ const filteredEdges = computed(() =>
             @mouseenter="hoveredNodeId = node.id"
             @mouseleave="hoveredNodeId = null"
           >
+            <!-- Translation halo ring -->
+            <circle
+              :cx="node.x"
+              :cy="node.y"
+              :r="selectedNodeId === node.id ? 35 : 29"
+              fill="none"
+              :stroke="translationHaloColor(node.translationHealth)"
+              :stroke-width="2"
+              :stroke-dasharray="node.translationHealth === 'partial' ? '4 2' : node.translationHealth === 'none' ? '2 2' : 'none'"
+              :opacity="isNodeDimmed(node) ? 0.15 : 0.7"
+              class="transition-all duration-200"
+            />
+
             <!-- Node circle -->
             <circle
               :cx="node.x"
@@ -398,7 +453,7 @@ const filteredEdges = computed(() =>
         </div>
 
         <div class="space-y-3">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <UBadge color="neutral" variant="outline" size="xs">{{ getNode(selectedNodeId)!.type }}</UBadge>
             <UBadge
               :color="editorialStatusMeta(getNode(selectedNodeId)!.status).color"
@@ -408,9 +463,28 @@ const filteredEdges = computed(() =>
             >
               {{ editorialStatusMeta(getNode(selectedNodeId)!.status).label }}
             </UBadge>
+            <template v-if="getNode(selectedNodeId)!.version_semver">
+              <UBadge color="neutral" variant="outline" size="xs">
+                v{{ getNode(selectedNodeId)!.version_semver }}
+              </UBadge>
+              <span :class="`inline-block w-2 h-2 rounded-full ${releaseStageDot(getNode(selectedNodeId)!.release_stage)}`" :title="releaseStageLabel(getNode(selectedNodeId)!.release_stage)" />
+            </template>
           </div>
 
           <p class="text-xs text-muted leading-relaxed">{{ getNode(selectedNodeId)!.description }}</p>
+
+          <!-- Blockers -->
+          <div v-if="getNode(selectedNodeId)!.blockers.length" class="space-y-1">
+            <h4 class="text-xs font-semibold text-warning uppercase tracking-wider">Blockers</h4>
+            <div
+              v-for="(reason, idx) in getNode(selectedNodeId)!.blockers"
+              :key="idx"
+              class="flex items-start gap-1.5 text-[10px] text-warning"
+            >
+              <UIcon name="i-lucide-alert-triangle" class="shrink-0 mt-0.5 text-[10px]" />
+              <span>{{ reason }}</span>
+            </div>
+          </div>
 
           <!-- Connected entities -->
           <div class="space-y-2">
@@ -469,8 +543,21 @@ const filteredEdges = computed(() =>
         :style="{ left: `${tooltipNode.x / SVG_W * 100}%`, top: '40%' }"
       >
         <p class="text-xs font-semibold">{{ tooltipNode.label }}</p>
-        <p class="text-[10px] text-muted">{{ tooltipNode.type }} · {{ editorialStatusMeta(tooltipNode.status).label }}</p>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="text-[10px] text-muted">{{ tooltipNode.type }}</span>
+          <span class="text-[10px] text-muted">·</span>
+          <span class="text-[10px] text-muted">{{ editorialStatusMeta(tooltipNode.status).label }}</span>
+          <template v-if="tooltipNode.version_semver">
+            <span class="text-[10px] text-muted">·</span>
+            <span class="text-[10px] text-muted tabular-nums">v{{ tooltipNode.version_semver }}</span>
+            <span :class="`inline-block w-1.5 h-1.5 rounded-full ${releaseStageDot(tooltipNode.release_stage)}`" />
+          </template>
+        </div>
         <p class="text-[10px] text-muted mt-1">{{ tooltipNode.description }}</p>
+        <div v-if="tooltipNode.blockers.length" class="mt-1 flex items-center gap-1 text-[10px] text-warning">
+          <span>⚠</span>
+          <span>{{ tooltipNode.blockers.length }} blocker{{ tooltipNode.blockers.length > 1 ? 's' : '' }}</span>
+        </div>
       </div>
     </Teleport>
 
@@ -498,6 +585,18 @@ const filteredEdges = computed(() =>
           <div class="flex items-center gap-1.5">
             <div class="w-6 h-0.5 bg-amber-400 border-dashed border-t" />
             <span class="text-[10px] text-muted">references</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="w-3 h-3 rounded-full border-2 border-emerald-500" />
+            <span class="text-[10px] text-muted">translations OK</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="w-3 h-3 rounded-full border-2 border-amber-400 border-dashed" />
+            <span class="text-[10px] text-muted">partial</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <div class="w-3 h-3 rounded-full border-2 border-red-500 border-dotted" />
+            <span class="text-[10px] text-muted">missing</span>
           </div>
         </div>
 

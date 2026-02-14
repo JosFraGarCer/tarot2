@@ -1,6 +1,6 @@
 // server/utils/parseQuery.ts
 import { getQuery, type H3Event } from 'h3'
-import type { ZodSchema } from 'zod'
+import type { ZodType } from 'zod'
 import { safeParseOrThrow } from './validate'
 
 interface ParseQueryOptions {
@@ -8,14 +8,21 @@ interface ParseQueryOptions {
   scope?: string
 }
 
-export function parseQuery<TSchema extends ZodSchema<any, any, any>>(
+interface QueryLogger {
+  debug?: (obj: Record<string, unknown>, msg?: string) => void
+  info?: (obj: Record<string, unknown>, msg?: string) => void
+}
+
+export function parseQuery<T>(
   event: H3Event,
-  schema: TSchema,
+  schema: ZodType<T>,
   options: ParseQueryOptions = {},
-): ReturnType<TSchema['parse']> {
+): T {
   const raw = getQuery(event)
   const parsed = safeParseOrThrow(schema, raw)
-  const logger = event.context.logger ?? (globalThis as any).logger
+  const logger =
+    (event.context.logger as QueryLogger | undefined) ??
+    (globalThis as { logger?: QueryLogger }).logger
   const level = options.logLevel ?? 'debug'
   const scope = options.scope ?? 'query.parse'
 

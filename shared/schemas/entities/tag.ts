@@ -1,6 +1,6 @@
 // shared/schemas/entities/tag.ts
 import { z } from 'zod'
-import { baseEntityFields, translationFields, languageCodeWithDefault, cardStatusSchema, coerceBoolean, baseQueryFields, withLanguageTransform, baseEntityCreateFields } from '../common'
+import { translationFields, languageCodeWithDefault, coerceBoolean, baseQueryFields, withLanguageTransform, baseEntityCreateFields } from '../common'
 
 // Schema completo para Tag
 export const tagSchema = z.object({

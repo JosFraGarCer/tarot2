@@ -3,9 +3,24 @@
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import type { MeResponse, UserDTO } from '@/types/api'
 
+function extractErrorStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null
+  const errObj = error as { status?: unknown; data?: { statusCode?: unknown } }
+  if (typeof errObj.status === 'number') return errObj.status
+  if (typeof errObj.data?.statusCode === 'number') return errObj.data.statusCode
+  return null
+}
+
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object') return fallback
+  const errObj = error as { message?: unknown; data?: { message?: unknown } }
+  if (typeof errObj.data?.message === 'string' && errObj.data.message.length > 0) return errObj.data.message
+  if (typeof errObj.message === 'string' && errObj.message.length > 0) return errObj.message
+  return fallback
+}
+
 interface UserState {
   user: UserDTO | null
-  token: string | null
   loading: boolean
   loggingOut: boolean
   initialized: boolean
@@ -15,7 +30,6 @@ interface UserState {
 export const useUserStore = defineStore('user', {
   state: (): UserState => ({
     user: null,
-    token: null,
     loading: false,
     loggingOut: false,
     initialized: false,
@@ -32,9 +46,6 @@ export const useUserStore = defineStore('user', {
       this.user = user
       this.initialized = true
       this.error = null
-    },
-    setToken(token: string | null) {
-      this.token = token
     },
     setLoading(value: boolean) {
       this.loading = value
@@ -56,25 +67,25 @@ export const useUserStore = defineStore('user', {
           credentials: 'include',
         })
 
-        const payload = (res as any)?.data ?? (res as any)
+        const payload = res?.data ?? null
 
         if (payload) {
-          this.setUser(payload as UserDTO)
-          return payload as UserDTO
+          this.setUser(payload)
+          return payload
         }
 
         this.logout()
         return null
-      } catch (err: any) {
+      } catch (err: unknown) {
         this.logout()
 
         // 401 sin cookie es esperado en invitados → no lo tratamos como error fatal
-        if (err?.status === 401 || err?.data?.statusCode === 401) {
+        if (extractErrorStatus(err) === 401) {
           this.error = null
           return null
         }
 
-        const message = err?.data?.message || err?.message || 'Session expired'
+        const message = extractErrorMessage(err, 'Session expired')
         this.error = message
         return null
       } finally {
@@ -83,7 +94,6 @@ export const useUserStore = defineStore('user', {
     },
     logout() {
       this.user = null
-      this.token = null
       this.loading = false
       this.loggingOut = false
       this.initialized = true
@@ -94,7 +104,9 @@ export const useUserStore = defineStore('user', {
     },
   },
 
-  persist: true,
+  persist: {
+    paths: ['user', 'initialized'],
+  },
 })
 
 if (import.meta.hot) {

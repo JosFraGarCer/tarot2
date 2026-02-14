@@ -3,27 +3,21 @@ import { defineEventHandler } from 'h3'
 import { enforceRateLimit, getClientIp } from '../utils/rateLimit'
 
 const GLOBAL_LIMIT = {
-  max: 300,
+  max: 240,
   windowMs: 5 * 60 * 1000,
 }
 
-const SENSITIVE_LIMIT = {
-  max: 10,
-  windowMs: 60 * 1000,
-}
-
-const SENSITIVE_PATTERNS: Array<{ regex: RegExp; identifier: string }> = [
-  { regex: /^\/?api\/auth\/login(?:\/?|$)/i, identifier: 'auth.login' },
-  { regex: /^\/?api\/auth\/logout(?:\/?|$)/i, identifier: 'auth.logout' },
-  { regex: /^\/??api\/content_versions\/publish(?:\/??|$)/i, identifier: 'content_versions.publish' },
-  { regex: /^\/??api\/content_revisions\/(?:[^/]+)\/revert(?:\/??|$)/i, identifier: 'content_revisions.revert' },
+const ROUTE_BUCKETS: Array<{ regex: RegExp; identifier: string; max: number; windowMs: number }> = [
+  { regex: /^\/?api\/auth\/login(?:\/?|$)/i, identifier: 'auth.login', max: 10, windowMs: 60_000 },
+  { regex: /^\/?api\/auth\/logout(?:\/?|$)/i, identifier: 'auth.logout', max: 30, windowMs: 60_000 },
+  { regex: /^\/?api\/content_versions\/publish(?:\/?|$)/i, identifier: 'content_versions.publish', max: 8, windowMs: 60_000 },
+  { regex: /^\/?api\/content_revisions\/(?:[^/]+)\/revert(?:\/?|$)/i, identifier: 'content_revisions.revert', max: 8, windowMs: 60_000 },
+  { regex: /^\/?api\/content_feedback(?:\/?|$)/i, identifier: 'content_feedback', max: 45, windowMs: 60_000 },
+  { regex: /^\/?api\/(?:database\/import\.json|database\/import\.sql)(?:\/?|$)/i, identifier: 'database.import', max: 4, windowMs: 60_000 },
+  { regex: /^\/?api\/uploads(?:\/?|$)/i, identifier: 'uploads', max: 20, windowMs: 60_000 },
 ]
 
 export default defineEventHandler((event) => {
-  // TEMPORARILY DISABLED FOR TESTING
-  return
-
-  // Skip rate limiting for test environment
   const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true' || process.env.VITEST
   if (isTestEnv) {
     return
@@ -31,8 +25,7 @@ export default defineEventHandler((event) => {
 
   const path = event.path ?? event.node.req.url?.split('?')[0] ?? ''
 
-  // Skip rate limiting for ALL API endpoints during tests
-  if (path.startsWith('/api') || path.startsWith('api/')) {
+  if (!path.startsWith('/api') && !path.startsWith('api/')) {
     return
   }
 
@@ -44,20 +37,19 @@ export default defineEventHandler((event) => {
   const checks = [
     {
       scope: 'middleware.rateLimit.global',
-      identifier: `middleware.global:${method}`,
+      identifier: `middleware.global.api:${method}`,
       max: GLOBAL_LIMIT.max,
       windowMs: GLOBAL_LIMIT.windowMs,
     },
   ]
 
-  const sensitiveMatch = SENSITIVE_PATTERNS.find(pattern => pattern.regex.test(path))
-
-  if (sensitiveMatch) {
+  for (const bucket of ROUTE_BUCKETS) {
+    if (!bucket.regex.test(path)) continue
     checks.push({
-      scope: 'middleware.rateLimit.sensitive',
-      identifier: `middleware.sensitive:${sensitiveMatch.identifier}:${method}`,
-      max: SENSITIVE_LIMIT.max,
-      windowMs: SENSITIVE_LIMIT.windowMs,
+      scope: 'middleware.rateLimit.route',
+      identifier: `middleware.route:${bucket.identifier}:${method}`,
+      max: bucket.max,
+      windowMs: bucket.windowMs,
     })
   }
 

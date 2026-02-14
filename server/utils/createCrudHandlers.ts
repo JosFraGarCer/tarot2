@@ -10,7 +10,6 @@ import { buildFilters, type BuildFiltersOptions } from './filters'
 import { createPaginatedResponse, createResponse } from './response'
 import { markLanguageFallback } from './language'
 import { translatableUpsert } from './translatableUpsert'
-import { deleteLocalizedEntity } from './deleteLocalizedEntity'
 import { getRequestedLanguage } from './i18n'
 import type { AuthenticatedUser } from '@shared/schemas/common'
 import { canTransition } from '@shared/editorial/guard'
@@ -18,6 +17,10 @@ import type { EditorialContext, EditorialUserContext } from '@shared/editorial/g
 import type { CardStatus } from '@shared/editorial/card-status'
 import { cardStatusTransitions } from '@shared/editorial/transitions'
 import { fetchEditorialState } from './editorialStateLoader'
+import { applyEditorialTransition, type MutationExecutor } from './editorialTransitionService'
+import { upsertEditorialState, deleteEditorialState } from './editorialStateSync'
+import { upsertTranslationState, deleteTranslationState, deleteAllTranslationStates } from './translationStateSync'
+import { requireDb } from './requireDb'
 
 export interface CrudContext<TQuery> {
   event: H3Event
@@ -125,9 +128,6 @@ export function createCrudHandlers<
   TUpdateSchema extends ZodTypeAny,
   TRow = any,
 >(config: CrudHandlersConfig<TQuerySchema, TCreateSchema, TUpdateSchema, any, any, any, TRow>): CrudHandlers {
-  const db = globalThis.db as Kysely<DB>
-  if (!db) throw new Error('Global database instance not available')
-
   const translation = config.translation === undefined ? {
     table: `${String(config.baseTable)}_translations` as keyof DB,
     foreignKey: `${String(config.baseTable).replace(/s$/, '')}_id`,
@@ -144,10 +144,10 @@ export function createCrudHandlers<
 
   const TABLES_WITH_EFFECTS = new Set(['base_card', 'world_card', 'facet', 'base_skills'])
 
-  async function buildEditorialContext(entityId: number): Promise<EditorialContext> {
+  async function buildEditorialContext(executor: MutationExecutor, entityId: number): Promise<EditorialContext> {
     let hasAtLeastOneTranslation = true
     if (translation) {
-      const translationRow = await db
+      const translationRow = await executor
         .selectFrom(translation.table)
         .select(sql`1`.as('one'))
         .where(sql`${sql.ref(translation.foreignKey)}`, '=', entityId)
@@ -158,7 +158,7 @@ export function createCrudHandlers<
     let hasEffectsDefined = true
     const baseTableStr = String(config.baseTable)
     if (TABLES_WITH_EFFECTS.has(baseTableStr)) {
-      const effectRow = await db
+      const effectRow = await executor
         .selectFrom('card_effects')
         .select(sql`1`.as('one'))
         .where('entity_type', '=', baseTableStr)
@@ -166,7 +166,7 @@ export function createCrudHandlers<
         .executeTakeFirst()
 
       if (!effectRow) {
-        const legacyRow = await db
+        const legacyRow = await executor
           .selectFrom(config.baseTable)
           .select([sql`legacy_effects`.as('legacy_effects'), sql`effects`.as('effects')])
           .where(sql`${sql.ref(idColumn)}`, '=', entityId)
@@ -197,167 +197,15 @@ export function createCrudHandlers<
     }
   }
 
-  /**
-   * Validates an editorial status transition and, on success:
-   * 1. Inserts an append-only audit log entry (editorial_audit_log)
-   * 2. Captures a pre-transition snapshot for revision creation
-   *
-   * Returns the previous status so the caller can create a content revision
-   * after the entity update is persisted.
-   * Returns null if currentStatus === requestedStatus (no-op).
-   */
-  async function enforceEditorialTransition(
-    entityId: number,
-    requestedStatus: string,
-    user: AuthenticatedUser | null,
-    logger?: any,
-  ): Promise<{ fromStatus: string; toStatus: string; prevSnapshot: Record<string, unknown> } | null> {
-    const currentRow = await db
-      .selectFrom(config.baseTable)
-      .selectAll()
-      .where(sql`${sql.ref(idColumn)}`, '=', entityId)
-      .executeTakeFirst()
-
-    if (!currentRow) {
-      throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
-    }
-
-    const currentStatus = String((currentRow as any).status) as CardStatus
-    const nextStatus = requestedStatus as CardStatus
-
-    if (currentStatus === nextStatus) return null
-
-    const editorialCtx = await buildEditorialContext(entityId)
-    const userCtx = buildUserContext(user)
-    const result = canTransition(currentStatus, nextStatus, editorialCtx, userCtx)
-
-    if (!result.allowed) {
-      const statusCode = result.code === 'PERMISSION_DENIED' ? 403 : 400
-
-      logger?.warn?.({
-        scope: `${config.logScope ?? config.entity}.update.transition_rejected`,
-        entity: config.entity,
-        id: entityId,
-        from: currentStatus,
-        to: nextStatus,
-        reason: result.reason,
-        code: result.code,
-      }, 'Editorial transition rejected')
-
-      throw createError({
-        statusCode,
-        statusMessage: `Status transition not allowed: ${currentStatus} → ${nextStatus}. ${result.reason ?? ''}`.trim(),
-      })
-    }
-
-    // A) Append-only editorial audit log
-    try {
-      const entityTypeId = await db
-        .selectFrom('entity_types')
-        .select('id')
-        .where('code', '=', String(config.baseTable))
-        .executeTakeFirst()
-
-      if (entityTypeId) {
-        await db
-          .insertInto('editorial_audit_log')
-          .values({
-            entity_type: entityTypeId.id,
-            entity_id: entityId,
-            from_status: currentStatus as CardStatus,
-            to_status: nextStatus as CardStatus,
-            changed_by: user?.id ?? null,
-          })
-          .execute()
-      }
-    } catch (auditErr) {
-      logger?.error?.({
-        scope: `${config.logScope ?? config.entity}.audit_log`,
-        entity: config.entity,
-        id: entityId,
-        error: auditErr instanceof Error ? auditErr.message : String(auditErr),
-      }, 'Failed to insert editorial audit log (non-blocking)')
-    }
-
-    return {
-      fromStatus: currentStatus,
-      toStatus: nextStatus,
-      prevSnapshot: { ...(currentRow as Record<string, unknown>) },
-    }
-  }
-
-  /**
-   * B) Auto-create a content revision after a successful status transition.
-   * Called after the entity update is persisted so next_snapshot reflects the new state.
-   */
-  async function createTransitionRevision(
-    entityId: number,
-    transitionMeta: { fromStatus: string; toStatus: string; prevSnapshot: Record<string, unknown> },
-    user: AuthenticatedUser | null,
-    logger?: any,
-  ): Promise<void> {
-    try {
-      const entityType = String(config.baseTable)
-
-      // Get next version_number for this entity
-      const maxVersionRow = await db
-        .selectFrom('content_revisions')
-        .select([sql`max(version_number)`.as('vmax')])
-        .where('entity_type', '=', entityType)
-        .where('entity_id', '=', entityId)
-        .executeTakeFirst()
-      const nextVersion = Number((maxVersionRow as any)?.vmax ?? 0) + 1
-
-      // Fetch entity after update for next_snapshot
-      const updatedRow = await db
-        .selectFrom(config.baseTable)
-        .selectAll()
-        .where(sql`${sql.ref(idColumn)}`, '=', entityId)
-        .executeTakeFirst()
-
-      await db
-        .insertInto('content_revisions')
-        .values({
-          entity_type: entityType,
-          entity_id: entityId,
-          version_number: nextVersion,
-          status: transitionMeta.toStatus,
-          diff: {
-            status: { old: transitionMeta.fromStatus, new: transitionMeta.toStatus },
-          },
-          notes: `Status transition: ${transitionMeta.fromStatus} → ${transitionMeta.toStatus}`,
-          prev_snapshot: transitionMeta.prevSnapshot as any,
-          next_snapshot: (updatedRow as any) ?? null,
-          created_by: user?.id ?? null,
-        })
-        .execute()
-
-      logger?.info?.({
-        scope: `${config.logScope ?? config.entity}.transition_revision`,
-        entity: config.entity,
-        id: entityId,
-        version: nextVersion,
-        from: transitionMeta.fromStatus,
-        to: transitionMeta.toStatus,
-      }, 'Transition revision created')
-    } catch (revErr) {
-      logger?.error?.({
-        scope: `${config.logScope ?? config.entity}.transition_revision`,
-        entity: config.entity,
-        id: entityId,
-        error: revErr instanceof Error ? revErr.message : String(revErr),
-      }, 'Failed to create transition revision (non-blocking)')
-    }
-  }
-
   async function computeEditorialMetadata(
+    db: Kysely<DB>,
     entityId: number,
     currentStatus: string,
     user?: AuthenticatedUser | null,
   ): Promise<{ status: string; allowedTransitions: string[]; publishReady: boolean; blockingReasons: string[] }> {
     const status = currentStatus as CardStatus
     const candidates = cardStatusTransitions[status] ?? []
-    const editorialCtx = await buildEditorialContext(entityId)
+    const editorialCtx = await buildEditorialContext(db, entityId)
     const userCtx = buildUserContext(user ?? null)
 
     const allowedTransitions: string[] = []
@@ -383,11 +231,11 @@ export function createCrudHandlers<
     }
   }
 
-  async function attachEditorialMetadata(row: any, entityId: number, user?: AuthenticatedUser | null): Promise<any> {
+  async function attachEditorialMetadata(db: Kysely<DB>, row: any, entityId: number, user?: AuthenticatedUser | null): Promise<any> {
     if (!row || typeof row !== 'object') return row
     const status = row.status
     if (typeof status !== 'string') return row
-    const editorial = await computeEditorialMetadata(entityId, status, user)
+    const editorial = await computeEditorialMetadata(db, entityId, status, user)
     const editorial_state = await fetchEditorialState(db, String(config.baseTable), entityId)
     return { ...row, editorial, editorial_state }
   }
@@ -395,6 +243,7 @@ export function createCrudHandlers<
   const list = defineEventHandler(async (event) => {
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as any).logger
+    const db = requireDb(event)
     const query = parseQuery(event, config.schema.query, { scope: `${config.logScope ?? config.entity}.list.query` })
     const lang = resolveLangFromQuery(query as Record<string, any>)
     const user = (event.context.user as AuthenticatedUser) ?? null
@@ -464,72 +313,125 @@ export function createCrudHandlers<
   const create = defineEventHandler(async (event) => {
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as any).logger
+    const db = requireDb(event)
     const raw = await readBody(event)
     const body = config.schema.create.parse(raw) as TCreate
     const lang = (body as any).lang ? String((body as any).lang).toLowerCase() : 'en'
     const user = (event.context.user as AuthenticatedUser) ?? null
     const ctx: CrudContext<TCreate> = { event, db, query: body, lang, user }
 
+    if (!user?.permissions?.canEditContent) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Permission required (canEditContent)',
+      })
+    }
+
     const { baseData, translationData } = config.mutations.buildCreatePayload(body, ctx)
+    const entityCode = String(config.baseTable)
 
     if (translation) {
-      const upsertResult = await translatableUpsert({
-        event,
-        baseTable: config.baseTable,
-        translationTable: translation.table,
-        foreignKey: translation.foreignKey,
-        languageKey: translation.languageKey,
-        defaultLang: translation.defaultLang,
-        baseData,
-        translationData,
-        lang,
-        select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body, lang: langCode }, id),
+      let createdId: number | null = null
+      let resolvedLang = lang
+
+      await db.transaction().execute(async (trx) => {
+        const upsertResult = await translatableUpsert({
+          event,
+          db,
+          executor: trx,
+          baseTable: config.baseTable,
+          translationTable: translation.table,
+          foreignKey: translation.foreignKey,
+          languageKey: translation.languageKey,
+          defaultLang: translation.defaultLang,
+          baseData,
+          translationData,
+          lang,
+          select: async (database, id, langCode) =>
+            config.selectOne({ event, db: database, query: body, lang: langCode }, id),
+        })
+
+        createdId = upsertResult.id
+        resolvedLang = upsertResult.lang
+
+        const statusValue =
+          typeof (baseData as Record<string, unknown> | undefined)?.status === 'string'
+            ? String((baseData as Record<string, unknown>).status)
+            : 'draft'
+
+        const isActiveValue =
+          typeof (baseData as Record<string, unknown> | undefined)?.is_active === 'boolean'
+            ? Boolean((baseData as Record<string, unknown>).is_active)
+            : true
+
+        await upsertEditorialState(trx, entityCode, upsertResult.id, {
+          status: statusValue,
+          isActive: isActiveValue,
+          createdBy: user?.id ?? null,
+          updatedBy: user?.id ?? null,
+        })
+
+        await upsertTranslationState(trx, entityCode, upsertResult.id, upsertResult.lang, user?.id ?? null)
       })
-      if (upsertResult.wasCreated && config.onEntityCreate) {
-        try {
-          await config.onEntityCreate(upsertResult.id, baseData ?? {}, user?.id ?? null)
-        } catch (syncErr) {
-          logger?.error?.({ scope: `${config.logScope ?? config.entity}.editorial_state_sync`, id: upsertResult.id, error: syncErr instanceof Error ? syncErr.message : String(syncErr) }, 'editorial_state sync failed on create (non-blocking)')
-        }
+
+      if (createdId == null) {
+        throw createError({ statusCode: 500, statusMessage: `Failed to create ${config.entity}` })
       }
-      if (config.onTranslationUpsert) {
-        try {
-          await config.onTranslationUpsert(upsertResult.id, upsertResult.lang, user?.id ?? null)
-        } catch (syncErr) {
-          logger?.error?.({ scope: `${config.logScope ?? config.entity}.translation_state_sync`, id: upsertResult.id, lang: upsertResult.lang, error: syncErr instanceof Error ? syncErr.message : String(syncErr) }, 'translation_state sync failed (non-blocking)')
-        }
+
+      const row = await config.selectOne({ event, db, query: body, lang: resolvedLang }, createdId)
+      if (!row) {
+        throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
       }
-      const enrichedRow = await attachEditorialMetadata(upsertResult.row, upsertResult.id, user)
+
+      const enrichedRow = await attachEditorialMetadata(db, markLanguageFallback(row, resolvedLang), createdId, user)
       logger?.info?.({
         scope: `${config.logScope ?? config.entity}.create`,
         entity: config.entity,
-        id: upsertResult.id,
-        lang: upsertResult.lang,
+        id: createdId,
+        lang: resolvedLang,
         timeMs: Date.now() - startedAt,
       }, 'Entity created')
       return createResponse(enrichedRow, null)
     }
 
-    const insert = await db
-      .insertInto(config.baseTable)
-      .values(baseData ?? {})
-      .returning(idColumn)
-      .executeTakeFirst()
+    let id: number | null = null
+    await db.transaction().execute(async (trx) => {
+      const insert = await trx
+        .insertInto(config.baseTable)
+        .values(baseData ?? {})
+        .returning(idColumn as any)
+        .executeTakeFirst()
 
-    if (!insert) {
+      if (!insert) {
+        throw createError({ statusCode: 500, statusMessage: `Failed to create ${config.entity}` })
+      }
+
+      id = Number((insert as Record<string, unknown>)[idColumn])
+
+      const statusValue =
+        typeof (baseData as Record<string, unknown> | undefined)?.status === 'string'
+          ? String((baseData as Record<string, unknown>).status)
+          : 'draft'
+
+      const isActiveValue =
+        typeof (baseData as Record<string, unknown> | undefined)?.is_active === 'boolean'
+          ? Boolean((baseData as Record<string, unknown>).is_active)
+          : true
+
+      await upsertEditorialState(trx, entityCode, id, {
+        status: statusValue,
+        isActive: isActiveValue,
+        createdBy: user?.id ?? null,
+        updatedBy: user?.id ?? null,
+      })
+    })
+
+    if (id == null) {
       throw createError({ statusCode: 500, statusMessage: `Failed to create ${config.entity}` })
     }
 
-    const id = Number((insert as any)[idColumn])
-    if (config.onEntityCreate) {
-      try {
-        await config.onEntityCreate(id, baseData ?? {}, user?.id ?? null)
-      } catch (syncErr) {
-        logger?.error?.({ scope: `${config.logScope ?? config.entity}.editorial_state_sync`, id, error: syncErr instanceof Error ? syncErr.message : String(syncErr) }, 'editorial_state sync failed on create (non-blocking)')
-      }
-    }
     const row = await config.selectOne({ event, db, query: body, lang }, id)
-    const enriched = row ? await attachEditorialMetadata(markLanguageFallback(row, lang), id, user) : row
+    const enriched = row ? await attachEditorialMetadata(db, markLanguageFallback(row, lang), id, user) : row
     logger?.info?.({ scope: `${config.logScope ?? config.entity}.create`, entity: config.entity, id, timeMs: Date.now() - startedAt }, 'Entity created')
     return createResponse(enriched, null)
   })
@@ -537,6 +439,7 @@ export function createCrudHandlers<
   const detail = defineEventHandler(async (event) => {
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as any).logger
+    const db = requireDb(event)
     const paramsId = Number(event.context.params?.id)
     if (!Number.isFinite(paramsId)) {
       throw createError({ statusCode: 400, statusMessage: 'Invalid id parameter' })
@@ -550,7 +453,7 @@ export function createCrudHandlers<
       throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
     }
     const normalized = markLanguageFallback(row, lang)
-    const enriched = await attachEditorialMetadata(normalized, paramsId, user)
+    const enriched = await attachEditorialMetadata(db, normalized, paramsId, user)
     logger?.info?.({ scope: `${config.logScope ?? config.entity}.detail`, entity: config.entity, id: paramsId, lang, timeMs: Date.now() - startedAt }, 'Entity detail fetched')
     return createResponse(enriched, null)
   })
@@ -558,6 +461,7 @@ export function createCrudHandlers<
   const update = defineEventHandler(async (event) => {
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as any).logger
+    const db = requireDb(event)
     const paramsId = Number(event.context.params?.id)
     if (!Number.isFinite(paramsId)) {
       throw createError({ statusCode: 400, statusMessage: 'Invalid id parameter' })
@@ -567,105 +471,178 @@ export function createCrudHandlers<
     const lang = (body as any).lang ? String((body as any).lang).toLowerCase() : 'en'
     const user = (event.context.user as AuthenticatedUser) ?? null
     const ctx: CrudContext<any> = { event, db, query: body, lang, user }
+    const entityCode = String(config.baseTable)
+    const requestedStatus =
+      typeof (body as Record<string, unknown>).status === 'string'
+        ? (String((body as Record<string, unknown>).status) as CardStatus)
+        : null
 
-    // Enforce editorial transition and capture metadata for audit/revision
-    let transitionMeta: { fromStatus: string; toStatus: string; prevSnapshot: Record<string, unknown> } | null = null
-    if ((body as any).status !== undefined) {
-      transitionMeta = await enforceEditorialTransition(paramsId, String((body as any).status), user, logger)
+    if (!user?.permissions?.canEditContent) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Permission required (canEditContent)',
+      })
+    }
+    
+    const { baseData, translationData } = config.mutations.buildUpdatePayload(body, ctx)
+    const basePatch = { ...(baseData ?? {}) }
+    if (requestedStatus) {
+      delete (basePatch as Record<string, unknown>).status
     }
 
-    const { baseData, translationData } = config.mutations.buildUpdatePayload(body, ctx)
+    let finalId = paramsId
 
-    if (translation) {
-      const upsertResult = await translatableUpsert({
-        event,
-        id: paramsId,
-        baseTable: config.baseTable,
-        translationTable: translation.table,
-        foreignKey: translation.foreignKey,
-        languageKey: translation.languageKey,
-        defaultLang: translation.defaultLang,
-        baseData,
-        translationData,
-        lang,
-        select: async (database, id, langCode) => config.selectOne({ event, db: database, query: body, lang: langCode }, id),
-      })
+    await db.transaction().execute(async (trx) => {
+      if (translation) {
+        const upsertResult = await translatableUpsert({
+          event,
+          db,
+          executor: trx,
+          id: paramsId,
+          baseTable: config.baseTable,
+          translationTable: translation.table,
+          foreignKey: translation.foreignKey,
+          languageKey: translation.languageKey,
+          defaultLang: translation.defaultLang,
+          baseData: basePatch,
+          translationData,
+          lang,
+          select: async (database, id, langCode) =>
+            config.selectOne({ event, db: database, query: body, lang: langCode }, id),
+        })
+        finalId = upsertResult.id
 
-      // B) Auto-create revision after successful status transition
-      if (transitionMeta) {
-        await createTransitionRevision(upsertResult.id, transitionMeta, user, logger)
-      }
-
-      if (config.onTranslationUpsert) {
-        try {
-          await config.onTranslationUpsert(upsertResult.id, upsertResult.lang, user?.id ?? null)
-        } catch (syncErr) {
-          logger?.error?.({ scope: `${config.logScope ?? config.entity}.translation_state_sync`, id: upsertResult.id, lang: upsertResult.lang, error: syncErr instanceof Error ? syncErr.message : String(syncErr) }, 'translation_state sync failed (non-blocking)')
+        if (translationData && Object.keys(translationData).length > 0) {
+          await upsertTranslationState(trx, entityCode, upsertResult.id, upsertResult.lang, user?.id ?? null)
+        }
+      } else {
+        if (Object.keys(basePatch).length > 0) {
+          await trx
+            .updateTable(config.baseTable)
+            .set(basePatch)
+            .where(sql.ref(idColumn), '=', paramsId)
+            .execute()
+        } else if (!requestedStatus) {
+          const exists = await trx
+            .selectFrom(config.baseTable)
+            .select(idColumn as any)
+            .where(sql.ref(idColumn), '=', paramsId)
+            .executeTakeFirst()
+          if (!exists) {
+            throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
+          }
         }
       }
-      const enrichedRow = await attachEditorialMetadata(upsertResult.row, upsertResult.id, user)
-      logger?.info?.({
-        scope: `${config.logScope ?? config.entity}.update`,
-        entity: config.entity,
-        id: upsertResult.id,
-        lang: upsertResult.lang,
-        timeMs: Date.now() - startedAt,
-      }, 'Entity updated')
-      return createResponse(enrichedRow, null)
-    }
 
-    if (baseData && Object.keys(baseData).length) {
-      await db
-        .updateTable(config.baseTable)
-        .set(baseData)
-        .where(idColumn, '=', paramsId)
-        .execute()
-    }
+      if (requestedStatus) {
+        const editorialCtx = await buildEditorialContext(trx, finalId)
+        const userCtx = buildUserContext(user)
+        const transitionResult = await applyEditorialTransition({
+          db: trx,
+          baseTable: config.baseTable,
+          idColumn,
+          entityCode,
+          entityId: finalId,
+          requestedStatus,
+          user,
+          userCtx,
+          editorialCtx,
+          logger,
+        })
 
-    // B) Auto-create revision after successful status transition
-    if (transitionMeta) {
-      await createTransitionRevision(paramsId, transitionMeta, user, logger)
-    }
+        if (transitionResult) {
+          await upsertEditorialState(trx, entityCode, finalId, {
+            status: transitionResult.toStatus,
+            isActive:
+              typeof (basePatch as Record<string, unknown>).is_active === 'boolean'
+                ? Boolean((basePatch as Record<string, unknown>).is_active)
+                : true,
+            updatedBy: user?.id ?? null,
+          })
+        }
+      }
+    })
 
-    const row = await config.selectOne({ event, db, query: body, lang }, paramsId)
+    const row = await config.selectOne({ event, db, query: body, lang }, finalId)
     if (!row) {
       throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
     }
-    const enriched = await attachEditorialMetadata(markLanguageFallback(row, lang), paramsId, user)
-    logger?.info?.({ scope: `${config.logScope ?? config.entity}.update`, entity: config.entity, id: paramsId, lang, timeMs: Date.now() - startedAt }, 'Entity updated')
+    const enriched = await attachEditorialMetadata(db, markLanguageFallback(row, lang), finalId, user)
+    logger?.info?.({ scope: `${config.logScope ?? config.entity}.update`, entity: config.entity, id: finalId, lang, timeMs: Date.now() - startedAt }, 'Entity updated')
     return createResponse(enriched, null)
   })
 
   const remove = defineEventHandler(async (event) => {
     const startedAt = Date.now()
     const logger = event.context.logger ?? (globalThis as any).logger
+    const db = requireDb(event)
     const paramsId = Number(event.context.params?.id)
     if (!Number.isFinite(paramsId)) {
       throw createError({ statusCode: 400, statusMessage: 'Invalid id parameter' })
     }
     const query = parseQuery(event, deleteSchema, { scope: `${config.logScope ?? config.entity}.delete.query` })
     const lang = resolveLangFromQuery(query as any)
+    const entityCode = String(config.baseTable)
+    const user = (event.context.user as AuthenticatedUser) ?? null
 
     if (translation) {
-      const result = await deleteLocalizedEntity({
-        event,
-        baseTable: config.baseTable,
-        translationTable: translation.table,
-        foreignKey: translation.foreignKey,
-        languageKey: translation.languageKey,
-        defaultLang: translation.defaultLang,
-        id: paramsId,
-        lang,
-      })
-      try {
-        if (result.deletedBase && config.onBaseDelete) {
-          await config.onBaseDelete(paramsId)
-        } else if (result.deletedTranslation && !result.deletedBase && config.onTranslationDelete) {
-          await config.onTranslationDelete(paramsId, result.lang)
-        }
-      } catch (syncErr) {
-        logger?.error?.({ scope: `${config.logScope ?? config.entity}.translation_state_sync`, id: paramsId, lang: result.lang, error: syncErr instanceof Error ? syncErr.message : String(syncErr) }, 'translation_state sync failed on delete (non-blocking)')
+      const requestedLang = (lang || translation.defaultLang || 'en').toLowerCase()
+      const defaultLang = (translation.defaultLang || 'en').toLowerCase()
+
+      if (requestedLang !== defaultLang && !user?.permissions?.canTranslate) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'Permission required (canTranslate)',
+        })
       }
+
+      if (requestedLang === defaultLang && !user?.permissions?.canEditContent) {
+        throw createError({
+          statusCode: 403,
+          statusMessage: 'Permission required (canEditContent)',
+        })
+      }
+
+      const languageKey = translation.languageKey ?? 'language_code'
+
+      const result = await db.transaction().execute(async (trx) => {
+        if (requestedLang === defaultLang) {
+          const deletedBase = await trx
+            .deleteFrom(config.baseTable)
+            .where(sql.ref(idColumn), '=', paramsId)
+            .returning(idColumn as any)
+            .executeTakeFirst()
+
+          if (!deletedBase) {
+            throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
+          }
+
+          await trx
+            .deleteFrom(translation.table)
+            .where(sql.ref(translation.foreignKey), '=', paramsId)
+            .execute()
+
+          await deleteAllTranslationStates(trx, entityCode, paramsId)
+          await deleteEditorialState(trx, entityCode, paramsId)
+
+          return { deletedBase: true, deletedTranslation: true, lang: requestedLang }
+        }
+
+        const deletedTranslation = await trx
+          .deleteFrom(translation.table)
+          .where(sql.ref(translation.foreignKey), '=', paramsId)
+          .where(sql.ref(languageKey), '=', requestedLang)
+          .returning('id' as any)
+          .executeTakeFirst()
+
+        if (!deletedTranslation) {
+          throw createError({ statusCode: 404, statusMessage: 'Translation not found' })
+        }
+
+        await deleteTranslationState(trx, entityCode, paramsId, requestedLang)
+        return { deletedBase: false, deletedTranslation: true, lang: requestedLang }
+      })
+
       logger?.info?.({
         scope: `${config.logScope ?? config.entity}.delete`,
         entity: config.entity,
@@ -678,7 +655,27 @@ export function createCrudHandlers<
       return createResponse(result, null)
     }
 
-    await db.deleteFrom(config.baseTable).where(idColumn, '=', paramsId).execute()
+    if (!user?.permissions?.canEditContent) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Permission required (canEditContent)',
+      })
+    }
+    await db.transaction().execute(async (trx) => {
+      const deleted = await trx
+        .deleteFrom(config.baseTable)
+        .where(sql.ref(idColumn), '=', paramsId)
+        .returning(idColumn as any)
+        .executeTakeFirst()
+
+      if (!deleted) {
+        throw createError({ statusCode: 404, statusMessage: `${config.entity} not found` })
+      }
+
+      await deleteAllTranslationStates(trx, entityCode, paramsId)
+      await deleteEditorialState(trx, entityCode, paramsId)
+    })
+
     logger?.info?.({ scope: `${config.logScope ?? config.entity}.delete`, entity: config.entity, id: paramsId, timeMs: Date.now() - startedAt }, 'Entity deleted')
     return createResponse({ id: paramsId }, null)
   })

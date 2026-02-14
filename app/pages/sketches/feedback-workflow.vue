@@ -34,6 +34,7 @@ import {
   type MockEntity,
 } from '~/components/sketches/mockData'
 import EntityEditorialIndicator from '~/components/sketches/EntityEditorialIndicator.vue'
+import SketchCrossNav from '~/components/sketches/SketchCrossNav.vue'
 
 definePageMeta({ layout: 'default' })
 
@@ -64,6 +65,8 @@ interface FeedbackComment {
   text: string
   status: FeedbackStatus
   lang: string | null
+  field_path: string | null
+  content_version_id: number | null
   created_at: string
   resolution_note: string | null
   resolved_at: string | null
@@ -80,6 +83,8 @@ const feedbackComments = ref<FeedbackComment[]>([
     text: 'The card description is too vague. We need more detail about the journey symbolism and how it connects to the arcana system.',
     status: 'open',
     lang: 'en',
+    field_path: 'description',
+    content_version_id: 12,
     created_at: '2026-02-10T14:30:00Z',
     resolution_note: null,
     resolved_at: null,
@@ -95,6 +100,8 @@ const feedbackComments = ref<FeedbackComment[]>([
     text: 'French translation uses "Le Mat" but the community prefers "Le Fou". Need editorial decision.',
     status: 'addressed',
     lang: 'fr',
+    field_path: 'title',
+    content_version_id: 11,
     created_at: '2026-02-09T10:15:00Z',
     resolution_note: null,
     resolved_at: null,
@@ -111,6 +118,8 @@ const feedbackComments = ref<FeedbackComment[]>([
     text: 'Image quality is excellent. Approved for this card.',
     status: 'resolved',
     lang: null,
+    field_path: 'image',
+    content_version_id: 10,
     created_at: '2026-02-08T09:00:00Z',
     resolution_note: 'Image approved by art director.',
     resolved_at: '2026-02-08T16:00:00Z',
@@ -124,6 +133,8 @@ const feedbackComments = ref<FeedbackComment[]>([
     text: 'Spanish translation missing the keyword "comienzos". This is a core concept for this card.',
     status: 'open',
     lang: 'es',
+    field_path: 'keywords',
+    content_version_id: 12,
     created_at: '2026-02-11T09:00:00Z',
     resolution_note: null,
     resolved_at: null,
@@ -137,6 +148,8 @@ const feedbackComments = ref<FeedbackComment[]>([
     text: 'The card needs a subtitle. All Major Arcana should have "Major Arcana · [number]" format.',
     status: 'open',
     lang: null,
+    field_path: 'subtitle',
+    content_version_id: 12,
     created_at: '2026-02-12T08:30:00Z',
     resolution_note: null,
     resolved_at: null,
@@ -144,6 +157,25 @@ const feedbackComments = ref<FeedbackComment[]>([
     replies: [],
   },
 ])
+
+const FIELD_PATH_OPTIONS = [
+  { label: 'General (no field)', value: '' },
+  { label: 'Title', value: 'title' },
+  { label: 'Subtitle', value: 'subtitle' },
+  { label: 'Description', value: 'description' },
+  { label: 'Keywords', value: 'keywords' },
+  { label: 'Image', value: 'image' },
+  { label: 'Effects', value: 'effects' },
+]
+
+function openInStudio(comment: FeedbackComment) {
+  const parts = [`/manage/${entity.value.entity_type}/${entity.value.id}/studio`]
+  const params: string[] = []
+  if (comment.lang) params.push(`lang=${comment.lang}`)
+  if (comment.field_path) params.push(`field=${comment.field_path}`)
+  const url = parts[0] + (params.length ? `?${params.join('&')}` : '')
+  toast.add({ title: 'Open in Studio', description: url, color: 'primary', icon: 'i-lucide-external-link' })
+}
 
 // --- Filters ---
 const filterStatus = ref<'all' | 'unresolved' | 'mine'>('all')
@@ -262,7 +294,7 @@ function submitReply(comment: FeedbackComment) {
 
 // --- New comment ---
 const showNewComment = ref(false)
-const newCommentState = reactive({ text: '', lang: '' })
+const newCommentState = reactive({ text: '', lang: '', field_path: '' })
 
 const newCommentLangOptions = [
   { label: 'General (no language)', value: '' },
@@ -280,6 +312,8 @@ function submitNewComment() {
     text: newCommentState.text.trim(),
     status: 'open',
     lang: newCommentState.lang || null,
+    field_path: newCommentState.field_path || null,
+    content_version_id: entity.value.content_version_id,
     created_at: new Date().toISOString(),
     resolution_note: null,
     resolved_at: null,
@@ -289,6 +323,7 @@ function submitNewComment() {
   feedbackComments.value.unshift(newComment)
   newCommentState.text = ''
   newCommentState.lang = ''
+  newCommentState.field_path = ''
   showNewComment.value = false
   toast.add({ title: 'Feedback added', color: 'success', icon: 'i-lucide-plus-circle' })
 }
@@ -337,6 +372,10 @@ function relativeTime(dateStr: string): string {
       </div>
     </header>
 
+    <!-- Cross-navigation -->
+    <SketchCrossNav :entity-name="entity.name" current-view="feedback" />
+
+    <!-- Main content -->
     <div class="flex-1 flex overflow-hidden">
       <!-- Left: entity context (simulates Studio editor) -->
       <main class="flex-1 p-6 overflow-y-auto">
@@ -468,6 +507,15 @@ function relativeTime(dateStr: string): string {
               aria-label="Language context for feedback"
             />
           </UFormField>
+          <UFormField label="Field" description="Optional: anchor feedback to a specific field">
+            <USelect
+              v-model="newCommentState.field_path"
+              :items="FIELD_PATH_OPTIONS"
+              size="xs"
+              class="w-full"
+              aria-label="Field path for feedback"
+            />
+          </UFormField>
           <div class="flex justify-end gap-2">
             <UButton label="Cancel" size="xs" variant="ghost" color="neutral" @click="showNewComment = false" />
             <UButton
@@ -510,6 +558,16 @@ function relativeTime(dateStr: string): string {
                     >
                       {{ comment.lang.toUpperCase() }}
                     </UBadge>
+                    <UBadge
+                      v-if="comment.field_path"
+                      color="neutral"
+                      variant="subtle"
+                      size="xs"
+                      icon="i-lucide-map-pin"
+                    >
+                      {{ comment.field_path }}
+                    </UBadge>
+                    <span v-if="comment.content_version_id" class="text-[9px] text-muted tabular-nums">v#{{ comment.content_version_id }}</span>
                     <UBadge
                       :color="statusMeta(comment.status).color"
                       variant="soft"
@@ -605,6 +663,16 @@ function relativeTime(dateStr: string): string {
 
                   <!-- Action buttons -->
                   <div v-if="comment.status !== 'resolved' && resolvingId !== comment.id && replyingToId !== comment.id" class="mt-2 flex items-center gap-2">
+                    <UButton
+                      v-if="comment.field_path"
+                      label="Open in Studio"
+                      icon="i-lucide-external-link"
+                      size="xs"
+                      variant="ghost"
+                      color="primary"
+                      :aria-label="`Open ${comment.field_path} in Studio editor`"
+                      @click="openInStudio(comment)"
+                    />
                     <UButton
                       label="Reply"
                       icon="i-lucide-corner-down-right"

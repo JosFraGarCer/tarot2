@@ -82,7 +82,7 @@ export function parseJsonValue(
         return parsed as Record<string, unknown>
       }
       throw new Error('Not an object')
-    } catch (_err) {
+    } catch {
       throw new z.ZodError([
         {
           path: [field],

@@ -32,6 +32,9 @@ import {
   generateMockEntities,
   editorialStatusMeta,
   translationCoverage,
+  translationStatusDot,
+  releaseStageDot,
+  releaseStageLabel,
   type MockEntity,
 } from '~/components/sketches/mockData'
 import EntityEditorialIndicator from '~/components/sketches/EntityEditorialIndicator.vue'
@@ -120,6 +123,9 @@ const technicalRows = computed(() => [
   { key: 'Entity Type', value: entity.value.entity_type },
   { key: 'Status', value: entity.value.status },
   { key: 'Editorial Status', value: entity.value.editorial_state?.status ?? 'N/A' },
+  { key: 'Content Version', value: entity.value.content_version_id ? `#${entity.value.content_version_id} (v${entity.value.version_semver})` : 'N/A' },
+  { key: 'Release Stage', value: entity.value.release_stage ? releaseStageLabel(entity.value.release_stage) : 'N/A' },
+  { key: 'Image', value: entity.value.image ? 'Assigned' : 'No image' },
   { key: 'Updated By', value: entity.value.editorial_state?.updated_by ?? 'N/A' },
   { key: 'Updated At', value: entity.value.editorial_state?.updated_at ? new Date(entity.value.editorial_state.updated_at).toLocaleString() : 'N/A' },
   { key: 'Created At', value: new Date(entity.value.created_at).toLocaleString() },
@@ -134,7 +140,11 @@ const translationMatrix = computed(() =>
     lang: t.lang.toUpperCase(),
     has_translation: t.has_translation,
     is_fallback: t.is_fallback,
-    status: t.has_translation && !t.is_fallback ? 'Complete' : t.is_fallback ? 'Fallback' : 'Missing',
+    status: t.status,
+    statusLabel: t.has_translation && !t.is_fallback ? (t.status ?? 'Complete') : t.is_fallback ? 'Fallback (EN)' : 'Missing',
+    updated_by: t.updated_by,
+    updated_at: t.updated_at,
+    dotClass: translationStatusDot(t.status).dot,
   })),
 )
 </script>
@@ -361,34 +371,34 @@ const translationMatrix = computed(() =>
               <thead>
                 <tr class="bg-muted/10">
                   <th class="text-left px-4 py-2 text-xs font-semibold text-muted">Lang</th>
-                  <th class="text-left px-4 py-2 text-xs font-semibold text-muted">Has Translation</th>
-                  <th class="text-left px-4 py-2 text-xs font-semibold text-muted">Is Fallback</th>
                   <th class="text-left px-4 py-2 text-xs font-semibold text-muted">Status</th>
+                  <th class="text-left px-4 py-2 text-xs font-semibold text-muted">Updated By</th>
+                  <th class="text-left px-4 py-2 text-xs font-semibold text-muted">Updated At</th>
+                  <th class="text-left px-4 py-2 text-xs font-semibold text-muted">Fallback</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-default">
                 <tr v-for="t in translationMatrix" :key="t.lang">
                   <td class="px-4 py-2 text-xs font-mono font-bold">{{ t.lang }}</td>
                   <td class="px-4 py-2">
-                    <UIcon
-                      :name="t.has_translation ? 'i-lucide-check' : 'i-lucide-x'"
-                      :class="t.has_translation ? 'text-success' : 'text-error'"
-                    />
+                    <div class="flex items-center gap-1.5">
+                      <span :class="`inline-block w-2 h-2 rounded-full ${t.dotClass}`" />
+                      <UBadge
+                        :color="t.has_translation && !t.is_fallback ? 'success' : t.is_fallback ? 'warning' : 'error'"
+                        variant="soft"
+                        size="xs"
+                      >
+                        {{ t.statusLabel }}
+                      </UBadge>
+                    </div>
                   </td>
+                  <td class="px-4 py-2 text-xs text-muted">{{ t.updated_by ?? '—' }}</td>
+                  <td class="px-4 py-2 text-xs text-muted tabular-nums">{{ t.updated_at ? new Date(t.updated_at).toLocaleDateString('en', { month: 'short', day: 'numeric' }) : '—' }}</td>
                   <td class="px-4 py-2">
                     <UIcon
                       :name="t.is_fallback ? 'i-lucide-check' : 'i-lucide-x'"
                       :class="t.is_fallback ? 'text-warning' : 'text-muted'"
                     />
-                  </td>
-                  <td class="px-4 py-2">
-                    <UBadge
-                      :color="t.status === 'Complete' ? 'success' : t.status === 'Fallback' ? 'warning' : 'error'"
-                      variant="soft"
-                      size="xs"
-                    >
-                      {{ t.status }}
-                    </UBadge>
                   </td>
                 </tr>
               </tbody>
@@ -478,7 +488,7 @@ const translationMatrix = computed(() =>
                 loading="lazy"
               >
               <!-- Status overlay -->
-              <div class="absolute top-1.5 right-1.5">
+              <div class="absolute top-1.5 right-1.5 flex items-center gap-1">
                 <UBadge
                   :color="editorialStatusMeta(e.status).color"
                   :variant="editorialStatusMeta(e.status).variant"
@@ -487,6 +497,10 @@ const translationMatrix = computed(() =>
                 >
                   {{ editorialStatusMeta(e.status).label }}
                 </UBadge>
+              </div>
+              <!-- Version + release stage dot -->
+              <div v-if="e.release_stage" class="absolute top-1.5 left-1.5">
+                <span :class="`inline-block w-2.5 h-2.5 rounded-full shadow-sm ${releaseStageDot(e.release_stage)}`" :title="`${e.version_semver} (${releaseStageLabel(e.release_stage)})`" />
               </div>
               <!-- Translation coverage -->
               <div class="absolute bottom-1.5 left-1.5">

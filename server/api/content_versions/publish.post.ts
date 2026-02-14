@@ -1,11 +1,65 @@
 // server/api/content_versions/publish.post.ts
 import { defineEventHandler, readBody } from 'h3'
-import { sql } from 'kysely'
+import { sql, type Transaction } from 'kysely'
 import { safeParseOrThrow } from '../../utils/validate'
 import { createResponse } from '../../utils/response'
 import { badRequest, forbidden, notFound } from '../../utils/error'
 import { contentVersionPublishSchema } from '@shared/schemas/content-version'
+import type { AuthenticatedUser } from '@shared/schemas/common'
+import type { CardStatus } from '@shared/editorial/card-status'
+import { canTransition, type EditorialUserContext } from '@shared/editorial/guard'
 import { enforceRateLimit } from '../../utils/rateLimit'
+import type { DB } from '../../database/types'
+import { upsertEditorialState } from '../../utils/editorialStateSync'
+import { requireDb } from '../../utils/requireDb'
+
+const TABLES_WITH_EFFECTS = new Set(['base_card', 'world_card', 'facet', 'base_skills'])
+
+async function buildPublishEditorialContext(
+  trx: Transaction<DB>,
+  entityType: string,
+  entityId: number,
+): Promise<{ hasBaseContent: boolean; hasAtLeastOneTranslation: boolean; hasEffectsDefined: boolean }> {
+  const translationRow = await trx
+    .selectFrom('translation_state')
+    .select(sql`1`.as('one'))
+    .where('entity_type', '=', entityType)
+    .where('entity_id', '=', entityId)
+    .executeTakeFirst()
+
+  let hasEffectsDefined = true
+  if (TABLES_WITH_EFFECTS.has(entityType)) {
+    const effectRow = await trx
+      .selectFrom('card_effects')
+      .select(sql`1`.as('one'))
+      .where('entity_type', '=', entityType)
+      .where('entity_id', '=', entityId)
+      .executeTakeFirst()
+
+    if (!effectRow) {
+      const legacyRow = await trx
+        .selectFrom(sql`${sql.ref(entityType)}`)
+        .select([sql`legacy_effects`.as('legacy_effects'), sql`effects`.as('effects')])
+        .where(sql`id`, '=', entityId)
+        .executeTakeFirst()
+
+      const legacy = (legacyRow as Record<string, unknown> | undefined)?.legacy_effects === true
+      const inlineEffects = (legacyRow as Record<string, unknown> | undefined)?.effects
+      const hasInline = legacy
+        && inlineEffects != null
+        && typeof inlineEffects === 'object'
+        && Object.keys(inlineEffects as Record<string, unknown>).length > 0
+
+      hasEffectsDefined = hasInline
+    }
+  }
+
+  return {
+    hasBaseContent: true,
+    hasAtLeastOneTranslation: !!translationRow,
+    hasEffectsDefined,
+  }
+}
 
 export default defineEventHandler(async (event) => {
   const startedAt = Date.now()
@@ -14,7 +68,7 @@ export default defineEventHandler(async (event) => {
 
   logger?.info?.({ scope: 'content_versions.publish.start', requestId }, 'Content version publish started')
 
-  const user = (event.context as any).user
+  const user = ((event.context as Record<string, unknown>).user ?? null) as AuthenticatedUser | null
   const permissions = user?.permissions ?? {}
   if (!permissions.canPublish) forbidden('Permission required to publish content versions')
 
@@ -31,13 +85,13 @@ export default defineEventHandler(async (event) => {
   const publishedAt = new Date().toISOString()
   const userId = user?.id ?? null
 
-  const db = globalThis.db
+  const db = requireDb(event)
   let createdVersion = false
   let versionId = payload.version_id ?? null
   let versionSemver: string | null = null
 
   const transactionResult = await db.transaction().execute(async (trx) => {
-    let metadataPatch: Record<string, any> = {}
+    let metadataPatch: Record<string, unknown> = {}
 
     if (versionId == null) {
       const release = payload.release ?? 'revision'
@@ -80,7 +134,7 @@ export default defineEventHandler(async (event) => {
 
       versionSemver = existing.version_semver
 
-      const updatePatch: Record<string, any> = {}
+      const updatePatch: Record<string, unknown> = {}
 
       if (payload.version_semver && payload.version_semver !== existing.version_semver) {
         const duplicate = await trx
@@ -100,9 +154,9 @@ export default defineEventHandler(async (event) => {
       const baseMetadata = (() => {
         const meta = existing.metadata
         if (!meta) return {}
-        if (typeof meta === 'object') return meta as Record<string, any>
+        if (typeof meta === 'object') return meta as Record<string, unknown>
         try {
-          return JSON.parse(String(meta))
+          return JSON.parse(String(meta)) as Record<string, unknown>
         } catch {
           return {}
         }
@@ -137,6 +191,54 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    const userCtx: EditorialUserContext = {
+      roles: user?.roles?.map((role) => role.name) ?? [],
+      permissions,
+    }
+
+    const entityState = new Map<string, { entity_type: string; entity_id: number; is_active: boolean }>()
+    for (const revision of approved) {
+      const entityType = String(revision.entity_type)
+      const entityId = Number(revision.entity_id)
+      if (!entityType || !Number.isFinite(entityId)) continue
+
+      const key = `${entityType}:${entityId}`
+      if (entityState.has(key)) continue
+
+      const current = await trx
+        .selectFrom(sql`${sql.ref(entityType)}`)
+        .select([sql`status`.as('status'), sql`is_active`.as('is_active')])
+        .where(sql`id`, '=', entityId)
+        .executeTakeFirst()
+
+      if (!current) {
+        notFound(`Publish target not found (${entityType}:${entityId})`)
+      }
+
+      const currentStatus = String((current as Record<string, unknown>).status ?? '') as CardStatus
+      if (currentStatus !== 'published') {
+        const editorialCtx = await buildPublishEditorialContext(trx, entityType, entityId)
+        const transition = canTransition(currentStatus, 'published', editorialCtx, userCtx)
+
+        if (!transition.allowed) {
+          const message = `Status transition not allowed: ${currentStatus} -> published. ${transition.reason ?? ''}`.trim()
+          if (transition.code === 'PERMISSION_DENIED') {
+            forbidden(message)
+          }
+          badRequest(message)
+        }
+      }
+
+      entityState.set(key, {
+        entity_type: entityType,
+        entity_id: entityId,
+        is_active:
+          typeof (current as Record<string, unknown>).is_active === 'boolean'
+            ? Boolean((current as Record<string, unknown>).is_active)
+            : true,
+      })
+    }
+
     await trx
       .updateTable('content_revisions')
       .set({ content_version_id: versionId as number, status: 'published' })
@@ -153,7 +255,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const byType: Record<string, number[]> = {}
-    for (const revision of approved as any[]) {
+    for (const revision of approved) {
       const type = String(revision.entity_type)
       if (!entityTypesWithVersion[type]) continue
       byType[type] ||= []
@@ -165,9 +267,17 @@ export default defineEventHandler(async (event) => {
       const uniqueIds = Array.from(new Set(ids))
       await trx
         .updateTable(sql`${sql.ref(table)}`)
-        .set({ content_version_id: versionId as number })
+        .set({ content_version_id: versionId as number, status: 'published' })
         .where(sql`id`, 'in', uniqueIds)
         .execute()
+    }
+
+    for (const entity of entityState.values()) {
+      await upsertEditorialState(trx, entity.entity_type, entity.entity_id, {
+        status: 'published',
+        isActive: entity.is_active,
+        updatedBy: userId,
+      })
     }
 
     return { approved }

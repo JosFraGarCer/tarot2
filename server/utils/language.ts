@@ -7,6 +7,17 @@ export type LanguageAware = {
   language_is_fallback?: boolean
 }
 
+interface LoggerLike {
+  debug?: (obj: Record<string, unknown>, msg?: string) => void
+  info?: (obj: Record<string, unknown>, msg?: string) => void
+  warn?: (obj: Record<string, unknown>, msg?: string) => void
+  error?: (obj: Record<string, unknown>, msg?: string) => void
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
 function resolveFallbackFlag(record: LanguageAware, requestedLang?: string | null): boolean {
   if (!record || typeof record !== 'object') return false
   const resolved = (record.language_code_resolved ?? record.language_code ?? '').toString().toLowerCase()
@@ -17,14 +28,16 @@ function resolveFallbackFlag(record: LanguageAware, requestedLang?: string | nul
 }
 
 function applyFallbackFlag(record: unknown, lang?: string | null) {
-  if (!record || typeof record !== 'object') return
-  if ('language_code_resolved' in (record as any) || 'language_code' in (record as any)) {
+  if (!isRecord(record)) return
+
+  if ('language_code_resolved' in record || 'language_code' in record) {
     const fallback = resolveFallbackFlag(record as LanguageAware, lang)
     ;(record as LanguageAware).language_is_fallback = fallback
   }
 
-  if ((record as any)?.tags && Array.isArray((record as any).tags)) {
-    for (const tag of (record as any).tags) {
+  const tags = record.tags
+  if (Array.isArray(tags)) {
+    for (const tag of tags) {
       applyFallbackFlag(tag, lang)
     }
   }
@@ -41,5 +54,5 @@ export function markLanguageFallback<T>(data: T, lang?: string | null): T {
 }
 
 export function getLoggerFromEvent(event?: H3Event | null) {
-  return event?.context.logger ?? (globalThis as any).logger
+  return (event?.context.logger as LoggerLike | undefined) ?? (globalThis as { logger?: LoggerLike }).logger
 }

@@ -91,6 +91,34 @@ const sketches = [
     status: 'P1',
     icon: 'i-lucide-network',
   },
+  {
+    to: '/sketches/codex-grimoire',
+    title: 'Codex / Grimoire',
+    description: 'Immersive encyclopedia-style browse. Codex index + Grimoire card-by-card reading with keyboard navigation.',
+    status: 'P2',
+    icon: 'i-lucide-book-open',
+  },
+  {
+    to: '/sketches/timeline-view',
+    title: 'Timeline View',
+    description: 'Chronological timeline of editorial events: status transitions, content revisions, translation updates, feedback.',
+    status: 'P2',
+    icon: 'i-lucide-clock',
+  },
+  {
+    to: '/sketches/diff-compare',
+    title: 'Diff / Compare',
+    description: 'Side-by-side comparison of content revision snapshots with field-level diff highlighting.',
+    status: 'P2',
+    icon: 'i-lucide-diff',
+  },
+  {
+    to: '/sketches/dependency-tree',
+    title: 'Dependency Tree',
+    description: 'Collapsible tree view of entity dependencies with health status and blocker indicators.',
+    status: 'P2',
+    icon: 'i-lucide-git-fork',
+  },
 ]
 
 const priorityColor = (status: string) => {

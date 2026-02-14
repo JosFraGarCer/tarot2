@@ -28,10 +28,20 @@
 -->
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
+import {
+  generateMockEntities,
+} from '~/components/sketches/mockData'
+import EntityEditorialIndicator from '~/components/sketches/EntityEditorialIndicator.vue'
 
 definePageMeta({ layout: 'default' })
 
 const toast = useToast()
+
+// --- Entity context ---
+const allEntities = generateMockEntities(10)
+const selectedEntityId = ref(allEntities[0]!.id)
+const entity = computed(() => allEntities.find(e => e.id === selectedEntityId.value) ?? allEntities[0]!)
+const entityOptions = allEntities.map(e => ({ label: `${e.name} (${e.entity_type})`, value: e.id }))
 
 // --- Types ---
 interface MockImage {
@@ -44,6 +54,7 @@ interface MockImage {
   uploaded_at: string
   entity_type: string
   entity_name: string
+  entity_id: number | null
   is_primary: boolean
   version: number
 }
@@ -68,10 +79,11 @@ function generateMockImages(count: number): MockImage[] {
     filename: `card_${i + 1}.webp`,
     size: `${Math.floor(Math.random() * 500 + 100)}KB`,
     ratio: '2:3',
-    uploaded_by: UPLOADERS[i % UPLOADERS.length],
+    uploaded_by: UPLOADERS[i % UPLOADERS.length] ?? 'alice',
     uploaded_at: new Date(Date.now() - i * 86400000 * Math.random() * 30).toISOString(),
-    entity_type: ENTITY_TYPES[i % ENTITY_TYPES.length],
-    entity_name: CARD_NAMES[i % CARD_NAMES.length],
+    entity_type: ENTITY_TYPES[i % ENTITY_TYPES.length] ?? 'base_card',
+    entity_name: CARD_NAMES[i % CARD_NAMES.length] ?? 'Unknown',
+    entity_id: allEntities[i % allEntities.length]?.id ?? null,
     is_primary: i % 4 === 0,
     version: Math.floor(Math.random() * 3) + 1,
   }))
@@ -228,6 +240,24 @@ function startCompare() {
           <UBadge color="primary" variant="subtle" size="xs">Studio</UBadge>
         </div>
 
+        <!-- Entity context -->
+        <div class="flex items-center gap-3">
+          <USelect
+            :model-value="selectedEntityId"
+            :items="entityOptions"
+            size="xs"
+            class="w-56"
+            aria-label="Select entity"
+            @update:model-value="selectedEntityId = Number($event)"
+          />
+          <EntityEditorialIndicator
+            :editorial-state="entity.editorial_state"
+            :translations="entity.translations"
+            :health="{ hasImage: !!entity.image, hasEffects: true }"
+            compact
+          />
+        </div>
+
         <!-- Section tabs -->
         <div class="flex items-center rounded-md border border-default overflow-hidden">
           <button
@@ -250,8 +280,14 @@ function startCompare() {
       <!-- ===== UPLOAD SECTION ===== -->
       <div v-if="activeSection === 'upload'" class="space-y-6">
         <div>
-          <h2 class="text-sm font-semibold mb-1">Image Upload</h2>
-          <p class="text-xs text-muted">Drag & drop or click to upload a card image.</p>
+          <h2 class="text-sm font-semibold mb-1">Image Upload for {{ entity.name }}</h2>
+          <p class="text-xs text-muted">Drag & drop or click to upload a card image. Assigned to <code class="text-xs">{{ entity.code }}</code> ({{ entity.entity_type }}).</p>
+        </div>
+
+        <!-- Publish readiness impact -->
+        <div v-if="!entity.image && !uploadState.previewUrl" class="rounded-lg border border-warning/30 bg-warning/5 p-3 flex items-center gap-2">
+          <UIcon name="i-lucide-alert-triangle" class="text-warning shrink-0" />
+          <span class="text-xs text-warning">This entity has no image assigned. Image is required for publish readiness.</span>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -661,7 +697,7 @@ function startCompare() {
         Gallery → <code class="text-xs">/manage/gallery</code> route or modal picker.
         Versioning → image history tab. Connect to <code class="text-xs">useImageUpload</code>.
         Entity <code class="text-xs">image_url</code> field updated on select/upload.
-        Editorial state changes do not affect images.
+        Image presence affects <code class="text-xs">publishReady</code> in editorial health.
       </p>
     </div>
   </div>

@@ -5,9 +5,21 @@ import { sql } from 'kysely'
 import type { DB } from '../database/types'
 import { markLanguageFallback } from './language'
 
-export interface TranslatableUpsertOptions<TEntityRow = any> {
+type DbExecutor = Kysely<DB> | Transaction<DB>
+type UpsertPayload = Record<string, unknown>
+
+interface UpsertLogger {
+  info?: (obj: Record<string, unknown>, msg?: string) => void
+}
+
+function getGlobalLogger(): UpsertLogger | undefined {
+  return (globalThis as { logger?: UpsertLogger }).logger
+}
+
+export interface TranslatableUpsertOptions<TEntityRow = unknown> {
   event: H3Event
   db?: Kysely<DB>
+  executor?: DbExecutor
   id?: number | null
   lang?: string | null
   defaultLang?: string
@@ -16,13 +28,13 @@ export interface TranslatableUpsertOptions<TEntityRow = any> {
   foreignKey: string
   languageKey?: string
   idColumn?: string
-  baseData?: Record<string, any>
-  translationData?: Record<string, any> | null
-  select: (db: Kysely<DB>, id: number, lang: string) => Promise<TEntityRow>
+  baseData?: UpsertPayload
+  translationData?: UpsertPayload | null
+  select: (db: DbExecutor, id: number, lang: string) => Promise<TEntityRow>
   loggerScope?: string
 }
 
-export interface TranslatableUpsertResult<TEntityRow = any> {
+export interface TranslatableUpsertResult<TEntityRow = unknown> {
   id: number
   lang: string
   wasCreated: boolean
@@ -31,9 +43,9 @@ export interface TranslatableUpsertResult<TEntityRow = any> {
   row: TEntityRow
 }
 
-function pruneUndefined<T extends Record<string, any>>(source: T | undefined | null): Record<string, any> {
+function pruneUndefined<T extends UpsertPayload>(source: T | undefined | null): UpsertPayload {
   if (!source) return {}
-  const out: Record<string, any> = {}
+  const out: UpsertPayload = {}
   for (const [key, value] of Object.entries(source)) {
     if (value !== undefined) out[key] = value
   }
@@ -41,7 +53,7 @@ function pruneUndefined<T extends Record<string, any>>(source: T | undefined | n
 }
 
 async function upsertTranslation(
-  trx: Transaction<DB>,
+  trx: DbExecutor,
   options: Required<Pick<TranslatableUpsertOptions, 'translationTable' | 'foreignKey'>> & {
     languageKey: string
     entityId: number
@@ -55,26 +67,27 @@ async function upsertTranslation(
 
   // Use ON CONFLICT for atomic upsert in PostgreSQL
   const result = await trx
-    .insertInto(translationTable as any)
+    .insertInto(translationTable)
     .values({
       [foreignKey]: entityId,
       [languageKey]: lang,
       ...cleaned,
-    } as any)
+    } as never)
     .onConflict((oc) =>
-      oc.columns([foreignKey as any, languageKey as any]).doUpdateSet(cleaned as any)
+      oc.columns([foreignKey as never, languageKey as never]).doUpdateSet(cleaned as never)
     )
-    .returning(['id' as any])
+    .returning('id')
     .executeTakeFirst()
 
   return result ? 'updated' : 'inserted'
 }
 
-export async function translatableUpsert<TEntityRow = any>(
+export async function translatableUpsert<TEntityRow = unknown>(
   opts: TranslatableUpsertOptions<TEntityRow>,
 ): Promise<TranslatableUpsertResult<TEntityRow>> {
-  const db = opts.db ?? globalThis.db
-  if (!db) throw new Error('Database instance not available')
+  const fallbackDb = opts.db ?? globalThis.db
+  if (!fallbackDb) throw new Error('Database instance not available')
+  const readExecutor = opts.executor ?? fallbackDb
 
   const lang = (opts.lang ?? 'en').toLowerCase()
   const defaultLang = (opts.defaultLang ?? 'en').toLowerCase()
@@ -82,7 +95,7 @@ export async function translatableUpsert<TEntityRow = any>(
   const languageKey = opts.languageKey ?? 'language_code'
   const baseData = pruneUndefined(opts.baseData)
   const translationData = pruneUndefined(opts.translationData)
-  const logger = opts.event.context.logger ?? (globalThis as any).logger
+  const logger = (opts.event.context.logger as UpsertLogger | undefined) ?? getGlobalLogger()
   const scope = opts.loggerScope ?? 'translatable.upsert'
 
   let entityId = opts.id ?? null
@@ -90,25 +103,25 @@ export async function translatableUpsert<TEntityRow = any>(
   let translationInserted = false
   let translationUpdated = false
 
-  await db.transaction().execute(async (trx) => {
+  const run = async (trx: DbExecutor) => {
     // Create or update base entity
     if (entityId == null) {
       if (!Object.keys(baseData).length) {
         throw new Error(`Cannot create ${String(opts.baseTable)} without base data`)
       }
       const inserted = await trx
-        .insertInto(opts.baseTable as any)
-        .values(baseData as any)
-        .returning(idColumn as any)
+        .insertInto(opts.baseTable)
+        .values(baseData as never)
+        .returning(idColumn as never)
         .executeTakeFirst()
       if (!inserted) throw new Error(`Failed to insert ${String(opts.baseTable)}`)
-      entityId = Number((inserted as any)[idColumn])
+      entityId = Number((inserted as UpsertPayload)[idColumn])
       wasCreated = true
     } else if (Object.keys(baseData).length) {
       await trx
-        .updateTable(opts.baseTable as any)
-        .set(baseData as any)
-        .where(idColumn as any, '=', entityId)
+        .updateTable(opts.baseTable)
+        .set(baseData as never)
+        .where(idColumn as never, '=', entityId)
         .execute()
     }
 
@@ -148,11 +161,19 @@ export async function translatableUpsert<TEntityRow = any>(
         translationInserted = true
       }
     }
-  })
+  }
+
+  if (opts.executor) {
+    await run(opts.executor)
+  } else {
+    await fallbackDb.transaction().execute(async (trx) => {
+      await run(trx)
+    })
+  }
 
   if (entityId == null) throw new Error('Entity id not resolved after upsert')
 
-  const row = await opts.select(db, entityId, lang)
+  const row = await opts.select(readExecutor, entityId, lang)
   const normalized = Array.isArray(row)
     ? row
     : markLanguageFallback(row, lang)

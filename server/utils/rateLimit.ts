@@ -19,6 +19,20 @@ interface Bucket {
 
 const buckets = new Map<string, Bucket>()
 
+function isProxyTrusted(): boolean {
+  const raw = process.env.TRUST_PROXY
+  if (!raw) return false
+  return ['1', 'true', 'yes', 'on'].includes(raw.toLowerCase())
+}
+
+function firstHeaderValue(value: string | string[] | undefined): string | null {
+  if (!value) return null
+  const str = Array.isArray(value) ? (value[0] ?? '') : value
+  if (!str) return null
+  const candidate = str.split(',')[0]?.trim()
+  return candidate || null
+}
+
 // Clean up expired buckets every hour to prevent memory leaks
 if (process.env.NODE_ENV !== 'test') {
   setInterval(() => {
@@ -32,16 +46,20 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 export function getClientIp(event: H3Event): string | null {
-  const header = event.node.req.headers['x-forwarded-for']
-  if (typeof header === 'string' && header.trim().length) {
-    const ip = header.split(',')[0]?.trim()
-    if (ip) return ip
+  if (isProxyTrusted()) {
+    const forwarded = firstHeaderValue(event.node.req.headers['x-forwarded-for'])
+    if (forwarded) return forwarded
+
+    const realIp = firstHeaderValue(event.node.req.headers['x-real-ip'])
+    if (realIp) return realIp
+
+    const forwardedHeader = firstHeaderValue(event.node.req.headers.forwarded)
+    if (forwardedHeader) {
+      const match = forwardedHeader.match(/for=(?:"?)([^;,"]+)(?:"?)/i)
+      if (match?.[1]) return match[1]
+    }
   }
-  const ips = Array.isArray(header) ? header[0] : undefined
-  if (ips && ips.trim().length) {
-    const ip = ips.split(',')[0]?.trim()
-    if (ip) return ip
-  }
+
   return event.node.req.socket?.remoteAddress ?? null
 }
 

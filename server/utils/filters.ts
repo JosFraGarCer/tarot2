@@ -37,6 +37,11 @@ function parseDateRangeBounds(bounds: { from?: Date; to?: Date } | undefined): {
   return { from, to }
 }
 
+function readSearchAlias(options: BuildFiltersOptions): string {
+  const withAlias = options as BuildFiltersOptions & { q?: unknown }
+  return typeof withAlias.q === 'string' ? withAlias.q : ''
+}
+
 export async function buildFilters<TB extends keyof DB, O>(
   qb: SelectQueryBuilder<DB, TB, O>,
   options: BuildFiltersOptions,
@@ -49,7 +54,7 @@ export async function buildFilters<TB extends keyof DB, O>(
   resolvedSortDirection?: 'asc' | 'desc'
 }> {
   // 🔸 Normaliza alias de búsqueda (?search= o ?q=)
-  const normalizedSearchRaw = (options.search ?? (options as any).q ?? '').toString().trim()
+  const normalizedSearchRaw = (options.search ?? readSearchAlias(options)).toString().trim()
   const search = normalizedSearchRaw.length > 0 ? normalizedSearchRaw : ''
   options.search = search
 
@@ -94,10 +99,12 @@ export async function buildFilters<TB extends keyof DB, O>(
     if (options.applySearch) {
       filtered = options.applySearch(filtered, search)
     } else if (options.searchColumns && options.searchColumns.length > 0) {
+      const searchColumns = options.searchColumns
+
       filtered = filtered.where((eb) =>
         eb.or(
-          options.searchColumns.map((col) =>
-            eb(col as unknown as never, 'ilike', `%${search}%`),
+          searchColumns.map((col) =>
+            eb(col as unknown as never, 'ilike', `%${search}%` as unknown as never),
           ),
         ),
       )

@@ -26,6 +26,9 @@ import {
   generateMockEntities,
   editorialStatusMeta,
   translationCoverage,
+  releaseStageDot,
+  releaseStageLabel,
+  translationStatusDot,
   type MockEntity,
 } from '~/components/sketches/mockData'
 
@@ -41,13 +44,18 @@ const allEntities = ref(generateMockEntities(10))
 
 // --- Filters ---
 const editorialFilter = ref<string | undefined>(undefined)
+const releaseStageFilter = ref<string | undefined>(undefined)
 const missingFrOnly = ref(false)
+const hasBlockersOnly = ref(false)
+
+const UIcon = resolveComponent('UIcon')
 
 const editorialFilterOptions = [
   { label: 'All statuses', value: '' },
   { label: 'Draft', value: 'draft' },
   { label: 'Pending Review', value: 'pending_review' },
   { label: 'Review', value: 'review' },
+  { label: 'Changes Requested', value: 'changes_requested' },
   { label: 'Translation Review', value: 'translation_review' },
   { label: 'Approved', value: 'approved' },
   { label: 'Published', value: 'published' },
@@ -55,16 +63,32 @@ const editorialFilterOptions = [
   { label: 'Archived', value: 'archived' },
 ]
 
+const releaseStageOptions = [
+  { label: 'All stages', value: '' },
+  { label: 'Dev', value: 'dev' },
+  { label: 'Alfa', value: 'alfa' },
+  { label: 'Beta', value: 'beta' },
+  { label: 'Candidate', value: 'candidate' },
+  { label: 'Release', value: 'release' },
+  { label: 'Revision', value: 'revision' },
+]
+
 const filteredEntities = computed(() => {
   let items = allEntities.value
   if (editorialFilter.value) {
     items = items.filter(e => e.editorial_state?.status === editorialFilter.value)
+  }
+  if (releaseStageFilter.value) {
+    items = items.filter(e => e.release_stage === releaseStageFilter.value)
   }
   if (missingFrOnly.value) {
     items = items.filter(e => {
       const fr = e.translations.find(t => t.lang === 'fr')
       return fr && (!fr.has_translation || fr.is_fallback)
     })
+  }
+  if (hasBlockersOnly.value) {
+    items = items.filter(e => (e.editorial?.blockingReasons.length ?? 0) > 0)
   }
   return items
 })
@@ -93,6 +117,20 @@ const columns: TableColumn<MockEntity>[] = [
     },
   },
   {
+    id: 'version',
+    header: 'Version',
+    cell: ({ row }) => {
+      const e = row.original
+      if (!e.version_semver) return h('span', { class: 'text-xs text-muted italic' }, '—')
+      const dotClass = releaseStageDot(e.release_stage)
+      const stageLabel = releaseStageLabel(e.release_stage)
+      return h('div', { class: 'flex items-center gap-1.5', title: `${e.version_semver} (${stageLabel})` }, [
+        h(UBadge, { color: 'neutral', variant: 'outline', size: 'xs' }, () => `v${e.version_semver}`),
+        h('span', { class: `inline-block w-2 h-2 rounded-full shrink-0 ${dotClass}`, 'aria-label': stageLabel }),
+      ])
+    },
+  },
+  {
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => {
@@ -107,25 +145,22 @@ const columns: TableColumn<MockEntity>[] = [
     },
   },
   {
-    id: 'editorial_status',
-    header: 'Editorial State',
+    id: 'health',
+    header: 'Health',
     cell: ({ row }) => {
-      const es = row.original.editorial_state
-      if (!es) {
-        return h('span', { class: 'text-xs text-muted italic' }, 'No state')
-      }
-      const meta = editorialStatusMeta(es.status)
-      return h('div', { class: 'flex flex-col gap-0.5' }, [
-        h(UBadge, {
-          color: meta.color,
-          variant: meta.variant,
-          icon: meta.icon,
-          size: 'xs',
-          'aria-label': `Editorial state: ${meta.label}`,
-        }, () => meta.label),
-        es.updated_by
-          ? h('span', { class: 'text-[10px] text-muted' }, `by ${es.updated_by}`)
-          : null,
+      const e = row.original
+      const hasImage = !!e.image
+      const hasEffects = !e.editorial?.blockingReasons.some((r: string) => r.includes('effects'))
+      const blockers = e.editorial?.blockingReasons.length ?? 0
+      return h('div', { class: 'flex items-center gap-1', title: blockers > 0 ? e.editorial!.blockingReasons.join('\n') : 'No blockers' }, [
+        h(UIcon, { name: hasImage ? 'i-lucide-image' : 'i-lucide-image-off', class: `text-xs ${hasImage ? 'text-emerald-500' : 'text-red-400'}` }),
+        h(UIcon, { name: hasEffects ? 'i-lucide-zap' : 'i-lucide-zap-off', class: `text-xs ${hasEffects ? 'text-emerald-500' : 'text-red-400'}` }),
+        blockers > 0
+          ? h('span', { class: 'inline-flex items-center gap-0.5 text-[10px] text-warning ml-0.5' }, [
+              h(UIcon, { name: 'i-lucide-alert-triangle', class: 'text-[10px]' }),
+              String(blockers),
+            ])
+          : h(UIcon, { name: 'i-lucide-check-circle', class: 'text-xs text-emerald-500 ml-0.5' }),
       ])
     },
   },
@@ -133,25 +168,26 @@ const columns: TableColumn<MockEntity>[] = [
     id: 'translations',
     header: 'Translations',
     cell: ({ row }) => {
-      const cov = translationCoverage(row.original.translations)
-      const color = cov.done === cov.total ? 'success' : cov.done === 0 ? 'error' : 'warning'
-      const ariaLabel = cov.missing.length
-        ? `${cov.label} translations complete. Missing: ${cov.missing.join(', ')}`
-        : `${cov.label} translations complete`
-      return h('div', { class: 'flex items-center gap-1.5' }, [
-        h(UBadge, {
-          color,
-          variant: 'soft',
-          size: 'xs',
-          'aria-label': ariaLabel,
-        }, () => cov.label),
-        cov.missing.length
-          ? h('span', {
-              class: 'text-[10px] text-muted',
-              title: `Missing: ${cov.missing.join(', ')}`,
-            }, cov.missing.join(', '))
-          : null,
-      ])
+      const translations = row.original.translations
+      const cov = translationCoverage(translations)
+      return h('div', {
+        class: 'flex items-center gap-1',
+        'aria-label': cov.missing.length
+          ? `${cov.label} translations. Missing: ${cov.missing.join(', ')}`
+          : `${cov.label} translations complete`,
+      }, translations.map(t => {
+        const dotInfo = translationStatusDot(t.status)
+        const tooltipText = t.has_translation && !t.is_fallback
+          ? `${t.lang.toUpperCase()}: ${dotInfo.label}${t.updated_by ? ` · ${t.updated_by}` : ''}`
+          : `${t.lang.toUpperCase()}: missing (fallback)`
+        return h('span', {
+          class: 'flex items-center gap-0.5',
+          title: tooltipText,
+        }, [
+          h('span', { class: `inline-block w-1.5 h-1.5 rounded-full ${dotInfo.dot}` }),
+          h('span', { class: 'text-[10px] text-muted' }, t.lang.toUpperCase()),
+        ])
+      }))
     },
   },
   {
@@ -181,7 +217,8 @@ const stats = computed(() => {
     const fr = e.translations.find(t => t.lang === 'fr')
     return fr && (!fr.has_translation || fr.is_fallback)
   }).length
-  return { drafts, inReview, published, missingFr }
+  const withBlockers = items.filter(e => (e.editorial?.blockingReasons.length ?? 0) > 0).length
+  return { drafts, inReview, published, missingFr, withBlockers }
 })
 </script>
 
@@ -292,9 +329,19 @@ const stats = computed(() => {
           :items="editorialFilterOptions"
           placeholder="Filter by editorial status"
           icon="i-lucide-filter"
-          class="w-56"
+          class="w-48"
           size="sm"
           aria-label="Filter by editorial status"
+        />
+
+        <USelect
+          v-model="releaseStageFilter"
+          :items="releaseStageOptions"
+          placeholder="Filter by stage"
+          icon="i-lucide-git-branch"
+          class="w-40"
+          size="sm"
+          aria-label="Filter by release stage"
         />
 
         <USwitch
@@ -303,6 +350,14 @@ const stats = computed(() => {
           size="sm"
           color="warning"
           aria-label="Show only entities missing French translation"
+        />
+
+        <USwitch
+          v-model="hasBlockersOnly"
+          label="Has blockers"
+          size="sm"
+          color="error"
+          aria-label="Show only entities with blocking reasons"
         />
 
         <div class="ml-auto text-xs text-muted tabular-nums">
@@ -332,7 +387,7 @@ const stats = computed(() => {
                 variant="ghost"
                 size="xs"
                 class="mt-2"
-                @click="editorialFilter = undefined; missingFrOnly = false"
+                @click="editorialFilter = undefined; releaseStageFilter = undefined; missingFrOnly = false; hasBlockersOnly = false"
               />
             </div>
           </template>

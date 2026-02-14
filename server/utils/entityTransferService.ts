@@ -10,6 +10,52 @@ interface TransferOptions extends CrudHelperOptions {
   scope?: string
 }
 
+interface TransferLogger {
+  info?: (obj: Record<string, unknown>, msg?: string) => void
+  error?: (obj: Record<string, unknown>, msg?: string) => void
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null
+  return value as Record<string, unknown>
+}
+
+function getTransferLogger(event: H3Event): TransferLogger | undefined {
+  return (event.context.logger as TransferLogger | undefined) ?? (globalThis as { logger?: TransferLogger }).logger
+}
+
+function readNumberField(payload: unknown, key: string): number | null {
+  const record = asRecord(payload)
+  if (!record) return null
+  const value = record[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function readArrayLengthField(payload: unknown, key: string): number | null {
+  const record = asRecord(payload)
+  if (!record) return null
+  const value = record[key]
+  return Array.isArray(value) ? value.length : null
+}
+
+function normalizeError(error: unknown): { message: string; statusCode?: number; statusMessage?: string } {
+  if (error instanceof Error) {
+    const known = error as Error & { statusCode?: number; statusMessage?: string }
+    return {
+      message: known.message,
+      statusCode: known.statusCode,
+      statusMessage: known.statusMessage,
+    }
+  }
+
+  const record = asRecord(error)
+  const message = typeof record?.message === 'string' ? record.message : String(error)
+  const statusCode = typeof record?.statusCode === 'number' ? record.statusCode : undefined
+  const statusMessage = typeof record?.statusMessage === 'string' ? record.statusMessage : undefined
+
+  return { message, statusCode, statusMessage }
+}
+
 function resolveCount(payload: unknown): number | null {
   if (!payload || typeof payload !== 'object') return null
   const values = Object.values(payload)
@@ -21,7 +67,7 @@ function resolveCount(payload: unknown): number | null {
 
 export async function exportEntityData(options: TransferOptions) {
   const { event, entity, scope } = options
-  const logger = event.context.logger ?? (globalThis as any).logger
+  const logger = getTransferLogger(event)
   const startedAt = Date.now()
 
   try {
@@ -36,32 +82,34 @@ export async function exportEntityData(options: TransferOptions) {
     }, 'Entity export completed')
 
     return result
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorInfo = normalizeError(error)
+
     logger?.error?.({
       scope: scope ?? `${entity}.export`,
       entity,
-      error: error?.message ?? String(error),
+      error: errorInfo.message,
       timeMs: Date.now() - startedAt,
     }, 'Entity export failed')
 
     throw createError({
-      statusCode: error?.statusCode ?? (error?.message?.includes('not found') ? 404 : 500),
-      statusMessage: error?.statusMessage ?? 'Failed to export entities',
+      statusCode: errorInfo.statusCode ?? (errorInfo.message.includes('not found') ? 404 : 500),
+      statusMessage: errorInfo.statusMessage ?? 'Failed to export entities',
     })
   }
 }
 
 export async function importEntityData(options: TransferOptions) {
   const { event, entity, scope } = options
-  const logger = event.context.logger ?? (globalThis as any).logger
+  const logger = getTransferLogger(event)
   const startedAt = Date.now()
 
   try {
     const result = await importEntities(options)
     const meta = {
-      created: (result.data as any)?.created ?? null,
-      updated: (result.data as any)?.updated ?? null,
-      errors: Array.isArray((result.data as any)?.errors) ? (result.data as any).errors.length : null,
+      created: readNumberField(result.data, 'created'),
+      updated: readNumberField(result.data, 'updated'),
+      errors: readArrayLengthField(result.data, 'errors'),
     }
 
     logger?.info?.({
@@ -72,17 +120,19 @@ export async function importEntityData(options: TransferOptions) {
     }, 'Entity import completed')
 
     return result
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorInfo = normalizeError(error)
+
     logger?.error?.({
       scope: scope ?? `${entity}.import`,
       entity,
-      error: error?.message ?? String(error),
+      error: errorInfo.message,
       timeMs: Date.now() - startedAt,
     }, 'Entity import failed')
 
     throw createError({
-      statusCode: error?.statusCode ?? 500,
-      statusMessage: error?.statusMessage ?? 'Failed to import entities',
+      statusCode: errorInfo.statusCode ?? 500,
+      statusMessage: errorInfo.statusMessage ?? 'Failed to import entities',
     })
   }
 }

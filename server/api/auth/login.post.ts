@@ -104,7 +104,6 @@ export default defineEventHandler(async (event) => {
 
     return createResponse(
       {
-        token,
         user: {
           id: user.id,
           username: user.username,

@@ -30,12 +30,16 @@ import {
   generateMockEntities,
   editorialStatusMeta,
   translationCoverage,
+  translationStatusDot,
+  releaseStageDot,
+  releaseStageLabel,
   EDITORIAL_TRANSITIONS,
   computeEditorial,
   type EditorialStatus,
   type MockEntity,
 } from '~/components/sketches/mockData'
 import EntityEditorialIndicator from '~/components/sketches/EntityEditorialIndicator.vue'
+import SketchCrossNav from '~/components/sketches/SketchCrossNav.vue'
 
 definePageMeta({ layout: 'default' })
 
@@ -78,34 +82,94 @@ const coverage = computed(() => {
   const cov = translationCoverage(entity.value.translations)
   return { current: cov.done, total: cov.total }
 })
+const healthFlags = computed(() => ({
+  hasImage: !!entity.value.image || !!cardImageUrl.value,
+  hasEffects: entity.value.editorial?.blockingReasons.every(r => !r.includes('effects')) ?? true,
+  dependencyHealth: mockDependencies.value.every(d => d.status === 'published' || d.status === 'approved') ? 'ok' as const : mockDependencies.value.some(d => d.status === 'draft' || d.status === 'rejected') ? 'blocked' as const : 'warning' as const,
+}))
 const nextTransitions = computed(() => {
   if (!entity.value.editorial_state) return []
   return EDITORIAL_TRANSITIONS[entity.value.editorial_state.status] ?? []
 })
 const primaryTransition = computed(() => nextTransitions.value[0] ?? null)
 
+function canTransition(target: EditorialStatus): { allowed: boolean; reasons: string[] } {
+  const reasons: string[] = []
+  if (target === 'published' && !entity.value.editorial?.publishReady) {
+    if (!coverage.value || coverage.value.current < coverage.value.total) reasons.push('Missing translations')
+    if (!healthFlags.value.hasImage) reasons.push('No image assigned')
+    if (!healthFlags.value.hasEffects) reasons.push('No effects defined')
+    if (healthFlags.value.dependencyHealth === 'blocked') reasons.push('Dependencies not ready')
+    if (openFeedbackCount.value > 0) reasons.push(`${openFeedbackCount.value} unresolved feedback`)
+  }
+  if (target === 'pending_review' && openFeedbackCount.value > 0) {
+    reasons.push(`${openFeedbackCount.value} unresolved feedback`)
+  }
+  return { allowed: reasons.length === 0, reasons }
+}
+
 function applyTransition(target: EditorialStatus) {
+  const check = canTransition(target)
+  if (!check.allowed) {
+    toast.add({ title: 'Cannot transition', description: check.reasons.join('. '), color: 'warning', icon: 'i-lucide-alert-triangle' })
+    return
+  }
   entity.value = {
     ...entity.value,
     status: target,
-    editorial_state: { status: target, updated_by: 'current_user', updated_at: new Date().toISOString() },
-    editorial: computeEditorial(target, entity.value.translations),
+    editorial_state: { ...entity.value.editorial_state!, status: target, updated_by: 'current_user', updated_at: new Date().toISOString() },
+    editorial: computeEditorial(target, entity.value.translations, { hasImage: healthFlags.value.hasImage, hasEffects: healthFlags.value.hasEffects }),
   }
   const meta = editorialStatusMeta(target)
   toast.add({ title: `Transitioned to ${meta.label}`, color: 'success', icon: meta.icon })
 }
 
+const openFeedbackCount = computed(() => feedbackItems.value.filter(f => f.status === 'open').length)
+
+// --- Publish readiness checklist ---
+const readinessChecks = computed(() => [
+  { label: 'Base content (EN)', ok: true, icon: 'i-lucide-file-text' },
+  { label: 'All translations', ok: coverage.value.current === coverage.value.total, icon: 'i-lucide-languages' },
+  { label: 'Image assigned', ok: healthFlags.value.hasImage, icon: 'i-lucide-image' },
+  { label: 'Effects defined', ok: healthFlags.value.hasEffects, icon: 'i-lucide-zap' },
+  { label: 'Dependencies ready', ok: healthFlags.value.dependencyHealth === 'ok', icon: 'i-lucide-git-branch' },
+  { label: 'No open feedback', ok: openFeedbackCount.value === 0, icon: 'i-lucide-message-circle' },
+  { label: 'Status: approved', ok: entity.value.status === 'approved', icon: 'i-lucide-check-circle' },
+])
+
+// --- Mock dependencies ---
+interface MockDependency {
+  id: number
+  name: string
+  type: string
+  status: EditorialStatus
+  relation: string
+}
+const mockDependencies = ref<MockDependency[]>([
+  { id: 101, name: 'Major Arcana', type: 'arcana', status: 'published', relation: 'belongs_to' },
+  { id: 102, name: 'Innocence', type: 'facet', status: 'approved', relation: 'has_facet' },
+  { id: 103, name: 'Journey', type: 'skill', status: 'draft', relation: 'has_skill' },
+])
+
+// --- World card split view ---
+const isWorldCard = computed(() => entity.value.entity_type === 'world_card')
+const showBaseCardView = ref(false)
+
 // --- Side panel ---
 const panelOpen = ref(true)
-type PanelTab = 'metadata' | 'translations' | 'editorial' | 'feedback'
+type PanelTab = 'metadata' | 'translations' | 'editorial' | 'dependencies' | 'feedback'
 const activeTab = ref<PanelTab>('metadata')
 
-const panelTabs = [
-  { value: 'metadata', label: 'Metadata', icon: 'i-lucide-file-text' },
-  { value: 'translations', label: 'Translations', icon: 'i-lucide-languages' },
-  { value: 'editorial', label: 'Editorial', icon: 'i-lucide-git-branch' },
-  { value: 'feedback', label: 'Feedback', icon: 'i-lucide-message-square' },
-]
+const panelTabs = computed(() => {
+  const tabs = [
+    { value: 'metadata', label: 'Metadata', icon: 'i-lucide-file-text' },
+    { value: 'translations', label: 'Translations', icon: 'i-lucide-languages' },
+    { value: 'editorial', label: 'Editorial', icon: 'i-lucide-git-branch' },
+    { value: 'dependencies', label: 'Deps', icon: 'i-lucide-network' },
+    { value: 'feedback', label: 'Feedback', icon: 'i-lucide-message-square', badge: openFeedbackCount.value > 0 ? openFeedbackCount.value : null },
+  ]
+  return tabs
+})
 
 // --- Mock feedback ---
 const feedbackItems = ref([
@@ -145,13 +209,27 @@ function selectEntity(e: MockEntity) {
           <UBadge color="neutral" variant="outline" size="xs">
             {{ entity.entity_type }}
           </UBadge>
+          <template v-if="entity.version_semver">
+            <UBadge color="neutral" variant="outline" size="xs">
+              v{{ entity.version_semver }}
+            </UBadge>
+            <span
+              :class="`inline-block w-2 h-2 rounded-full shrink-0 ${releaseStageDot(entity.release_stage)}`"
+              :title="releaseStageLabel(entity.release_stage)"
+            />
+          </template>
         </div>
 
         <!-- Center: editorial indicator -->
         <div class="hidden md:flex items-center gap-3">
           <EntityEditorialIndicator
             :editorial-state="entity.editorial_state"
-            :translation-coverage="coverage"
+            :translations="entity.translations"
+            :version-semver="entity.version_semver"
+            :release-stage="entity.release_stage"
+            :blocking-reasons="entity.editorial?.blockingReasons ?? []"
+            :publish-ready="entity.editorial?.publishReady ?? false"
+            :health="healthFlags"
             :next-action="primaryTransition ? editorialStatusMeta(primaryTransition).label : null"
           />
         </div>
@@ -196,11 +274,15 @@ function selectEntity(e: MockEntity) {
         </div>
       </div>
 
+      <!-- Cross-navigation -->
+      <SketchCrossNav :entity-name="entity.name" current-view="studio" />
+
       <!-- Mobile editorial indicator -->
       <div class="md:hidden px-4 pb-2">
         <EntityEditorialIndicator
           :editorial-state="entity.editorial_state"
           :translation-coverage="coverage"
+          compact
         />
       </div>
     </header>
@@ -381,6 +463,7 @@ function selectEntity(e: MockEntity) {
             >
               <UIcon :name="tab.icon" class="text-sm" />
               <span class="hidden lg:inline">{{ tab.label }}</span>
+              <span v-if="tab.badge" class="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-warning text-white text-[9px] font-bold">{{ tab.badge }}</span>
             </button>
           </div>
         </div>
@@ -429,7 +512,8 @@ function selectEntity(e: MockEntity) {
             <div class="p-3 rounded-lg bg-muted/10 border border-default">
               <EntityEditorialIndicator
                 :editorial-state="entity.editorial_state"
-                :translation-coverage="coverage"
+                :translations="entity.translations"
+                compact
               />
             </div>
 
@@ -445,13 +529,16 @@ function selectEntity(e: MockEntity) {
                     {{ t.lang === 'en' ? 'English (base)' : t.lang === 'fr' ? 'French' : 'Spanish' }}
                   </span>
                 </div>
-                <UBadge
-                  :color="t.has_translation && !t.is_fallback ? 'success' : 'warning'"
-                  variant="soft"
-                  size="xs"
-                >
-                  {{ t.has_translation && !t.is_fallback ? 'Complete' : 'Missing' }}
-                </UBadge>
+                <div class="flex items-center gap-1.5">
+                  <span :class="`inline-block w-2 h-2 rounded-full ${translationStatusDot(t.status).dot}`" />
+                  <UBadge
+                    :color="t.has_translation && !t.is_fallback ? 'success' : t.status === 'draft' || t.status === 'changes_requested' ? 'warning' : 'neutral'"
+                    variant="soft"
+                    size="xs"
+                  >
+                    {{ t.has_translation && !t.is_fallback ? (t.status ?? 'Complete') : 'Missing' }}
+                  </UBadge>
+                </div>
               </div>
               <div class="px-3 py-2">
                 <button
@@ -516,17 +603,91 @@ function selectEntity(e: MockEntity) {
               </div>
             </div>
 
-            <!-- Publish readiness -->
+            <!-- Publish Readiness Checklist -->
+            <div>
+              <p class="text-xs text-muted mb-2">Publish Readiness</p>
+              <div class="rounded-lg border border-default divide-y divide-default">
+                <div
+                  v-for="check in readinessChecks"
+                  :key="check.label"
+                  class="flex items-center gap-2.5 px-3 py-2"
+                >
+                  <UIcon
+                    :name="check.ok ? 'i-lucide-check-circle' : 'i-lucide-circle-x'"
+                    :class="check.ok ? 'text-emerald-500' : 'text-red-400'"
+                    class="text-sm shrink-0"
+                  />
+                  <UIcon :name="check.icon" class="text-xs text-muted shrink-0" />
+                  <span class="text-xs" :class="check.ok ? 'text-default' : 'text-muted'">{{ check.label }}</span>
+                </div>
+              </div>
+              <div class="mt-2 p-2 rounded-md text-center" :class="entity.editorial?.publishReady ? 'bg-emerald-500/10' : 'bg-red-500/5'">
+                <span class="text-xs font-medium" :class="entity.editorial?.publishReady ? 'text-emerald-500' : 'text-red-400'">
+                  {{ entity.editorial?.publishReady ? '✓ Ready to publish' : `${readinessChecks.filter(c => !c.ok).length} items remaining` }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dependencies tab -->
+          <div v-if="activeTab === 'dependencies'" class="space-y-4">
+            <p class="text-xs text-muted">{{ mockDependencies.length }} dependencies</p>
+
+            <div
+              v-for="dep in mockDependencies"
+              :key="dep.id"
+              class="rounded-lg border border-default p-3 space-y-2"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <UBadge color="neutral" variant="outline" size="xs">{{ dep.type }}</UBadge>
+                  <span class="text-xs font-medium">{{ dep.name }}</span>
+                </div>
+                <UBadge
+                  :color="editorialStatusMeta(dep.status).color"
+                  :variant="editorialStatusMeta(dep.status).variant"
+                  :icon="editorialStatusMeta(dep.status).icon"
+                  size="xs"
+                >
+                  {{ editorialStatusMeta(dep.status).label }}
+                </UBadge>
+              </div>
+              <div class="flex items-center gap-2 text-[10px] text-muted">
+                <UIcon name="i-lucide-link" class="text-[10px]" />
+                <span>{{ dep.relation }}</span>
+                <span>·</span>
+                <span>#{{ dep.id }}</span>
+              </div>
+            </div>
+
+            <!-- Dependency health summary -->
             <div class="p-3 rounded-lg border border-default">
               <div class="flex items-center gap-2">
                 <UIcon
-                  :name="entity.editorial?.publishReady ? 'i-lucide-check-circle' : 'i-lucide-circle-x'"
-                  :class="entity.editorial?.publishReady ? 'text-success' : 'text-muted'"
+                  :name="healthFlags.dependencyHealth === 'ok' ? 'i-lucide-check-circle' : healthFlags.dependencyHealth === 'warning' ? 'i-lucide-alert-triangle' : 'i-lucide-circle-x'"
+                  :class="healthFlags.dependencyHealth === 'ok' ? 'text-emerald-500' : healthFlags.dependencyHealth === 'warning' ? 'text-amber-400' : 'text-red-500'"
                 />
                 <span class="text-xs font-medium">
-                  {{ entity.editorial?.publishReady ? 'Ready to publish' : 'Not ready to publish' }}
+                  {{ healthFlags.dependencyHealth === 'ok' ? 'All dependencies ready' : healthFlags.dependencyHealth === 'warning' ? 'Some dependencies in review' : 'Dependencies not ready' }}
                 </span>
               </div>
+            </div>
+
+            <!-- World card split view toggle -->
+            <div v-if="isWorldCard" class="p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-split" class="text-primary" />
+                <span class="text-xs font-semibold text-primary">World Card</span>
+              </div>
+              <p class="text-[10px] text-muted">This entity inherits from a base_card. Toggle split view to see base fields (read-only) alongside overrides.</p>
+              <UButton
+                :label="showBaseCardView ? 'Hide Base Card' : 'Show Base Card'"
+                :icon="showBaseCardView ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                size="xs"
+                variant="soft"
+                color="primary"
+                @click="showBaseCardView = !showBaseCardView"
+              />
             </div>
           </div>
 

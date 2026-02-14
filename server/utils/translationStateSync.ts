@@ -18,7 +18,7 @@ export async function upsertTranslationState(
   const entityTypeId = await resolveEntityTypeId(db as Kysely<DB>, entityCode)
   if (entityTypeId == null) return
 
-  await (db as any)
+  await db
     .insertInto('translation_state')
     .values({
       entity_type: entityTypeId,
@@ -28,11 +28,11 @@ export async function upsertTranslationState(
       created_by: userId,
       updated_by: userId,
     })
-    .onConflict((oc: any) =>
+    .onConflict((oc) =>
       oc.columns(['entity_type', 'entity_id', 'language_code']).doUpdateSet({
         updated_by: userId,
         updated_at: new Date(),
-      } as any)
+      } as never)
     )
     .execute()
 }
@@ -50,7 +50,7 @@ export async function deleteTranslationState(
   const entityTypeId = await resolveEntityTypeId(db as Kysely<DB>, entityCode)
   if (entityTypeId == null) return
 
-  await (db as any)
+  await db
     .deleteFrom('translation_state')
     .where('entity_type', '=', entityTypeId)
     .where('entity_id', '=', entityId)
@@ -70,7 +70,7 @@ export async function deleteAllTranslationStates(
   const entityTypeId = await resolveEntityTypeId(db as Kysely<DB>, entityCode)
   if (entityTypeId == null) return
 
-  await (db as any)
+  await db
     .deleteFrom('translation_state')
     .where('entity_type', '=', entityTypeId)
     .where('entity_id', '=', entityId)
