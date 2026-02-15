@@ -30,8 +30,12 @@
 import { ref, computed, reactive } from 'vue'
 import {
   generateMockEntities,
+  editorialStatusMeta,
+  avatarUrl,
+  relativeTime,
 } from '~/components/sketches/mockData'
 import EntityEditorialIndicator from '~/components/sketches/EntityEditorialIndicator.vue'
+import SketchCrossNav from '~/components/sketches/SketchCrossNav.vue'
 
 definePageMeta({ layout: 'default' })
 
@@ -252,8 +256,8 @@ function startCompare() {
           />
           <EntityEditorialIndicator
             :editorial-state="entity.editorial_state"
-            :translations="entity.translations"
-            :health="{ hasImage: !!entity.image, hasEffects: true }"
+            :version-semver="entity.version_semver"
+            :release-stage="entity.release_stage"
             compact
           />
         </div>
@@ -275,6 +279,8 @@ function startCompare() {
         </div>
       </div>
     </header>
+
+    <SketchCrossNav current-view="" />
 
     <main class="flex-1 p-6 max-w-6xl mx-auto w-full">
       <!-- ===== UPLOAD SECTION ===== -->
@@ -469,6 +475,19 @@ function startCompare() {
                 </button>
               </div>
 
+              <!-- Editorial state overlay -->
+              <div class="absolute bottom-2 left-2">
+                <UBadge
+                  v-if="allEntities.find(e => e.id === image.entity_id)"
+                  :color="editorialStatusMeta(allEntities.find(e => e.id === image.entity_id)!.status).color"
+                  variant="solid"
+                  size="xs"
+                  class="shadow-sm backdrop-blur-sm"
+                >
+                  {{ editorialStatusMeta(allEntities.find(e => e.id === image.entity_id)!.status).label }}
+                </UBadge>
+              </div>
+
               <!-- Selected overlay -->
               <div
                 v-if="selectedImage?.id === image.id"
@@ -485,7 +504,10 @@ function startCompare() {
                 <UBadge color="neutral" variant="outline" size="xs">{{ image.entity_type }}</UBadge>
                 <span class="text-[10px] text-muted">{{ image.size }}</span>
               </div>
-              <p class="text-[10px] text-muted">{{ image.uploaded_by }} · {{ new Date(image.uploaded_at).toLocaleDateString() }}</p>
+              <div class="flex items-center gap-1">
+                <UAvatar :src="avatarUrl(image.uploaded_by)" :alt="image.uploaded_by" size="3xs" />
+                <span class="text-[10px] text-muted">{{ image.uploaded_by }} · {{ relativeTime(image.uploaded_at) }}</span>
+              </div>
             </div>
           </div>
         </div>

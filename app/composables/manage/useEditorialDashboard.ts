@@ -1,220 +1,170 @@
 // app/composables/manage/useEditorialDashboard.ts
-import { ref, computed } from 'vue'
+// Single list call per entity type → client-side grouping by editorial_state.status
+import { ref, computed, reactive } from 'vue'
 import { useApiFetch } from '~/utils/fetcher'
-import { useCurrentUser } from '~/composables/users/useCurrentUser'
 
-interface DashboardEntity {
+export interface DashboardEntity {
   id: number
   code: string
-  name?: string
+  name: string
   status: string
   entity_type: string
-  modified_at?: string
-  created_at?: string
-  editorial?: {
+  image?: string | null
+  world_id?: number | null
+  world_name?: string | null
+  version_semver?: string | null
+  release_stage?: string | null
+  modified_at?: string | null
+  created_at?: string | null
+  editorial_state?: {
     status: string
-    allowedTransitions: string[]
-    publishReady: boolean
-    blockingReasons: string[]
-  }
+    is_active: boolean
+    modified_at: string
+  } | null
 }
 
-interface FeedbackItem {
-  id: number
-  entity_type: string
-  entity_id: number
-  entity_code?: string
-  comment: string
-  category?: string
-  status: string
-  created_at?: string
-  created_by_name?: string
+export type DashboardStatus = 'draft' | 'review' | 'changes_requested' | 'approved' | 'published'
+
+const DASHBOARD_STATUSES: DashboardStatus[] = [
+  'draft',
+  'review',
+  'changes_requested',
+  'approved',
+  'published',
+]
+
+const ENTITY_ENDPOINTS: { key: string; path: string; label: string }[] = [
+  { key: 'base_card', path: '/base_card', label: 'Base Cards' },
+  { key: 'arcana', path: '/arcana', label: 'Arcana' },
+  { key: 'facet', path: '/facet', label: 'Facets' },
+  { key: 'world', path: '/world', label: 'Worlds' },
+  { key: 'skill', path: '/skill', label: 'Skills' },
+  { key: 'card_type', path: '/card_type', label: 'Card Types' },
+]
+
+function resolveEditorialStatus(entity: DashboardEntity): string {
+  return entity.editorial_state?.status ?? entity.status ?? 'draft'
 }
 
-interface DashboardSection<T> {
-  items: T[]
-  loading: boolean
-  error: string | null
-  total: number
-}
-
-const ENTITY_ENDPOINTS = [
-  { key: 'base_card', path: '/base_card' },
-  { key: 'arcana', path: '/arcana' },
-  { key: 'facet', path: '/facet' },
-  { key: 'world', path: '/world' },
-  { key: 'skill', path: '/skill' },
-  { key: 'card_type', path: '/card_type' },
-] as const
-
-const DASHBOARD_PAGE_SIZE = 5
-
-async function fetchEntitiesByStatus(
-  statuses: string[],
-  pageSize = DASHBOARD_PAGE_SIZE,
-): Promise<DashboardEntity[]> {
-  const results: DashboardEntity[] = []
-
-  const promises = ENTITY_ENDPOINTS.map(async (ep) => {
-    for (const status of statuses) {
-      try {
-        const res = await useApiFetch(`${ep.path}`, {
-          method: 'GET',
-          params: {
-            status,
-            pageSize,
-            sort: 'modified_at',
-            direction: 'desc',
-          },
-        })
-        const items = (res as any)?.data ?? []
-        if (Array.isArray(items)) {
-          for (const item of items) {
-            results.push({
-              ...item,
-              entity_type: ep.key,
-            })
-          }
-        }
-      } catch {
-        // Silently skip failed endpoints
-      }
-    }
-  })
-
-  await Promise.all(promises)
-
-  results.sort((a, b) => {
-    const dateA = a.modified_at || a.created_at || ''
-    const dateB = b.modified_at || b.created_at || ''
-    return dateB.localeCompare(dateA)
-  })
-
-  return results.slice(0, pageSize * 2)
+function sortByModified(a: DashboardEntity, b: DashboardEntity): number {
+  const dateA = a.modified_at ?? a.created_at ?? ''
+  const dateB = b.modified_at ?? b.created_at ?? ''
+  return dateB.localeCompare(dateA)
 }
 
 export function useEditorialDashboard() {
-  const { currentUser } = useCurrentUser()
+  const allEntities = ref<DashboardEntity[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
-  const drafts = ref<DashboardSection<DashboardEntity>>({
-    items: [],
-    loading: false,
-    error: null,
-    total: 0,
+  const filters = reactive<{ worldId: number | null }>({
+    worldId: null,
   })
 
-  const pendingReview = ref<DashboardSection<DashboardEntity>>({
-    items: [],
-    loading: false,
-    error: null,
-    total: 0,
+  const filtered = computed(() => {
+    let result = allEntities.value
+    if (filters.worldId != null) {
+      result = result.filter(e => e.world_id === filters.worldId)
+    }
+    return result
   })
 
-  const blocked = ref<DashboardSection<DashboardEntity>>({
-    items: [],
-    loading: false,
-    error: null,
-    total: 0,
+  const grouped = computed(() => {
+    const map: Record<DashboardStatus, DashboardEntity[]> = {
+      draft: [],
+      review: [],
+      changes_requested: [],
+      approved: [],
+      published: [],
+    }
+    for (const entity of filtered.value) {
+      const s = resolveEditorialStatus(entity)
+      if (s === 'pending_review' || s === 'review' || s === 'translation_review') {
+        map.review.push(entity)
+      } else if (s in map) {
+        map[s as DashboardStatus].push(entity)
+      }
+    }
+    for (const key of DASHBOARD_STATUSES) {
+      map[key].sort(sortByModified)
+    }
+    return map
   })
 
-  const openFeedback = ref<DashboardSection<FeedbackItem>>({
-    items: [],
-    loading: false,
-    error: null,
-    total: 0,
+  const worldOptions = computed(() => {
+    const seen = new Map<number, string>()
+    for (const e of allEntities.value) {
+      if (e.world_id != null && e.world_name) {
+        seen.set(e.world_id, e.world_name)
+      }
+    }
+    return Array.from(seen.entries()).map(([id, name]) => ({ label: name, value: id }))
   })
-
-  const loading = computed(() =>
-    drafts.value.loading || pendingReview.value.loading || blocked.value.loading || openFeedback.value.loading,
-  )
-
-  async function fetchDrafts() {
-    drafts.value.loading = true
-    drafts.value.error = null
-    try {
-      const items = await fetchEntitiesByStatus(['draft'], DASHBOARD_PAGE_SIZE)
-      const userId = currentUser.value?.id
-      const filtered = userId
-        ? items.filter((e: any) => e.created_by === userId || e.updated_by === userId)
-        : items
-      drafts.value.items = filtered.slice(0, DASHBOARD_PAGE_SIZE)
-      drafts.value.total = filtered.length
-    } catch (e: any) {
-      drafts.value.error = e?.message ?? 'Failed to load drafts'
-    } finally {
-      drafts.value.loading = false
-    }
-  }
-
-  async function fetchPendingReview() {
-    pendingReview.value.loading = true
-    pendingReview.value.error = null
-    try {
-      const items = await fetchEntitiesByStatus(['pending_review', 'review'], DASHBOARD_PAGE_SIZE)
-      pendingReview.value.items = items.slice(0, DASHBOARD_PAGE_SIZE)
-      pendingReview.value.total = items.length
-    } catch (e: any) {
-      pendingReview.value.error = e?.message ?? 'Failed to load pending reviews'
-    } finally {
-      pendingReview.value.loading = false
-    }
-  }
-
-  async function fetchBlocked() {
-    blocked.value.loading = true
-    blocked.value.error = null
-    try {
-      const allApproved = await fetchEntitiesByStatus(['approved'], DASHBOARD_PAGE_SIZE * 2)
-      const blockedItems = allApproved.filter(
-        (e) => e.editorial && e.editorial.publishReady === false,
-      )
-      blocked.value.items = blockedItems.slice(0, DASHBOARD_PAGE_SIZE)
-      blocked.value.total = blockedItems.length
-    } catch (e: any) {
-      blocked.value.error = e?.message ?? 'Failed to load blocked content'
-    } finally {
-      blocked.value.loading = false
-    }
-  }
-
-  async function fetchOpenFeedback() {
-    openFeedback.value.loading = true
-    openFeedback.value.error = null
-    try {
-      const res = await useApiFetch('/content_feedback', {
-        method: 'GET',
-        params: {
-          status: 'open',
-          pageSize: DASHBOARD_PAGE_SIZE,
-          sort: 'created_at',
-          direction: 'desc',
-        },
-      })
-      const data = (res as any)?.data ?? []
-      openFeedback.value.items = Array.isArray(data) ? data : []
-      openFeedback.value.total = (res as any)?.meta?.totalItems ?? openFeedback.value.items.length
-    } catch (e: any) {
-      openFeedback.value.error = e?.message ?? 'Failed to load feedback'
-    } finally {
-      openFeedback.value.loading = false
-    }
-  }
 
   async function refresh() {
-    await Promise.all([
-      fetchDrafts(),
-      fetchPendingReview(),
-      fetchBlocked(),
-      fetchOpenFeedback(),
-    ])
+    loading.value = true
+    error.value = null
+    const results: DashboardEntity[] = []
+
+    try {
+      const promises = ENTITY_ENDPOINTS.map(async (ep) => {
+        try {
+          const res = await useApiFetch(ep.path, {
+            method: 'GET',
+            params: {
+              pageSize: 200,
+              sort: 'modified_at',
+              direction: 'desc',
+              lang: 'en',
+            },
+          })
+          const items = (res as Record<string, unknown>)?.data
+          if (Array.isArray(items)) {
+            for (const raw of items) {
+              const row = raw as Record<string, unknown>
+              results.push({
+                id: Number(row.id),
+                code: String(row.code ?? ''),
+                name: String(row.name ?? row.code ?? ''),
+                status: String(row.status ?? 'draft'),
+                entity_type: ep.key,
+                image: typeof row.image === 'string' ? row.image : null,
+                world_id: typeof row.world_id === 'number' ? row.world_id : null,
+                world_name: typeof row.world_name === 'string' ? row.world_name : null,
+                version_semver: typeof row.version_semver === 'string' ? row.version_semver : null,
+                release_stage: typeof row.release_stage === 'string' ? row.release_stage : null,
+                modified_at: typeof row.modified_at === 'string' ? row.modified_at : null,
+                created_at: typeof row.created_at === 'string' ? row.created_at : null,
+                editorial_state: row.editorial_state && typeof row.editorial_state === 'object'
+                  ? row.editorial_state as DashboardEntity['editorial_state']
+                  : null,
+              })
+            }
+          }
+        } catch {
+          // Skip failed endpoints
+        }
+      })
+
+      await Promise.all(promises)
+      allEntities.value = results
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : 'Failed to load dashboard data'
+    } finally {
+      loading.value = false
+    }
   }
 
   return {
-    drafts,
-    pendingReview,
-    blocked,
-    openFeedback,
+    allEntities,
     loading,
+    error,
+    filters,
+    filtered,
+    grouped,
+    worldOptions,
+    dashboardStatuses: DASHBOARD_STATUSES,
+    entityEndpoints: ENTITY_ENDPOINTS,
     refresh,
   }
 }

@@ -141,13 +141,31 @@ import { useI18n } from '#imports'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 defineOptions({ inheritAttrs: false })
 
+export interface EditorialStateRow {
+  status: string
+  updated_by: number | null
+  content_version_id: number | null
+  modified_at: string
+}
+
+export interface WorldRefRow {
+  id: number
+  name: string
+}
+
+export interface TranslationStateRow {
+  lang: string
+  hasTranslation: boolean
+  isFallback: boolean
+}
+
 export type EntityRow = {
   id: number
   name: string
   short_text?: string
   description?: string
   status?: string | null
-  statusKind?: 'card' | 'user'
+  statusKind?: 'card' | 'user' | 'revision'
   is_active?: boolean | null
   img?: string | null
   code?: string | null
@@ -160,6 +178,17 @@ export type EntityRow = {
   tags?: string | null
   updated_at?: string | Date | null
   created_at?: string | Date | null
+  updated_by?: string | null
+  version_semver?: string | null
+  editorial_state?: EditorialStateRow | null
+  world?: WorldRefRow | null
+  translation_states?: TranslationStateRow[]
+  translationStatus?: string | null
+  release_stage?: string | null
+  releaseStage?: string | null
+  revisionCount?: number | null
+  version?: number | null
+  userStatus?: string | null
   email?: string | null
   username?: string | null
   roles?: string[]

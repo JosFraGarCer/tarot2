@@ -46,6 +46,7 @@ export interface MockEntity {
   created_at: string
   modified_at: string
   updated_by: string
+  created_by: string
   editorial_state: EditorialState | null
   editorial: EditorialMetadata | null
   translations: TranslationLangState[]
@@ -56,6 +57,23 @@ export interface MockEntity {
   version_semver: string | null
   image: string | null
   open_feedback_count: number
+  world: { id: number; name: string } | null
+}
+
+export function avatarUrl(username: string): string {
+  return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(username)}&radius=50&size=32`
+}
+
+export function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days}d ago`
+  return `${Math.floor(days / 30)}mo ago`
 }
 
 // Editorial transition map — aligned with shared/editorial/transitions.ts
@@ -175,6 +193,12 @@ const TAGS_POOL = [
   { id: 5, code: 'earth', name: 'Earth' },
 ]
 
+const WORLDS = [
+  { id: 1, name: 'Ethereal Realm' },
+  { id: 2, name: 'Shadow Domain' },
+  { id: 3, name: 'Crystal Wastes' },
+]
+
 function randomDate(daysAgo: number): string {
   const d = new Date()
   d.setDate(d.getDate() - Math.floor(Math.random() * daysAgo))
@@ -201,6 +225,7 @@ function buildTranslations(status: EditorialStatus, index: number): TranslationL
 export function generateMockEntities(count = 10): MockEntity[] {
   return Array.from({ length: count }, (_, i) => {
     const status = STATUSES[i % STATUSES.length] ?? 'draft' as EditorialStatus
+    const entityType = ENTITY_TYPES[i % ENTITY_TYPES.length] ?? 'base_card'
     const translations = buildTranslations(status, i)
     const hasImage = i % 3 !== 2
     const hasEffects = i % 4 !== 3
@@ -215,10 +240,11 @@ export function generateMockEntities(count = 10): MockEntity[] {
       code: CODES[i % CODES.length] ?? 'unknown',
       name: NAMES[i % NAMES.length] ?? 'Unknown',
       status,
-      entity_type: ENTITY_TYPES[i % ENTITY_TYPES.length] ?? 'base_card',
+      entity_type: entityType,
       created_at: randomDate(60),
       modified_at: randomDate(10),
       updated_by: EDITORS[i % EDITORS.length] ?? 'alice',
+      created_by: EDITORS[(i + 2) % EDITORS.length] ?? 'carol',
       editorial_state: {
         status,
         updated_by: EDITORS[i % EDITORS.length] ?? 'alice',
@@ -234,6 +260,7 @@ export function generateMockEntities(count = 10): MockEntity[] {
       version_semver: `${major}.${minor}.0`,
       image: hasImage ? `https://picsum.photos/seed/${CODES[i % CODES.length]}${i}/400/700` : null,
       open_feedback_count: openFeedback,
+      world: (entityType === 'world_card' || entityType === 'base_card') && i % 3 !== 0 ? (WORLDS[i % WORLDS.length] ?? WORLDS[0]!) : null,
     }
   })
 }

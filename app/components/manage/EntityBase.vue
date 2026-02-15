@@ -125,6 +125,27 @@
               >
                 {{ $t('ui.actions.update') }}
               </UButton>
+              <USeparator direction="vertical" class="mx-0.5 h-5" />
+              <UButton
+                size="sm"
+                variant="soft"
+                color="success"
+                icon="i-heroicons-check-circle"
+                :disabled="!selected?.length"
+                @click="() => handleBulkActivate(selected as number[], true)"
+              >
+                {{ $t('ui.actions.activate', 'Activate') }}
+              </UButton>
+              <UButton
+                size="sm"
+                variant="soft"
+                color="warning"
+                icon="i-heroicons-minus-circle"
+                :disabled="!selected?.length"
+                @click="() => handleBulkActivate(selected as number[], false)"
+              >
+                {{ $t('ui.actions.deactivate', 'Deactivate') }}
+              </UButton>
             </div>
           </template>
 
@@ -183,6 +204,42 @@
               </div>
               <USkeleton v-for="n in 6" :key="`row-skeleton-${n}`" class="h-10 w-full rounded" />
             </div>
+          </template>
+
+          <!-- Editorial cell: world badge -->
+          <template #cell-world="{ row }">
+            <WorldBadge :world="row.original.world ?? null" size="xs" />
+          </template>
+
+          <!-- Editorial cell: version + release stage -->
+          <template #cell-version_semver="{ row }">
+            <VersionBadge
+              :version-semver="row.original.version_semver ?? null"
+              :release-stage="row.original.release_stage ?? null"
+              size="xs"
+            />
+          </template>
+
+          <!-- Editorial cell: translation states inline -->
+          <template #cell-translation_states="{ row }">
+            <TranslationStatusInline
+              v-if="Array.isArray(row.original.translation_states) && row.original.translation_states.length"
+              :translations="row.original.translation_states"
+              size="xs"
+            />
+            <span v-else class="text-xs text-muted">—</span>
+          </template>
+
+          <!-- Editorial cell: updated by with avatar -->
+          <template #cell-updated_by="{ row }">
+            <AvatarWithMeta
+              v-if="row.original.updated_by"
+              :username="row.original.updated_by"
+              :date="row.original.updated_at ? String(row.original.updated_at) : null"
+              size="2xs"
+              date-format="relative"
+            />
+            <span v-else class="text-xs text-muted">—</span>
           </template>
 
           <template #cell-actions="{ row }">
@@ -466,7 +523,7 @@
 
 <script setup lang="ts">
 import { computed, ref, nextTick } from 'vue'
-import { useI18n, useToast } from '#imports'
+import { useI18n, useToast, useRouter } from '#imports'
 import PaginationControls from '~/components/common/PaginationControls.vue'
 import ManageEntityFilters from '~/components/manage/EntityFilters.vue'
 import EntityTableWrapper from '~/components/manage/EntityTableWrapper.vue'
@@ -529,6 +586,7 @@ const emit = defineEmits<{ (e: 'create'): void }>()
 
 const { t } = useI18n()
 const toast = useToast?.() as any
+const router = useRouter()
 
 const crud = props.useCrud()
 
@@ -840,7 +898,23 @@ function handleRowClick(row: any) {
 }
 
 function handleRowDblClick(row: any) {
-  openFullEditor(row?.raw ?? row)
+  const raw = row?.raw ?? row
+  const id = Number(raw?.id ?? raw?.entity_id)
+  const isVisual = capabilities.value.hasPreview !== false
+
+  if (isVisual && Number.isFinite(id) && id > 0) {
+    const items = Array.isArray(crud?.items?.value) ? crud.items.value : []
+    const ids = items
+      .map((item: any) => Number(item?.id ?? item?.raw?.id))
+      .filter((v: number) => Number.isFinite(v) && v > 0)
+    try {
+      sessionStorage.setItem(`studio:${props.entity}:ids`, JSON.stringify(ids))
+    } catch { /* noop */ }
+    router.push(`/manage/${props.entity}/${id}/studio`)
+    return
+  }
+
+  openFullEditor(raw)
 }
 
 function handleBulkUpdate(selected: unknown) {
@@ -849,6 +923,19 @@ function handleBulkUpdate(selected: unknown) {
     : tableSelectionSource.selectedList.value
   if (!ids.length) return
   onBatchUpdate(ids as number[])
+}
+
+async function handleBulkActivate(ids: number[], activate: boolean) {
+  if (!ids.length) return
+  const label = activate ? 'Activate' : 'Deactivate'
+  try {
+    await Promise.all(ids.map(id => crud.update(id, { is_active: activate })))
+    await crud.fetchList?.()
+    toast?.add?.({ title: `${label}d ${ids.length} entities`, color: 'success' })
+    tableSelectionSource.clear()
+  } catch {
+    toast?.add?.({ title: `${label} failed`, color: 'error' })
+  }
 }
 
 function openFullEditor(payload: any) {

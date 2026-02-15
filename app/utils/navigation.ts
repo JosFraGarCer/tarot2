@@ -36,6 +36,7 @@ export const navigationMap: NavItem[] = [
     to: '/manage',
     children: [
       { labelKey: 'navigation.menu.editorial', to: '/manage/dashboard' },
+      { labelKey: 'navigation.menu.board', to: '/manage/board' },
     ],
     visible: (p, role) =>
       Boolean(

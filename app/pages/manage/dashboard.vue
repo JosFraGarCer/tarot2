@@ -1,7 +1,8 @@
 <!-- app/pages/manage/dashboard.vue -->
 <template>
   <div class="px-4 py-6">
-    <div class="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      <!-- Header -->
       <header class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
@@ -11,268 +12,215 @@
             {{ tt('features.editorial.dashboardSubtitle', 'Overview of your editorial work, pending reviews and blocked content.') }}
           </p>
         </div>
-        <UButton
-          icon="i-heroicons-arrow-path"
-          color="neutral"
-          variant="soft"
-          :loading="loading"
-          :label="tt('ui.actions.refresh', 'Refresh')"
-          @click="refresh"
-        />
+        <div class="flex items-center gap-2">
+          <!-- World filter -->
+          <USelectMenu
+            v-if="worldOptions.length"
+            v-model="selectedWorldId"
+            :items="worldFilterItems"
+            value-key="value"
+            size="sm"
+            class="w-40"
+          />
+
+          <UButton
+            icon="i-heroicons-arrow-path"
+            color="neutral"
+            variant="soft"
+            size="sm"
+            :loading="loading"
+            :aria-label="tt('ui.actions.refresh', 'Refresh')"
+            @click="refresh"
+          />
+
+          <UButton
+            icon="i-heroicons-view-columns"
+            color="primary"
+            variant="soft"
+            size="sm"
+            :label="tt('navigation.menu.board', 'Editorial Board')"
+            :to="localePath('/manage/board')"
+          />
+        </div>
       </header>
 
-      <div class="grid gap-6 lg:grid-cols-2">
-        <!-- Section 1: My Drafts -->
-        <UCard>
-          <template #header>
-            <div class="flex items-center gap-2">
-              <UIcon name="i-heroicons-pencil-square" class="text-neutral-500" />
-              <h2 class="text-base font-semibold text-gray-900 dark:text-white">
-                {{ tt('features.editorial.myDrafts', 'My Drafts') }}
-              </h2>
-              <UBadge v-if="drafts.total" size="xs" color="neutral" variant="subtle">
-                {{ drafts.total }}
-              </UBadge>
-            </div>
-          </template>
+      <!-- Error -->
+      <UAlert
+        v-if="error"
+        color="error"
+        icon="i-heroicons-exclamation-triangle"
+        :description="error"
+      />
 
-          <div v-if="drafts.loading" class="space-y-3">
-            <USkeleton v-for="i in 3" :key="i" class="h-10 w-full" />
-          </div>
-          <UAlert
-            v-else-if="drafts.error"
-            color="error"
-            icon="i-heroicons-exclamation-triangle"
-            :description="drafts.error"
-          />
-          <div v-else-if="!drafts.items.length" class="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            {{ tt('features.editorial.noDrafts', 'No drafts in progress.') }}
-          </div>
-          <div v-else class="divide-y divide-gray-100 dark:divide-gray-800">
-            <div
-              v-for="item in drafts.items"
-              :key="`${item.entity_type}-${item.id}`"
-              class="flex items-center justify-between gap-3 py-2.5"
-            >
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="truncate text-sm font-medium text-gray-900 dark:text-white">
-                    {{ item.name || item.code }}
-                  </span>
-                  <UBadge size="xs" color="neutral" variant="outline">
-                    {{ item.entity_type }}
-                  </UBadge>
-                </div>
-                <p v-if="item.modified_at" class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ formatRelativeDate(item.modified_at) }}
-                </p>
-              </div>
-              <StatusBadge type="status" :value="item.status" size="xs" />
-            </div>
+      <!-- Loading -->
+      <div v-if="loading && !allEntities.length" class="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <UCard v-for="i in 5" :key="i">
+          <template #header>
+            <USkeleton class="h-5 w-32" />
+          </template>
+          <div class="space-y-3">
+            <USkeleton v-for="j in 3" :key="j" class="h-14 w-full" />
           </div>
         </UCard>
+      </div>
 
-        <!-- Section 2: Pending Review -->
-        <UCard>
+      <!-- Status sections -->
+      <div v-else class="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <UCard
+          v-for="status in dashboardStatuses"
+          :key="status"
+        >
           <template #header>
-            <div class="flex items-center gap-2">
-              <UIcon name="i-heroicons-eye" class="text-warning-500" />
-              <h2 class="text-base font-semibold text-gray-900 dark:text-white">
-                {{ tt('features.editorial.pendingReview', 'Pending Review') }}
-              </h2>
-              <UBadge v-if="pendingReview.total" size="xs" color="warning" variant="subtle">
-                {{ pendingReview.total }}
-              </UBadge>
-            </div>
-          </template>
-
-          <div v-if="pendingReview.loading" class="space-y-3">
-            <USkeleton v-for="i in 3" :key="i" class="h-10 w-full" />
-          </div>
-          <UAlert
-            v-else-if="pendingReview.error"
-            color="error"
-            icon="i-heroicons-exclamation-triangle"
-            :description="pendingReview.error"
-          />
-          <div v-else-if="!pendingReview.items.length" class="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            {{ tt('features.editorial.noPendingReview', 'No items awaiting review.') }}
-          </div>
-          <div v-else class="divide-y divide-gray-100 dark:divide-gray-800">
-            <div
-              v-for="item in pendingReview.items"
-              :key="`${item.entity_type}-${item.id}`"
-              class="flex items-center justify-between gap-3 py-2.5"
-            >
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="truncate text-sm font-medium text-gray-900 dark:text-white">
-                    {{ item.name || item.code }}
-                  </span>
-                  <UBadge size="xs" color="neutral" variant="outline">
-                    {{ item.entity_type }}
-                  </UBadge>
-                </div>
-                <p v-if="item.modified_at" class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ formatRelativeDate(item.modified_at) }}
-                </p>
-              </div>
-              <StatusBadge type="status" :value="item.status" size="xs" />
-            </div>
-          </div>
-        </UCard>
-
-        <!-- Section 3: Blocked Content -->
-        <UCard>
-          <template #header>
-            <div class="flex items-center gap-2">
-              <UIcon name="i-heroicons-no-symbol" class="text-error-500" />
-              <h2 class="text-base font-semibold text-gray-900 dark:text-white">
-                {{ tt('features.editorial.blockedContent', 'Blocked Content') }}
-              </h2>
-              <UBadge v-if="blocked.total" size="xs" color="error" variant="subtle">
-                {{ blocked.total }}
-              </UBadge>
-            </div>
-          </template>
-
-          <div v-if="blocked.loading" class="space-y-3">
-            <USkeleton v-for="i in 3" :key="i" class="h-10 w-full" />
-          </div>
-          <UAlert
-            v-else-if="blocked.error"
-            color="error"
-            icon="i-heroicons-exclamation-triangle"
-            :description="blocked.error"
-          />
-          <div v-else-if="!blocked.items.length" class="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            {{ tt('features.editorial.noBlocked', 'No blocked content. Everything looks good!') }}
-          </div>
-          <div v-else class="divide-y divide-gray-100 dark:divide-gray-800">
-            <div
-              v-for="item in blocked.items"
-              :key="`${item.entity_type}-${item.id}`"
-              class="py-2.5"
-            >
-              <div class="flex items-center justify-between gap-3">
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                    <span class="truncate text-sm font-medium text-gray-900 dark:text-white">
-                      {{ item.name || item.code }}
-                    </span>
-                    <UBadge size="xs" color="neutral" variant="outline">
-                      {{ item.entity_type }}
-                    </UBadge>
-                  </div>
-                </div>
-                <StatusBadge type="status" :value="item.status" size="xs" />
-              </div>
-              <div
-                v-if="item.editorial?.blockingReasons?.length"
-                class="mt-1.5 flex flex-wrap gap-1"
-              >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <UIcon :name="sectionIcon(status)" :class="sectionIconColor(status)" />
+                <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ sectionLabel(status) }}
+                </h2>
                 <UBadge
-                  v-for="(reason, idx) in item.editorial.blockingReasons"
-                  :key="idx"
+                  v-if="grouped[status]?.length"
                   size="xs"
-                  color="error"
+                  :color="sectionBadgeColor(status)"
                   variant="subtle"
                 >
-                  {{ reason }}
+                  {{ grouped[status].length }}
                 </UBadge>
               </div>
             </div>
-          </div>
-        </UCard>
-
-        <!-- Section 4: Open Feedback -->
-        <UCard>
-          <template #header>
-            <div class="flex items-center gap-2">
-              <UIcon name="i-heroicons-chat-bubble-left-ellipsis" class="text-primary-500" />
-              <h2 class="text-base font-semibold text-gray-900 dark:text-white">
-                {{ tt('features.editorial.openFeedback', 'Open Feedback') }}
-              </h2>
-              <UBadge v-if="openFeedback.total" size="xs" color="primary" variant="subtle">
-                {{ openFeedback.total }}
-              </UBadge>
-            </div>
           </template>
 
-          <div v-if="openFeedback.loading" class="space-y-3">
-            <USkeleton v-for="i in 3" :key="i" class="h-10 w-full" />
+          <div
+            v-if="!grouped[status]?.length"
+            class="py-4 text-center text-xs text-gray-400 dark:text-gray-500 italic"
+          >
+            {{ tt('features.editorial.emptySection', 'No items') }}
           </div>
-          <UAlert
-            v-else-if="openFeedback.error"
-            color="error"
-            icon="i-heroicons-exclamation-triangle"
-            :description="openFeedback.error"
-          />
-          <div v-else-if="!openFeedback.items.length" class="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            {{ tt('features.editorial.noFeedback', 'No open feedback items.') }}
-          </div>
+
           <div v-else class="divide-y divide-gray-100 dark:divide-gray-800">
             <div
-              v-for="item in openFeedback.items"
-              :key="item.id"
-              class="py-2.5"
+              v-for="item in grouped[status].slice(0, SECTION_LIMIT)"
+              :key="`${item.entity_type}-${item.id}`"
+              class="flex items-start gap-2.5 py-2"
             >
-              <div class="flex items-center justify-between gap-3">
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                    <span class="truncate text-sm font-medium text-gray-900 dark:text-white">
-                      {{ item.entity_code || `${item.entity_type}#${item.entity_id}` }}
-                    </span>
-                    <UBadge size="xs" color="neutral" variant="outline">
-                      {{ item.entity_type }}
-                    </UBadge>
-                    <UBadge v-if="item.category" size="xs" color="primary" variant="subtle">
-                      {{ item.category }}
-                    </UBadge>
-                  </div>
+              <!-- Thumbnail -->
+              <div class="shrink-0 w-8 h-11 rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800">
+                <img
+                  v-if="item.image"
+                  :src="item.image"
+                  :alt="item.name"
+                  class="w-full h-full object-cover"
+                >
+                <div v-else class="w-full h-full flex items-center justify-center">
+                  <UIcon name="i-heroicons-photo" class="text-neutral-300 dark:text-neutral-600 size-3" />
                 </div>
               </div>
-              <p class="mt-1 text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                {{ item.comment }}
-              </p>
-              <p v-if="item.created_by_name || item.created_at" class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-                <template v-if="item.created_by_name">{{ item.created_by_name }}</template>
-                <template v-if="item.created_by_name && item.created_at"> · </template>
-                <template v-if="item.created_at">{{ formatRelativeDate(item.created_at) }}</template>
-              </p>
+
+              <!-- Info -->
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="truncate text-xs font-medium text-gray-900 dark:text-white">
+                    {{ item.name || item.code }}
+                  </span>
+                  <UBadge size="xs" color="neutral" variant="outline">
+                    {{ entityTypeLabel(item.entity_type) }}
+                  </UBadge>
+                </div>
+                <div class="mt-0.5 flex flex-wrap items-center gap-1">
+                  <UBadge
+                    v-if="item.version_semver"
+                    size="xs"
+                    color="neutral"
+                    variant="subtle"
+                  >
+                    {{ item.version_semver }}
+                  </UBadge>
+                  <UBadge
+                    v-if="item.world_name"
+                    size="xs"
+                    color="primary"
+                    variant="subtle"
+                  >
+                    {{ item.world_name }}
+                  </UBadge>
+                  <span
+                    v-if="item.modified_at"
+                    class="text-[10px] text-gray-400 dark:text-gray-500"
+                  >
+                    {{ formatRelativeDate(item.modified_at) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Studio link -->
+              <UButton
+                v-if="studioPath(item)"
+                icon="i-heroicons-pencil-square"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :to="studioPath(item)"
+                :aria-label="`Open ${item.name} in studio`"
+              />
             </div>
           </div>
 
-          <template v-if="openFeedback.total > openFeedback.items.length" #footer>
-            <div class="flex justify-end">
-              <UButton
-                :to="localePath('/admin/feedback')"
-                color="neutral"
-                variant="link"
-                size="sm"
-                trailing-icon="i-heroicons-arrow-right-20-solid"
-              >
-                {{ tt('features.editorial.viewAllFeedback', 'View all feedback') }}
-              </UButton>
+          <template v-if="grouped[status]?.length > SECTION_LIMIT" #footer>
+            <div class="text-center">
+              <span class="text-xs text-gray-400">
+                +{{ grouped[status].length - SECTION_LIMIT }} {{ tt('features.editorial.moreItems', 'more') }}
+              </span>
             </div>
           </template>
         </UCard>
+      </div>
+
+      <!-- Summary bar -->
+      <div
+        v-if="allEntities.length"
+        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 dark:border-neutral-800 dark:bg-neutral-900"
+      >
+        <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+          <span>
+            <strong class="text-gray-900 dark:text-white">{{ allEntities.length }}</strong>
+            {{ tt('features.editorial.totalEntities', 'total entities') }}
+          </span>
+          <span v-for="status in dashboardStatuses" :key="status">
+            <UBadge
+              size="xs"
+              :color="sectionBadgeColor(status)"
+              variant="subtle"
+            >
+              {{ grouped[status]?.length ?? 0 }}
+            </UBadge>
+            {{ sectionLabel(status) }}
+          </span>
+        </div>
+        <UButton
+          icon="i-heroicons-view-columns"
+          color="neutral"
+          variant="link"
+          size="xs"
+          :to="localePath('/manage/board')"
+          trailing-icon="i-heroicons-arrow-right-20-solid"
+        >
+          {{ tt('navigation.menu.board', 'Editorial Board') }}
+        </UButton>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useEditorialDashboard } from '~/composables/manage/useEditorialDashboard'
-import StatusBadge from '~/components/common/StatusBadge.vue'
+import type { DashboardEntity, DashboardStatus } from '~/composables/manage/useEditorialDashboard'
 
 definePageMeta({ layout: 'default' })
 
 const { t, te } = useI18n()
 const localePath = useLocalePath()
 
-function tt(key: string, fallback: string) {
+function tt(key: string, fallback: string): string {
   return te(key) ? t(key) : fallback
 }
 
@@ -280,14 +228,79 @@ useSeoMeta({
   title: `${tt('navigation.menu.manage', 'Manage')} · ${tt('features.editorial.dashboardTitle', 'Editorial Dashboard')}`,
 })
 
+const SECTION_LIMIT = 8
+
 const {
-  drafts,
-  pendingReview,
-  blocked,
-  openFeedback,
+  allEntities,
   loading,
+  error,
+  filters,
+  grouped,
+  worldOptions,
+  dashboardStatuses,
+  entityEndpoints,
   refresh,
 } = useEditorialDashboard()
+
+// --- World filter ---
+const selectedWorldId = computed({
+  get: () => filters.worldId != null ? String(filters.worldId) : '',
+  set: (val: string) => {
+    filters.worldId = val ? Number(val) : null
+  },
+})
+
+const worldFilterItems = computed(() => [
+  { label: tt('ui.filters.allWorlds', 'All worlds'), value: '' },
+  ...worldOptions.value.map(w => ({ label: w.label, value: String(w.value) })),
+])
+
+// --- Entity type mapping for API path resolution ---
+const ENTITY_API_MAP: Record<string, string> = {
+  base_card: 'baseCard',
+  arcana: 'arcana',
+  facet: 'facet',
+  world: 'world',
+  skill: 'skill',
+  card_type: 'cardType',
+}
+
+function entityTypeLabel(type: string): string {
+  const ep = entityEndpoints.find(e => e.key === type)
+  return ep?.label ?? type
+}
+
+function studioPath(item: DashboardEntity): string | undefined {
+  const routeKey = ENTITY_API_MAP[item.entity_type]
+  if (!routeKey) return undefined
+  return localePath(`/manage/${routeKey}/${item.id}/studio`)
+}
+
+// --- Section display helpers ---
+const SECTION_META: Record<DashboardStatus, { icon: string; iconColor: string; badgeColor: 'neutral' | 'warning' | 'primary' | 'success' | 'error'; label: string }> = {
+  draft: { icon: 'i-heroicons-pencil-square', iconColor: 'text-neutral-500', badgeColor: 'neutral', label: 'Draft' },
+  review: { icon: 'i-heroicons-eye', iconColor: 'text-warning-500', badgeColor: 'warning', label: 'Review' },
+  changes_requested: { icon: 'i-heroicons-arrow-uturn-left', iconColor: 'text-warning-500', badgeColor: 'warning', label: 'Changes Requested' },
+  approved: { icon: 'i-heroicons-check-circle', iconColor: 'text-primary-500', badgeColor: 'primary', label: 'Approved' },
+  published: { icon: 'i-heroicons-globe-alt', iconColor: 'text-success-500', badgeColor: 'success', label: 'Published' },
+}
+
+function sectionIcon(status: DashboardStatus): string {
+  return SECTION_META[status].icon
+}
+
+function sectionIconColor(status: DashboardStatus): string {
+  return SECTION_META[status].iconColor
+}
+
+function sectionBadgeColor(status: DashboardStatus): 'neutral' | 'warning' | 'primary' | 'success' | 'error' {
+  return SECTION_META[status].badgeColor
+}
+
+function sectionLabel(status: DashboardStatus): string {
+  const key = `system.status.${status}`
+  return te(key) ? t(key) : SECTION_META[status].label
+}
 
 function formatRelativeDate(dateStr: string): string {
   try {

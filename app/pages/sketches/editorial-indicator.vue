@@ -137,7 +137,6 @@ const demoRows = computed(() =>
             </div>
             <EntityEditorialIndicator
               :editorial-state="row.editorialState"
-              :translation-coverage="row.coverage"
               :next-action="row.nextAction"
             />
           </div>
@@ -150,7 +149,6 @@ const demoRows = computed(() =>
             </div>
             <EntityEditorialIndicator
               :editorial-state="null"
-              :translation-coverage="{ current: 1, total: 3 }"
             />
           </div>
 
@@ -181,7 +179,6 @@ const demoRows = computed(() =>
             <span class="text-xs font-medium truncate max-w-24">{{ row.name }}</span>
             <EntityEditorialIndicator
               :editorial-state="row.editorialState"
-              :translation-coverage="row.coverage"
               compact
             />
           </div>
@@ -214,7 +211,6 @@ const demoRows = computed(() =>
             </div>
             <EntityEditorialIndicator
               :editorial-state="row.editorialState"
-              :translation-coverage="row.coverage"
               :next-action="row.nextAction"
             />
           </div>

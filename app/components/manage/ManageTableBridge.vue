@@ -240,6 +240,7 @@ function inferCapability(key: string): ColumnDefinition['capability'] {
     case 'tags':
       return 'hasTags'
     case 'translationStatus':
+    case 'translation_states':
       return 'translatable'
     case 'status':
       return 'hasStatus'

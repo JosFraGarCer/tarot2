@@ -96,7 +96,7 @@ function deletableTranslations(entity: MockEntity) {
   return entity.translations.filter(t => t.lang !== 'en' && t.has_translation && !t.is_fallback)
 }
 
-function coverageOf(entity: MockEntity) {
+function _coverageOf(entity: MockEntity) {
   const cov = translationCoverage(entity.translations)
   return { current: cov.done, total: cov.total }
 }
@@ -190,7 +190,6 @@ const translationImpact = computed(() => {
             </div>
             <EntityEditorialIndicator
               :editorial-state="entity.editorial_state"
-              :translation-coverage="coverageOf(entity)"
               compact
             />
           </div>

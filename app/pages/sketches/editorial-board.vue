@@ -31,6 +31,8 @@ import {
   translationStatusDot,
   releaseStageDot,
   releaseStageLabel,
+  avatarUrl,
+  relativeTime,
   EDITORIAL_TRANSITIONS,
   computeEditorial,
   type EditorialStatus,
@@ -61,6 +63,8 @@ const entityTypeFilter = ref<string | null>(null)
 const releaseStageFilter = ref<string | null>(null)
 const showMissingOnly = ref(false)
 const swimlaneMode = ref(false)
+const compactView = ref(false)
+const adminOverride = ref(false)
 
 // --- Pinned world version ---
 const pinnedWorld = ref<{ name: string; version: string } | null>(null)
@@ -149,14 +153,19 @@ function onDragLeaveColumn() {
   dragOverColumn.value = null
 }
 
-function canTransitionEntity(entity: MockEntity, targetStatus: EditorialStatus): { allowed: boolean; reasons: string[] } {
+function canTransitionEntity(entity: MockEntity, targetStatus: EditorialStatus): { allowed: boolean; reasons: string[]; adminOnly?: boolean } {
   const currentStatus = entity.editorial_state?.status
   if (!currentStatus) return { allowed: false, reasons: ['No editorial state'] }
   if (currentStatus === targetStatus) return { allowed: false, reasons: ['Already in this status'] }
 
   const transitionMap = EDITORIAL_TRANSITIONS[currentStatus] ?? []
-  if (!transitionMap.includes(targetStatus)) {
-    return { allowed: false, reasons: [`Cannot move from ${editorialStatusMeta(currentStatus).label} to ${editorialStatusMeta(targetStatus).label}`] }
+  const isForwardTransition = transitionMap.includes(targetStatus)
+
+  if (!isForwardTransition) {
+    if (adminOverride.value) {
+      return { allowed: true, reasons: [`Admin override: backward move from ${editorialStatusMeta(currentStatus).label}`], adminOnly: true }
+    }
+    return { allowed: false, reasons: [`Cannot move from ${editorialStatusMeta(currentStatus).label} to ${editorialStatusMeta(targetStatus).label}. Enable Admin Override to force backward moves.`] }
   }
 
   const reasons: string[] = []
@@ -299,12 +308,20 @@ function thumbnailUrl(entity: MockEntity): string {
 
           <!-- Swimlane toggle -->
           <div class="flex items-center gap-1.5">
-            <USwitch
-              v-model="swimlaneMode"
-              size="xs"
-              aria-label="Group cards by entity type (swimlanes)"
-            />
+            <USwitch v-model="swimlaneMode" size="xs" aria-label="Group cards by entity type (swimlanes)" />
             <span class="text-xs text-muted whitespace-nowrap">Swimlanes</span>
+          </div>
+
+          <!-- Compact view -->
+          <div class="flex items-center gap-1.5">
+            <USwitch v-model="compactView" size="xs" aria-label="Compact card view" />
+            <span class="text-xs text-muted whitespace-nowrap">Compact</span>
+          </div>
+
+          <!-- Admin override -->
+          <div class="flex items-center gap-1.5">
+            <USwitch v-model="adminOverride" size="xs" color="error" aria-label="Admin backward override" />
+            <span class="text-xs whitespace-nowrap" :class="adminOverride ? 'text-error font-medium' : 'text-muted'">Admin</span>
           </div>
 
           <!-- Pinned world -->
@@ -409,8 +426,11 @@ function thumbnailUrl(entity: MockEntity): string {
                       </div>
                     </div>
                   </div>
-                  <div class="flex items-center justify-between mt-2 pt-2 border-t border-default">
-                    <span class="text-[10px] text-muted truncate">{{ entity.updated_by }}</span>
+                  <div v-if="!compactView" class="flex items-center justify-between mt-2 pt-2 border-t border-default">
+                    <div class="flex items-center gap-1">
+                      <UAvatar :src="avatarUrl(entity.updated_by)" :alt="entity.updated_by" size="3xs" />
+                      <span class="text-[10px] text-muted truncate">{{ relativeTime(entity.modified_at) }}</span>
+                    </div>
                     <UButton
                       v-if="nextTransitionLabel(entity)"
                       :label="nextTransitionLabel(entity)!"
@@ -478,8 +498,11 @@ function thumbnailUrl(entity: MockEntity): string {
               </div>
 
               <!-- Footer -->
-              <div class="flex items-center justify-between mt-2 pt-2 border-t border-default">
-                <span class="text-[10px] text-muted truncate">{{ entity.updated_by }}</span>
+              <div v-if="!compactView" class="flex items-center justify-between mt-2 pt-2 border-t border-default">
+                <div class="flex items-center gap-1">
+                  <UAvatar :src="avatarUrl(entity.updated_by)" :alt="entity.updated_by" size="3xs" />
+                  <span class="text-[10px] text-muted truncate">{{ relativeTime(entity.modified_at) }}</span>
+                </div>
                 <UButton
                   v-if="nextTransitionLabel(entity)"
                   :label="nextTransitionLabel(entity)!"

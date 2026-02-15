@@ -22,23 +22,29 @@
   5. Remove double-click handler from EntityBase.vue row click
 -->
 <script setup lang="ts">
-import { ref, h, resolveComponent } from 'vue'
+import { ref, computed, h, resolveComponent } from 'vue'
 import type { TableColumn, DropdownMenuItem } from '@nuxt/ui'
 import {
   generateMockEntities,
   editorialStatusMeta,
   translationCoverage,
   computeEditorial,
+  releaseStageDot,
+  releaseStageLabel,
+  avatarUrl,
+  relativeTime,
   EDITORIAL_TRANSITIONS,
   type MockEntity,
   type EditorialStatus,
 } from '~/components/sketches/mockData'
+import SketchCrossNav from '~/components/sketches/SketchCrossNav.vue'
 
 definePageMeta({ layout: 'default' })
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
+const UAvatar = resolveComponent('UAvatar')
 
 const toast = useToast()
 
@@ -48,13 +54,37 @@ const isAuthenticated = ref(true)
 // --- Data ---
 const entities = ref(generateMockEntities(10))
 
+// --- Preview modal ---
+const previewOpen = ref(false)
+const previewEntity = ref<MockEntity | null>(null)
+function openPreview(entity: MockEntity) {
+  previewEntity.value = entity
+  previewOpen.value = true
+}
+
+function thumbnailUrl(entity: MockEntity): string {
+  return entity.image ?? `https://picsum.photos/seed/${entity.code}${entity.id}/80/112`
+}
+
 // --- Slideover state ---
 const slideoverOpen = ref(false)
 const slideoverEntity = ref<MockEntity | null>(null)
+const slideoverIndex = computed(() => {
+  if (!slideoverEntity.value) return -1
+  return entities.value.findIndex(e => e.id === slideoverEntity.value!.id)
+})
+const hasPrev = computed(() => slideoverIndex.value > 0)
+const hasNext = computed(() => slideoverIndex.value >= 0 && slideoverIndex.value < entities.value.length - 1)
 
 function openEditor(entity: MockEntity) {
   slideoverEntity.value = entity
   slideoverOpen.value = true
+}
+function navPrev() {
+  if (hasPrev.value) slideoverEntity.value = entities.value[slideoverIndex.value - 1]
+}
+function navNext() {
+  if (hasNext.value) slideoverEntity.value = entities.value[slideoverIndex.value + 1]
 }
 
 // --- Delete modal state ---
@@ -165,11 +195,28 @@ function overflowItems(entity: MockEntity): DropdownMenuItem[][] {
 const columns: TableColumn<MockEntity>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: 'Entity',
     cell: ({ row }) => {
-      return h('div', { class: 'flex flex-col' }, [
-        h('span', { class: 'font-medium text-sm' }, row.original.name),
-        h('span', { class: 'text-xs text-muted' }, `#${row.original.code}`),
+      const e = row.original
+      return h('div', { class: 'flex items-center gap-2.5' }, [
+        h('img', { src: thumbnailUrl(e), alt: e.name, class: 'w-8 h-11 rounded object-cover shrink-0 bg-muted/20', loading: 'lazy' }),
+        h('div', { class: 'min-w-0' }, [
+          h('div', { class: 'flex items-center gap-1.5' }, [
+            h('span', { class: 'font-medium text-sm truncate' }, e.name),
+            e.version_semver
+              ? h('span', { class: 'text-[10px] text-muted tabular-nums shrink-0' }, `v${e.version_semver}`)
+              : null,
+            e.release_stage
+              ? h('span', { class: `inline-block w-1.5 h-1.5 rounded-full shrink-0 ${releaseStageDot(e.release_stage)}`, title: releaseStageLabel(e.release_stage) })
+              : null,
+          ]),
+          h('div', { class: 'flex items-center gap-1.5 mt-0.5' }, [
+            h(UBadge, { color: 'neutral', variant: 'outline', size: 'xs' }, () => e.entity_type),
+            e.world
+              ? h(UBadge, { color: 'primary', variant: 'subtle', size: 'xs' }, () => e.world!.name)
+              : h(UBadge, { color: 'neutral', variant: 'subtle', size: 'xs' }, () => 'Base System'),
+          ]),
+        ]),
       ])
     },
   },
@@ -202,6 +249,17 @@ const columns: TableColumn<MockEntity>[] = [
     },
   },
   {
+    id: 'updated',
+    header: 'Updated',
+    cell: ({ row }) => {
+      const e = row.original
+      return h('div', { class: 'flex items-center gap-1.5' }, [
+        h(UAvatar, { src: avatarUrl(e.updated_by), alt: e.updated_by, size: 'xs' }),
+        h('span', { class: 'text-[10px] text-muted tabular-nums' }, relativeTime(e.modified_at)),
+      ])
+    },
+  },
+  {
     id: 'actions',
     header: '',
     meta: { class: { td: 'text-right' } },
@@ -210,6 +268,15 @@ const columns: TableColumn<MockEntity>[] = [
       const next = nextTransitionFor(entity)
 
       const children = [
+        // Preview
+        h(UButton, {
+          icon: 'i-lucide-eye',
+          size: 'xs',
+          variant: 'ghost',
+          color: 'neutral',
+          'aria-label': `Preview ${entity.name}`,
+          onClick: () => openPreview(entity),
+        }),
         // Primary: Edit (always visible)
         h(UButton, {
           label: 'Edit',
@@ -259,91 +326,106 @@ const columns: TableColumn<MockEntity>[] = [
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-8">
+  <div class="min-h-screen bg-default flex flex-col">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <div class="flex items-center gap-2">
-          <NuxtLink
-            to="/sketches"
-            class="text-muted hover:text-primary transition-colors"
-            aria-label="Back to sketches"
-          >
+    <header class="sticky top-0 z-30 border-b border-default bg-default/95 backdrop-blur-sm">
+      <div class="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
+        <div class="flex items-center gap-3">
+          <NuxtLink to="/sketches" class="text-muted hover:text-primary transition-colors" aria-label="Back to sketches">
             <UIcon name="i-lucide-arrow-left" />
           </NuxtLink>
-          <h1 class="text-xl font-bold tracking-tight">
-            Entity Row Actions
-          </h1>
-          <UBadge color="error" variant="subtle" size="xs">
-            POC
-          </UBadge>
+          <h1 class="text-lg font-bold tracking-tight">Entity Row Actions</h1>
+          <UBadge color="error" variant="subtle" size="xs">POC</UBadge>
         </div>
-        <p class="text-xs text-muted mt-1 ml-6">
-          Prioritized actions: Edit (Slideover) + Next Transition + Overflow menu. No double-click.
-        </p>
+        <div class="flex items-center gap-1.5">
+          <USwitch v-model="isAuthenticated" size="xs" color="primary" aria-label="Toggle authentication" />
+          <span class="text-[10px]" :class="isAuthenticated ? 'text-primary' : 'text-muted'">{{ isAuthenticated ? 'Auth' : 'Guest' }}</span>
+        </div>
       </div>
+    </header>
 
-      <div class="flex items-center gap-2">
-        <USwitch
-          v-model="isAuthenticated"
-          :unchecked-icon="'i-lucide-lock'"
-          :checked-icon="'i-lucide-unlock'"
-          color="primary"
-          aria-label="Toggle authentication simulation"
-        />
-        <span class="text-xs font-medium" :class="isAuthenticated ? 'text-primary' : 'text-muted'">
-          {{ isAuthenticated ? 'Authenticated' : 'Guest' }}
-        </span>
-      </div>
-    </div>
+    <SketchCrossNav current-view="" />
 
     <!-- 401 state -->
-    <div v-if="!isAuthenticated" class="rounded-lg border border-default p-12 text-center">
-      <UIcon name="i-lucide-shield-alert" class="text-4xl text-error mb-3" />
-      <h2 class="text-lg font-semibold mb-1">
-        401 Not Authenticated
-      </h2>
-      <p class="text-sm text-muted mb-4">
-        Editorial actions require authentication.
-      </p>
-      <UButton
-        label="Simulate Login"
-        icon="i-lucide-log-in"
-        @click="isAuthenticated = true"
-      />
+    <div v-if="!isAuthenticated" class="flex-1 flex items-center justify-center">
+      <div class="text-center p-12">
+        <UIcon name="i-lucide-shield-alert" class="text-4xl text-error mb-3" />
+        <h2 class="text-lg font-semibold mb-1">401 Not Authenticated</h2>
+        <p class="text-sm text-muted mb-4">Editorial actions require authentication.</p>
+        <UButton label="Simulate Login" icon="i-lucide-log-in" @click="isAuthenticated = true" />
+      </div>
     </div>
 
     <!-- Authenticated view -->
     <template v-else>
-      <!-- Action pattern legend -->
-      <div class="flex items-center gap-4 mb-4 p-3 rounded-lg bg-muted/30 border border-default text-xs text-muted">
-        <span class="flex items-center gap-1">
-          <UIcon name="i-lucide-pencil" class="text-primary" />
-          <strong>Edit</strong> = Opens Slideover (single entry point)
-        </span>
-        <span class="flex items-center gap-1">
-          <UIcon name="i-lucide-arrow-right" />
-          <strong>Next</strong> = One-click editorial transition
-        </span>
-        <span class="flex items-center gap-1">
-          <UIcon name="i-lucide-ellipsis-vertical" />
-          <strong>More</strong> = Delete, tags, feedback
-        </span>
-      </div>
+      <div class="max-w-7xl mx-auto px-4 py-6 w-full flex-1">
+        <!-- Action pattern legend -->
+        <div class="flex items-center gap-4 mb-4 p-3 rounded-lg bg-muted/30 border border-default text-xs text-muted">
+          <span class="flex items-center gap-1"><UIcon name="i-lucide-eye" /> <strong>Preview</strong></span>
+          <span class="flex items-center gap-1"><UIcon name="i-lucide-pencil" class="text-primary" /> <strong>Edit</strong> = Slideover</span>
+          <span class="flex items-center gap-1"><UIcon name="i-lucide-arrow-right" /> <strong>Next</strong> = Transition</span>
+          <span class="flex items-center gap-1"><UIcon name="i-lucide-ellipsis-vertical" /> <strong>More</strong></span>
+        </div>
 
-      <!-- Table -->
-      <div class="rounded-lg border border-default">
-        <UTable
-          :data="entities"
-          :columns="columns"
-          class="w-full"
-          :ui="{
-            th: 'text-xs font-medium text-muted uppercase tracking-wider',
-            td: 'py-2',
-          }"
-        />
+        <!-- Table -->
+        <div class="rounded-lg border border-default">
+          <UTable
+            :data="entities"
+            :columns="columns"
+            class="w-full"
+            :ui="{
+              th: 'text-xs font-medium text-muted uppercase tracking-wider',
+              td: 'py-2',
+            }"
+          />
+        </div>
       </div>
     </template>
+
+    <!-- Preview modal -->
+    <UModal v-model:open="previewOpen" role="dialog" aria-modal="true">
+      <template #header>
+        <span class="text-sm font-bold">{{ previewEntity?.name }}</span>
+      </template>
+      <template #body>
+        <div v-if="previewEntity" class="flex gap-4">
+          <img :src="thumbnailUrl(previewEntity)" :alt="previewEntity.name" class="w-32 h-44 rounded-lg object-cover shrink-0 bg-muted/20">
+          <div class="space-y-2 flex-1">
+            <div class="flex items-center gap-2">
+              <UBadge :color="editorialStatusMeta(previewEntity.status).color" :variant="editorialStatusMeta(previewEntity.status).variant" :icon="editorialStatusMeta(previewEntity.status).icon" size="xs">{{ editorialStatusMeta(previewEntity.status).label }}</UBadge>
+              <UBadge v-if="previewEntity.version_semver" color="neutral" variant="outline" size="xs">v{{ previewEntity.version_semver }}</UBadge>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <UBadge color="neutral" variant="outline" size="xs">{{ previewEntity.entity_type }}</UBadge>
+              <UBadge v-if="previewEntity.world" color="primary" variant="subtle" size="xs" icon="i-lucide-globe">{{ previewEntity.world.name }}</UBadge>
+              <UBadge v-else color="neutral" variant="subtle" size="xs">Base System</UBadge>
+            </div>
+            <div class="text-xs text-muted space-y-1 pt-2">
+              <div class="flex items-center gap-1.5">
+                <UAvatar :src="avatarUrl(previewEntity.created_by)" :alt="previewEntity.created_by" size="2xs" />
+                <span>Created by <strong>{{ previewEntity.created_by }}</strong> · {{ relativeTime(previewEntity.created_at) }}</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <UAvatar :src="avatarUrl(previewEntity.updated_by)" :alt="previewEntity.updated_by" size="2xs" />
+                <span>Updated by <strong>{{ previewEntity.updated_by }}</strong> · {{ relativeTime(previewEntity.modified_at) }}</span>
+              </div>
+            </div>
+            <div v-if="(previewEntity.editorial?.blockingReasons.length ?? 0) > 0" class="p-2 rounded bg-warning/10 border border-warning/20 mt-2">
+              <p class="text-[10px] font-medium text-warning">{{ previewEntity.editorial!.blockingReasons.length }} blockers</p>
+              <ul class="text-[10px] text-muted list-disc list-inside">
+                <li v-for="r in previewEntity.editorial!.blockingReasons" :key="r">{{ r }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-between">
+          <UButton label="Open in Studio" icon="i-lucide-palette" size="xs" variant="soft" @click="previewOpen = false; if (previewEntity) openEditor(previewEntity)" />
+          <UButton label="Close" color="neutral" variant="outline" size="xs" @click="previewOpen = false" />
+        </div>
+      </template>
+    </UModal>
 
     <!-- Slideover (editor simulation) -->
     <USlideover
@@ -352,22 +434,36 @@ const columns: TableColumn<MockEntity>[] = [
       :description="`#${slideoverEntity?.code ?? ''} — ${slideoverEntity?.entity_type ?? ''}`"
       side="right"
     >
+      <template #header>
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm">{{ slideoverEntity?.name }}</span>
+            <UBadge v-if="slideoverEntity?.world" color="primary" variant="subtle" size="xs" icon="i-lucide-globe">{{ slideoverEntity.world.name }}</UBadge>
+            <UBadge v-else-if="slideoverEntity" color="neutral" variant="subtle" size="xs">Base System</UBadge>
+          </div>
+          <div class="flex items-center gap-1">
+            <UButton icon="i-lucide-chevron-left" size="xs" variant="ghost" color="neutral" :disabled="!hasPrev" aria-label="Previous entity" @click="navPrev" />
+            <span class="text-[10px] text-muted tabular-nums">{{ slideoverIndex + 1 }}/{{ entities.length }}</span>
+            <UButton icon="i-lucide-chevron-right" size="xs" variant="ghost" color="neutral" :disabled="!hasNext" aria-label="Next entity" @click="navNext" />
+          </div>
+        </div>
+      </template>
+
       <template #body>
         <div v-if="slideoverEntity" class="space-y-6">
           <!-- Status section -->
           <div>
-            <h3 class="text-xs font-medium text-muted uppercase tracking-wider mb-2">
-              Editorial Status
-            </h3>
+            <h3 class="text-xs font-medium text-muted uppercase tracking-wider mb-2">Editorial Status</h3>
             <div class="flex items-center gap-2">
               <UBadge
                 :color="editorialStatusMeta(slideoverEntity.status).color"
                 :variant="editorialStatusMeta(slideoverEntity.status).variant"
                 :icon="editorialStatusMeta(slideoverEntity.status).icon"
-                :aria-label="`Current status: ${editorialStatusMeta(slideoverEntity.status).label}`"
               >
                 {{ editorialStatusMeta(slideoverEntity.status).label }}
               </UBadge>
+              <UBadge v-if="slideoverEntity.version_semver" color="neutral" variant="outline" size="xs">v{{ slideoverEntity.version_semver }}</UBadge>
+              <span v-if="slideoverEntity.release_stage" :class="`inline-block w-2 h-2 rounded-full ${releaseStageDot(slideoverEntity.release_stage)}`" :title="releaseStageLabel(slideoverEntity.release_stage)" />
             </div>
 
             <!-- Blocking reasons -->
@@ -376,13 +472,9 @@ const columns: TableColumn<MockEntity>[] = [
               class="mt-2 p-2 rounded bg-warning/10 border border-warning/20"
               role="alert"
             >
-              <p class="text-xs font-medium text-warning mb-1">
-                Publish blocked:
-              </p>
+              <p class="text-xs font-medium text-warning mb-1">Publish blocked:</p>
               <ul class="text-xs text-muted list-disc list-inside">
-                <li v-for="reason in slideoverEntity.editorial.blockingReasons" :key="reason">
-                  {{ reason }}
-                </li>
+                <li v-for="reason in slideoverEntity.editorial.blockingReasons" :key="reason">{{ reason }}</li>
               </ul>
             </div>
 
@@ -395,17 +487,14 @@ const columns: TableColumn<MockEntity>[] = [
                 :icon="editorialStatusMeta(transition).icon"
                 size="xs"
                 variant="outline"
-                :aria-label="`Transition to ${editorialStatusMeta(transition).label}`"
                 @click="executeTransition(slideoverEntity!, transition as EditorialStatus)"
               />
             </div>
           </div>
 
-          <!-- Translations section -->
+          <!-- Translations section with edit dropdown -->
           <div>
-            <h3 class="text-xs font-medium text-muted uppercase tracking-wider mb-2">
-              Translations
-            </h3>
+            <h3 class="text-xs font-medium text-muted uppercase tracking-wider mb-2">Translations</h3>
             <div class="space-y-2">
               <div
                 v-for="t in slideoverEntity.translations"
@@ -413,47 +502,59 @@ const columns: TableColumn<MockEntity>[] = [
                 class="flex items-center justify-between p-2 rounded border border-default"
               >
                 <div class="flex items-center gap-2">
-                  <UBadge color="neutral" variant="outline" size="xs">
-                    {{ t.lang.toUpperCase() }}
-                  </UBadge>
-                  <span class="text-sm">
-                    {{ t.has_translation && !t.is_fallback ? 'Complete' : 'Missing / Fallback' }}
-                  </span>
+                  <UBadge color="neutral" variant="outline" size="xs">{{ t.lang.toUpperCase() }}</UBadge>
+                  <span class="text-xs">{{ t.has_translation && !t.is_fallback ? 'Complete' : 'Missing / Fallback' }}</span>
                 </div>
-                <UBadge
-                  :color="t.has_translation && !t.is_fallback ? 'success' : 'warning'"
-                  variant="soft"
-                  size="xs"
-                  :aria-label="`${t.lang.toUpperCase()} translation: ${t.has_translation && !t.is_fallback ? 'complete' : 'missing'}`"
-                >
-                  {{ t.has_translation && !t.is_fallback ? 'OK' : 'Needed' }}
-                </UBadge>
+                <div class="flex items-center gap-1">
+                  <UBadge
+                    :color="t.has_translation && !t.is_fallback ? 'success' : 'warning'"
+                    variant="soft"
+                    size="xs"
+                  >
+                    {{ t.has_translation && !t.is_fallback ? 'OK' : 'Needed' }}
+                  </UBadge>
+                  <UButton
+                    v-if="t.lang !== 'en'"
+                    icon="i-lucide-pencil"
+                    size="xs"
+                    variant="ghost"
+                    color="neutral"
+                    :aria-label="`Edit ${t.lang.toUpperCase()} translation`"
+                    @click="toast.add({ title: `Edit ${t.lang.toUpperCase()} translation`, icon: 'i-lucide-languages' })"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Basic fields (placeholder) -->
+          <!-- Creator / updater info -->
           <div>
-            <h3 class="text-xs font-medium text-muted uppercase tracking-wider mb-2">
-              Basic Fields
-            </h3>
+            <h3 class="text-xs font-medium text-muted uppercase tracking-wider mb-2">People</h3>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <UAvatar :src="avatarUrl(slideoverEntity.created_by)" :alt="slideoverEntity.created_by" size="xs" />
+                <div>
+                  <span class="text-xs font-medium">{{ slideoverEntity.created_by }}</span>
+                  <span class="text-[10px] text-muted ml-1">created {{ relativeTime(slideoverEntity.created_at) }}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <UAvatar :src="avatarUrl(slideoverEntity.updated_by)" :alt="slideoverEntity.updated_by" size="xs" />
+                <div>
+                  <span class="text-xs font-medium">{{ slideoverEntity.updated_by }}</span>
+                  <span class="text-[10px] text-muted ml-1">updated {{ relativeTime(slideoverEntity.modified_at) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Basic fields -->
+          <div>
+            <h3 class="text-xs font-medium text-muted uppercase tracking-wider mb-2">Details</h3>
             <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-muted">Code</span>
-                <span class="font-mono">{{ slideoverEntity.code }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-muted">Type</span>
-                <span>{{ slideoverEntity.entity_type }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-muted">Updated by</span>
-                <span>{{ slideoverEntity.updated_by }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-muted">Modified</span>
-                <span class="tabular-nums">{{ new Date(slideoverEntity.modified_at).toLocaleDateString() }}</span>
-              </div>
+              <div class="flex justify-between"><span class="text-muted">Code</span><span class="font-mono text-xs">{{ slideoverEntity.code }}</span></div>
+              <div class="flex justify-between"><span class="text-muted">Type</span><span>{{ slideoverEntity.entity_type }}</span></div>
+              <div class="flex justify-between"><span class="text-muted">Active</span><UBadge :color="slideoverEntity.is_active ? 'success' : 'neutral'" variant="soft" size="xs">{{ slideoverEntity.is_active ? 'Yes' : 'No' }}</UBadge></div>
             </div>
           </div>
         </div>
@@ -461,12 +562,7 @@ const columns: TableColumn<MockEntity>[] = [
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <UButton
-            label="Close"
-            color="neutral"
-            variant="outline"
-            @click="slideoverOpen = false"
-          />
+          <UButton label="Close" color="neutral" variant="outline" @click="slideoverOpen = false" />
         </div>
       </template>
     </USlideover>

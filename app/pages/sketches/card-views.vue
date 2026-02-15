@@ -35,9 +35,12 @@ import {
   translationStatusDot,
   releaseStageDot,
   releaseStageLabel,
+  avatarUrl,
+  relativeTime,
   type MockEntity,
 } from '~/components/sketches/mockData'
 import EntityEditorialIndicator from '~/components/sketches/EntityEditorialIndicator.vue'
+import SketchCrossNav from '~/components/sketches/SketchCrossNav.vue'
 
 definePageMeta({ layout: 'default' })
 
@@ -47,7 +50,7 @@ const toast = useToast()
 const allEntities = generateMockEntities(12)
 const entity = ref<MockEntity>({ ...allEntities[0] })
 
-const coverage = computed(() => {
+const _coverage = computed(() => {
   const cov = translationCoverage(entity.value.translations)
   return { current: cov.done, total: cov.total }
 })
@@ -116,6 +119,13 @@ function selectCollectionEntity(e: MockEntity) {
   toast.add({ title: `Viewing: ${e.name}`, color: 'neutral', icon: 'i-lucide-eye' })
 }
 
+// --- Prev/next entity navigation ---
+const entityIndex = computed(() => allEntities.findIndex(e => e.id === entity.value.id))
+const hasPrevEntity = computed(() => entityIndex.value > 0)
+const hasNextEntity = computed(() => entityIndex.value >= 0 && entityIndex.value < allEntities.length - 1)
+function navPrev() { if (hasPrevEntity.value) entity.value = { ...allEntities[entityIndex.value - 1] } }
+function navNext() { if (hasNextEntity.value) entity.value = { ...allEntities[entityIndex.value + 1] } }
+
 // --- Technical metadata ---
 const technicalRows = computed(() => [
   { key: 'ID', value: String(entity.value.id) },
@@ -158,8 +168,14 @@ const translationMatrix = computed(() =>
           <NuxtLink to="/sketches" class="text-muted hover:text-primary transition-colors" aria-label="Back to sketches">
             <UIcon name="i-lucide-arrow-left" />
           </NuxtLink>
-          <h1 class="text-lg font-bold tracking-tight">Card Views</h1>
-          <UBadge color="primary" variant="subtle" size="xs">Studio</UBadge>
+          <h1 class="text-sm font-bold truncate">{{ entity.name }}</h1>
+          <UBadge color="neutral" variant="outline" size="xs">{{ entity.entity_type }}</UBadge>
+          <!-- Prev/Next nav -->
+          <div class="flex items-center gap-0.5">
+            <UButton icon="i-lucide-chevron-left" size="xs" variant="ghost" color="neutral" :disabled="!hasPrevEntity" aria-label="Previous entity" @click="navPrev" />
+            <span class="text-[10px] text-muted tabular-nums">{{ entityIndex + 1 }}/{{ allEntities.length }}</span>
+            <UButton icon="i-lucide-chevron-right" size="xs" variant="ghost" color="neutral" :disabled="!hasNextEntity" aria-label="Next entity" @click="navNext" />
+          </div>
         </div>
 
         <!-- View mode selector -->
@@ -180,11 +196,14 @@ const translationMatrix = computed(() =>
 
         <EntityEditorialIndicator
           :editorial-state="entity.editorial_state"
-          :translation-coverage="coverage"
+          :version-semver="entity.version_semver"
+          :release-stage="entity.release_stage"
           compact
         />
       </div>
     </header>
+
+    <SketchCrossNav current-view="" />
 
     <main class="flex-1 overflow-y-auto">
       <!-- ===== TAROT MODE ===== -->
@@ -260,9 +279,10 @@ const translationMatrix = computed(() =>
 
           <!-- Card info below -->
           <div class="mt-4 text-center">
-            <p class="text-xs text-muted">
-              #{{ entity.code }} · {{ entity.entity_type }} · Last edited by {{ entity.updated_by }}
-            </p>
+            <div class="flex items-center justify-center gap-1.5">
+              <UAvatar :src="avatarUrl(entity.updated_by)" :alt="entity.updated_by" size="2xs" />
+              <span class="text-xs text-muted">#{{ entity.code }} · {{ entity.updated_by }} · {{ relativeTime(entity.modified_at) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -341,7 +361,8 @@ const translationMatrix = computed(() =>
           <h2 class="text-sm font-semibold">{{ entity.name }} — Technical View</h2>
           <EntityEditorialIndicator
             :editorial-state="entity.editorial_state"
-            :translation-coverage="coverage"
+            :version-semver="entity.version_semver"
+            :release-stage="entity.release_stage"
           />
         </div>
 

@@ -73,6 +73,54 @@ function resolveReleaseStage(entity: any): string | null {
   )
 }
 
+function resolveEditorialState(entity: any): { status: string; updated_by: number | null; content_version_id: number | null; modified_at: string } | null {
+  const es = entity?.editorial_state
+  if (!es || typeof es !== 'object') return null
+  return {
+    status: typeof es.status === 'string' ? es.status : (typeof entity?.status === 'string' ? entity.status : 'draft'),
+    updated_by: typeof es.updated_by === 'number' ? es.updated_by : null,
+    content_version_id: typeof es.content_version_id === 'number' ? es.content_version_id : null,
+    modified_at: typeof es.modified_at === 'string' ? es.modified_at : (entity?.modified_at ?? ''),
+  }
+}
+
+function resolveUpdatedBy(entity: any): string | null {
+  return pickString(
+    entity?.updated_by_username,
+    entity?.updated_by_name,
+    entity?.editorial_state?.updated_by_username,
+    entity?.create_user,
+  )
+}
+
+function resolveVersionSemver(entity: any): string | null {
+  return pickString(
+    entity?.version_semver,
+    entity?.content_version?.version_semver,
+  )
+}
+
+function resolveWorld(entity: any): { id: number; name: string } | null {
+  const worldId = entity?.world_id ?? entity?.world?.id
+  if (typeof worldId !== 'number' || worldId <= 0) return null
+  const worldName = pickString(entity?.world_name, entity?.world?.name) ?? `World #${worldId}`
+  return { id: worldId, name: worldName }
+}
+
+function resolveTranslationStates(entity: any): Array<{ lang: string; hasTranslation: boolean; isFallback: boolean }> {
+  const states = entity?.translation_states
+  if (Array.isArray(states)) {
+    return states
+      .filter((s: any) => typeof s?.language_code === 'string' || typeof s?.lang === 'string')
+      .map((s: any) => ({
+        lang: (s.language_code ?? s.lang) as string,
+        hasTranslation: Boolean(s.has_translation ?? s.hasTranslation ?? true),
+        isFallback: Boolean(s.is_fallback ?? s.isFallback ?? false),
+      }))
+  }
+  return []
+}
+
 function resolveTags(entity: any): string | null {
   if (Array.isArray(entity?.tags)) {
     const values = entity.tags
@@ -134,8 +182,8 @@ export function mapEntityToRow(entity: any, options: EntityRowOptions): EntityRo
     `#${entity?.id ?? '—'}`,
   ) ?? `#${entity?.id ?? '—'}`
 
-  const shortText = pickString(entity?.short_text, entity?.summary, entity?.subtitle) ?? ''
-  const description = pickString(entity?.description, entity?.long_text, entity?.details) ?? ''
+  const shortText = pickString(entity?.short_text, entity?.summary, entity?.subtitle) ?? undefined
+  const description = pickString(entity?.description, entity?.long_text, entity?.details) ?? undefined
   const status = pickString(entity?.status, entity?.state)
   const isActive = typeof entity?.is_active === 'boolean'
     ? entity.is_active
@@ -223,6 +271,11 @@ export function mapEntityToRow(entity: any, options: EntityRowOptions): EntityRo
     revisionCount: pickNumber(entity?.revision_count, entity?.revisions_count),
     updated_at: entity?.updated_at ?? entity?.modified_at ?? null,
     created_at: entity?.created_at ?? null,
+    updated_by: resolveUpdatedBy(entity),
+    version_semver: resolveVersionSemver(entity),
+    editorial_state: resolveEditorialState(entity),
+    world: resolveWorld(entity),
+    translation_states: resolveTranslationStates(entity),
     raw: entity,
   }
 }

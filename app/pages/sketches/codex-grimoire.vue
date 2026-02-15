@@ -25,10 +25,11 @@ import { ref, computed } from 'vue'
 import {
   generateMockEntities,
   editorialStatusMeta,
-  translationCoverage,
   releaseStageDot,
   releaseStageLabel,
   translationStatusDot,
+  avatarUrl,
+  relativeTime,
   type MockEntity,
 } from '~/components/sketches/mockData'
 
@@ -323,7 +324,10 @@ function getImageUrl(entity: MockEntity): string {
 
             <!-- Metadata -->
             <div class="text-xs text-muted space-y-1">
-              <p>Last edited by <strong>{{ currentEntity.updated_by }}</strong> · {{ new Date(currentEntity.modified_at).toLocaleDateString() }}</p>
+              <div class="flex items-center gap-1.5">
+                <UAvatar :src="avatarUrl(currentEntity.updated_by)" :alt="currentEntity.updated_by" size="2xs" />
+                <span>{{ currentEntity.updated_by }} · {{ relativeTime(currentEntity.modified_at) }}</span>
+              </div>
               <p v-if="currentEntity.content_version_id">Content version: #{{ currentEntity.content_version_id }}</p>
             </div>
           </div>

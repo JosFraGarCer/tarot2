@@ -29,13 +29,14 @@ export function useManageColumns(options: ManageColumnsOptions): ComputedRef<Tab
 
     add({ accessorKey: 'code', header: t('ui.fields.code') })
 
+    // Entity-specific columns
     switch (entity) {
       case 'baseCard':
         add({ accessorKey: 'card_type', header: t('entities.cardType') })
+        add({ accessorKey: 'world', header: t('ui.fields.world', 'World') })
         add({ accessorKey: 'tags', header: t('ui.fields.tags') })
         break
       case 'cardType':
-        // Remove category column per requirements
         break
       case 'facet':
         add({ accessorKey: 'arcana', header: t('entities.arcana') })
@@ -57,7 +58,10 @@ export function useManageColumns(options: ManageColumnsOptions): ComputedRef<Tab
         break
     }
 
-    add({ accessorKey: 'updated_at', header: t('common.updatedAt') })
+    // Editorial columns — shared across all entity types
+    add({ accessorKey: 'version_semver', header: t('ui.fields.version', 'Version') })
+    add({ accessorKey: 'translation_states', header: t('ui.fields.translations', 'Translations') })
+    add({ accessorKey: 'updated_by', header: t('ui.fields.updatedBy', 'Updated by') })
 
     columnMemo.set(key, extras)
     return extras

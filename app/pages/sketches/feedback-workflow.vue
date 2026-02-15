@@ -31,6 +31,8 @@ import {
   generateMockEntities,
   editorialStatusMeta,
   translationCoverage,
+  avatarUrl,
+  relativeTime as relativeTimeFn,
   type MockEntity,
 } from '~/components/sketches/mockData'
 import EntityEditorialIndicator from '~/components/sketches/EntityEditorialIndicator.vue'
@@ -42,13 +44,14 @@ const toast = useToast()
 
 // --- Mock entity ---
 const entity = ref<MockEntity>(generateMockEntities(1)[0])
-const coverage = computed(() => {
+const _coverage = computed(() => {
   const cov = translationCoverage(entity.value.translations)
   return { current: cov.done, total: cov.total }
 })
 
 // --- Feedback types ---
 type FeedbackStatus = 'open' | 'addressed' | 'resolved'
+type FeedbackType = 'card' | 'translation'
 
 interface FeedbackReply {
   id: number
@@ -64,6 +67,7 @@ interface FeedbackComment {
   avatar_seed: string
   text: string
   status: FeedbackStatus
+  feedback_type: FeedbackType
   lang: string | null
   field_path: string | null
   content_version_id: number | null
@@ -82,6 +86,7 @@ const feedbackComments = ref<FeedbackComment[]>([
     avatar_seed: 'alice',
     text: 'The card description is too vague. We need more detail about the journey symbolism and how it connects to the arcana system.',
     status: 'open',
+    feedback_type: 'card',
     lang: 'en',
     field_path: 'description',
     content_version_id: 12,
@@ -99,6 +104,7 @@ const feedbackComments = ref<FeedbackComment[]>([
     avatar_seed: 'bob',
     text: 'French translation uses "Le Mat" but the community prefers "Le Fou". Need editorial decision.',
     status: 'addressed',
+    feedback_type: 'translation',
     lang: 'fr',
     field_path: 'title',
     content_version_id: 11,
@@ -117,6 +123,7 @@ const feedbackComments = ref<FeedbackComment[]>([
     avatar_seed: 'carol',
     text: 'Image quality is excellent. Approved for this card.',
     status: 'resolved',
+    feedback_type: 'card',
     lang: null,
     field_path: 'image',
     content_version_id: 10,
@@ -132,6 +139,7 @@ const feedbackComments = ref<FeedbackComment[]>([
     avatar_seed: 'dave',
     text: 'Spanish translation missing the keyword "comienzos". This is a core concept for this card.',
     status: 'open',
+    feedback_type: 'translation',
     lang: 'es',
     field_path: 'keywords',
     content_version_id: 12,
@@ -147,6 +155,7 @@ const feedbackComments = ref<FeedbackComment[]>([
     avatar_seed: 'alice',
     text: 'The card needs a subtitle. All Major Arcana should have "Major Arcana · [number]" format.',
     status: 'open',
+    feedback_type: 'card',
     lang: null,
     field_path: 'subtitle',
     content_version_id: 12,
@@ -179,6 +188,7 @@ function openInStudio(comment: FeedbackComment) {
 
 // --- Filters ---
 const filterStatus = ref<'all' | 'unresolved' | 'mine'>('all')
+const filterType = ref<'all' | 'card' | 'translation'>('all')
 const filterLang = ref<string>('')
 const currentUser = 'alice'
 
@@ -193,6 +203,9 @@ const filteredComments = computed(() => {
     result = result.filter(c => c.status !== 'resolved')
   } else if (filterStatus.value === 'mine') {
     result = result.filter(c => c.author === currentUser)
+  }
+  if (filterType.value !== 'all') {
+    result = result.filter(c => c.feedback_type === filterType.value)
   }
   if (filterLang.value) {
     result = result.filter(c => c.lang === filterLang.value)
@@ -311,6 +324,7 @@ function submitNewComment() {
     avatar_seed: currentUser,
     text: newCommentState.text.trim(),
     status: 'open',
+    feedback_type: newCommentState.lang ? 'translation' : 'card',
     lang: newCommentState.lang || null,
     field_path: newCommentState.field_path || null,
     content_version_id: entity.value.content_version_id,
@@ -328,13 +342,10 @@ function submitNewComment() {
   toast.add({ title: 'Feedback added', color: 'success', icon: 'i-lucide-plus-circle' })
 }
 
-function relativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const hours = Math.floor(diff / 3600000)
-  if (hours < 1) return 'just now'
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
+function feedbackTypeMeta(type: FeedbackType): { color: string; icon: string; label: string } {
+  return type === 'translation'
+    ? { color: 'info', icon: 'i-lucide-languages', label: 'Translation' }
+    : { color: 'neutral', icon: 'i-lucide-file-text', label: 'Card' }
 }
 </script>
 
@@ -355,7 +366,6 @@ function relativeTime(dateStr: string): string {
         <div class="flex items-center gap-3">
           <EntityEditorialIndicator
             :editorial-state="entity.editorial_state"
-            :translation-coverage="coverage"
             :next-action="unresolvedCount > 0 ? `${unresolvedCount} unresolved` : null"
           />
           <UBadge
@@ -461,7 +471,7 @@ function relativeTime(dateStr: string): string {
           </div>
 
           <!-- Filters -->
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <div class="flex items-center rounded-md border border-default overflow-hidden">
               <button
                 v-for="opt in ([{ value: 'all', label: 'All' }, { value: 'unresolved', label: 'Unresolved' }, { value: 'mine', label: 'Mine' }] as const)"
@@ -471,6 +481,19 @@ function relativeTime(dateStr: string): string {
                 :aria-label="`Filter: ${opt.label}`"
                 :aria-pressed="filterStatus === opt.value"
                 @click="filterStatus = opt.value"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+            <!-- Feedback type filter -->
+            <div class="flex items-center rounded-md border border-default overflow-hidden">
+              <button
+                v-for="opt in ([{ value: 'all', label: 'All Types' }, { value: 'card', label: 'Card' }, { value: 'translation', label: 'Translation' }] as const)"
+                :key="opt.value"
+                class="px-2 py-1 text-xs font-medium transition-colors"
+                :class="filterType === opt.value ? 'bg-primary text-white' : 'text-muted hover:text-primary'"
+                :aria-pressed="filterType === opt.value"
+                @click="filterType = opt.value"
               >
                 {{ opt.label }}
               </button>
@@ -540,16 +563,21 @@ function relativeTime(dateStr: string): string {
               <!-- Comment header -->
               <div class="flex items-start gap-3">
                 <!-- Avatar -->
-                <img
-                  :src="`https://api.dicebear.com/7.x/initials/svg?seed=${comment.avatar_seed}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc&backgroundType=gradientLinear`"
-                  :alt="`${comment.author} avatar`"
-                  class="w-8 h-8 rounded-full shrink-0"
-                >
+                <UAvatar :src="avatarUrl(comment.author)" :alt="comment.author" size="sm" class="shrink-0" />
 
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-xs font-semibold">{{ comment.author }}</span>
-                    <span class="text-[10px] text-muted">{{ relativeTime(comment.created_at) }}</span>
+                    <span class="text-[10px] text-muted">{{ relativeTimeFn(comment.created_at) }}</span>
+                    <!-- Feedback type badge differentiator -->
+                    <UBadge
+                      :color="feedbackTypeMeta(comment.feedback_type).color as any"
+                      variant="outline"
+                      size="xs"
+                      :icon="feedbackTypeMeta(comment.feedback_type).icon"
+                    >
+                      {{ feedbackTypeMeta(comment.feedback_type).label }}
+                    </UBadge>
                     <UBadge
                       v-if="comment.lang"
                       color="neutral"
@@ -587,7 +615,7 @@ function relativeTime(dateStr: string): string {
                     <div class="flex items-center gap-1.5 mb-1">
                       <UIcon name="i-lucide-check-circle" class="text-success text-xs" />
                       <span class="text-[10px] font-medium text-success">Resolved by {{ comment.resolved_by }}</span>
-                      <span v-if="comment.resolved_at" class="text-[10px] text-muted">· {{ relativeTime(comment.resolved_at) }}</span>
+                      <span v-if="comment.resolved_at" class="text-[10px] text-muted">· {{ relativeTimeFn(comment.resolved_at) }}</span>
                     </div>
                     <p class="text-xs text-muted">{{ comment.resolution_note }}</p>
                   </div>
@@ -599,15 +627,11 @@ function relativeTime(dateStr: string): string {
                       :key="reply.id"
                       class="flex items-start gap-2"
                     >
-                      <img
-                        :src="`https://api.dicebear.com/7.x/initials/svg?seed=${reply.avatar_seed}&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc&backgroundType=gradientLinear`"
-                        :alt="`${reply.author} avatar`"
-                        class="w-6 h-6 rounded-full shrink-0"
-                      >
+                      <UAvatar :src="avatarUrl(reply.author)" :alt="reply.author" size="2xs" class="shrink-0" />
                       <div>
                         <div class="flex items-center gap-1.5">
                           <span class="text-[11px] font-semibold">{{ reply.author }}</span>
-                          <span class="text-[10px] text-muted">{{ relativeTime(reply.created_at) }}</span>
+                          <span class="text-[10px] text-muted">{{ relativeTimeFn(reply.created_at) }}</span>
                         </div>
                         <p class="text-xs leading-relaxed mt-0.5">{{ reply.text }}</p>
                       </div>

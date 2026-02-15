@@ -33,6 +33,8 @@ import {
   translationStatusDot,
   releaseStageDot,
   releaseStageLabel,
+  avatarUrl,
+  relativeTime,
   EDITORIAL_TRANSITIONS,
   computeEditorial,
   type EditorialStatus,
@@ -178,14 +180,30 @@ const feedbackItems = ref([
   { id: 3, author: 'carol', text: 'FR translation needs review — "Le Mat" vs "Le Fou" debate.', status: 'open' as const, created_at: '2026-02-11T09:00:00Z' },
 ])
 
-// --- Entity selector (switch between mock entities) ---
+// --- Entity selector + prev/next navigation ---
 const entitySelectorOpen = ref(false)
+const entityIndex = computed(() => allEntities.findIndex(e => e.id === entity.value.id))
+const hasPrevEntity = computed(() => entityIndex.value > 0)
+const hasNextEntity = computed(() => entityIndex.value >= 0 && entityIndex.value < allEntities.length - 1)
+
 function selectEntity(e: MockEntity) {
   entity.value = { ...e }
   cardFields.en.title = e.name
   entitySelectorOpen.value = false
   toast.add({ title: `Editing: ${e.name}`, color: 'neutral', icon: 'i-lucide-edit' })
 }
+function navPrevEntity() { if (hasPrevEntity.value) selectEntity(allEntities[entityIndex.value - 1]) }
+function navNextEntity() { if (hasNextEntity.value) selectEntity(allEntities[entityIndex.value + 1]) }
+
+// --- Fullscreen preview ---
+const fullscreenPreview = ref(false)
+
+// --- Mini timeline (simulated editorial history) ---
+const miniTimeline = computed(() => [
+  { action: 'Created', by: entity.value.created_by ?? entity.value.updated_by, at: entity.value.created_at, icon: 'i-lucide-plus-circle' },
+  { action: `Status → ${editorialStatusMeta(entity.value.status).label}`, by: entity.value.editorial_state?.updated_by ?? entity.value.updated_by, at: entity.value.editorial_state?.updated_at ?? entity.value.modified_at, icon: editorialStatusMeta(entity.value.status).icon },
+  { action: 'Last modified', by: entity.value.updated_by, at: entity.value.modified_at, icon: 'i-lucide-pencil' },
+])
 </script>
 
 <template>
@@ -209,6 +227,8 @@ function selectEntity(e: MockEntity) {
           <UBadge color="neutral" variant="outline" size="xs">
             {{ entity.entity_type }}
           </UBadge>
+          <UBadge v-if="entity.world" color="primary" variant="subtle" size="xs" icon="i-lucide-globe">{{ entity.world.name }}</UBadge>
+          <UBadge v-else color="neutral" variant="subtle" size="xs">Base System</UBadge>
           <template v-if="entity.version_semver">
             <UBadge color="neutral" variant="outline" size="xs">
               v{{ entity.version_semver }}
@@ -218,18 +238,21 @@ function selectEntity(e: MockEntity) {
               :title="releaseStageLabel(entity.release_stage)"
             />
           </template>
+          <!-- Prev/Next entity nav -->
+          <div class="flex items-center gap-0.5 ml-1">
+            <UButton icon="i-lucide-chevron-left" size="xs" variant="ghost" color="neutral" :disabled="!hasPrevEntity" aria-label="Previous entity" @click="navPrevEntity" />
+            <span class="text-[10px] text-muted tabular-nums">{{ entityIndex + 1 }}/{{ allEntities.length }}</span>
+            <UButton icon="i-lucide-chevron-right" size="xs" variant="ghost" color="neutral" :disabled="!hasNextEntity" aria-label="Next entity" @click="navNextEntity" />
+          </div>
         </div>
 
         <!-- Center: editorial indicator -->
         <div class="hidden md:flex items-center gap-3">
           <EntityEditorialIndicator
             :editorial-state="entity.editorial_state"
-            :translations="entity.translations"
             :version-semver="entity.version_semver"
             :release-stage="entity.release_stage"
-            :blocking-reasons="entity.editorial?.blockingReasons ?? []"
             :publish-ready="entity.editorial?.publishReady ?? false"
-            :health="healthFlags"
             :next-action="primaryTransition ? editorialStatusMeta(primaryTransition).label : null"
           />
         </div>
@@ -281,7 +304,8 @@ function selectEntity(e: MockEntity) {
       <div class="md:hidden px-4 pb-2">
         <EntityEditorialIndicator
           :editorial-state="entity.editorial_state"
-          :translation-coverage="coverage"
+          :version-semver="entity.version_semver"
+          :release-stage="entity.release_stage"
           compact
         />
       </div>
@@ -432,12 +456,13 @@ function selectEntity(e: MockEntity) {
 
           <!-- Card actions below -->
           <div class="mt-4 flex items-center justify-between">
-            <span class="text-xs text-muted">
-              #{{ entity.code }} · Last edited by {{ entity.updated_by }}
-            </span>
+            <div class="flex items-center gap-1.5">
+              <UAvatar :src="avatarUrl(entity.updated_by)" :alt="entity.updated_by" size="2xs" />
+              <span class="text-xs text-muted">#{{ entity.code }} · {{ entity.updated_by }} · {{ relativeTime(entity.modified_at) }}</span>
+            </div>
             <div class="flex gap-2">
               <UButton label="Save" icon="i-lucide-save" size="xs" aria-label="Save card changes" @click="toast.add({ title: 'Changes saved (mock)', color: 'success', icon: 'i-lucide-check' })" />
-              <UButton label="Preview" icon="i-lucide-eye" size="xs" variant="soft" color="neutral" aria-label="Preview card" @click="toast.add({ title: 'Preview mode (mock)', color: 'neutral', icon: 'i-lucide-eye' })" />
+              <UButton label="Preview" icon="i-lucide-eye" size="xs" variant="soft" color="neutral" aria-label="Preview card" @click="fullscreenPreview = true" />
             </div>
           </div>
         </div>
@@ -495,11 +520,17 @@ function selectEntity(e: MockEntity) {
             </UFormField>
 
             <UFormField label="Created">
-              <p class="text-xs text-muted">{{ new Date(entity.created_at).toLocaleDateString() }}</p>
+              <div class="flex items-center gap-1.5">
+                <UAvatar :src="avatarUrl(entity.created_by ?? entity.updated_by)" :alt="entity.created_by ?? entity.updated_by" size="2xs" />
+                <span class="text-xs text-muted">{{ entity.created_by ?? entity.updated_by }} · {{ relativeTime(entity.created_at) }}</span>
+              </div>
             </UFormField>
 
             <UFormField label="Last Modified">
-              <p class="text-xs text-muted">{{ new Date(entity.modified_at).toLocaleDateString() }} by {{ entity.updated_by }}</p>
+              <div class="flex items-center gap-1.5">
+                <UAvatar :src="avatarUrl(entity.updated_by)" :alt="entity.updated_by" size="2xs" />
+                <span class="text-xs text-muted">{{ entity.updated_by }} · {{ relativeTime(entity.modified_at) }}</span>
+              </div>
             </UFormField>
 
             <UFormField label="Active">
@@ -512,7 +543,7 @@ function selectEntity(e: MockEntity) {
             <div class="p-3 rounded-lg bg-muted/10 border border-default">
               <EntityEditorialIndicator
                 :editorial-state="entity.editorial_state"
-                :translations="entity.translations"
+                :version-semver="entity.version_semver"
                 compact
               />
             </div>
@@ -627,6 +658,27 @@ function selectEntity(e: MockEntity) {
                 </span>
               </div>
             </div>
+
+            <!-- Mini timeline -->
+            <div>
+              <p class="text-xs text-muted mb-2">Timeline</p>
+              <div class="space-y-0">
+                <div v-for="(event, idx) in miniTimeline" :key="idx" class="flex items-start gap-2 relative pl-4 pb-3">
+                  <div class="absolute left-0 top-1 w-2 h-2 rounded-full bg-muted/50" />
+                  <div v-if="idx < miniTimeline.length - 1" class="absolute left-[3px] top-3 w-0.5 h-full bg-muted/20" />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <UIcon :name="event.icon" class="text-[10px] text-muted shrink-0" />
+                      <span class="text-xs font-medium">{{ event.action }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 mt-0.5">
+                      <UAvatar :src="avatarUrl(event.by)" :alt="event.by" size="3xs" />
+                      <span class="text-[10px] text-muted">{{ event.by }} · {{ relativeTime(event.at) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Dependencies tab -->
@@ -712,8 +764,9 @@ function selectEntity(e: MockEntity) {
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
+                  <UAvatar :src="avatarUrl(fb.author)" :alt="fb.author" size="2xs" />
                   <span class="text-xs font-medium">{{ fb.author }}</span>
-                  <span class="text-[10px] text-muted">{{ new Date(fb.created_at).toLocaleDateString() }}</span>
+                  <span class="text-[10px] text-muted">{{ relativeTime(fb.created_at) }}</span>
                 </div>
                 <UBadge
                   :color="fb.status === 'open' ? 'warning' : 'success'"
@@ -741,6 +794,34 @@ function selectEntity(e: MockEntity) {
         </div>
       </aside>
     </div>
+
+    <!-- Fullscreen preview modal -->
+    <UModal v-model:open="fullscreenPreview" fullscreen role="dialog" aria-modal="true">
+      <template #body>
+        <div class="flex items-center justify-center min-h-[80vh] bg-black/5 p-8">
+          <div class="w-full max-w-sm">
+            <div class="rounded-2xl border-2 border-default bg-elevated shadow-2xl overflow-hidden">
+              <div v-if="cardImageUrl" class="w-full" style="aspect-ratio: 2 / 3;">
+                <img :src="cardImageUrl" :alt="currentFields.title" class="w-full h-full object-cover">
+              </div>
+              <div v-else class="w-full bg-muted/20 flex items-center justify-center" style="aspect-ratio: 2 / 3;">
+                <UIcon name="i-lucide-image" class="text-4xl text-muted" />
+              </div>
+              <div class="p-5 space-y-2">
+                <h2 class="text-xl font-bold">{{ currentFields.title }}</h2>
+                <p class="text-sm text-muted">{{ currentFields.subtitle }}</p>
+                <p class="text-sm leading-relaxed">{{ currentFields.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <div class="flex justify-center">
+          <UButton label="Close Preview" icon="i-lucide-x" variant="outline" @click="fullscreenPreview = false" />
+        </div>
+      </template>
+    </UModal>
 
     <!-- Integration notes (bottom) -->
     <div class="border-t border-default p-4 bg-muted/10">

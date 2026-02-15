@@ -28,27 +28,53 @@ import {
   translationCoverage,
   releaseStageDot,
   releaseStageLabel,
-  translationStatusDot,
+  avatarUrl,
+  relativeTime,
   type MockEntity,
 } from '~/components/sketches/mockData'
+import SketchCrossNav from '~/components/sketches/SketchCrossNav.vue'
 
 definePageMeta({ layout: 'default' })
 
+const toast = useToast()
 const UBadge = resolveComponent('UBadge')
+const UIcon = resolveComponent('UIcon')
+const UAvatar = resolveComponent('UAvatar')
 
 // --- Auth simulation ---
 const isAuthenticated = ref(true)
 
+// --- View mode ---
+type ViewMode = 'table' | 'grid'
+const viewMode = ref<ViewMode>('table')
+
 // --- Data ---
 const allEntities = ref(generateMockEntities(10))
+
+// --- Selection (batch) ---
+const selectedIds = ref<Set<number>>(new Set())
+const allSelected = computed(() => selectedIds.value.size === filteredEntities.value.length && filteredEntities.value.length > 0)
+function _toggleAll() {
+  if (allSelected.value) { selectedIds.value = new Set() }
+  else { selectedIds.value = new Set(filteredEntities.value.map(e => e.id)) }
+}
+function toggleOne(id: number) {
+  const s = new Set(selectedIds.value)
+  if (s.has(id)) s.delete(id); else s.add(id)
+  selectedIds.value = s
+}
+
+function batchAction(action: string) {
+  toast.add({ title: `${action}: ${selectedIds.value.size} entities`, color: 'neutral', icon: 'i-lucide-check' })
+  selectedIds.value = new Set()
+}
 
 // --- Filters ---
 const editorialFilter = ref<string | undefined>(undefined)
 const releaseStageFilter = ref<string | undefined>(undefined)
+const worldFilter = ref<string | undefined>(undefined)
 const missingFrOnly = ref(false)
 const hasBlockersOnly = ref(false)
-
-const UIcon = resolveComponent('UIcon')
 
 const editorialFilterOptions = [
   { label: 'All statuses', value: '' },
@@ -73,6 +99,12 @@ const releaseStageOptions = [
   { label: 'Revision', value: 'revision' },
 ]
 
+const worldFilterOptions = computed(() => {
+  const worlds = new Set<string>()
+  allEntities.value.forEach(e => { if (e.world) worlds.add(e.world.name) })
+  return [{ label: 'All worlds', value: '' }, { label: 'Base System', value: '__base__' }, ...Array.from(worlds).map(w => ({ label: w, value: w }))]
+})
+
 const filteredEntities = computed(() => {
   let items = allEntities.value
   if (editorialFilter.value) {
@@ -80,6 +112,10 @@ const filteredEntities = computed(() => {
   }
   if (releaseStageFilter.value) {
     items = items.filter(e => e.release_stage === releaseStageFilter.value)
+  }
+  if (worldFilter.value) {
+    if (worldFilter.value === '__base__') items = items.filter(e => !e.world)
+    else items = items.filter(e => e.world?.name === worldFilter.value)
   }
   if (missingFrOnly.value) {
     items = items.filter(e => {
@@ -93,40 +129,36 @@ const filteredEntities = computed(() => {
   return items
 })
 
+function thumbnailUrl(entity: MockEntity): string {
+  return entity.image ?? `https://picsum.photos/seed/${entity.code}${entity.id}/80/112`
+}
+
 // --- Table columns ---
 const columns: TableColumn<MockEntity>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
-    cell: ({ row }) => {
-      return h('div', { class: 'flex flex-col' }, [
-        h('span', { class: 'font-medium text-sm' }, row.original.name),
-        h('span', { class: 'text-xs text-muted' }, `#${row.original.code}`),
-      ])
-    },
-  },
-  {
-    accessorKey: 'entity_type',
-    header: 'Type',
-    cell: ({ row }) => {
-      return h(UBadge, {
-        color: 'neutral',
-        variant: 'outline',
-        size: 'xs',
-      }, () => row.original.entity_type)
-    },
-  },
-  {
-    id: 'version',
-    header: 'Version',
+    header: 'Entity',
     cell: ({ row }) => {
       const e = row.original
-      if (!e.version_semver) return h('span', { class: 'text-xs text-muted italic' }, '—')
-      const dotClass = releaseStageDot(e.release_stage)
-      const stageLabel = releaseStageLabel(e.release_stage)
-      return h('div', { class: 'flex items-center gap-1.5', title: `${e.version_semver} (${stageLabel})` }, [
-        h(UBadge, { color: 'neutral', variant: 'outline', size: 'xs' }, () => `v${e.version_semver}`),
-        h('span', { class: `inline-block w-2 h-2 rounded-full shrink-0 ${dotClass}`, 'aria-label': stageLabel }),
+      return h('div', { class: 'flex items-center gap-2.5' }, [
+        h('img', { src: thumbnailUrl(e), alt: e.name, class: 'w-8 h-11 rounded object-cover shrink-0 bg-muted/20', loading: 'lazy' }),
+        h('div', { class: 'min-w-0' }, [
+          h('div', { class: 'flex items-center gap-1.5' }, [
+            h('span', { class: 'font-medium text-sm truncate' }, e.name),
+            e.version_semver
+              ? h('span', { class: 'text-[10px] text-muted tabular-nums shrink-0' }, `v${e.version_semver}`)
+              : null,
+            e.release_stage
+              ? h('span', { class: `inline-block w-1.5 h-1.5 rounded-full shrink-0 ${releaseStageDot(e.release_stage)}`, title: releaseStageLabel(e.release_stage) })
+              : null,
+          ]),
+          h('div', { class: 'flex items-center gap-1.5 mt-0.5' }, [
+            h(UBadge, { color: 'neutral', variant: 'outline', size: 'xs' }, () => e.entity_type),
+            e.world
+              ? h(UBadge, { color: 'primary', variant: 'subtle', size: 'xs', icon: 'i-lucide-globe' }, () => e.world!.name)
+              : h(UBadge, { color: 'neutral', variant: 'subtle', size: 'xs' }, () => 'Base System'),
+          ]),
+        ]),
       ])
     },
   },
@@ -171,38 +203,34 @@ const columns: TableColumn<MockEntity>[] = [
       const translations = row.original.translations
       const cov = translationCoverage(translations)
       return h('div', {
-        class: 'flex items-center gap-1',
+        class: 'flex items-center gap-2',
         'aria-label': cov.missing.length
           ? `${cov.label} translations. Missing: ${cov.missing.join(', ')}`
           : `${cov.label} translations complete`,
-      }, translations.map(t => {
-        const dotInfo = translationStatusDot(t.status)
-        const tooltipText = t.has_translation && !t.is_fallback
-          ? `${t.lang.toUpperCase()}: ${dotInfo.label}${t.updated_by ? ` · ${t.updated_by}` : ''}`
-          : `${t.lang.toUpperCase()}: missing (fallback)`
-        return h('span', {
-          class: 'flex items-center gap-0.5',
-          title: tooltipText,
-        }, [
-          h('span', { class: `inline-block w-1.5 h-1.5 rounded-full ${dotInfo.dot}` }),
-          h('span', { class: 'text-[10px] text-muted' }, t.lang.toUpperCase()),
-        ])
-      }))
+      }, [
+        h('span', { class: 'text-xs text-muted tabular-nums' }, cov.label),
+        ...translations.map(t => {
+          const complete = t.has_translation && !t.is_fallback
+          return h('span', {
+            class: `text-[10px] font-medium ${complete ? 'text-emerald-500' : 'text-muted/40'}`,
+            title: complete ? `${t.lang.toUpperCase()}: OK` : `${t.lang.toUpperCase()}: missing`,
+          }, t.lang.toUpperCase())
+        }),
+      ])
     },
   },
   {
-    accessorKey: 'updated_by',
-    header: 'Updated By',
-    cell: ({ row }) => {
-      return h('span', { class: 'text-sm' }, row.original.updated_by)
-    },
-  },
-  {
-    accessorKey: 'modified_at',
+    id: 'updated',
     header: 'Updated',
     cell: ({ row }) => {
-      const d = new Date(row.original.modified_at)
-      return h('span', { class: 'text-xs text-muted tabular-nums' }, d.toLocaleDateString('en', { month: 'short', day: 'numeric' }))
+      const e = row.original
+      return h('div', { class: 'flex items-center gap-1.5' }, [
+        h(UAvatar, { src: avatarUrl(e.updated_by), alt: e.updated_by, size: 'xs' }),
+        h('div', { class: 'min-w-0' }, [
+          h('span', { class: 'text-xs font-medium truncate block' }, e.updated_by),
+          h('span', { class: 'text-[10px] text-muted tabular-nums' }, relativeTime(e.modified_at)),
+        ]),
+      ])
     },
   },
 ]
@@ -223,186 +251,210 @@ const stats = computed(() => {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-8">
+  <div class="min-h-screen bg-default flex flex-col">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div>
-        <div class="flex items-center gap-2">
-          <NuxtLink
-            to="/sketches"
-            class="text-muted hover:text-primary transition-colors"
-            aria-label="Back to sketches"
-          >
+    <header class="sticky top-0 z-30 border-b border-default bg-default/95 backdrop-blur-sm">
+      <div class="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
+        <div class="flex items-center gap-3">
+          <NuxtLink to="/sketches" class="text-muted hover:text-primary transition-colors" aria-label="Back to sketches">
             <UIcon name="i-lucide-arrow-left" />
           </NuxtLink>
-          <h1 class="text-xl font-bold tracking-tight">
-            Editorial List
-          </h1>
-          <UBadge color="error" variant="subtle" size="xs">
-            POC
-          </UBadge>
+          <h1 class="text-lg font-bold tracking-tight">Editorial List</h1>
+          <UBadge color="error" variant="subtle" size="xs">POC</UBadge>
         </div>
-        <p class="text-xs text-muted mt-1 ml-6">
-          Entity list with editorial_state visibility, translation coverage, and editorial filters.
-        </p>
-      </div>
 
-      <!-- Auth toggle -->
-      <div class="flex items-center gap-2">
-        <USwitch
-          v-model="isAuthenticated"
-          :unchecked-icon="'i-lucide-lock'"
-          :checked-icon="'i-lucide-unlock'"
-          color="primary"
-          aria-label="Toggle authentication simulation"
-        />
-        <span class="text-xs font-medium" :class="isAuthenticated ? 'text-primary' : 'text-muted'">
-          {{ isAuthenticated ? 'Authenticated' : 'Guest' }}
-        </span>
+        <div class="flex items-center gap-3">
+          <!-- View mode toggle -->
+          <div class="flex items-center rounded-md border border-default overflow-hidden">
+            <button
+              class="px-2.5 py-1.5 text-xs transition-colors"
+              :class="viewMode === 'table' ? 'bg-primary text-white' : 'text-muted hover:text-primary'"
+              aria-label="Table view"
+              @click="viewMode = 'table'"
+            >
+              <UIcon name="i-lucide-table-2" />
+            </button>
+            <button
+              class="px-2.5 py-1.5 text-xs transition-colors"
+              :class="viewMode === 'grid' ? 'bg-primary text-white' : 'text-muted hover:text-primary'"
+              aria-label="Grid view"
+              @click="viewMode = 'grid'"
+            >
+              <UIcon name="i-lucide-layout-grid" />
+            </button>
+          </div>
+
+          <!-- Auth toggle -->
+          <div class="flex items-center gap-1.5">
+            <USwitch v-model="isAuthenticated" size="xs" color="primary" aria-label="Toggle authentication" />
+            <span class="text-[10px]" :class="isAuthenticated ? 'text-primary' : 'text-muted'">{{ isAuthenticated ? 'Auth' : 'Guest' }}</span>
+          </div>
+        </div>
       </div>
-    </div>
+    </header>
+
+    <!-- Cross-navigation -->
+    <SketchCrossNav current-view="list" />
 
     <!-- 401 state -->
-    <div v-if="!isAuthenticated" class="rounded-lg border border-default p-12 text-center">
-      <UIcon name="i-lucide-shield-alert" class="text-4xl text-error mb-3" />
-      <h2 class="text-lg font-semibold mb-1">
-        401 Not Authenticated
-      </h2>
-      <p class="text-sm text-muted mb-4">
-        Editorial data requires authentication. Please log in to access the entity list.
-      </p>
-      <UButton
-        label="Simulate Login"
-        icon="i-lucide-log-in"
-        @click="isAuthenticated = true"
-      />
+    <div v-if="!isAuthenticated" class="flex-1 flex items-center justify-center">
+      <div class="text-center p-12">
+        <UIcon name="i-lucide-shield-alert" class="text-4xl text-error mb-3" />
+        <h2 class="text-lg font-semibold mb-1">401 Not Authenticated</h2>
+        <p class="text-sm text-muted mb-4">Editorial data requires authentication.</p>
+        <UButton label="Simulate Login" icon="i-lucide-log-in" @click="isAuthenticated = true" />
+      </div>
     </div>
 
     <!-- Authenticated view -->
     <template v-else>
-      <!-- Quick stats -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div class="rounded-lg border border-default p-3">
-          <div class="text-xs text-muted mb-1">
-            Drafts
+      <div class="max-w-7xl mx-auto px-4 py-6 w-full flex-1">
+        <!-- Quick stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+          <div class="rounded-lg border border-default p-3">
+            <div class="text-[10px] text-muted uppercase tracking-wider mb-1">Drafts</div>
+            <div class="text-lg font-bold tabular-nums">{{ stats.drafts }}</div>
           </div>
-          <div class="text-lg font-bold tabular-nums">
-            {{ stats.drafts }}
+          <div class="rounded-lg border border-default p-3">
+            <div class="text-[10px] text-muted uppercase tracking-wider mb-1">In Review</div>
+            <div class="text-lg font-bold tabular-nums">{{ stats.inReview }}</div>
+          </div>
+          <div class="rounded-lg border border-default p-3">
+            <div class="text-[10px] text-muted uppercase tracking-wider mb-1">Published</div>
+            <div class="text-lg font-bold tabular-nums text-emerald-500">{{ stats.published }}</div>
+          </div>
+          <button
+            class="rounded-lg border p-3 text-left transition-colors"
+            :class="missingFrOnly ? 'border-warning bg-warning/5' : 'border-default hover:border-warning'"
+            @click="missingFrOnly = !missingFrOnly"
+          >
+            <div class="text-[10px] text-muted uppercase tracking-wider mb-1">Missing FR</div>
+            <div class="text-lg font-bold tabular-nums" :class="stats.missingFr > 0 ? 'text-warning' : ''">{{ stats.missingFr }}</div>
+          </button>
+          <button
+            class="rounded-lg border p-3 text-left transition-colors"
+            :class="hasBlockersOnly ? 'border-error bg-error/5' : 'border-default hover:border-error'"
+            @click="hasBlockersOnly = !hasBlockersOnly"
+          >
+            <div class="text-[10px] text-muted uppercase tracking-wider mb-1">Blocked</div>
+            <div class="text-lg font-bold tabular-nums" :class="stats.withBlockers > 0 ? 'text-error' : ''">{{ stats.withBlockers }}</div>
+          </button>
+        </div>
+
+        <!-- Filters bar -->
+        <div class="flex items-center gap-3 mb-4 flex-wrap">
+          <USelect v-model="editorialFilter" :items="editorialFilterOptions" placeholder="Status" icon="i-lucide-filter" class="w-44" size="sm" aria-label="Filter by status" />
+          <USelect v-model="releaseStageFilter" :items="releaseStageOptions" placeholder="Stage" icon="i-lucide-git-branch" class="w-36" size="sm" aria-label="Filter by stage" />
+          <USelect v-model="worldFilter" :items="worldFilterOptions" placeholder="World" icon="i-lucide-globe" class="w-40" size="sm" aria-label="Filter by world" />
+
+          <USwitch v-model="missingFrOnly" label="Missing FR" size="sm" color="warning" />
+          <USwitch v-model="hasBlockersOnly" label="Blocked" size="sm" color="error" />
+
+          <div class="ml-auto text-xs text-muted tabular-nums">
+            {{ filteredEntities.length }} of {{ allEntities.length }}
           </div>
         </div>
-        <div class="rounded-lg border border-default p-3">
-          <div class="text-xs text-muted mb-1">
-            In Review
-          </div>
-          <div class="text-lg font-bold tabular-nums">
-            {{ stats.inReview }}
-          </div>
+
+        <!-- Batch actions bar -->
+        <div v-if="selectedIds.size > 0" class="flex items-center gap-2 mb-4 p-2.5 rounded-lg border border-primary/30 bg-primary/5">
+          <UBadge color="primary" variant="soft" size="sm">{{ selectedIds.size }} selected</UBadge>
+          <UButton label="Change Status" icon="i-lucide-arrow-right-left" size="xs" variant="soft" @click="batchAction('Change status')" />
+          <UButton label="Bump Version" icon="i-lucide-arrow-up-circle" size="xs" variant="soft" @click="batchAction('Bump version')" />
+          <UButton label="Toggle Active" icon="i-lucide-toggle-left" size="xs" variant="soft" color="neutral" @click="batchAction('Toggle active')" />
+          <UButton label="Export" icon="i-lucide-download" size="xs" variant="soft" color="neutral" @click="batchAction('Export')" />
+          <UButton label="Clear" icon="i-lucide-x" size="xs" variant="ghost" color="neutral" class="ml-auto" @click="selectedIds = new Set()" />
         </div>
-        <div class="rounded-lg border border-default p-3">
-          <div class="text-xs text-muted mb-1">
-            Published
-          </div>
-          <div class="text-lg font-bold tabular-nums">
-            {{ stats.published }}
-          </div>
+
+        <!-- ===== TABLE VIEW ===== -->
+        <div v-if="viewMode === 'table'" class="rounded-lg border border-default divide-y divide-default">
+          <UTable
+            :data="filteredEntities"
+            :columns="columns"
+            class="w-full"
+            :ui="{
+              th: 'text-xs font-medium text-muted uppercase tracking-wider',
+              td: 'py-2.5',
+            }"
+          >
+            <template #empty>
+              <div class="text-center py-8">
+                <UIcon name="i-lucide-search-x" class="text-2xl text-muted mb-2" />
+                <p class="text-sm text-muted">No entities match the current filters.</p>
+                <UButton label="Clear filters" variant="ghost" size="xs" class="mt-2" @click="editorialFilter = undefined; releaseStageFilter = undefined; worldFilter = undefined; missingFrOnly = false; hasBlockersOnly = false" />
+              </div>
+            </template>
+          </UTable>
         </div>
-        <button
-          class="rounded-lg border p-3 text-left transition-colors"
-          :class="missingFrOnly ? 'border-warning bg-warning/5' : 'border-default hover:border-warning'"
-          :aria-pressed="missingFrOnly"
-          aria-label="Toggle filter: show only entities missing French translation"
-          @click="missingFrOnly = !missingFrOnly"
-        >
-          <div class="text-xs text-muted mb-1">
-            Missing FR
-          </div>
-          <div class="text-lg font-bold tabular-nums" :class="stats.missingFr > 0 ? 'text-warning' : ''">
-            {{ stats.missingFr }}
-          </div>
-        </button>
-      </div>
 
-      <!-- Filters bar -->
-      <div class="flex items-center gap-3 mb-4 flex-wrap">
-        <USelect
-          v-model="editorialFilter"
-          :items="editorialFilterOptions"
-          placeholder="Filter by editorial status"
-          icon="i-lucide-filter"
-          class="w-48"
-          size="sm"
-          aria-label="Filter by editorial status"
-        />
-
-        <USelect
-          v-model="releaseStageFilter"
-          :items="releaseStageOptions"
-          placeholder="Filter by stage"
-          icon="i-lucide-git-branch"
-          class="w-40"
-          size="sm"
-          aria-label="Filter by release stage"
-        />
-
-        <USwitch
-          v-model="missingFrOnly"
-          label="Missing FR only"
-          size="sm"
-          color="warning"
-          aria-label="Show only entities missing French translation"
-        />
-
-        <USwitch
-          v-model="hasBlockersOnly"
-          label="Has blockers"
-          size="sm"
-          color="error"
-          aria-label="Show only entities with blocking reasons"
-        />
-
-        <div class="ml-auto text-xs text-muted tabular-nums">
-          {{ filteredEntities.length }} of {{ allEntities.length }} entities
-        </div>
-      </div>
-
-      <!-- Table -->
-      <div class="rounded-lg border border-default divide-y divide-default">
-        <UTable
-          :data="filteredEntities"
-          :columns="columns"
-          class="w-full"
-          :ui="{
-            th: 'text-xs font-medium text-muted uppercase tracking-wider',
-            td: 'py-2.5',
-          }"
-        >
-          <template #empty>
-            <div class="text-center py-8">
-              <UIcon name="i-lucide-search-x" class="text-2xl text-muted mb-2" />
-              <p class="text-sm text-muted">
-                No entities match the current filters.
-              </p>
-              <UButton
-                label="Clear filters"
-                variant="ghost"
-                size="xs"
-                class="mt-2"
-                @click="editorialFilter = undefined; releaseStageFilter = undefined; missingFrOnly = false; hasBlockersOnly = false"
-              />
+        <!-- ===== GRID VIEW ===== -->
+        <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div
+            v-for="entity in filteredEntities"
+            :key="entity.id"
+            class="group rounded-xl border border-default overflow-hidden hover:border-primary/40 transition-all hover:shadow-lg cursor-pointer relative"
+            :class="{ 'ring-2 ring-primary': selectedIds.has(entity.id) }"
+            @click="toggleOne(entity.id)"
+          >
+            <!-- Card thumbnail -->
+            <div class="relative" style="aspect-ratio: 2 / 3;">
+              <img :src="thumbnailUrl(entity)" :alt="entity.name" class="w-full h-full object-cover" loading="lazy">
+              <!-- Status overlay -->
+              <div class="absolute top-2 left-2">
+                <UBadge
+                  :color="editorialStatusMeta(entity.status).color"
+                  :variant="editorialStatusMeta(entity.status).variant"
+                  size="xs"
+                  class="backdrop-blur-sm shadow-sm"
+                >
+                  {{ editorialStatusMeta(entity.status).label }}
+                </UBadge>
+              </div>
+              <!-- Version overlay -->
+              <div v-if="entity.version_semver" class="absolute top-2 right-2">
+                <div class="flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">
+                  <span class="text-[9px] text-white tabular-nums">v{{ entity.version_semver }}</span>
+                  <span :class="`inline-block w-1.5 h-1.5 rounded-full ${releaseStageDot(entity.release_stage)}`" />
+                </div>
+              </div>
+              <!-- Blockers overlay -->
+              <div v-if="(entity.editorial?.blockingReasons.length ?? 0) > 0" class="absolute bottom-2 right-2">
+                <div class="flex items-center gap-0.5 bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5 text-warning">
+                  <UIcon name="i-lucide-alert-triangle" class="text-[10px]" />
+                  <span class="text-[9px]">{{ entity.editorial!.blockingReasons.length }}</span>
+                </div>
+              </div>
             </div>
-          </template>
-        </UTable>
-      </div>
+            <!-- Card info -->
+            <div class="p-2.5 space-y-1.5">
+              <p class="text-xs font-semibold truncate">{{ entity.name }}</p>
+              <div class="flex items-center gap-1">
+                <UBadge color="neutral" variant="outline" size="xs">{{ entity.entity_type }}</UBadge>
+                <UBadge v-if="entity.world" color="primary" variant="subtle" size="xs">{{ entity.world.name }}</UBadge>
+                <UBadge v-else color="neutral" variant="subtle" size="xs">Base</UBadge>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <UAvatar :src="avatarUrl(entity.updated_by)" :alt="entity.updated_by" size="2xs" />
+                <span class="text-[10px] text-muted">{{ relativeTime(entity.modified_at) }}</span>
+              </div>
+            </div>
+          </div>
 
-      <!-- Integration notes -->
-      <div class="mt-6 p-4 rounded-lg bg-muted/30 border border-default">
-        <p class="text-xs text-muted leading-relaxed">
-          <strong>Integration:</strong> Replace <code class="text-xs">generateMockEntities()</code> with
-          <code class="text-xs">useEntity.ts</code> composable. The <code class="text-xs">editorial_state</code>
-          field is already present in API LIST responses (eager-loaded). Add columns to
-          <code class="text-xs">useManageColumns.ts</code> and filters to
-          <code class="text-xs">EntityFilters.vue</code>.
-        </p>
+          <!-- Empty state -->
+          <div v-if="!filteredEntities.length" class="col-span-full text-center py-16">
+            <UIcon name="i-lucide-search-x" class="text-2xl text-muted mb-2" />
+            <p class="text-sm text-muted">No entities match the current filters.</p>
+          </div>
+        </div>
+
+        <!-- Integration notes -->
+        <div class="mt-6 p-4 rounded-lg bg-muted/30 border border-default">
+          <p class="text-xs text-muted leading-relaxed">
+            <strong>Integration:</strong> Replace <code class="text-xs">generateMockEntities()</code> with
+            <code class="text-xs">useEntity.ts</code>. Add world filter from <code class="text-xs">/api/world</code>.
+            Batch actions via <code class="text-xs">useBulkActions</code> composable.
+            Grid view reuses card thumbnail from entity image field.
+          </p>
+        </div>
       </div>
     </template>
   </div>

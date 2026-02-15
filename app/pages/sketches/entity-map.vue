@@ -38,6 +38,7 @@ import {
   type EditorialStatus,
   type ReleaseStage,
 } from '~/components/sketches/mockData'
+import SketchCrossNav from '~/components/sketches/SketchCrossNav.vue'
 
 definePageMeta({ layout: 'default' })
 
@@ -240,6 +241,14 @@ function edgeDash(edge: GraphEdge): string {
   return 'none'
 }
 
+// --- Zoom controls ---
+const zoomLevel = ref(1)
+const MIN_ZOOM = 0.5
+const MAX_ZOOM = 2
+function zoomIn() { zoomLevel.value = Math.min(MAX_ZOOM, zoomLevel.value + 0.15) }
+function zoomOut() { zoomLevel.value = Math.max(MIN_ZOOM, zoomLevel.value - 0.15) }
+function zoomReset() { zoomLevel.value = 1 }
+
 // --- Entity type filter ---
 const entityTypeFilter = ref<string>('')
 const entityTypeOptions = [
@@ -325,13 +334,23 @@ const filteredEdges = computed(() =>
       </div>
     </header>
 
+    <SketchCrossNav current-view="" />
+
     <!-- Graph area -->
     <main class="flex-1 flex overflow-hidden">
       <!-- SVG graph -->
-      <div class="flex-1 overflow-auto flex items-center justify-center p-4">
+      <div class="flex-1 overflow-auto flex items-center justify-center p-4 relative">
+        <!-- Zoom controls -->
+        <div class="absolute top-4 right-4 z-10 flex flex-col gap-1">
+          <UButton icon="i-lucide-zoom-in" size="xs" variant="soft" color="neutral" aria-label="Zoom in" @click="zoomIn" />
+          <UButton icon="i-lucide-zoom-out" size="xs" variant="soft" color="neutral" aria-label="Zoom out" @click="zoomOut" />
+          <UButton icon="i-lucide-maximize-2" size="xs" variant="soft" color="neutral" aria-label="Reset zoom" @click="zoomReset" />
+          <span class="text-[9px] text-muted text-center tabular-nums">{{ Math.round(zoomLevel * 100) }}%</span>
+        </div>
         <svg
           :viewBox="`0 0 ${SVG_W} ${SVG_H}`"
-          class="w-full max-w-4xl"
+          class="max-w-4xl transition-transform duration-150"
+          :style="{ width: `${100 * zoomLevel}%` }"
           role="img"
           aria-label="Entity relationship graph"
         >
